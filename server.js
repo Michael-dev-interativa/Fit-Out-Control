@@ -267,7 +267,22 @@ function toJson(v) {
   }
 }
 
+// Healthcheck disponível em /health e /api/health
 app.get("/health", async (_req, res) => {
+  try {
+    if (!pool) {
+      return res.json({ status: "ok", db: { ok: false, message: "DATABASE_URL not set" } });
+    }
+    const result = await pool.query("SELECT 1 AS ok");
+    res.json({ status: "ok", db: { ok: true, value: result.rows[0].ok } });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const code = err && typeof err === 'object' && 'code' in err ? err.code : undefined;
+    res.status(500).json({ status: "error", error: msg, code });
+  }
+});
+
+app.get('/api/health', async (_req, res) => {
   try {
     if (!pool) {
       return res.json({ status: "ok", db: { ok: false, message: "DATABASE_URL not set" } });
