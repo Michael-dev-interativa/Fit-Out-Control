@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "server": "node server.js",
+    "start": "node server.js",
     "db:init": "node scripts/init-db.js"
   },
   "dependencies": {

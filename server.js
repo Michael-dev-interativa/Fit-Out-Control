@@ -11,7 +11,8 @@ import crypto from "crypto";
 dotenv.config();
 
 const app = express();
-app.use(cors());
+// CORS aberto provisório para facilitar o deploy (ajustar depois)
+app.use(cors({ origin: "*" }));
 app.use(express.json());
 
 
@@ -3253,9 +3254,9 @@ app.delete('/api/formularios-vistoria/:id', async (req, res) => {
   }
 });
 
-const port = Number(process.env.PORT ?? 3000);
-app.listen(port, () => {
-  console.log(`Server listening on http://localhost:${port}`);
+const PORT = Number(process.env.PORT ?? 3000);
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
 
 // ---- Usuarios ----
