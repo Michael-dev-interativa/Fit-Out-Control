@@ -1,4 +1,5 @@
 import { base44 } from './base44Client';
+import { apiUrl } from './config';
 
 // Integrações locais mínimas (remoção do Base44)
 
@@ -6,7 +7,7 @@ import { base44 } from './base44Client';
 export async function UploadFile({ file }) {
   const form = new FormData();
   form.append('file', file);
-  const r = await fetch('/api/upload', { method: 'POST', body: form });
+  const r = await fetch(apiUrl('/api/upload'), { method: 'POST', body: form });
   if (!r.ok) {
     let payload = null;
     try { payload = await r.json(); } catch { try { payload = await r.text(); } catch { payload = null; } }
