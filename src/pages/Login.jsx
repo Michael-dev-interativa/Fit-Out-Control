@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Auth, User, Empreendimento } from '@/api/entities';
+import { API_BASE } from '@/api/config';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,7 @@ export default function Login({ theme = 'light' }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
   const [error, setError] = useState(null);
   const [logoMode, setLogoMode] = useState('logo'); // 'logo' | 'greeting'
   const [greetingName, setGreetingName] = useState('');
@@ -194,6 +196,24 @@ export default function Login({ theme = 'light' }) {
                 >
                   {loading ? 'Entrando...' : 'Entrar'}
                 </Button>
+
+                {/* Debug info - toggle com Ctrl+D */}
+                <div className="text-xs text-white/60 text-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowDebug(!showDebug)}
+                    className="hover:text-white/90 transition-colors"
+                  >
+                    {showDebug ? '🔍 Ocultar Debug' : '🔍 Mostrar Debug'}
+                  </button>
+                  {showDebug && (
+                    <div className="mt-2 p-2 bg-black/40 rounded text-left space-y-1">
+                      <div><strong>API_BASE:</strong> {API_BASE}</div>
+                      <div><strong>VITE_API_URL:</strong> {import.meta.env.VITE_API_URL || '(não configurado)'}</div>
+                      <div><strong>Origin:</strong> {typeof window !== 'undefined' ? window.location.origin : 'N/A'}</div>
+                    </div>
+                  )}
+                </div>
               </form>
             </CardContent>
           </Card>
