@@ -1,7 +1,7 @@
 // Resolve base URL da API em tempo de build e runtime
 export const API_BASE = (() => {
   try {
-    const env = typeof import !== 'undefined' && typeof import.meta !== 'undefined' ? import.meta.env : undefined;
+    const env = (typeof import.meta !== 'undefined') ? import.meta.env : undefined;
     const fromEnv = env?.VITE_API_URL;
     if (fromEnv && String(fromEnv).trim() !== '') return String(fromEnv).replace(/\/$/, '');
     if (typeof window !== 'undefined') {
