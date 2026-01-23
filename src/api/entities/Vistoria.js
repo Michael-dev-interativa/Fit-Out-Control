@@ -1,6 +1,8 @@
+import { apiUrl } from '../config';
+
 export const Vistoria = {
   async create(data) {
-    const res = await fetch('/api/vistorias', {
+    const res = await fetch(apiUrl('/api/vistorias'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -9,7 +11,7 @@ export const Vistoria = {
     return res.json();
   },
   async get(id) {
-    const res = await fetch(`/api/vistorias/${id}`);
+    const res = await fetch(apiUrl(`/api/vistorias/${id}`));
     if (!res.ok) throw new Error(`GET vistoria ${id} failed`);
     return res.json();
   },
@@ -19,7 +21,7 @@ export const Vistoria = {
       if (v !== undefined && v !== null && v !== '') params.append(k, v);
     });
     if (order) params.append('order', order);
-    const res = await fetch(`/api/vistorias?${params.toString()}`);
+    const res = await fetch(apiUrl(`/api/vistorias?${params.toString()}`));
     if (!res.ok) throw new Error('LIST vistorias failed');
     return res.json();
   },

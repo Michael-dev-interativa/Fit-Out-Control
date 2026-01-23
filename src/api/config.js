@@ -1,19 +1,32 @@
 // Resolve base URL da API em tempo de build e runtime
-export const API_BASE = (() => {
-  try {
-    const env = (typeof import.meta !== 'undefined') ? import.meta.env : undefined;
-    const fromEnv = env?.VITE_API_URL;
-    if (fromEnv && String(fromEnv).trim() !== '') return String(fromEnv).replace(/\/$/, '');
-    if (typeof window !== 'undefined') {
-      const injected = window.__API_URL__ || window.API_URL;
-      if (injected) return String(injected).replace(/\/$/, '');
-      if (window.location && window.location.origin) return window.location.origin;
-    }
-    return 'http://localhost:3000';
-  } catch {
-    return 'http://localhost:3000';
+// Vite substitui import.meta.env.VITE_API_URL em build-time
+const getApiBase = () => {
+  // 1. Variável de ambiente (resolvida em build-time pelo Vite)
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) {
+    const cleaned = String(envUrl).trim().replace(/\/$/, '');
+    if (cleaned) return cleaned;
   }
-})();
+
+  // 2. Runtime injection (útil para Docker/containers)
+  if (typeof window !== 'undefined') {
+    const injected = window.__API_URL__ || window.API_URL;
+    if (injected) {
+      const cleaned = String(injected).trim().replace(/\/$/, '');
+      if (cleaned) return cleaned;
+    }
+
+    // 3. Origem atual (produção sem variável configurada)
+    if (window.location && window.location.origin) {
+      return window.location.origin;
+    }
+  }
+
+  // 4. Fallback local development
+  return 'http://localhost:3000';
+};
+
+export const API_BASE = getApiBase();
 
 export function apiUrl(path) {
   const p = path.startsWith('/') ? path : `/${path}`;

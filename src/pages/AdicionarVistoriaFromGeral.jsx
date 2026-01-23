@@ -15,7 +15,6 @@ import _ from 'lodash';
 export default function AdicionarVistoriaFromGeral() {
     const navigate = useNavigate();
     const location = useLocation();
-    
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [registrosGerais, setRegistrosGerais] = useState([]);
@@ -48,7 +47,7 @@ export default function AdicionarVistoriaFromGeral() {
             setDisciplinaPrefixMap(prefixMap);
 
             const existingItems = new Set(vistoriasExistentes.map(v => `${prefixMap[v.disciplina_vo]}.${v.numeracao}`));
-            
+
             const availableItems = geraisData.filter(g => {
                 const itemIdentifier = `${prefixMap[g.disciplina]}.${g.numeracao}`;
                 return !existingItems.has(itemIdentifier);
@@ -62,7 +61,7 @@ export default function AdicionarVistoriaFromGeral() {
             setLoading(false);
         }
     };
-    
+
     const filteredRegistros = useMemo(() => {
         if (disciplinaFilter === 'all') return registrosGerais;
         return registrosGerais.filter(r => r.disciplina === disciplinaFilter);
@@ -170,7 +169,7 @@ export default function AdicionarVistoriaFromGeral() {
                                             <h4 className="font-bold text-blue-600 mt-4 mb-2">{disciplina}</h4>
                                             {items.map(item => (
                                                 <div key={item.id} className="flex items-center p-3 border rounded-md hover:bg-gray-50">
-                                                    <Checkbox id={item.id} checked={selectedItems.has(item.id)} onCheckedChange={() => handleSelect(item.id)} className="mr-4"/>
+                                                    <Checkbox id={item.id} checked={selectedItems.has(item.id)} onCheckedChange={() => handleSelect(item.id)} className="mr-4" />
                                                     <Label htmlFor={item.id} className="flex-1 cursor-pointer">
                                                         <p className="font-medium">{`${disciplinaPrefixMap[item.disciplina] || '?'}.${item.numeracao || 0} - ${item.descricao_registro}`}</p>
                                                         <p className="text-xs text-gray-500">{item.emissao_registro}</p>
