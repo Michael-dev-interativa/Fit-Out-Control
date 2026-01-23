@@ -28,6 +28,15 @@ export default function Login({ theme = 'light' }) {
   const [slide, setSlide] = useState(0);
   const slideIntervalMs = 4500;
 
+  // Log automático da configuração de API
+  React.useEffect(() => {
+    console.log('========== API CONFIG DEBUG ==========');
+    console.log('API_BASE:', API_BASE);
+    console.log('VITE_API_URL:', import.meta.env.VITE_API_URL || '(NÃO CONFIGURADO)');
+    console.log('window.location.origin:', window.location.origin);
+    console.log('=====================================');
+  }, []);
+
   React.useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -198,11 +207,11 @@ export default function Login({ theme = 'light' }) {
                 </Button>
 
                 {/* Debug info - toggle com Ctrl+D */}
-                <div className="text-xs text-white/60 text-center">
+                <div className="text-xs text-center mt-4">
                   <button
                     type="button"
                     onClick={() => setShowDebug(!showDebug)}
-                    className="hover:text-white/90 transition-colors"
+                    className="px-4 py-2 bg-yellow-500/90 hover:bg-yellow-600 text-black font-bold rounded transition-colors shadow-lg"
                   >
                     {showDebug ? '🔍 Ocultar Debug' : '🔍 Mostrar Debug'}
                   </button>
