@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Auth, User, Empreendimento } from '@/api/entities';
-import { API_BASE } from '@/api/config';
+import { apiUrlAsync } from '@/api/config';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -30,11 +30,14 @@ export default function Login({ theme = 'light' }) {
 
   // Log automático da configuração de API
   React.useEffect(() => {
-    console.log('========== API CONFIG DEBUG ==========');
-    console.log('API_BASE:', API_BASE);
-    console.log('VITE_API_URL:', import.meta.env.VITE_API_URL || '(NÃO CONFIGURADO)');
-    console.log('window.location.origin:', window.location.origin);
-    console.log('=====================================');
+    (async () => {
+      const apiBase = (await apiUrlAsync('')).replace(/\/$/, '');
+      console.log('========== API CONFIG DEBUG ==========');
+      console.log('API_BASE:', apiBase);
+      console.log('VITE_API_URL:', import.meta.env.VITE_API_URL || '(NÃO CONFIGURADO)');
+      console.log('window.location.origin:', window.location.origin);
+      console.log('=====================================');
+    })();
   }, []);
 
   React.useEffect(() => {
