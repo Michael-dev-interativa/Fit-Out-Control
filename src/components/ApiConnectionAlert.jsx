@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
-import { API_BASE } from '@/api/config';
+import { apiUrlAsync } from '@/api/config';
 
 export default function ApiConnectionAlert() {
   const [status, setStatus] = useState('checking'); // checking, ok, error
@@ -9,11 +9,12 @@ export default function ApiConnectionAlert() {
 
   useEffect(() => {
     checkConnection();
+    // eslint-disable-next-line
   }, []);
 
   const checkConnection = async () => {
     try {
-      const healthUrl = `${API_BASE}/health`;
+      const healthUrl = await apiUrlAsync('/health');
       console.log('[Health Check] Tentando:', healthUrl);
 
       const response = await fetch(healthUrl, {
@@ -25,16 +26,21 @@ export default function ApiConnectionAlert() {
         const data = await response.json();
         console.log('[Health Check] Sucesso:', data);
         setStatus('ok');
-        setMessage(`Conectado ao backend: ${API_BASE}`);
+        setMessage(`Conectado ao backend: ${healthUrl.replace(/\/health$/, '')}`);
       } else {
         throw new Error(`Status ${response.status}`);
       }
     } catch (error) {
       console.error('[Health Check] Falhou:', error);
+      // Tenta mostrar a base da API mesmo em erro
+      let apiBase = '';
+      try {
+        apiBase = (await apiUrlAsync('')).replace(/\/$/, '');
+      } catch { }
       setStatus('error');
       setMessage(
         `❌ Backend não acessível!\n` +
-        `Tentando conectar em: ${API_BASE}\n\n` +
+        `Tentando conectar em: ${apiBase}\n\n` +
         `Possíveis causas:\n` +
         `• VITE_API_URL não configurada no Vercel\n` +
         `• Backend offline no Render\n` +
@@ -49,7 +55,7 @@ export default function ApiConnectionAlert() {
         <Loader2 className="h-4 w-4 animate-spin" />
         <AlertTitle>Verificando conexão...</AlertTitle>
         <AlertDescription className="text-xs">
-          Conectando ao backend em {API_BASE}
+          Conectando ao backend...
         </AlertDescription>
       </Alert>
     );
