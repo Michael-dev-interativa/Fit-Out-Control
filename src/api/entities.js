@@ -18,7 +18,12 @@ async function handleResponse(r, resource, action) {
   } catch {
     try { payload = await r.text(); } catch { payload = null; }
   }
-  console.error(`${action} ${resource} failed`, { status: r.status, payload });
+  console.error(`[API ERROR] ${action} ${resource} failed`, {
+    status: r.status,
+    url: r.url,
+    payload,
+    headers: Object.fromEntries(r.headers.entries())
+  });
   throw new Error(`${action} ${resource} failed`);
 }
 
@@ -26,7 +31,9 @@ const makeEntity = (resource) => ({
   async list(order) {
     const params = new URLSearchParams();
     if (order) params.append('order', order);
-    const r = await fetch(apiUrl(`/api/${resource}?${params.toString()}`), { headers: getAuthHeaders() });
+    const url = apiUrl(`/api/${resource}?${params.toString()}`);
+    console.log(`[API] LIST ${resource} -> ${url}`);
+    const r = await fetch(url, { headers: getAuthHeaders() });
     return handleResponse(r, resource, 'LIST');
   },
   async filter(criteria = {}, order) {

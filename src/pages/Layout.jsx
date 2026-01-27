@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Auth, User } from "@/api/entities";
+import ApiConnectionAlert from "@/components/ApiConnectionAlert";
 import {
   Building2,
   Home,
@@ -327,6 +328,7 @@ export default function Layout({ children }) {
   if (isAuthPage) {
     return (
       <main className="min-h-screen">
+        <ApiConnectionAlert />
         {children}
       </main>
     );
