@@ -1,5 +1,5 @@
 // Cliente local: wrappers que chamam nosso backend Express
-import { apiUrl } from './config';
+import { apiUrlAsync } from './config';
 function getAuthToken() {
   try { return localStorage.getItem('authToken') || localStorage.getItem('token') || null; } catch { return null; }
 }
@@ -31,7 +31,7 @@ const makeEntity = (resource) => ({
   async list(order) {
     const params = new URLSearchParams();
     if (order) params.append('order', order);
-    const url = apiUrl(`/api/${resource}?${params.toString()}`);
+    const url = await apiUrlAsync(`/api/${resource}?${params.toString()}`);
     console.log(`[API] LIST ${resource} -> ${url}`);
     const r = await fetch(url, { headers: getAuthHeaders() });
     return handleResponse(r, resource, 'LIST');
@@ -42,27 +42,32 @@ const makeEntity = (resource) => ({
       if (v !== undefined && v !== null && v !== '') params.append(k, v);
     });
     if (order) params.append('order', order);
-    const r = await fetch(apiUrl(`/api/${resource}?${params.toString()}`), { headers: getAuthHeaders() });
+    const url = await apiUrlAsync(`/api/${resource}?${params.toString()}`);
+    const r = await fetch(url, { headers: getAuthHeaders() });
     return handleResponse(r, resource, 'FILTER');
   },
   async get(id) {
-    const r = await fetch(apiUrl(`/api/${resource}/${id}`), { headers: getAuthHeaders() });
+    const url = await apiUrlAsync(`/api/${resource}/${id}`);
+    const r = await fetch(url, { headers: getAuthHeaders() });
     return handleResponse(r, resource, `GET ${id}`);
   },
   async create(data) {
-    const r = await fetch(apiUrl(`/api/${resource}`), {
+    const url = await apiUrlAsync(`/api/${resource}`);
+    const r = await fetch(url, {
       method: 'POST', headers: getAuthHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(data)
     });
     return handleResponse(r, resource, 'CREATE');
   },
   async update(id, data) {
-    const r = await fetch(apiUrl(`/api/${resource}/${id}`), {
+    const url = await apiUrlAsync(`/api/${resource}/${id}`);
+    const r = await fetch(url, {
       method: 'PUT', headers: getAuthHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(data)
     });
     return handleResponse(r, resource, `UPDATE ${id}`);
   },
   async delete(id) {
-    const r = await fetch(apiUrl(`/api/${resource}/${id}`), { method: 'DELETE', headers: getAuthHeaders() });
+    const url = await apiUrlAsync(`/api/${resource}/${id}`);
+    const r = await fetch(url, { method: 'DELETE', headers: getAuthHeaders() });
     return handleResponse(r, resource, `DELETE ${id}`);
   }
 });
@@ -93,11 +98,13 @@ export const Usuario = makeEntity('usuarios');
 // Vínculos de empreendimentos por usuário
 export const UsuarioEmpreendimentos = {
   async get(userId) {
-    const r = await fetch(apiUrl(`/api/usuarios/${userId}/empreendimentos`), { headers: getAuthHeaders() });
+    const url = await apiUrlAsync(`/api/usuarios/${userId}/empreendimentos`);
+    const r = await fetch(url, { headers: getAuthHeaders() });
     return handleResponse(r, `usuarios/${userId}/empreendimentos`, 'GET');
   },
   async set(userId, ids) {
-    const r = await fetch(apiUrl(`/api/usuarios/${userId}/empreendimentos`), {
+    const url = await apiUrlAsync(`/api/usuarios/${userId}/empreendimentos`);
+    const r = await fetch(url, {
       method: 'PUT',
       headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ ids: ids || [] })
@@ -122,8 +129,12 @@ export const User = {
   ...makeEntity('usuarios'),
   async me() {
     try {
-      let r = await fetch(apiUrl('/api/auth/me'), { headers: getAuthHeaders() });
-      if (!r.ok) r = await fetch(apiUrl('/api/usuarios/me'), { headers: getAuthHeaders() });
+      let url = await apiUrlAsync('/api/auth/me');
+      let r = await fetch(url, { headers: getAuthHeaders() });
+      if (!r.ok) {
+        url = await apiUrlAsync('/api/usuarios/me');
+        r = await fetch(url, { headers: getAuthHeaders() });
+      }
       if (!r.ok) {
         // Fallback: reconstruir usuário a partir do localStorage
         try {
@@ -162,7 +173,8 @@ export const User = {
 
 export const Auth = {
   async login(email, password) {
-    const r = await fetch(apiUrl('/api/auth/login'), {
+    const url = await apiUrlAsync('/api/auth/login');
+    const r = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
@@ -186,7 +198,8 @@ export const Auth = {
     return data;
   },
   async register(email, password, nome) {
-    const r = await fetch(apiUrl('/api/auth/register'), {
+    const url = await apiUrlAsync('/api/auth/register');
+    const r = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, nome })
