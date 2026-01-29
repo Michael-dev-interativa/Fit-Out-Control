@@ -1,7 +1,7 @@
+import { apiUrl } from '../config';
+
 export const RelatorioSemanal = {
   async get(id) {
-    import { apiUrl } from '../config';
-
     const res = await fetch(apiUrl(`/api/relatorios-semanais/${id}`));
     if (!res.ok) throw new Error(`GET relatorio ${id} failed`);
     return res.json();
