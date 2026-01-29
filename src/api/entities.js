@@ -1,5 +1,5 @@
 // Cliente local: wrappers que chamam nosso backend Express
-import { apiUrlAsync } from './config';
+import { apiUrl } from './config';
 function getAuthToken() {
   try { return localStorage.getItem('authToken') || localStorage.getItem('token') || null; } catch { return null; }
 }
@@ -31,7 +31,7 @@ const makeEntity = (resource) => ({
   async list(order) {
     const params = new URLSearchParams();
     if (order) params.append('order', order);
-    const url = await apiUrlAsync(`/api/${resource}?${params.toString()}`);
+    const url = apiUrl(`/api/${resource}?${params.toString()}`);
     console.log(`[API] LIST ${resource} -> ${url}`);
     const r = await fetch(url, { headers: getAuthHeaders() });
     return handleResponse(r, resource, 'LIST');
@@ -42,31 +42,31 @@ const makeEntity = (resource) => ({
       if (v !== undefined && v !== null && v !== '') params.append(k, v);
     });
     if (order) params.append('order', order);
-    const url = await apiUrlAsync(`/api/${resource}?${params.toString()}`);
+    const url = apiUrl(`/api/${resource}?${params.toString()}`);
     const r = await fetch(url, { headers: getAuthHeaders() });
     return handleResponse(r, resource, 'FILTER');
   },
   async get(id) {
-    const url = await apiUrlAsync(`/api/${resource}/${id}`);
+    const url = apiUrl(`/api/${resource}/${id}`);
     const r = await fetch(url, { headers: getAuthHeaders() });
     return handleResponse(r, resource, `GET ${id}`);
   },
   async create(data) {
-    const url = await apiUrlAsync(`/api/${resource}`);
+    const url = apiUrl(`/api/${resource}`);
     const r = await fetch(url, {
       method: 'POST', headers: getAuthHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(data)
     });
     return handleResponse(r, resource, 'CREATE');
   },
   async update(id, data) {
-    const url = await apiUrlAsync(`/api/${resource}/${id}`);
+    const url = apiUrl(`/api/${resource}/${id}`);
     const r = await fetch(url, {
       method: 'PUT', headers: getAuthHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(data)
     });
     return handleResponse(r, resource, `UPDATE ${id}`);
   },
   async delete(id) {
-    const url = await apiUrlAsync(`/api/${resource}/${id}`);
+    const url = apiUrl(`/api/${resource}/${id}`);
     const r = await fetch(url, { method: 'DELETE', headers: getAuthHeaders() });
     return handleResponse(r, resource, `DELETE ${id}`);
   }
@@ -98,12 +98,12 @@ export const Usuario = makeEntity('usuarios');
 // Vínculos de empreendimentos por usuário
 export const UsuarioEmpreendimentos = {
   async get(userId) {
-    const url = await apiUrlAsync(`/api/usuarios/${userId}/empreendimentos`);
+    const url = apiUrl(`/api/usuarios/${userId}/empreendimentos`);
     const r = await fetch(url, { headers: getAuthHeaders() });
     return handleResponse(r, `usuarios/${userId}/empreendimentos`, 'GET');
   },
   async set(userId, ids) {
-    const url = await apiUrlAsync(`/api/usuarios/${userId}/empreendimentos`);
+    const url = apiUrl(`/api/usuarios/${userId}/empreendimentos`);
     const r = await fetch(url, {
       method: 'PUT',
       headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -129,10 +129,10 @@ export const User = {
   ...makeEntity('usuarios'),
   async me() {
     try {
-      let url = await apiUrlAsync('/api/auth/me');
+      let url = apiUrl('/api/auth/me');
       let r = await fetch(url, { headers: getAuthHeaders() });
       if (!r.ok) {
-        url = await apiUrlAsync('/api/usuarios/me');
+        url = apiUrl('/api/usuarios/me');
         r = await fetch(url, { headers: getAuthHeaders() });
       }
       if (!r.ok) {
@@ -173,7 +173,7 @@ export const User = {
 
 export const Auth = {
   async login(email, password) {
-    const url = await apiUrlAsync('/api/auth/login');
+    const url = apiUrl('/api/auth/login');
     const r = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -198,7 +198,7 @@ export const Auth = {
     return data;
   },
   async register(email, password, nome) {
-    const url = await apiUrlAsync('/api/auth/register');
+    const url = apiUrl('/api/auth/register');
     const r = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
-import { apiUrlAsync } from '@/api/config';
+import { apiUrl } from '@/api/config';
 
 export default function ApiConnectionAlert() {
   const [status, setStatus] = useState('checking'); // checking, ok, error
@@ -14,7 +14,7 @@ export default function ApiConnectionAlert() {
 
   const checkConnection = async () => {
     try {
-      const healthUrl = await apiUrlAsync('/health');
+      const healthUrl = apiUrl('/health');
       console.log('[Health Check] Tentando:', healthUrl);
 
       const response = await fetch(healthUrl, {
@@ -35,7 +35,7 @@ export default function ApiConnectionAlert() {
       // Tenta mostrar a base da API mesmo em erro
       let apiBase = '';
       try {
-        apiBase = (await apiUrlAsync('')).replace(/\/$/, '');
+        apiBase = apiUrl('').replace(/\/$/, '');
       } catch { }
       setStatus('error');
       setMessage(
