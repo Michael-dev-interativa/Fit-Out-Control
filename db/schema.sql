@@ -967,3 +967,37 @@ CREATE INDEX IF NOT EXISTS idx_rdos_numero
   ON public.rdos (numero_relatorio);
 CREATE INDEX IF NOT EXISTS idx_rdos_status
   ON public.rdos (status_documento);
+
+-- Tabela: lista_documentos_report
+CREATE TABLE IF NOT EXISTS public.lista_documentos_report (
+  id BIGSERIAL PRIMARY KEY,
+  id_empreendimento BIGINT NOT NULL REFERENCES public.empreendimentos(id) ON DELETE CASCADE,
+  cliente TEXT,
+  empreendimento TEXT,
+  titulo TEXT,
+  numero_documento TEXT,
+  revisao TEXT,
+  data_aviso DATE,
+  documentos JSONB,              -- Lista de documentos [{codigo, rev, titulo, observacoes}]
+  assinaturas JSONB,             -- Assinaturas digitais [{parte, nome, assinatura_imagem}]
+  observacoes_gerais TEXT,
+  status_documento TEXT,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+DROP TRIGGER IF EXISTS lista_documentos_report_set_updated_at ON public.lista_documentos_report;
+CREATE TRIGGER lista_documentos_report_set_updated_at
+BEFORE UPDATE ON public.lista_documentos_report
+FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+-- Índices úteis
+CREATE INDEX IF NOT EXISTS idx_lista_documentos_report_empreendimento
+  ON public.lista_documentos_report (id_empreendimento);
+CREATE INDEX IF NOT EXISTS idx_lista_documentos_report_data
+  ON public.lista_documentos_report (data_aviso);
+CREATE INDEX IF NOT EXISTS idx_lista_documentos_report_numero
+  ON public.lista_documentos_report (numero_documento);
+CREATE INDEX IF NOT EXISTS idx_lista_documentos_report_status
+  ON public.lista_documentos_report (status_documento);
+

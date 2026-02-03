@@ -2605,6 +2605,151 @@ app.delete('/api/rdos/:id', async (req, res) => {
   }
 });
 
+// ---- Lista de Documentos Report ----
+function mapListaDocumentosReport(row) {
+  return {
+    id: row.id,
+    id_empreendimento: row.id_empreendimento,
+    cliente: row.cliente,
+    empreendimento: row.empreendimento,
+    titulo: row.titulo,
+    numero_documento: row.numero_documento,
+    revisao: row.revisao,
+    data_aviso: row.data_aviso,
+    documentos: row.documentos,
+    assinaturas: row.assinaturas,
+    observacoes_gerais: row.observacoes_gerais,
+    status_documento: row.status_documento,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+app.get('/api/lista-documentos-report', async (req, res) => {
+  try {
+    const p = requirePool();
+    const { id_empreendimento, order } = req.query;
+    const where = [];
+    const params = [];
+    if (id_empreendimento) { where.push('id_empreendimento = $' + (params.length + 1)); params.push(Number(id_empreendimento)); }
+    const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+    const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
+    const { rows } = await p.query(`SELECT * FROM public.lista_documentos_report ${whereClause} ${orderClause} `, params);
+    res.json(rows.map(mapListaDocumentosReport));
+  } catch (err) {
+    if (shouldReturnEmptyOnDbError(err)) {
+      return res.json([]);
+    }
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.get('/api/lista-documentos-report/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const { rows } = await p.query('SELECT * FROM public.lista_documentos_report WHERE id = $1', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapListaDocumentosReport(rows[0]));
+  } catch (err) {
+    if (shouldReturnEmptyOnDbError(err)) {
+      return res.status(404).json({ error: 'not_found' });
+    }
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.post('/api/lista-documentos-report', async (req, res) => {
+  try {
+    const p = requirePool();
+    const b = req.body || {};
+    const sql = `INSERT INTO public.lista_documentos_report(
+      id_empreendimento, cliente, empreendimento, titulo, numero_documento, revisao, data_aviso,
+      documentos, assinaturas, observacoes_gerais, status_documento
+    ) VALUES(
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+    ) RETURNING * `;
+    const params = [
+      b.id_empreendimento,
+      b.cliente ?? null,
+      b.empreendimento ?? null,
+      b.titulo ?? null,
+      b.numero_documento ?? null,
+      b.revisao ?? null,
+      normalizeDate(b.data_aviso) ?? null,
+      toJson(b.documentos),
+      toJson(b.assinaturas),
+      b.observacoes_gerais ?? null,
+      b.status_documento ?? null,
+    ];
+    const { rows } = await p.query(sql, params);
+    res.status(201).json(mapListaDocumentosReport(rows[0]));
+  } catch (err) {
+    if (shouldReturnEmptyOnDbError(err)) {
+      return res.status(500).json({ error: 'database_unavailable' });
+    }
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.put('/api/lista-documentos-report/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const b = req.body || {};
+    const sql = `UPDATE public.lista_documentos_report SET
+      id_empreendimento = COALESCE($1, id_empreendimento),
+      cliente = COALESCE($2, cliente),
+      empreendimento = COALESCE($3, empreendimento),
+      titulo = COALESCE($4, titulo),
+      numero_documento = COALESCE($5, numero_documento),
+      revisao = COALESCE($6, revisao),
+      data_aviso = COALESCE($7, data_aviso),
+      documentos = COALESCE($8, documentos),
+      assinaturas = COALESCE($9, assinaturas),
+      observacoes_gerais = COALESCE($10, observacoes_gerais),
+      status_documento = COALESCE($11, status_documento)
+    WHERE id = $12 RETURNING * `;
+    const params = [
+      b.id_empreendimento ?? null,
+      b.cliente ?? null,
+      b.empreendimento ?? null,
+      b.titulo ?? null,
+      b.numero_documento ?? null,
+      b.revisao ?? null,
+      normalizeDate(b.data_aviso) ?? null,
+      toJson(b.documentos),
+      toJson(b.assinaturas),
+      b.observacoes_gerais ?? null,
+      b.status_documento ?? null,
+      id,
+    ];
+    const { rows } = await p.query(sql, params);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapListaDocumentosReport(rows[0]));
+  } catch (err) {
+    if (shouldReturnEmptyOnDbError(err)) {
+      return res.status(404).json({ error: 'not_found' });
+    }
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.delete('/api/lista-documentos-report/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const { rowCount } = await p.query('DELETE FROM public.lista_documentos_report WHERE id = $1', [id]);
+    if (!rowCount) return res.status(404).json({ error: 'not_found' });
+    res.json({ ok: true });
+  } catch (err) {
+    if (shouldReturnEmptyOnDbError(err)) {
+      return res.status(404).json({ error: 'not_found' });
+    }
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
 // ---- Vistorias Terminalidade ----
 function mapTerminalidade(row) {
   return {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { RDO, Empreendimento } from '@/api/entities';
+import { ListaDocumentosReport, RDO, Empreendimento } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -121,7 +121,7 @@ export default function EditarListaDocumentosReport({ language: initialLanguage,
   const loadData = async () => {
     setLoading(true);
     try {
-      const docData = await RDO.get(documentoId);
+      const docData = await ListaDocumentosReport.get(documentoId);
       setFormData(docData);
       
       if (docData.id_empreendimento) {
@@ -141,7 +141,7 @@ export default function EditarListaDocumentosReport({ language: initialLanguage,
       console.log('📝 Atualizando documento com dados:', formData);
       console.log('📄 Documentos:', formData.documentos);
       console.log('✍️ Assinaturas:', formData.assinaturas);
-      await RDO.update(documentoId, formData);
+      await ListaDocumentosReport.update(documentoId, formData);
       navigate(createPageUrl(`EmpreendimentoListaDocumentosReport?empreendimentoId=${formData.id_empreendimento}`));
     } catch (error) {
       console.error("Erro ao salvar documento:", error);

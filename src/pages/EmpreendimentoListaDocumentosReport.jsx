@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { RDO, Empreendimento } from '@/api/entities';
+import { ListaDocumentosReport, RDO, Empreendimento } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -103,7 +103,7 @@ export default function EmpreendimentoListaDocumentosReport({ language: initialL
     try {
       const [empData, docsData] = await Promise.all([
         Empreendimento.get(empreendimentoId),
-        RDO.filter({ id_empreendimento: empreendimentoId }, '-created_date')
+        ListaDocumentosReport.filter({ id_empreendimento: empreendimentoId }, '-created_date')
       ]);
       
       setEmpreendimento(empData);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { RDO, Empreendimento } from '@/api/entities';
+import { ListaDocumentosReport, RDO, Empreendimento } from '@/api/entities';
 import { ArrowLeft, Loader2, AlertTriangle, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -341,7 +341,7 @@ export default function VisualizarListaDocumentosReport() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const docData = await RDO.get(documentoId);
+      const docData = await ListaDocumentosReport.get(documentoId);
       setDocumento(docData);
       
       if (docData.id_empreendimento) {

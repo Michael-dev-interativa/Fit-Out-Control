@@ -124,6 +124,7 @@ export const Execucao = makeEntity('execucoes');
 export const Atividade = makeEntity('atividades');
 export const DiarioDeObra = makeEntity('diarios-obra');
 export const RDO = makeEntity('rdos');
+export const ListaDocumentosReport = makeEntity('lista-documentos-report');
 
 // Auth local mínima
 export const User = {

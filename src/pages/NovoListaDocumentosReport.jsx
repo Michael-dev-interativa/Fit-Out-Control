@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { RDO, Empreendimento } from '@/api/entities';
+import { ListaDocumentosReport, RDO, Empreendimento } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -192,7 +192,7 @@ export default function NovoListaDocumentosReport({ language: initialLanguage, t
       console.log('📝 Salvando documento com dados:', formData);
       console.log('📄 Documentos:', formData.documentos);
       console.log('✍️ Assinaturas:', formData.assinaturas);
-      await RDO.create(formData);
+      await ListaDocumentosReport.create(formData);
       navigate(createPageUrl(`EmpreendimentoListaDocumentosReport?empreendimentoId=${empreendimentoId}`));
     } catch (error) {
       console.error("Erro ao salvar documento:", error);
