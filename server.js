@@ -1753,27 +1753,22 @@ app.delete('/api/inspecoes-sdai/:id', async (req, res) => {
 });
 
 app.put('/api/relatorios-semanais/:id', async (req, res) => {
-  try {
-    const p = requirePool();
-    const id = Number(req.params.id);
-    const b = req.body || {};
-    const sql = `UPDATE public.relatorios_semanais SET
-      id_empreendimento = COALESCE($1, id_empreendimento),
-      numero_relatorio = COALESCE($2, numero_relatorio),
-      nome_arquivo = COALESCE($3, nome_arquivo),
-      data_inicio_semana = COALESCE($4, data_inicio_semana),
-      data_fim_semana = COALESCE($5, data_fim_semana),
-      fisico_real_total = COALESCE($6, fisico_real_total),
-      efetivo = COALESCE($7, efetivo),
-      avanco_fisico_acumulado = COALESCE($8, avanco_fisico_acumulado),
-      avanco_financeiro_acumulado = COALESCE($9, avanco_financeiro_acumulado),
-      principais_atividades_semana = COALESCE($10, principais_atividades_semana),
-      atividades_proxima_semana_tabela = COALESCE($11, atividades_proxima_semana_tabela),
-      caminho_critico = COALESCE($12, caminho_critico),
-      impedimentos = COALESCE($13, impedimentos),
-      fotos = COALESCE($14, fotos),
-      vistos = COALESCE($15, vistos)
-    WHERE id = $16 RETURNING *`;
+  id_empreendimento = COALESCE($1, id_empreendimento),
+    numero_relatorio = COALESCE($2, numero_relatorio),
+    nome_arquivo = COALESCE($3, nome_arquivo),
+    data_inicio_semana = COALESCE($4, data_inicio_semana),
+    data_fim_semana = COALESCE($5, data_fim_semana),
+    fisico_real_total = COALESCE($6, fisico_real_total),
+    efetivo = COALESCE($7, efetivo),
+    avanco_fisico_acumulado = COALESCE($8, avanco_fisico_acumulado),
+    avanco_financeiro_acumulado = COALESCE($9, avanco_financeiro_acumulado),
+    principais_atividades_semana = COALESCE($10, principais_atividades_semana),
+    atividades_proxima_semana_tabela = COALESCE($11, atividades_proxima_semana_tabela),
+    caminho_critico = COALESCE($12, caminho_critico),
+    impedimentos = COALESCE($13, impedimentos),
+    fotos = COALESCE($14, fotos),
+    vistos = COALESCE($15, vistos)
+    WHERE id = $16 RETURNING * `;
     const params = [
       b.id_empreendimento ?? null, b.numero_relatorio ?? null, b.nome_arquivo ?? null, b.data_inicio_semana ?? null, b.data_fim_semana ?? null,
       b.fisico_real_total ?? null, b.efetivo ?? null, b.avanco_fisico_acumulado ?? null, b.avanco_financeiro_acumulado ?? null,
@@ -1850,7 +1845,7 @@ app.get('/api/kos-unidade', async (req, res) => {
     if (status) { where.push('status = $' + (params.length + 1)); params.push(String(status)); }
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
-    const { rows } = await p.query(`SELECT * FROM public.kos_unidade ${whereClause} ${orderClause}`, params);
+    const { rows } = await p.query(`SELECT * FROM public.kos_unidade ${ whereClause } ${ orderClause } `, params);
     res.json(rows.map(mapKO));
   } catch (err) {
     if (shouldReturnEmptyOnDbError(err)) return res.json([]);
@@ -1874,12 +1869,12 @@ app.post('/api/kos-unidade', async (req, res) => {
   try {
     const p = requirePool();
     const b = req.body || {};
-    const sql = `INSERT INTO public.kos_unidade (
+    const sql = `INSERT INTO public.kos_unidade(
       id_unidade, item_ko, descricao_ok, comentario_ko, replica_ko, treplica_ko,
       imagem_ko, comentario_im_ko, disciplina_ko, status, data_inclusao_ko, emissao_ko
-    ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
-    ) RETURNING *`;
+    ) VALUES(
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+    ) RETURNING * `;
     const params = [
       b.id_unidade, b.item_ko ?? null, b.descricao_ko ?? null, b.comentario_ko ?? null, b.replica_ko ?? null, b.treplica_ko ?? null,
       b.imagem_ko ?? null, b.comentario_im_ko ?? null, b.disciplina_ko ?? null, b.status ?? null, b.data_inclusao_ko ?? null, b.emissao_ko ?? null,
@@ -1897,19 +1892,19 @@ app.put('/api/kos-unidade/:id', async (req, res) => {
     const id = Number(req.params.id);
     const b = req.body || {};
     const sql = `UPDATE public.kos_unidade SET
-      id_unidade = COALESCE($1, id_unidade),
-      item_ko = COALESCE($2, item_ko),
-      descricao_ok = COALESCE($3, descricao_ok),
-      comentario_ko = COALESCE($4, comentario_ko),
-      replica_ko = COALESCE($5, replica_ko),
-      treplica_ko = COALESCE($6, treplica_ko),
-      imagem_ko = COALESCE($7, imagem_ko),
-      comentario_im_ko = COALESCE($8, comentario_im_ko),
-      disciplina_ko = COALESCE($9, disciplina_ko),
-      status = COALESCE($10, status),
-      data_inclusao_ko = COALESCE($11, data_inclusao_ko),
-      emissao_ko = COALESCE($12, emissao_ko)
-    WHERE id = $13 RETURNING *`;
+  id_unidade = COALESCE($1, id_unidade),
+    item_ko = COALESCE($2, item_ko),
+    descricao_ok = COALESCE($3, descricao_ok),
+    comentario_ko = COALESCE($4, comentario_ko),
+    replica_ko = COALESCE($5, replica_ko),
+    treplica_ko = COALESCE($6, treplica_ko),
+    imagem_ko = COALESCE($7, imagem_ko),
+    comentario_im_ko = COALESCE($8, comentario_im_ko),
+    disciplina_ko = COALESCE($9, disciplina_ko),
+    status = COALESCE($10, status),
+    data_inclusao_ko = COALESCE($11, data_inclusao_ko),
+    emissao_ko = COALESCE($12, emissao_ko)
+    WHERE id = $13 RETURNING * `;
     const params = [
       b.id_unidade ?? null, b.item_ko ?? null, b.descricao_ko ?? null, b.comentario_ko ?? null, b.replica_ko ?? null, b.treplica_ko ?? null,
       b.imagem_ko ?? null, b.comentario_im_ko ?? null, b.disciplina_ko ?? null, b.status ?? null, b.data_inclusao_ko ?? null, b.emissao_ko ?? null,
@@ -1966,7 +1961,7 @@ app.get('/api/vos-unidade', async (req, res) => {
     if (status) { where.push('status = $' + (params.length + 1)); params.push(String(status)); }
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
-    const { rows } = await p.query(`SELECT * FROM public.vos_unidade ${whereClause} ${orderClause}`, params);
+    const { rows } = await p.query(`SELECT * FROM public.vos_unidade ${ whereClause } ${ orderClause } `, params);
     res.json(rows.map(mapVO));
   } catch (err) {
     if (shouldReturnEmptyOnDbError(err)) return res.json([]);
@@ -2006,7 +2001,7 @@ app.get('/api/aps-unidade', async (req, res) => {
     if (status) { where.push('status = $' + (params.length + 1)); params.push(String(status)); }
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
-    const { rows } = await p.query(`SELECT * FROM public.aps_unidade ${whereClause} ${orderClause}`, params);
+    const { rows } = await p.query(`SELECT * FROM public.aps_unidade ${ whereClause } ${ orderClause } `, params);
     res.json(rows.map(mapAP));
   } catch (err) {
     if (shouldReturnEmptyOnDbError(err)) return res.json([]);
@@ -2030,12 +2025,12 @@ app.post('/api/aps-unidade', async (req, res) => {
   try {
     const p = requirePool();
     const b = req.body || {};
-    const sql = `INSERT INTO public.aps_unidade (
+    const sql = `INSERT INTO public.aps_unidade(
       id_unidade, id_anterior, item_ap, descricao_ap, comentario_ap, replica_ap, treplica_ap,
       imagem_ap, comentario_im_ap, disciplina_ap, status, data_inclusao_ap, emissao_ap
-    ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13
-    ) RETURNING *`;
+    ) VALUES(
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+    ) RETURNING * `;
     const params = [
       b.id_unidade, b.id_anterior ?? null, b.item_ap ?? null, b.descricao_ap ?? null, b.comentario_ap ?? null, b.replica_ap ?? null, b.treplica_ap ?? null,
       b.imagem_ap ?? null, b.comentario_im_ap ?? null, b.disciplina_ap ?? null, b.status ?? null, b.data_inclusao_ap ?? null, b.emissao_ap ?? null,
@@ -2053,20 +2048,20 @@ app.put('/api/aps-unidade/:id', async (req, res) => {
     const id = Number(req.params.id);
     const b = req.body || {};
     const sql = `UPDATE public.aps_unidade SET
-      id_unidade = COALESCE($1, id_unidade),
-      id_anterior = COALESCE($2, id_anterior),
-      item_ap = COALESCE($3, item_ap),
-      descricao_ap = COALESCE($4, descricao_ap),
-      comentario_ap = COALESCE($5, comentario_ap),
-      replica_ap = COALESCE($6, replica_ap),
-      treplica_ap = COALESCE($7, treplica_ap),
-      imagem_ap = COALESCE($8, imagem_ap),
-      comentario_im_ap = COALESCE($9, comentario_im_ap),
-      disciplina_ap = COALESCE($10, disciplina_ap),
-      status = COALESCE($11, status),
-      data_inclusao_ap = COALESCE($12, data_inclusao_ap),
-      emissao_ap = COALESCE($13, emissao_ap)
-    WHERE id = $14 RETURNING *`;
+  id_unidade = COALESCE($1, id_unidade),
+    id_anterior = COALESCE($2, id_anterior),
+    item_ap = COALESCE($3, item_ap),
+    descricao_ap = COALESCE($4, descricao_ap),
+    comentario_ap = COALESCE($5, comentario_ap),
+    replica_ap = COALESCE($6, replica_ap),
+    treplica_ap = COALESCE($7, treplica_ap),
+    imagem_ap = COALESCE($8, imagem_ap),
+    comentario_im_ap = COALESCE($9, comentario_im_ap),
+    disciplina_ap = COALESCE($10, disciplina_ap),
+    status = COALESCE($11, status),
+    data_inclusao_ap = COALESCE($12, data_inclusao_ap),
+    emissao_ap = COALESCE($13, emissao_ap)
+    WHERE id = $14 RETURNING * `;
     const params = [
       b.id_unidade ?? null, b.id_anterior ?? null, b.item_ap ?? null, b.descricao_ap ?? null, b.comentario_ap ?? null, b.replica_ap ?? null, b.treplica_ap ?? null,
       b.imagem_ap ?? null, b.comentario_im_ap ?? null, b.disciplina_ap ?? null, b.status ?? null, b.data_inclusao_ap ?? null, b.emissao_ap ?? null,
@@ -2108,12 +2103,12 @@ app.post('/api/vos-unidade', async (req, res) => {
   try {
     const p = requirePool();
     const b = req.body || {};
-    const sql = `INSERT INTO public.vos_unidade (
+    const sql = `INSERT INTO public.vos_unidade(
       id_unidade, item_vo, descricao_vo, comentario_vo, replica_vo, treplica_vo,
       imagem_vo, comentario_im_vo, disciplina_vo, status, data_inclusao_vo, emissao_vo
-    ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
-    ) RETURNING *`;
+    ) VALUES(
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+    ) RETURNING * `;
     const params = [
       b.id_unidade, b.item_vo ?? null, b.descricao_vo ?? null, b.comentario_vo ?? null, b.replica_vo ?? null, b.treplica_vo ?? null,
       b.imagem_vo ?? null, b.comentario_im_vo ?? null, b.disciplina_vo ?? null, b.status ?? null, b.data_inclusao_vo ?? null, b.emissao_vo ?? null,
@@ -2131,19 +2126,19 @@ app.put('/api/vos-unidade/:id', async (req, res) => {
     const id = Number(req.params.id);
     const b = req.body || {};
     const sql = `UPDATE public.vos_unidade SET
-      id_unidade = COALESCE($1, id_unidade),
-      item_vo = COALESCE($2, item_vo),
-      descricao_vo = COALESCE($3, descricao_vo),
-      comentario_vo = COALESCE($4, comentario_vo),
-      replica_vo = COALESCE($5, replica_vo),
-      treplica_vo = COALESCE($6, treplica_vo),
-      imagem_vo = COALESCE($7, imagem_vo),
-      comentario_im_vo = COALESCE($8, comentario_im_vo),
-      disciplina_vo = COALESCE($9, disciplina_vo),
-      status = COALESCE($10, status),
-      data_inclusao_vo = COALESCE($11, data_inclusao_vo),
-      emissao_vo = COALESCE($12, emissao_vo)
-    WHERE id = $13 RETURNING *`;
+  id_unidade = COALESCE($1, id_unidade),
+    item_vo = COALESCE($2, item_vo),
+    descricao_vo = COALESCE($3, descricao_vo),
+    comentario_vo = COALESCE($4, comentario_vo),
+    replica_vo = COALESCE($5, replica_vo),
+    treplica_vo = COALESCE($6, treplica_vo),
+    imagem_vo = COALESCE($7, imagem_vo),
+    comentario_im_vo = COALESCE($8, comentario_im_vo),
+    disciplina_vo = COALESCE($9, disciplina_vo),
+    status = COALESCE($10, status),
+    data_inclusao_vo = COALESCE($11, data_inclusao_vo),
+    emissao_vo = COALESCE($12, emissao_vo)
+    WHERE id = $13 RETURNING * `;
     const params = [
       b.id_unidade ?? null, b.item_vo ?? null, b.descricao_vo ?? null, b.comentario_vo ?? null, b.replica_vo ?? null, b.treplica_vo ?? null,
       b.imagem_vo ?? null, b.comentario_im_vo ?? null, b.disciplina_vo ?? null, b.status ?? null, b.data_inclusao_vo ?? null, b.emissao_vo ?? null,
@@ -2202,7 +2197,7 @@ app.get('/api/diarios-obra', async (req, res) => {
     if (id_unidade) { where.push('id_unidade = $' + (params.length + 1)); params.push(Number(id_unidade)); }
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
-    const { rows } = await p.query(`SELECT * FROM public.diarios_obra ${whereClause} ${orderClause}`, params);
+    const { rows } = await p.query(`SELECT * FROM public.diarios_obra ${ whereClause } ${ orderClause } `, params);
     if (rows.length === 0) {
       const { id_empreendimento, id_unidade } = req.query;
       let fallback = memory.diarios_obra || [];
@@ -2252,13 +2247,13 @@ app.post('/api/diarios-obra', async (req, res) => {
   try {
     const p = requirePool();
     const b = req.body || {};
-    const sql = `INSERT INTO public.diarios_obra (
+    const sql = `INSERT INTO public.diarios_obra(
       id_empreendimento, id_unidade, unidade_texto, nome_arquivo, numero_diario, data_diario,
       condicao_climatica, horas_paralisadas, periodo_trabalhado, efetivo, principais_atividades,
       ocorrencias_observacoes, fotos, vistos
-    ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14
-    ) RETURNING *`;
+    ) VALUES(
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+    ) RETURNING * `;
     const params = [
       b.id_empreendimento, b.id_unidade ?? null, b.unidade_texto ?? null, b.nome_arquivo ?? null, b.numero_diario ?? null, normalizeDate(b.data_diario) ?? null,
       b.condicao_climatica ?? null, b.horas_paralisadas ?? null, b.periodo_trabalhado ?? null, b.efetivo ?? null, b.principais_atividades ?? null,
@@ -2304,21 +2299,21 @@ app.put('/api/diarios-obra/:id', async (req, res) => {
     const id = Number(req.params.id);
     const b = req.body || {};
     const sql = `UPDATE public.diarios_obra SET
-      id_empreendimento = COALESCE($1, id_empreendimento),
-      id_unidade = COALESCE($2, id_unidade),
-      unidade_texto = COALESCE($3, unidade_texto),
-      nome_arquivo = COALESCE($4, nome_arquivo),
-      numero_diario = COALESCE($5, numero_diario),
-      data_diario = COALESCE($6, data_diario),
-      condicao_climatica = COALESCE($7, condicao_climatica),
-      horas_paralisadas = COALESCE($8, horas_paralisadas),
-      periodo_trabalhado = COALESCE($9, periodo_trabalhado),
-      efetivo = COALESCE($10, efetivo),
-      principais_atividades = COALESCE($11, principais_atividades),
-      ocorrencias_observacoes = COALESCE($12, ocorrencias_observacoes),
-      fotos = COALESCE($13, fotos),
-      vistos = COALESCE($14, vistos)
-    WHERE id = $15 RETURNING *`;
+  id_empreendimento = COALESCE($1, id_empreendimento),
+    id_unidade = COALESCE($2, id_unidade),
+    unidade_texto = COALESCE($3, unidade_texto),
+    nome_arquivo = COALESCE($4, nome_arquivo),
+    numero_diario = COALESCE($5, numero_diario),
+    data_diario = COALESCE($6, data_diario),
+    condicao_climatica = COALESCE($7, condicao_climatica),
+    horas_paralisadas = COALESCE($8, horas_paralisadas),
+    periodo_trabalhado = COALESCE($9, periodo_trabalhado),
+    efetivo = COALESCE($10, efetivo),
+    principais_atividades = COALESCE($11, principais_atividades),
+    ocorrencias_observacoes = COALESCE($12, ocorrencias_observacoes),
+    fotos = COALESCE($13, fotos),
+    vistos = COALESCE($14, vistos)
+    WHERE id = $15 RETURNING * `;
     const params = [
       b.id_empreendimento ?? null, b.id_unidade ?? null, b.unidade_texto ?? null, b.nome_arquivo ?? null, b.numero_diario ?? null, normalizeDate(b.data_diario) ?? null,
       b.condicao_climatica ?? null, b.horas_paralisadas ?? null, b.periodo_trabalhado ?? null, b.efetivo ?? null, b.principais_atividades ?? null,
@@ -2403,7 +2398,7 @@ app.get('/api/vistorias-terminalidade', async (req, res) => {
     if (id_empreendimento) { where.push('id_empreendimento = $' + (params.length + 1)); params.push(Number(id_empreendimento)); }
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
-    const { rows } = await p.query(`SELECT * FROM public.vistorias_terminalidade ${whereClause} ${orderClause}`, params);
+    const { rows } = await p.query(`SELECT * FROM public.vistorias_terminalidade ${ whereClause } ${ orderClause } `, params);
     res.json(rows.map(mapTerminalidade));
   } catch (err) {
     if (!shouldReturnEmptyOnDbError(err)) {
@@ -2433,12 +2428,12 @@ app.post('/api/vistorias-terminalidade', async (req, res) => {
   try {
     const p = requirePool();
     const b = req.body || {};
-    const sql = `INSERT INTO public.vistorias_terminalidade (
+    const sql = `INSERT INTO public.vistorias_terminalidade(
       id_empreendimento, data_vistoria, titulo_relatorio, subtitulo_relatorio,
       cliente, revisao, eng_obra, secoes, assinaturas
-    ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9
-    ) RETURNING *`;
+    ) VALUES(
+      $1, $2, $3, $4, $5, $6, $7, $8, $9
+    ) RETURNING * `;
     const params = [
       b.id_empreendimento, normalizeDate(b.data_vistoria) ?? null, b.titulo_relatorio ?? null, b.subtitulo_relatorio ?? null,
       b.cliente ?? null, b.revisao ?? null, b.eng_obra ?? null, toJson(b.secoes), toJson(b.assinaturas),
@@ -2478,16 +2473,16 @@ app.put('/api/vistorias-terminalidade/:id', async (req, res) => {
     const id = Number(req.params.id);
     const b = req.body || {};
     const sql = `UPDATE public.vistorias_terminalidade SET
-      id_empreendimento = COALESCE($1, id_empreendimento),
-      data_vistoria = COALESCE($2, data_vistoria),
-      titulo_relatorio = COALESCE($3, titulo_relatorio),
-      subtitulo_relatorio = COALESCE($4, subtitulo_relatorio),
-      cliente = COALESCE($5, cliente),
-      revisao = COALESCE($6, revisao),
-      eng_obra = COALESCE($7, eng_obra),
-      secoes = COALESCE($8, secoes),
-      assinaturas = COALESCE($9, assinaturas)
-    WHERE id = $10 RETURNING *`;
+  id_empreendimento = COALESCE($1, id_empreendimento),
+    data_vistoria = COALESCE($2, data_vistoria),
+    titulo_relatorio = COALESCE($3, titulo_relatorio),
+    subtitulo_relatorio = COALESCE($4, subtitulo_relatorio),
+    cliente = COALESCE($5, cliente),
+    revisao = COALESCE($6, revisao),
+    eng_obra = COALESCE($7, eng_obra),
+    secoes = COALESCE($8, secoes),
+    assinaturas = COALESCE($9, assinaturas)
+    WHERE id = $10 RETURNING * `;
     const params = [
       b.id_empreendimento ?? null, normalizeDate(b.data_vistoria) ?? null, b.titulo_relatorio ?? null, b.subtitulo_relatorio ?? null,
       b.cliente ?? null, b.revisao ?? null, b.eng_obra ?? null, toJson(b.secoes), toJson(b.assinaturas),
@@ -2570,7 +2565,7 @@ app.get('/api/relatorios-primeiros-servicos', async (req, res) => {
     if (id_empreendimento) { where.push('id_empreendimento = $' + (params.length + 1)); params.push(Number(id_empreendimento)); }
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
-    const { rows } = await p.query(`SELECT * FROM public.relatorios_primeiros_servicos ${whereClause} ${orderClause}`);
+    const { rows } = await p.query(`SELECT * FROM public.relatorios_primeiros_servicos ${ whereClause } ${ orderClause } `);
     res.json(rows.map(mapRPS));
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
@@ -2593,12 +2588,12 @@ app.post('/api/relatorios-primeiros-servicos', async (req, res) => {
   try {
     const p = requirePool();
     const b = req.body || {};
-    const sql = `INSERT INTO public.relatorios_primeiros_servicos (
+    const sql = `INSERT INTO public.relatorios_primeiros_servicos(
       id_empreendimento, cliente, local, solicitante, obra, disciplina, data_relatorio,
       assunto_relatorio, descricao_relatorio, fotos, status, comentarios_status, aprovacoes
-    ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13
-    ) RETURNING *`;
+    ) VALUES(
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+    ) RETURNING * `;
     const params = [
       b.id_empreendimento, b.cliente ?? null, b.local ?? null, b.solicitante ?? null, b.obra ?? null, b.disciplina ?? null, b.data_relatorio ?? null,
       b.assunto_relatorio ?? null, b.descricao_relatorio ?? null, b.fotos ?? null, b.status ?? null, b.comentarios_status ?? null, b.aprovacoes ?? null,
@@ -2616,20 +2611,20 @@ app.put('/api/relatorios-primeiros-servicos/:id', async (req, res) => {
     const id = Number(req.params.id);
     const b = req.body || {};
     const sql = `UPDATE public.relatorios_primeiros_servicos SET
-      id_empreendimento = COALESCE($1, id_empreendimento),
-      cliente = COALESCE($2, cliente),
-      local = COALESCE($3, local),
-      solicitante = COALESCE($4, solicitante),
-      obra = COALESCE($5, obra),
-      disciplina = COALESCE($6, disciplina),
-      data_relatorio = COALESCE($7, data_relatorio),
-      assunto_relatorio = COALESCE($8, assunto_relatorio),
-      descricao_relatorio = COALESCE($9, descricao_relatorio),
-      fotos = COALESCE($10, fotos),
-      status = COALESCE($11, status),
-      comentarios_status = COALESCE($12, comentarios_status),
-      aprovacoes = COALESCE($13, aprovacoes)
-    WHERE id = $14 RETURNING *`;
+  id_empreendimento = COALESCE($1, id_empreendimento),
+    cliente = COALESCE($2, cliente),
+    local = COALESCE($3, local),
+    solicitante = COALESCE($4, solicitante),
+    obra = COALESCE($5, obra),
+    disciplina = COALESCE($6, disciplina),
+    data_relatorio = COALESCE($7, data_relatorio),
+    assunto_relatorio = COALESCE($8, assunto_relatorio),
+    descricao_relatorio = COALESCE($9, descricao_relatorio),
+    fotos = COALESCE($10, fotos),
+    status = COALESCE($11, status),
+    comentarios_status = COALESCE($12, comentarios_status),
+    aprovacoes = COALESCE($13, aprovacoes)
+    WHERE id = $14 RETURNING * `;
     const params = [
       b.id_empreendimento ?? null, b.cliente ?? null, b.local ?? null, b.solicitante ?? null, b.obra ?? null, b.disciplina ?? null, b.data_relatorio ?? null,
       b.assunto_relatorio ?? null, b.descricao_relatorio ?? null, b.fotos ?? null, b.status ?? null, b.comentarios_status ?? null, b.aprovacoes ?? null,
@@ -2686,7 +2681,7 @@ app.get('/api/aprovacoes-amostra', async (req, res) => {
     if (id_empreendimento) { where.push('id_empreendimento = $' + (params.length + 1)); params.push(Number(id_empreendimento)); }
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
-    const sql = `SELECT * FROM public.aprovacoes_amostra ${whereClause} ${orderClause}`;
+    const sql = `SELECT * FROM public.aprovacoes_amostra ${ whereClause } ${ orderClause } `;
     const { rows } = await p.query(sql, params);
     res.json(rows.map(mapAmostraRow));
   } catch (err) {
@@ -2710,12 +2705,12 @@ app.post('/api/aprovacoes-amostra', async (req, res) => {
   try {
     const p = requirePool();
     const b = req.body || {};
-    const sql = `INSERT INTO public.aprovacoes_amostra (
+    const sql = `INSERT INTO public.aprovacoes_amostra(
       id_empreendimento, cliente, disciplina, local, obra, assunto_amostra, descricao_amostra,
       status, comentarios_status, aprovacoes, fotos, nome_arquivo, data_relatorio
-    ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13
-    ) RETURNING *`;
+    ) VALUES(
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+    ) RETURNING * `;
     const params = [
       b.id_empreendimento, b.cliente ?? null, b.disciplina ?? null, b.local ?? null, b.obra ?? null, b.assunto_amostra ?? null, b.descricao_amostra ?? null,
       b.status ?? null, b.comentarios_status ?? null, b.aprovacoes ?? null, b.fotos ?? null, b.nome_arquivo ?? null, b.data_relatorio ?? null,
@@ -2733,20 +2728,20 @@ app.put('/api/aprovacoes-amostra/:id', async (req, res) => {
     const id = Number(req.params.id);
     const b = req.body || {};
     const sql = `UPDATE public.aprovacoes_amostra SET
-      id_empreendimento = COALESCE($1, id_empreendimento),
-      cliente = COALESCE($2, cliente),
-      disciplina = COALESCE($3, disciplina),
-      local = COALESCE($4, local),
-      obra = COALESCE($5, obra),
-      assunto_amostra = COALESCE($6, assunto_amostra),
-      descricao_amostra = COALESCE($7, descricao_amostra),
-      status = COALESCE($8, status),
-      comentarios_status = COALESCE($9, comentarios_status),
-      aprovacoes = COALESCE($10, aprovacoes),
-      fotos = COALESCE($11, fotos),
-      nome_arquivo = COALESCE($12, nome_arquivo),
-      data_relatorio = COALESCE($13, data_relatorio)
-    WHERE id = $14 RETURNING *`;
+  id_empreendimento = COALESCE($1, id_empreendimento),
+    cliente = COALESCE($2, cliente),
+    disciplina = COALESCE($3, disciplina),
+    local = COALESCE($4, local),
+    obra = COALESCE($5, obra),
+    assunto_amostra = COALESCE($6, assunto_amostra),
+    descricao_amostra = COALESCE($7, descricao_amostra),
+    status = COALESCE($8, status),
+    comentarios_status = COALESCE($9, comentarios_status),
+    aprovacoes = COALESCE($10, aprovacoes),
+    fotos = COALESCE($11, fotos),
+    nome_arquivo = COALESCE($12, nome_arquivo),
+    data_relatorio = COALESCE($13, data_relatorio)
+    WHERE id = $14 RETURNING * `;
     const params = [
       b.id_empreendimento ?? null, b.cliente ?? null, b.disciplina ?? null, b.local ?? null, b.obra ?? null, b.assunto_amostra ?? null, b.descricao_amostra ?? null,
       b.status ?? null, b.comentarios_status ?? null, b.aprovacoes ?? null, b.fotos ?? null, b.nome_arquivo ?? null, b.data_relatorio ?? null,
@@ -2809,7 +2804,7 @@ app.get('/api/empreendimentos', async (req, res) => {
     if (nome_empreendimento) { where.push('nome_empreendimento ILIKE $' + (params.length + 1)); params.push('%' + String(nome_empreendimento) + '%'); }
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
-    const { rows } = await p.query(`SELECT * FROM public.empreendimentos ${whereClause} ${orderClause}`);
+    const { rows } = await p.query(`SELECT * FROM public.empreendimentos ${ whereClause } ${ orderClause } `);
     res.json(rows.map(mapEmpreendimentoRow));
   } catch (err) {
     if (shouldReturnEmptyOnDbError(err)) {
@@ -2848,13 +2843,13 @@ app.post('/api/empreendimentos', async (req, res) => {
     if (!b.nome_empreendimento && !b.nome) {
       return res.status(400).json({ error: 'missing_nome_empreendimento' });
     }
-    const sql = `INSERT INTO public.empreendimentos (
+    const sql = `INSERT INTO public.empreendimentos(
       nome_empreendimento, cli_empreendimento, endereco_empreendimento, foto_empreendimento, os_number, sigla_obra,
       data_inicio_contrato, termino_obra_previsto, data_sem_entrega, data_termino_contrato,
       valor_contratual, prazo_contratual_dias
-    ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
-    ) RETURNING *`;
+    ) VALUES(
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+    ) RETURNING * `;
     const nn = (v) => (v === '' || v === undefined || v === null ? null : v);
     const toNumber = (v) => {
       if (v === '' || v === undefined || v === null) return null;
@@ -2912,19 +2907,19 @@ app.put('/api/empreendimentos/:id', async (req, res) => {
     const id = Number(req.params.id);
     const b = req.body || {};
     const sql = `UPDATE public.empreendimentos SET
-      nome_empreendimento = COALESCE($1, nome_empreendimento),
-      cli_empreendimento = COALESCE($2, cli_empreendimento),
-      endereco_empreendimento = COALESCE($3, endereco_empreendimento),
-      foto_empreendimento = COALESCE($4, foto_empreendimento),
-      os_number = COALESCE($5, os_number),
-      sigla_obra = COALESCE($6, sigla_obra),
-      data_inicio_contrato = COALESCE($7, data_inicio_contrato),
-      termino_obra_previsto = COALESCE($8, termino_obra_previsto),
-      data_sem_entrega = COALESCE($9, data_sem_entrega),
-      data_termino_contrato = COALESCE($10, data_termino_contrato),
-      valor_contratual = COALESCE($11, valor_contratual),
-      prazo_contratual_dias = COALESCE($12, prazo_contratual_dias)
-    WHERE id = $13 RETURNING *`;
+  nome_empreendimento = COALESCE($1, nome_empreendimento),
+    cli_empreendimento = COALESCE($2, cli_empreendimento),
+    endereco_empreendimento = COALESCE($3, endereco_empreendimento),
+    foto_empreendimento = COALESCE($4, foto_empreendimento),
+    os_number = COALESCE($5, os_number),
+    sigla_obra = COALESCE($6, sigla_obra),
+    data_inicio_contrato = COALESCE($7, data_inicio_contrato),
+    termino_obra_previsto = COALESCE($8, termino_obra_previsto),
+    data_sem_entrega = COALESCE($9, data_sem_entrega),
+    data_termino_contrato = COALESCE($10, data_termino_contrato),
+    valor_contratual = COALESCE($11, valor_contratual),
+    prazo_contratual_dias = COALESCE($12, prazo_contratual_dias)
+    WHERE id = $13 RETURNING * `;
     const nn2 = (v) => (v === '' || v === undefined || v === null ? null : v);
     const params = [
       nn2(b.nome_empreendimento ?? b.nome),
@@ -2988,7 +2983,7 @@ app.get('/api/unidades-empreendimento', async (req, res) => {
     if (id_empreendimento) { where.push('id_empreendimento = $' + (params.length + 1)); params.push(Number(id_empreendimento)); }
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
-    const { rows } = await p.query(`SELECT * FROM public.unidades_empreendimento ${whereClause} ${orderClause}`, params);
+    const { rows } = await p.query(`SELECT * FROM public.unidades_empreendimento ${ whereClause } ${ orderClause } `, params);
     res.json(rows.map(mapUnidadeRow));
   } catch (err) {
     if (shouldReturnEmptyOnDbError(err)) {
@@ -3067,9 +3062,9 @@ app.post('/api/unidades-empreendimento', async (req, res) => {
       throw e;
     }
 
-    const sql = `INSERT INTO public.unidades_empreendimento (
+    const sql = `INSERT INTO public.unidades_empreendimento(
       id_empreendimento, unidade_empreendimento, cliente_unidade, metragem_unidade, escopo_unidade, contatos
-    ) VALUES ($1, $2, $3, $4, $5, $6::jsonb) RETURNING *`;
+    ) VALUES($1, $2, $3, $4, $5, $6:: jsonb) RETURNING * `;
     const params = [idEmp, nomeUnidade, cliente, metragem, escopo, toJson(contatos)];
     const { rows } = await p.query(sql, params);
     res.status(201).json(mapUnidadeRow(rows[0]));
@@ -3109,13 +3104,13 @@ app.put('/api/unidades-empreendimento/:id', async (req, res) => {
   try {
     const p = requirePool();
     const sql = `UPDATE public.unidades_empreendimento SET
-      id_empreendimento = COALESCE($1, id_empreendimento),
-      unidade_empreendimento = COALESCE($2, unidade_empreendimento),
-      cliente_unidade = COALESCE($3, cliente_unidade),
-      metragem_unidade = COALESCE($4, metragem_unidade),
-      escopo_unidade = COALESCE($5, escopo_unidade),
-      contatos = COALESCE($6::jsonb, contatos)
-    WHERE id = $7 RETURNING *`;
+  id_empreendimento = COALESCE($1, id_empreendimento),
+    unidade_empreendimento = COALESCE($2, unidade_empreendimento),
+    cliente_unidade = COALESCE($3, cliente_unidade),
+    metragem_unidade = COALESCE($4, metragem_unidade),
+    escopo_unidade = COALESCE($5, escopo_unidade),
+    contatos = COALESCE($6:: jsonb, contatos)
+    WHERE id = $7 RETURNING * `;
     const params = [
       b.id_empreendimento ?? b.empreendimento_id ?? null,
       b.unidade_empreendimento ?? b.nome_unidade ?? null,
@@ -3189,7 +3184,7 @@ app.get('/api/formularios-vistoria', async (req, res) => {
     if (status_formulario) { where.push('status_formulario = $' + (params.length + 1)); params.push(String(status_formulario)); }
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
-    const { rows } = await p.query(`SELECT * FROM public.formularios_vistoria ${whereClause} ${orderClause}`);
+    const { rows } = await p.query(`SELECT * FROM public.formularios_vistoria ${ whereClause } ${ orderClause } `);
     res.json(rows.map(mapFormularioRow));
   } catch (err) {
     if (shouldReturnEmptyOnDbError(err)) return res.json([]);
@@ -3213,11 +3208,11 @@ app.post('/api/formularios-vistoria', async (req, res) => {
   try {
     const p = requirePool();
     const b = req.body || {};
-    const sql = `INSERT INTO public.formularios_vistoria (
+    const sql = `INSERT INTO public.formularios_vistoria(
       nome_formulario, descricao_formulario, status_formulario, secoes
-    ) VALUES (
+    ) VALUES(
       $1, $2, $3, $4
-    ) RETURNING *`;
+    ) RETURNING * `;
     const params = [
       b.nome_formulario,
       b.descricao_formulario ?? null,
@@ -3237,11 +3232,11 @@ app.put('/api/formularios-vistoria/:id', async (req, res) => {
     const id = Number(req.params.id);
     const b = req.body || {};
     const sql = `UPDATE public.formularios_vistoria SET
-      nome_formulario = COALESCE($1, nome_formulario),
-      descricao_formulario = COALESCE($2, descricao_formulario),
-      status_formulario = COALESCE($3, status_formulario),
-      secoes = COALESCE($4, secoes)
-    WHERE id = $5 RETURNING *`;
+  nome_formulario = COALESCE($1, nome_formulario),
+    descricao_formulario = COALESCE($2, descricao_formulario),
+    status_formulario = COALESCE($3, status_formulario),
+    secoes = COALESCE($4, secoes)
+    WHERE id = $5 RETURNING * `;
     const params = [
       b.nome_formulario ?? null,
       b.descricao_formulario ?? null,
@@ -3271,7 +3266,7 @@ app.delete('/api/formularios-vistoria/:id', async (req, res) => {
 
 const PORT = Number(process.env.PORT ?? 3000);
 app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+  console.log(`Servidor rodando na porta ${ PORT } `);
 });
 
 // ---- Usuarios ----
@@ -3317,9 +3312,9 @@ app.get('/api/usuarios', async (req, res) => {
       const { search } = req.query;
       const where = [];
       const params = [];
-      if (search) { where.push('(email ILIKE $1 OR nome ILIKE $1)'); params.push(`%${String(search)}%`); }
+      if (search) { where.push('(email ILIKE $1 OR nome ILIKE $1)'); params.push(`% ${ String(search) }% `); }
       const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
-      const { rows } = await p.query(`SELECT id, email, nome, role, perfil_cliente, perfil, created_at, updated_at FROM public.usuarios ${whereClause} ORDER BY created_at DESC`, params);
+      const { rows } = await p.query(`SELECT id, email, nome, role, perfil_cliente, perfil, created_at, updated_at FROM public.usuarios ${ whereClause } ORDER BY created_at DESC`, params);
       if (rows.length === 0 && req.user) {
         // Fallback: sempre exibir o usuário atual na lista
         return res.json([mapUsuarioRow({
@@ -3446,11 +3441,11 @@ app.put('/api/usuarios/:id', async (req, res) => {
       let row;
       try {
         const sql = `UPDATE public.usuarios SET
-          nome = COALESCE($1, nome),
-          role = COALESCE($2, role),
-          perfil_cliente = COALESCE($3, perfil_cliente),
-          password_hash = COALESCE($4, password_hash),
-          perfil = COALESCE($5::jsonb, perfil)
+  nome = COALESCE($1, nome),
+    role = COALESCE($2, role),
+    perfil_cliente = COALESCE($3, perfil_cliente),
+    password_hash = COALESCE($4, password_hash),
+    perfil = COALESCE($5:: jsonb, perfil)
         WHERE id = $6 RETURNING id, email, nome, role, perfil_cliente, perfil, created_at, updated_at`;
         const params = [nome, role, perfil_cliente, newPwd ? hashPassword(newPwd) : null, toJson(perfil), id];
         const up = await p.query(sql, params);
@@ -3458,10 +3453,10 @@ app.put('/api/usuarios/:id', async (req, res) => {
         row = up.rows[0];
       } catch (errUp) {
         const sql2 = `UPDATE public.usuarios SET
-          nome = COALESCE($1, nome),
-          role = COALESCE($2, role),
-          password_hash = COALESCE($3, password_hash),
-          perfil = COALESCE($4::jsonb, perfil)
+  nome = COALESCE($1, nome),
+    role = COALESCE($2, role),
+    password_hash = COALESCE($3, password_hash),
+    perfil = COALESCE($4:: jsonb, perfil)
         WHERE id = $5 RETURNING id, email, nome, role, perfil, created_at, updated_at`;
         const params2 = [nome, role, newPwd ? hashPassword(newPwd) : null, toJson(perfil), id];
         const up2 = await p.query(sql2, params2);
@@ -3535,8 +3530,8 @@ app.put('/api/usuarios/:id/empreendimentos', async (req, res) => {
       try {
         await p.query('DELETE FROM public.usuarios_empreendimentos WHERE user_id = $1', [userId]);
         if (normIds.length) {
-          const values = normIds.map((_, i) => `($1, $${i + 2})`).join(',');
-          await p.query(`INSERT INTO public.usuarios_empreendimentos (user_id, empreendimento_id) VALUES ${values}`, [userId, ...normIds]);
+          const values = normIds.map((_, i) => `($1, $${ i + 2})`).join(',');
+          await p.query(`INSERT INTO public.usuarios_empreendimentos(user_id, empreendimento_id) VALUES ${ values } `, [userId, ...normIds]);
         }
         await p.query('COMMIT');
       } catch (e) {
@@ -3568,4 +3563,11 @@ app.get('/api/registros-gerais', (_req, res) => {
 
 app.get('/api/disciplinas-gerais', (_req, res) => {
   res.json([]);
+});
+
+// ---- Iniciar servidor ----
+// IMPORTANTE: app.listen() deve estar DEPOIS de todas as definições de rotas
+const PORT = Number(process.env.PORT ?? 3000);
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${ PORT } `);
 });
