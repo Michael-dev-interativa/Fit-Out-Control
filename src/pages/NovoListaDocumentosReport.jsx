@@ -189,7 +189,7 @@ export default function NovoListaDocumentosReport({ language: initialLanguage, t
   const handleSave = async () => {
     setSaving(true);
     try {
-      await ListaDocumentosReport.create(formData);
+      await RDO.create(formData);
       navigate(createPageUrl(`EmpreendimentoListaDocumentosReport?empreendimentoId=${empreendimentoId}`));
     } catch (error) {
       console.error("Erro ao salvar documento:", error);

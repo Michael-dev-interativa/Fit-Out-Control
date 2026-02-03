@@ -103,7 +103,7 @@ export default function EmpreendimentoListaDocumentosReport({ language: initialL
     try {
       const [empData, docsData] = await Promise.all([
         Empreendimento.get(empreendimentoId),
-        ListaDocumentosReport.filter({ id_empreendimento: empreendimentoId }, '-created_date')
+        RDO.filter({ id_empreendimento: empreendimentoId }, '-created_date')
       ]);
       
       setEmpreendimento(empData);

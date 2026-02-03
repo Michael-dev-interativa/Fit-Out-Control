@@ -121,7 +121,7 @@ export default function EditarListaDocumentosReport({ language: initialLanguage,
   const loadData = async () => {
     setLoading(true);
     try {
-      const docData = await ListaDocumentosReport.get(documentoId);
+      const docData = await RDO.get(documentoId);
       setFormData(docData);
       
       if (docData.id_empreendimento) {
@@ -138,7 +138,7 @@ export default function EditarListaDocumentosReport({ language: initialLanguage,
   const handleSave = async () => {
     setSaving(true);
     try {
-      await ListaDocumentosReport.update(documentoId, formData);
+      await RDO.update(documentoId, formData);
       navigate(createPageUrl(`EmpreendimentoListaDocumentosReport?empreendimentoId=${formData.id_empreendimento}`));
     } catch (error) {
       console.error("Erro ao salvar documento:", error);

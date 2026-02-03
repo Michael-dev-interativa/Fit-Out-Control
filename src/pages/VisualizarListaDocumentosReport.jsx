@@ -341,7 +341,7 @@ export default function VisualizarListaDocumentosReport() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const docData = await ListaDocumentosReport.get(documentoId);
+      const docData = await RDO.get(documentoId);
       setDocumento(docData);
       
       if (docData.id_empreendimento) {
