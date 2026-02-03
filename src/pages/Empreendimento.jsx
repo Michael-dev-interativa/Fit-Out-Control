@@ -366,9 +366,24 @@ export default function EmpreendimentoPage({ language: initialLanguage, theme: i
             {empreendimento.foto_empreendimento && (
               <div className="w-full">
                 <img
-                  src={empreendimento.foto_empreendimento}
+                  src={(() => {
+                    const fotoPath = empreendimento.foto_empreendimento;
+                    // Se for URL completa, usa direto
+                    if (fotoPath.startsWith('http')) {
+                      return fotoPath;
+                    }
+                    // Se for caminho local, constrói URL do backend
+                    const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                    const cleanPath = fotoPath.replace(/^\//, '');
+                    const finalPath = cleanPath.startsWith('uploads/') ? cleanPath : `uploads/${cleanPath}`;
+                    return `${apiBaseUrl}/${finalPath}`;
+                  })()}
                   alt={`Foto de ${empreendimento.nome_empreendimento}`}
                   className="rounded-lg shadow-lg w-full h-auto min-h-[400px] max-h-[600px] object-cover"
+                  onError={(e) => {
+                    console.error('❌ Erro ao carregar imagem:', empreendimento.foto_empreendimento);
+                    e.target.style.display = 'none';
+                  }}
                 />
               </div>
             )}

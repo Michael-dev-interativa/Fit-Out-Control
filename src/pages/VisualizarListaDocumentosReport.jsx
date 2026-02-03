@@ -39,12 +39,18 @@ const CoverPage = ({ documento, empreendimento }) => {
     if (fotoPath.startsWith('http')) {
       empreendimentoImageUrl = fotoPath;
     } 
-    // Se for caminho local (uploads/), constrói URL do backend
-    else if (fotoPath.startsWith('uploads/') || fotoPath.startsWith('/uploads/')) {
+    // Se for caminho local ou relativo, constrói URL do backend
+    else {
       const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      empreendimentoImageUrl = `${apiBaseUrl}/${fotoPath.replace(/^\//, '')}`;
+      // Remove barra inicial se existir e adiciona 'uploads/' se não começar com ela
+      const cleanPath = fotoPath.replace(/^\//, '');
+      const finalPath = cleanPath.startsWith('uploads/') ? cleanPath : `uploads/${cleanPath}`;
+      empreendimentoImageUrl = `${apiBaseUrl}/${finalPath}`;
     }
   }
+
+  console.log('📸 Empreendimento Image URL:', empreendimentoImageUrl);
+  console.log('📸 Foto original do empreendimento:', empreendimento?.foto_empreendimento);
 
   return (
     <div className="report-page relative w-full h-full bg-white font-sans overflow-hidden" style={{ margin: 0, padding: 5 }}>
