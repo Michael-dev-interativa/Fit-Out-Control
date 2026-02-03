@@ -944,6 +944,7 @@ CREATE TABLE IF NOT EXISTS public.rdos (
   equipes_campo JSONB,              -- Lista de equipes em campo
   atividades_realizadas JSONB,      -- Lista de atividades realizadas
   ocorrencias JSONB,                -- Lista de ocorrências
+  documentos JSONB,                 -- Lista de documentos
   fotos JSONB,                      -- Lista de fotos
   assinaturas JSONB,                -- Assinaturas digitais
   observacoes TEXT,                 -- Observações gerais

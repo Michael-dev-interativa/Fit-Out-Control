@@ -2434,6 +2434,7 @@ function mapRDO(row) {
     equipes_campo: row.equipes_campo,
     atividades_realizadas: row.atividades_realizadas,
     ocorrencias: row.ocorrencias,
+    documentos: row.documentos,
     fotos: row.fotos,
     assinaturas: row.assinaturas,
     observacoes: row.observacoes,
