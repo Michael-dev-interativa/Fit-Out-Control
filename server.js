@@ -2413,6 +2413,194 @@ app.delete('/api/diarios-obra/:id', async (req, res) => {
   }
 });
 
+// ---- RDO (Relatório Diário de Obra) ----
+function mapRDO(row) {
+  return {
+    id: row.id,
+    id_empreendimento: row.id_empreendimento,
+    tipo_documento: row.tipo_documento,
+    numero_relatorio: row.numero_relatorio,
+    data_relatorio: row.data_relatorio,
+    dia_semana: row.dia_semana,
+    obra_nome: row.obra_nome,
+    obra_local: row.obra_local,
+    contratada: row.contratada,
+    responsavel: row.responsavel,
+    contrato: row.contrato,
+    prazo_contratual: row.prazo_contratual,
+    prazo_decorrido: row.prazo_decorrido,
+    prazo_vencer: row.prazo_vencer,
+    condicao_climatica: row.condicao_climatica,
+    equipes_campo: row.equipes_campo,
+    atividades_realizadas: row.atividades_realizadas,
+    ocorrencias: row.ocorrencias,
+    fotos: row.fotos,
+    assinaturas: row.assinaturas,
+    observacoes: row.observacoes,
+    status_documento: row.status_documento,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+app.get('/api/rdos', async (req, res) => {
+  try {
+    const p = requirePool();
+    const { id_empreendimento, order } = req.query;
+    const where = [];
+    const params = [];
+    if (id_empreendimento) { where.push('id_empreendimento = $' + (params.length + 1)); params.push(Number(id_empreendimento)); }
+    const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+    const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
+    const { rows } = await p.query(`SELECT * FROM public.rdos ${whereClause} ${orderClause} `, params);
+    res.json(rows.map(mapRDO));
+  } catch (err) {
+    if (shouldReturnEmptyOnDbError(err)) {
+      return res.json([]);
+    }
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.get('/api/rdos/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const { rows } = await p.query('SELECT * FROM public.rdos WHERE id = $1', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapRDO(rows[0]));
+  } catch (err) {
+    if (shouldReturnEmptyOnDbError(err)) {
+      return res.status(404).json({ error: 'not_found' });
+    }
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.post('/api/rdos', async (req, res) => {
+  try {
+    const p = requirePool();
+    const b = req.body || {};
+    const sql = `INSERT INTO public.rdos(
+      id_empreendimento, tipo_documento, numero_relatorio, data_relatorio, dia_semana,
+      obra_nome, obra_local, contratada, responsavel, contrato,
+      prazo_contratual, prazo_decorrido, prazo_vencer,
+      condicao_climatica, equipes_campo, atividades_realizadas, ocorrencias,
+      fotos, assinaturas, observacoes, status_documento
+    ) VALUES(
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21
+    ) RETURNING * `;
+    const params = [
+      b.id_empreendimento,
+      b.tipo_documento ?? null,
+      b.numero_relatorio ?? null,
+      normalizeDate(b.data_relatorio) ?? null,
+      b.dia_semana ?? null,
+      b.obra_nome ?? null,
+      b.obra_local ?? null,
+      b.contratada ?? null,
+      b.responsavel ?? null,
+      b.contrato ?? null,
+      b.prazo_contratual ?? null,
+      b.prazo_decorrido ?? null,
+      b.prazo_vencer ?? null,
+      toJson(b.condicao_climatica),
+      toJson(b.equipes_campo),
+      toJson(b.atividades_realizadas),
+      toJson(b.ocorrencias),
+      toJson(b.fotos),
+      toJson(b.assinaturas),
+      b.observacoes ?? null,
+      b.status_documento ?? null,
+    ];
+    const { rows } = await p.query(sql, params);
+    res.status(201).json(mapRDO(rows[0]));
+  } catch (err) {
+    if (shouldReturnEmptyOnDbError(err)) {
+      return res.status(500).json({ error: 'database_unavailable' });
+    }
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.put('/api/rdos/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const b = req.body || {};
+    const sql = `UPDATE public.rdos SET
+      id_empreendimento = COALESCE($1, id_empreendimento),
+      tipo_documento = COALESCE($2, tipo_documento),
+      numero_relatorio = COALESCE($3, numero_relatorio),
+      data_relatorio = COALESCE($4, data_relatorio),
+      dia_semana = COALESCE($5, dia_semana),
+      obra_nome = COALESCE($6, obra_nome),
+      obra_local = COALESCE($7, obra_local),
+      contratada = COALESCE($8, contratada),
+      responsavel = COALESCE($9, responsavel),
+      contrato = COALESCE($10, contrato),
+      prazo_contratual = COALESCE($11, prazo_contratual),
+      prazo_decorrido = COALESCE($12, prazo_decorrido),
+      prazo_vencer = COALESCE($13, prazo_vencer),
+      condicao_climatica = COALESCE($14, condicao_climatica),
+      equipes_campo = COALESCE($15, equipes_campo),
+      atividades_realizadas = COALESCE($16, atividades_realizadas),
+      ocorrencias = COALESCE($17, ocorrencias),
+      fotos = COALESCE($18, fotos),
+      assinaturas = COALESCE($19, assinaturas),
+      observacoes = COALESCE($20, observacoes),
+      status_documento = COALESCE($21, status_documento)
+    WHERE id = $22 RETURNING * `;
+    const params = [
+      b.id_empreendimento ?? null,
+      b.tipo_documento ?? null,
+      b.numero_relatorio ?? null,
+      normalizeDate(b.data_relatorio) ?? null,
+      b.dia_semana ?? null,
+      b.obra_nome ?? null,
+      b.obra_local ?? null,
+      b.contratada ?? null,
+      b.responsavel ?? null,
+      b.contrato ?? null,
+      b.prazo_contratual ?? null,
+      b.prazo_decorrido ?? null,
+      b.prazo_vencer ?? null,
+      toJson(b.condicao_climatica),
+      toJson(b.equipes_campo),
+      toJson(b.atividades_realizadas),
+      toJson(b.ocorrencias),
+      toJson(b.fotos),
+      toJson(b.assinaturas),
+      b.observacoes ?? null,
+      b.status_documento ?? null,
+      id,
+    ];
+    const { rows } = await p.query(sql, params);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapRDO(rows[0]));
+  } catch (err) {
+    if (shouldReturnEmptyOnDbError(err)) {
+      return res.status(404).json({ error: 'not_found' });
+    }
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.delete('/api/rdos/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const { rowCount } = await p.query('DELETE FROM public.rdos WHERE id = $1', [id]);
+    if (!rowCount) return res.status(404).json({ error: 'not_found' });
+    res.json({ ok: true });
+  } catch (err) {
+    if (shouldReturnEmptyOnDbError(err)) {
+      return res.status(404).json({ error: 'not_found' });
+    }
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
 // ---- Vistorias Terminalidade ----
 function mapTerminalidade(row) {
   return {
@@ -2844,6 +3032,34 @@ app.get('/api/empreendimentos', async (req, res) => {
     const params = [];
     if (id) { where.push('id = $' + (params.length + 1)); params.push(Number(id)); }
     if (nome_empreendimento) { where.push('nome_empreendimento ILIKE $' + (params.length + 1)); params.push('%' + String(nome_empreendimento) + '%'); }
+
+    // Verificar permissões do usuário
+    const user = req.user;
+    const isAdmin = user && user.role === 'admin';
+
+    // Se não for admin, filtrar apenas empreendimentos vinculados ao usuário
+    if (!isAdmin && user && user.sub) {
+      const userId = user.sub;
+      try {
+        // Buscar empreendimentos vinculados ao usuário
+        const vinculos = await p.query('SELECT empreendimento_id FROM public.usuarios_empreendimentos WHERE user_id = $1', [userId]);
+        const empIds = vinculos.rows.map(r => r.empreendimento_id);
+
+        if (empIds.length === 0) {
+          // Usuário não tem empreendimentos vinculados
+          return res.json([]);
+        }
+
+        // Adicionar filtro de IDs vinculados
+        where.push('id = ANY($' + (params.length + 1) + ')');
+        params.push(empIds);
+      } catch (vincErr) {
+        // Se tabela de vínculos não existir, retornar vazio para não-admin
+        console.warn('Erro ao buscar vínculos de empreendimentos:', vincErr.message);
+        return res.json([]);
+      }
+    }
+
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
     const { rows } = await p.query(`SELECT * FROM public.empreendimentos ${whereClause} ${orderClause} `);

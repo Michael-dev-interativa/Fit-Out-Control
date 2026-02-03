@@ -176,6 +176,10 @@ import EmpreendimentoInspecaoEletrica from "./EmpreendimentoInspecaoEletrica";
 
 import VisualizarInspecaoEletrica from "./VisualizarInspecaoEletrica";
 
+import VisualizarListaDocumentos from "./VisualizarListaDocumentos";
+
+import EmpreendimentoListaDocumentos from "./EmpreendimentoListaDocumentos";
+
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import Login from "./Login.jsx";
 import Register from "./Register.jsx";
@@ -357,6 +361,10 @@ const PAGES = {
     EmpreendimentoInspecaoEletrica: EmpreendimentoInspecaoEletrica,
 
     VisualizarInspecaoEletrica: VisualizarInspecaoEletrica,
+
+    VisualizarListaDocumentos: VisualizarListaDocumentos,
+
+    EmpreendimentoListaDocumentos: EmpreendimentoListaDocumentos,
     Login: Login,
     Register: Register,
 
@@ -575,6 +583,10 @@ function PagesContent() {
                 <Route path="/EmpreendimentoInspecaoEletrica" element={<EmpreendimentoInspecaoEletrica />} />
 
                 <Route path="/VisualizarInspecaoEletrica" element={<VisualizarInspecaoEletrica />} />
+
+                <Route path="/VisualizarListaDocumentos" element={<VisualizarListaDocumentos />} />
+
+                <Route path="/EmpreendimentoListaDocumentos" element={<EmpreendimentoListaDocumentos />} />
 
             </Routes>
         </Layout>

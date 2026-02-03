@@ -924,4 +924,45 @@ CREATE INDEX IF NOT EXISTS idx_inspecoes_sdai_data
 CREATE INDEX IF NOT EXISTS idx_inspecoes_sdai_revisao
   ON public.inspecoes_sdai (revisao);
 
+-- Tabela: rdos (Relatório Diário de Obra)
+CREATE TABLE IF NOT EXISTS public.rdos (
+  id BIGSERIAL PRIMARY KEY,
+  id_empreendimento BIGINT NOT NULL REFERENCES public.empreendimentos(id) ON DELETE CASCADE,
+  tipo_documento TEXT,
+  numero_relatorio TEXT,
+  data_relatorio DATE,
+  dia_semana TEXT,
+  obra_nome TEXT,
+  obra_local TEXT,
+  contratada TEXT,
+  responsavel TEXT,
+  contrato TEXT,
+  prazo_contratual TEXT,
+  prazo_decorrido TEXT,
+  prazo_vencer TEXT,
+  condicao_climatica JSONB,        -- Lista de condições climáticas
+  equipes_campo JSONB,              -- Lista de equipes em campo
+  atividades_realizadas JSONB,      -- Lista de atividades realizadas
+  ocorrencias JSONB,                -- Lista de ocorrências
+  fotos JSONB,                      -- Lista de fotos
+  assinaturas JSONB,                -- Assinaturas digitais
+  observacoes TEXT,                 -- Observações gerais
+  status_documento TEXT,            -- Status do documento
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
 
+DROP TRIGGER IF EXISTS rdos_set_updated_at ON public.rdos;
+CREATE TRIGGER rdos_set_updated_at
+BEFORE UPDATE ON public.rdos
+FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+-- Índices úteis
+CREATE INDEX IF NOT EXISTS idx_rdos_empreendimento
+  ON public.rdos (id_empreendimento);
+CREATE INDEX IF NOT EXISTS idx_rdos_data
+  ON public.rdos (data_relatorio);
+CREATE INDEX IF NOT EXISTS idx_rdos_numero
+  ON public.rdos (numero_relatorio);
+CREATE INDEX IF NOT EXISTS idx_rdos_status
+  ON public.rdos (status_documento);
