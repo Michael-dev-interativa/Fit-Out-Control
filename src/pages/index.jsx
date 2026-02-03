@@ -184,6 +184,14 @@ import NovoRDO from "./NovoRDO";
 
 import EditarListaDocumentos from "./EditarListaDocumentos";
 
+import VisualizarListaDocumentosReport from "./VisualizarListaDocumentosReport";
+
+import NovoListaDocumentosReport from "./NovoListaDocumentosReport";
+
+import EmpreendimentoListaDocumentosReport from "./EmpreendimentoListaDocumentosReport";
+
+import EditarListaDocumentosReport from "./EditarListaDocumentosReport";
+
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import Login from "./Login.jsx";
 import Register from "./Register.jsx";
@@ -373,6 +381,14 @@ const PAGES = {
     NovoRDO: NovoRDO,
 
     EditarListaDocumentos: EditarListaDocumentos,
+
+    VisualizarListaDocumentosReport: VisualizarListaDocumentosReport,
+
+    NovoListaDocumentosReport: NovoListaDocumentosReport,
+
+    EmpreendimentoListaDocumentosReport: EmpreendimentoListaDocumentosReport,
+
+    EditarListaDocumentosReport: EditarListaDocumentosReport,
     Login: Login,
     Register: Register,
 
@@ -599,6 +615,14 @@ function PagesContent() {
                 <Route path="/NovoRDO" element={<NovoRDO />} />
 
                 <Route path="/EditarListaDocumentos" element={<EditarListaDocumentos />} />
+
+                <Route path="/VisualizarListaDocumentosReport" element={<VisualizarListaDocumentosReport />} />
+
+                <Route path="/NovoListaDocumentosReport" element={<NovoListaDocumentosReport />} />
+
+                <Route path="/EmpreendimentoListaDocumentosReport" element={<EmpreendimentoListaDocumentosReport />} />
+
+                <Route path="/EditarListaDocumentosReport" element={<EditarListaDocumentosReport />} />
 
             </Routes>
         </Layout>

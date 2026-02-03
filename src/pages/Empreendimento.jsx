@@ -78,6 +78,7 @@ const translations = {
     particularities: "Particularidades",
     dailyReport: "Diário de Obra",
     rdo: "RDO",
+    documentList: "Lista de Documentos",
     sampleApproval: "Aprovação de Amostras",
     terminalityInspection: "Vistoria de Terminalidade", // ADDED
     weeklyReport: "Relatório Semanal", // Added new translation
@@ -117,6 +118,7 @@ const translations = {
     particularities: "Particularities",
     dailyReport: "Daily Report", // Added new translation
     rdo: "RDO",
+    documentList: "Document List",
     sampleApproval: "Sample Approval", // Added new translation
     terminalityInspection: "Terminality Inspection", // ADDED
     weeklyReport: "Weekly Report", // Added new translation
@@ -431,6 +433,15 @@ export default function EmpreendimentoPage({ language: initialLanguage, theme: i
                   >
                     <FileText className="w-5 h-5" />
                     <span className="text-center leading-tight">{t.rdo}</span>
+                  </Button>
+                  {/* New Button for Document List */}
+                  <Button
+                    variant="outline"
+                    className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                    onClick={() => navigate(createPageUrl(`EmpreendimentoListaDocumentosReport?empreendimentoId=${empreendimentoId}`))}
+                  >
+                    <ClipboardList className="w-5 h-5" />
+                    <span className="text-center leading-tight">{t.documentList}</span>
                   </Button>
                   {/* New Button for Sample Approval */}
                   <Button
