@@ -151,7 +151,7 @@ export default function EmpreendimentoListaDocumentos({ language: initialLanguag
 
         <Button
           onClick={() => navigate(createPageUrl(`NovoRDO?empreendimentoId=${empreendimentoId}`))}
-          className="bg-blue-600 hover:bg-blue-700"
+          className="bg-blue-600 hover:bg-blue-700 text-white"
         >
           <Plus className="w-4 h-4 mr-2" />
           {t.newDocument}
