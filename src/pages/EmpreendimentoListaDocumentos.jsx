@@ -150,7 +150,7 @@ export default function EmpreendimentoListaDocumentos({ language: initialLanguag
         </Button>
 
         <Button
-          onClick={() => navigate(createPageUrl(`NovoListaDocumentos?empreendimentoId=${empreendimentoId}`))}
+          onClick={() => navigate(createPageUrl(`NovoRDO?empreendimentoId=${empreendimentoId}`))}
           className="bg-blue-600 hover:bg-blue-700"
         >
           <Plus className="w-4 h-4 mr-2" />
