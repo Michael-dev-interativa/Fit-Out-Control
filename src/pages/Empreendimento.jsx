@@ -77,6 +77,7 @@ const translations = {
     unitsTitle: 'Pavimentos do Empreendimento',
     particularities: "Particularidades",
     dailyReport: "Diário de Obra", // Added new translation
+    rdo: "RDO",
     sampleApproval: "Aprovação de Amostras", // Added new translation
     terminalityInspection: "Vistoria de Terminalidade", // ADDED
     weeklyReport: "Relatório Semanal", // Added new translation
@@ -115,6 +116,7 @@ const translations = {
     unitsTitle: 'Project Floors',
     particularities: "Particularities",
     dailyReport: "Daily Report", // Added new translation
+    rdo: "RDO",
     sampleApproval: "Sample Approval", // Added new translation
     terminalityInspection: "Terminality Inspection", // ADDED
     weeklyReport: "Weekly Report", // Added new translation
@@ -420,6 +422,15 @@ export default function EmpreendimentoPage({ language: initialLanguage, theme: i
                   >
                     <ClipboardCheck className="w-5 h-5" />
                     <span className="text-center leading-tight">{t.dailyReport}</span>
+                  </Button>
+                  {/* New Button for RDO */}
+                  <Button
+                    variant="outline"
+                    className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                    onClick={() => navigate(createPageUrl(`EmpreendimentoListaDocumentos?empreendimentoId=${empreendimentoId}`))}
+                  >
+                    <FileText className="w-5 h-5" />
+                    <span className="text-center leading-tight">{t.rdo}</span>
                   </Button>
                   {/* New Button for Sample Approval */}
                   <Button
