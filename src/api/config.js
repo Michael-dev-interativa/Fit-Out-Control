@@ -1,7 +1,6 @@
+// API Base URL resolver - centralizado para evitar erros de "not defined"
 
-
-// API Base URL resolver - logs detalhados para debug em produção
-export function apiUrl(path = "") {
+function getApiBase() {
   // Pega o VITE_API_URL do ambiente (injetado em build time)
   const envUrl = import.meta.env.VITE_API_URL;
 
@@ -19,17 +18,24 @@ export function apiUrl(path = "") {
     base = "http://localhost:3000";
   }
 
-  // Logs para debug (apenas em desenvolvimento ou primeira chamada)
-  if (typeof window !== "undefined" && !window.__apiConfigLogged) {
-    console.group("🔧 API Configuration");
-    console.log("VITE_API_URL:", envUrl || "(not set)");
-    console.log("window.__API_URL__:", typeof window !== "undefined" ? (window.__API_URL__ || "(not set)") : "N/A");
-    console.log("Resolved base:", base);
-    console.log("Environment:", import.meta.env.MODE);
-    console.groupEnd();
-    window.__apiConfigLogged = true;
-  }
+  return base;
+}
 
+// Exporta a constante API_BASE
+export const API_BASE = getApiBase();
+
+// Exporta a função apiUrl para construir URLs completas
+export function apiUrl(path = "") {
   const cleanPath = path.startsWith("/") ? path : "/" + path;
-  return `${base}${cleanPath}`;
+  return `${API_BASE}${cleanPath}`;
+}
+
+// Log único de configuração (apenas uma vez)
+if (!window.__apiConfigLogged) {
+  window.__apiConfigLogged = true;
+  console.group("📡 API Configuration");
+  console.log("VITE_API_URL:", import.meta.env.VITE_API_URL);
+  console.log("Resolved base:", API_BASE);
+  console.log("Environment:", import.meta.env.MODE);
+  console.groupEnd();
 }
