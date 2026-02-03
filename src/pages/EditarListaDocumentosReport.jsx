@@ -138,6 +138,9 @@ export default function EditarListaDocumentosReport({ language: initialLanguage,
   const handleSave = async () => {
     setSaving(true);
     try {
+      console.log('📝 Atualizando documento com dados:', formData);
+      console.log('📄 Documentos:', formData.documentos);
+      console.log('✍️ Assinaturas:', formData.assinaturas);
       await RDO.update(documentoId, formData);
       navigate(createPageUrl(`EmpreendimentoListaDocumentosReport?empreendimentoId=${formData.id_empreendimento}`));
     } catch (error) {

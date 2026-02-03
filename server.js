@@ -2487,9 +2487,9 @@ app.post('/api/rdos', async (req, res) => {
       obra_nome, obra_local, contratada, responsavel, contrato,
       prazo_contratual, prazo_decorrido, prazo_vencer,
       condicao_climatica, equipes_campo, atividades_realizadas, ocorrencias,
-      fotos, assinaturas, observacoes, status_documento
+      documentos, fotos, assinaturas, observacoes, status_documento
     ) VALUES(
-      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
     ) RETURNING * `;
     const params = [
       b.id_empreendimento,
@@ -2509,6 +2509,7 @@ app.post('/api/rdos', async (req, res) => {
       toJson(b.equipes_campo),
       toJson(b.atividades_realizadas),
       toJson(b.ocorrencias),
+      toJson(b.documentos),
       toJson(b.fotos),
       toJson(b.assinaturas),
       b.observacoes ?? null,
@@ -2547,11 +2548,12 @@ app.put('/api/rdos/:id', async (req, res) => {
       equipes_campo = COALESCE($15, equipes_campo),
       atividades_realizadas = COALESCE($16, atividades_realizadas),
       ocorrencias = COALESCE($17, ocorrencias),
-      fotos = COALESCE($18, fotos),
-      assinaturas = COALESCE($19, assinaturas),
-      observacoes = COALESCE($20, observacoes),
-      status_documento = COALESCE($21, status_documento)
-    WHERE id = $22 RETURNING * `;
+      documentos = COALESCE($18, documentos),
+      fotos = COALESCE($19, fotos),
+      assinaturas = COALESCE($20, assinaturas),
+      observacoes = COALESCE($21, observacoes),
+      status_documento = COALESCE($22, status_documento)
+    WHERE id = $23 RETURNING * `;
     const params = [
       b.id_empreendimento ?? null,
       b.tipo_documento ?? null,
@@ -2570,6 +2572,7 @@ app.put('/api/rdos/:id', async (req, res) => {
       toJson(b.equipes_campo),
       toJson(b.atividades_realizadas),
       toJson(b.ocorrencias),
+      toJson(b.documentos),
       toJson(b.fotos),
       toJson(b.assinaturas),
       b.observacoes ?? null,

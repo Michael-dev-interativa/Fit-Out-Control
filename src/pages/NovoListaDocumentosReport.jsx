@@ -189,6 +189,9 @@ export default function NovoListaDocumentosReport({ language: initialLanguage, t
   const handleSave = async () => {
     setSaving(true);
     try {
+      console.log('📝 Salvando documento com dados:', formData);
+      console.log('📄 Documentos:', formData.documentos);
+      console.log('✍️ Assinaturas:', formData.assinaturas);
       await RDO.create(formData);
       navigate(createPageUrl(`EmpreendimentoListaDocumentosReport?empreendimentoId=${empreendimentoId}`));
     } catch (error) {
