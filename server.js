@@ -1753,22 +1753,27 @@ app.delete('/api/inspecoes-sdai/:id', async (req, res) => {
 });
 
 app.put('/api/relatorios-semanais/:id', async (req, res) => {
-  id_empreendimento = COALESCE($1, id_empreendimento),
-    numero_relatorio = COALESCE($2, numero_relatorio),
-    nome_arquivo = COALESCE($3, nome_arquivo),
-    data_inicio_semana = COALESCE($4, data_inicio_semana),
-    data_fim_semana = COALESCE($5, data_fim_semana),
-    fisico_real_total = COALESCE($6, fisico_real_total),
-    efetivo = COALESCE($7, efetivo),
-    avanco_fisico_acumulado = COALESCE($8, avanco_fisico_acumulado),
-    avanco_financeiro_acumulado = COALESCE($9, avanco_financeiro_acumulado),
-    principais_atividades_semana = COALESCE($10, principais_atividades_semana),
-    atividades_proxima_semana_tabela = COALESCE($11, atividades_proxima_semana_tabela),
-    caminho_critico = COALESCE($12, caminho_critico),
-    impedimentos = COALESCE($13, impedimentos),
-    fotos = COALESCE($14, fotos),
-    vistos = COALESCE($15, vistos)
-    WHERE id = $16 RETURNING * `;
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const b = req.body || {};
+    const sql = `UPDATE public.relatorios_semanais SET
+      id_empreendimento = COALESCE($1, id_empreendimento),
+      numero_relatorio = COALESCE($2, numero_relatorio),
+      nome_arquivo = COALESCE($3, nome_arquivo),
+      data_inicio_semana = COALESCE($4, data_inicio_semana),
+      data_fim_semana = COALESCE($5, data_fim_semana),
+      fisico_real_total = COALESCE($6, fisico_real_total),
+      efetivo = COALESCE($7, efetivo),
+      avanco_fisico_acumulado = COALESCE($8, avanco_fisico_acumulado),
+      avanco_financeiro_acumulado = COALESCE($9, avanco_financeiro_acumulado),
+      principais_atividades_semana = COALESCE($10, principais_atividades_semana),
+      atividades_proxima_semana_tabela = COALESCE($11, atividades_proxima_semana_tabela),
+      caminho_critico = COALESCE($12, caminho_critico),
+      impedimentos = COALESCE($13, impedimentos),
+      fotos = COALESCE($14, fotos),
+      vistos = COALESCE($15, vistos)
+    WHERE id = $16 RETURNING *`;
     const params = [
       b.id_empreendimento ?? null, b.numero_relatorio ?? null, b.nome_arquivo ?? null, b.data_inicio_semana ?? null, b.data_fim_semana ?? null,
       b.fisico_real_total ?? null, b.efetivo ?? null, b.avanco_fisico_acumulado ?? null, b.avanco_financeiro_acumulado ?? null,
@@ -1845,7 +1850,7 @@ app.get('/api/kos-unidade', async (req, res) => {
     if (status) { where.push('status = $' + (params.length + 1)); params.push(String(status)); }
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
-    const { rows } = await p.query(`SELECT * FROM public.kos_unidade ${ whereClause } ${ orderClause } `, params);
+    const { rows } = await p.query(`SELECT * FROM public.kos_unidade ${whereClause} ${orderClause} `, params);
     res.json(rows.map(mapKO));
   } catch (err) {
     if (shouldReturnEmptyOnDbError(err)) return res.json([]);
@@ -1961,7 +1966,7 @@ app.get('/api/vos-unidade', async (req, res) => {
     if (status) { where.push('status = $' + (params.length + 1)); params.push(String(status)); }
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
-    const { rows } = await p.query(`SELECT * FROM public.vos_unidade ${ whereClause } ${ orderClause } `, params);
+    const { rows } = await p.query(`SELECT * FROM public.vos_unidade ${whereClause} ${orderClause} `, params);
     res.json(rows.map(mapVO));
   } catch (err) {
     if (shouldReturnEmptyOnDbError(err)) return res.json([]);
@@ -2001,7 +2006,7 @@ app.get('/api/aps-unidade', async (req, res) => {
     if (status) { where.push('status = $' + (params.length + 1)); params.push(String(status)); }
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
-    const { rows } = await p.query(`SELECT * FROM public.aps_unidade ${ whereClause } ${ orderClause } `, params);
+    const { rows } = await p.query(`SELECT * FROM public.aps_unidade ${whereClause} ${orderClause} `, params);
     res.json(rows.map(mapAP));
   } catch (err) {
     if (shouldReturnEmptyOnDbError(err)) return res.json([]);
@@ -2197,7 +2202,7 @@ app.get('/api/diarios-obra', async (req, res) => {
     if (id_unidade) { where.push('id_unidade = $' + (params.length + 1)); params.push(Number(id_unidade)); }
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
-    const { rows } = await p.query(`SELECT * FROM public.diarios_obra ${ whereClause } ${ orderClause } `, params);
+    const { rows } = await p.query(`SELECT * FROM public.diarios_obra ${whereClause} ${orderClause} `, params);
     if (rows.length === 0) {
       const { id_empreendimento, id_unidade } = req.query;
       let fallback = memory.diarios_obra || [];
@@ -2398,7 +2403,7 @@ app.get('/api/vistorias-terminalidade', async (req, res) => {
     if (id_empreendimento) { where.push('id_empreendimento = $' + (params.length + 1)); params.push(Number(id_empreendimento)); }
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
-    const { rows } = await p.query(`SELECT * FROM public.vistorias_terminalidade ${ whereClause } ${ orderClause } `, params);
+    const { rows } = await p.query(`SELECT * FROM public.vistorias_terminalidade ${whereClause} ${orderClause} `, params);
     res.json(rows.map(mapTerminalidade));
   } catch (err) {
     if (!shouldReturnEmptyOnDbError(err)) {
@@ -2565,7 +2570,7 @@ app.get('/api/relatorios-primeiros-servicos', async (req, res) => {
     if (id_empreendimento) { where.push('id_empreendimento = $' + (params.length + 1)); params.push(Number(id_empreendimento)); }
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
-    const { rows } = await p.query(`SELECT * FROM public.relatorios_primeiros_servicos ${ whereClause } ${ orderClause } `);
+    const { rows } = await p.query(`SELECT * FROM public.relatorios_primeiros_servicos ${whereClause} ${orderClause} `);
     res.json(rows.map(mapRPS));
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
@@ -2681,7 +2686,7 @@ app.get('/api/aprovacoes-amostra', async (req, res) => {
     if (id_empreendimento) { where.push('id_empreendimento = $' + (params.length + 1)); params.push(Number(id_empreendimento)); }
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
-    const sql = `SELECT * FROM public.aprovacoes_amostra ${ whereClause } ${ orderClause } `;
+    const sql = `SELECT * FROM public.aprovacoes_amostra ${whereClause} ${orderClause} `;
     const { rows } = await p.query(sql, params);
     res.json(rows.map(mapAmostraRow));
   } catch (err) {
@@ -2804,7 +2809,7 @@ app.get('/api/empreendimentos', async (req, res) => {
     if (nome_empreendimento) { where.push('nome_empreendimento ILIKE $' + (params.length + 1)); params.push('%' + String(nome_empreendimento) + '%'); }
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
-    const { rows } = await p.query(`SELECT * FROM public.empreendimentos ${ whereClause } ${ orderClause } `);
+    const { rows } = await p.query(`SELECT * FROM public.empreendimentos ${whereClause} ${orderClause} `);
     res.json(rows.map(mapEmpreendimentoRow));
   } catch (err) {
     if (shouldReturnEmptyOnDbError(err)) {
@@ -2983,7 +2988,7 @@ app.get('/api/unidades-empreendimento', async (req, res) => {
     if (id_empreendimento) { where.push('id_empreendimento = $' + (params.length + 1)); params.push(Number(id_empreendimento)); }
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
-    const { rows } = await p.query(`SELECT * FROM public.unidades_empreendimento ${ whereClause } ${ orderClause } `, params);
+    const { rows } = await p.query(`SELECT * FROM public.unidades_empreendimento ${whereClause} ${orderClause} `, params);
     res.json(rows.map(mapUnidadeRow));
   } catch (err) {
     if (shouldReturnEmptyOnDbError(err)) {
@@ -3184,7 +3189,7 @@ app.get('/api/formularios-vistoria', async (req, res) => {
     if (status_formulario) { where.push('status_formulario = $' + (params.length + 1)); params.push(String(status_formulario)); }
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
-    const { rows } = await p.query(`SELECT * FROM public.formularios_vistoria ${ whereClause } ${ orderClause } `);
+    const { rows } = await p.query(`SELECT * FROM public.formularios_vistoria ${whereClause} ${orderClause} `);
     res.json(rows.map(mapFormularioRow));
   } catch (err) {
     if (shouldReturnEmptyOnDbError(err)) return res.json([]);
@@ -3266,7 +3271,7 @@ app.delete('/api/formularios-vistoria/:id', async (req, res) => {
 
 const PORT = Number(process.env.PORT ?? 3000);
 app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${ PORT } `);
+  console.log(`Servidor rodando na porta ${PORT} `);
 });
 
 // ---- Usuarios ----
@@ -3312,9 +3317,9 @@ app.get('/api/usuarios', async (req, res) => {
       const { search } = req.query;
       const where = [];
       const params = [];
-      if (search) { where.push('(email ILIKE $1 OR nome ILIKE $1)'); params.push(`% ${ String(search) }% `); }
+      if (search) { where.push('(email ILIKE $1 OR nome ILIKE $1)'); params.push(`% ${String(search)}% `); }
       const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
-      const { rows } = await p.query(`SELECT id, email, nome, role, perfil_cliente, perfil, created_at, updated_at FROM public.usuarios ${ whereClause } ORDER BY created_at DESC`, params);
+      const { rows } = await p.query(`SELECT id, email, nome, role, perfil_cliente, perfil, created_at, updated_at FROM public.usuarios ${whereClause} ORDER BY created_at DESC`, params);
       if (rows.length === 0 && req.user) {
         // Fallback: sempre exibir o usuário atual na lista
         return res.json([mapUsuarioRow({
@@ -3530,8 +3535,8 @@ app.put('/api/usuarios/:id/empreendimentos', async (req, res) => {
       try {
         await p.query('DELETE FROM public.usuarios_empreendimentos WHERE user_id = $1', [userId]);
         if (normIds.length) {
-          const values = normIds.map((_, i) => `($1, $${ i + 2})`).join(',');
-          await p.query(`INSERT INTO public.usuarios_empreendimentos(user_id, empreendimento_id) VALUES ${ values } `, [userId, ...normIds]);
+          const values = normIds.map((_, i) => `($1, $${i + 2})`).join(',');
+          await p.query(`INSERT INTO public.usuarios_empreendimentos(user_id, empreendimento_id) VALUES ${values} `, [userId, ...normIds]);
         }
         await p.query('COMMIT');
       } catch (e) {
@@ -3569,5 +3574,5 @@ app.get('/api/disciplinas-gerais', (_req, res) => {
 // IMPORTANTE: app.listen() deve estar DEPOIS de todas as definições de rotas
 const PORT = Number(process.env.PORT ?? 3000);
 app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${ PORT } `);
+  console.log(`Servidor rodando na porta ${PORT} `);
 });
