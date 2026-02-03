@@ -13,9 +13,9 @@ function getApiBase() {
     base = injected && String(injected).trim().replace(/\/$/, "");
   }
 
-  // Fallback 3: localhost (development)
+  // Fallback 3: URL de produção (se não houver env configurado)
   if (!base) {
-    base = "http://localhost:3000";
+    base = "https://fit-out-backend.onrender.com";
   }
 
   return base;
