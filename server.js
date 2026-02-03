@@ -270,35 +270,72 @@ function toJson(v) {
 // Healthcheck disponível em /health e /api/health
 app.get("/health", async (_req, res) => {
   try {
+    const healthInfo = {
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      env: process.env.NODE_ENV || 'development',
+      db: { ok: false, message: "DATABASE_URL not set" }
+    };
+
     if (!pool) {
-      return res.json({ status: "ok", db: { ok: false, message: "DATABASE_URL not set" } });
+      return res.json(healthInfo);
     }
-    const result = await pool.query("SELECT 1 AS ok");
-    res.json({ status: "ok", db: { ok: true, value: result.rows[0].ok } });
+
+    try {
+      const result = await pool.query("SELECT 1 AS ok");
+      healthInfo.db = { ok: true, value: result.rows[0].ok };
+      res.json(healthInfo);
+    } catch (dbErr) {
+      const msg = dbErr instanceof Error ? dbErr.message : String(dbErr);
+      const code = dbErr && typeof dbErr === 'object' && 'code' in dbErr ? dbErr.code : undefined;
+      healthInfo.db = { ok: false, error: msg, code };
+      res.json(healthInfo);
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    const code = err && typeof err === 'object' && 'code' in err ? err.code : undefined;
-    res.status(500).json({ status: "error", error: msg, code });
+    res.status(500).json({ status: "error", error: msg });
   }
 });
 
 app.get('/api/health', async (_req, res) => {
   try {
+    const healthInfo = {
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      env: process.env.NODE_ENV || 'development',
+      db: { ok: false, message: "DATABASE_URL not set" }
+    };
+
     if (!pool) {
-      return res.json({ status: "ok", db: { ok: false, message: "DATABASE_URL not set" } });
+      return res.json(healthInfo);
     }
-    const result = await pool.query("SELECT 1 AS ok");
-    res.json({ status: "ok", db: { ok: true, value: result.rows[0].ok } });
+
+    try {
+      const result = await pool.query("SELECT 1 AS ok");
+      healthInfo.db = { ok: true, value: result.rows[0].ok };
+      res.json(healthInfo);
+    } catch (dbErr) {
+      const msg = dbErr instanceof Error ? dbErr.message : String(dbErr);
+      const code = dbErr && typeof dbErr === 'object' && 'code' in dbErr ? dbErr.code : undefined;
+      healthInfo.db = { ok: false, error: msg, code };
+      res.json(healthInfo);
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    const code = err && typeof err === 'object' && 'code' in err ? err.code : undefined;
-    res.status(500).json({ status: "error", error: msg, code });
+    res.status(500).json({ status: "error", error: msg });
   }
 });
 
 // Root endpoint to avoid "Cannot GET /"
 app.get('/', (_req, res) => {
-  res.json({ ok: true, service: 'fitout-backend' });
+  res.json({
+    ok: true,
+    service: 'fitout-backend',
+    version: '1.0.0',
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Helper to ensure pool exists
