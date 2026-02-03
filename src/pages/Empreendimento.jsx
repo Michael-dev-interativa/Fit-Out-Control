@@ -76,9 +76,9 @@ const translations = {
     editProject: 'Editar Empreendimento',
     unitsTitle: 'Pavimentos do Empreendimento',
     particularities: "Particularidades",
-    dailyReport: "Diário de Obra", // Added new translation
+    dailyReport: "Diário de Obra",
     rdo: "RDO",
-    sampleApproval: "Aprovação de Amostras", // Added new translation
+    sampleApproval: "Aprovação de Amostras",
     terminalityInspection: "Vistoria de Terminalidade", // ADDED
     weeklyReport: "Relatório Semanal", // Added new translation
     firstServicesReport: "Relatório de 1º Serviços", // Added new translation
