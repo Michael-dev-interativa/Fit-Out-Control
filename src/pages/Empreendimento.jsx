@@ -373,7 +373,7 @@ export default function EmpreendimentoPage({ language: initialLanguage, theme: i
                       return fotoPath;
                     }
                     // Se for caminho local, constrói URL do backend
-                    const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                    const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://fit-out-backend.onrender.com';
                     const cleanPath = fotoPath.replace(/^\//, '');
                     const finalPath = cleanPath.startsWith('uploads/') ? cleanPath : `uploads/${cleanPath}`;
                     return `${apiBaseUrl}/${finalPath}`;

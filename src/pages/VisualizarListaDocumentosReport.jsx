@@ -41,7 +41,7 @@ const CoverPage = ({ documento, empreendimento }) => {
     } 
     // Se for caminho local ou relativo, constrói URL do backend
     else {
-      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://fit-out-backend.onrender.com';
       // Remove barra inicial se existir e adiciona 'uploads/' se não começar com ela
       const cleanPath = fotoPath.replace(/^\//, '');
       const finalPath = cleanPath.startsWith('uploads/') ? cleanPath : `uploads/${cleanPath}`;
