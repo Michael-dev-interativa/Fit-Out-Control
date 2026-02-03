@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { getUploadUrl } from '@/api/config';
 import { Empreendimento } from '@/api/entities';
 import { UnidadeEmpreendimento } from '@/api/entities';
 import { KO_unidade } from '@/api/entities';
@@ -366,18 +367,7 @@ export default function EmpreendimentoPage({ language: initialLanguage, theme: i
             {empreendimento.foto_empreendimento && (
               <div className="w-full">
                 <img
-                  src={(() => {
-                    const fotoPath = empreendimento.foto_empreendimento;
-                    // Se for URL completa, usa direto
-                    if (fotoPath.startsWith('http')) {
-                      return fotoPath;
-                    }
-                    // Se for caminho local, constrói URL do backend
-                    const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://fit-out-backend.onrender.com';
-                    const cleanPath = fotoPath.replace(/^\//, '');
-                    const finalPath = cleanPath.startsWith('uploads/') ? cleanPath : `uploads/${cleanPath}`;
-                    return `${apiBaseUrl}/${finalPath}`;
-                  })()}
+                  src={getUploadUrl(empreendimento.foto_empreendimento)}
                   alt={`Foto de ${empreendimento.nome_empreendimento}`}
                   className="rounded-lg shadow-lg w-full h-auto min-h-[400px] max-h-[600px] object-cover"
                   onError={(e) => {

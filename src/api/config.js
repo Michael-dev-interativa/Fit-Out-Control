@@ -30,6 +30,22 @@ export function apiUrl(path = "") {
   return `${API_BASE}${cleanPath}`;
 }
 
+// Função para construir URLs de uploads/imagens
+export function getUploadUrl(filePath) {
+  if (!filePath) return null;
+  
+  // Se já é URL completa, retorna direto
+  if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+    return filePath;
+  }
+  
+  // Remove barra inicial e adiciona 'uploads/' se necessário
+  const cleanPath = filePath.replace(/^\//, '');
+  const finalPath = cleanPath.startsWith('uploads/') ? cleanPath : `uploads/${cleanPath}`;
+  
+  return `${API_BASE}/${finalPath}`;
+}
+
 // Log único de configuração (apenas uma vez)
 if (!window.__apiConfigLogged) {
   window.__apiConfigLogged = true;

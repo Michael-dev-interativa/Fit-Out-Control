@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { getUploadUrl } from '@/api/config';
 import { ListaDocumentosReport, RDO, Empreendimento } from '@/api/entities';
 import { ArrowLeft, Loader2, AlertTriangle, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -30,27 +31,7 @@ const CoverPage = ({ documento, empreendimento }) => {
   const logoInterativaUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png";
   const logoInterativaBrancoUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/22086ec44_LOGOPNG-branco.png";
   
-  // Verificar se a foto existe e construir URL completa se for caminho relativo
-  let empreendimentoImageUrl = 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
-  
-  if (empreendimento?.foto_empreendimento) {
-    const fotoPath = empreendimento.foto_empreendimento;
-    // Se for URL completa, usa direto
-    if (fotoPath.startsWith('http')) {
-      empreendimentoImageUrl = fotoPath;
-    } 
-    // Se for caminho local ou relativo, constrói URL do backend
-    else {
-      const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://fit-out-backend.onrender.com';
-      // Remove barra inicial se existir e adiciona 'uploads/' se não começar com ela
-      const cleanPath = fotoPath.replace(/^\//, '');
-      const finalPath = cleanPath.startsWith('uploads/') ? cleanPath : `uploads/${cleanPath}`;
-      empreendimentoImageUrl = `${apiBaseUrl}/${finalPath}`;
-    }
-  }
-
-  console.log('📸 Empreendimento Image URL:', empreendimentoImageUrl);
-  console.log('📸 Foto original do empreendimento:', empreendimento?.foto_empreendimento);
+  const empreendimentoImageUrl = getUploadUrl(empreendimento?.foto_empreendimento) || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
 
   return (
     <div className="report-page relative w-full h-full bg-white font-sans overflow-hidden" style={{ margin: 0, padding: 5 }}>
