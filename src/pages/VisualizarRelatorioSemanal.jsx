@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { RelatorioSemanal } from '@/api/entities';
 import { Empreendimento } from '@/api/entities';
+import { getUploadUrl } from '@/api/config';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft, Printer, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -13,66 +14,66 @@ import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 const isValidId = (id) => id && typeof id === 'string' && id.length > 0;
 
 const useCompressedImage = (url, maxWidth = 800, quality = 0.3) => {
-  const [compressedUrl, setCompressedUrl] = useState(url);
-  useEffect(() => {
-    if (url && typeof url === 'string' && url.startsWith('http') && !url.startsWith('data:image')) {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        let width = img.width, height = img.height;
-        if (width > maxWidth) { height *= maxWidth / width; width = maxWidth; }
-        canvas.width = width; canvas.height = height;
-        ctx.drawImage(img, 0, 0, width, height);
-        setCompressedUrl(canvas.toDataURL('image/jpeg', quality));
-      };
-      img.onerror = () => setCompressedUrl(url);
-      img.src = url;
-    } else {
-      setCompressedUrl(url);
-    }
-  }, [url, maxWidth, quality]);
-  return compressedUrl;
+    const [compressedUrl, setCompressedUrl] = useState(url);
+    useEffect(() => {
+        if (url && typeof url === 'string' && url.startsWith('http') && !url.startsWith('data:image')) {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                let width = img.width, height = img.height;
+                if (width > maxWidth) { height *= maxWidth / width; width = maxWidth; }
+                canvas.width = width; canvas.height = height;
+                ctx.drawImage(img, 0, 0, width, height);
+                setCompressedUrl(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = () => setCompressedUrl(url);
+            img.src = url;
+        } else {
+            setCompressedUrl(url);
+        }
+    }, [url, maxWidth, quality]);
+    return compressedUrl;
 };
 
 // COMPONENTES DE PÁGINA E CAPA (ADAPTADOS)
 const ReportPage = ({ children, pageNumber, totalPages, relatorio, empreendimento, pdfMode }) => {
-  const logoHorizontalOriginalUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png";
-  const logoHorizontalCompressed = useCompressedImage(logoHorizontalOriginalUrl, 400, 0.7);
-  const HEADER_HEIGHT = '80px';
-  const FOOTER_HEIGHT = '45px';
+    const logoHorizontalOriginalUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png";
+    const logoHorizontalCompressed = useCompressedImage(logoHorizontalOriginalUrl, 400, 0.7);
+    const HEADER_HEIGHT = '80px';
+    const FOOTER_HEIGHT = '45px';
 
-  return (
-    <div className={`report-page w-full relative bg-white ${pdfMode ? 'pdf-mode' : ''}`}>
-      <div className="flex justify-between items-center p-4 border-b border-gray-200" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: HEADER_HEIGHT, zIndex: 10 }}>
-        <img src={logoHorizontalCompressed} alt="Logo Interativa Engenharia" className="h-12" />
-        <div className="text-right">
-          <h2 className="text-sm font-bold text-gray-800 uppercase">RELATÓRIO DE EVOLUÇÃO SEMANAL DE OBRA</h2>
-          <p className="text-xs text-gray-600">{empreendimento?.nome_empreendimento}</p>
-          <p className="text-xs font-medium text-gray-800 mt-1">Período: {formatDate(relatorio?.data_inicio_semana)} a {formatDate(relatorio?.data_fim_semana)}</p>
+    return (
+        <div className={`report-page w-full relative bg-white ${pdfMode ? 'pdf-mode' : ''}`}>
+            <div className="flex justify-between items-center p-4 border-b border-gray-200" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: HEADER_HEIGHT, zIndex: 10 }}>
+                <img src={logoHorizontalCompressed} alt="Logo Interativa Engenharia" className="h-12" />
+                <div className="text-right">
+                    <h2 className="text-sm font-bold text-gray-800 uppercase">RELATÓRIO DE EVOLUÇÃO SEMANAL DE OBRA</h2>
+                    <p className="text-xs text-gray-600">{empreendimento?.nome_empreendimento}</p>
+                    <p className="text-xs font-medium text-gray-800 mt-1">Período: {formatDate(relatorio?.data_inicio_semana)} a {formatDate(relatorio?.data_fim_semana)}</p>
+                </div>
+            </div>
+            {/* Main content area: positioned absolutely to fill the space between header and footer */}
+            <div
+                className="absolute w-full"
+                style={{
+                    top: HEADER_HEIGHT,
+                    bottom: FOOTER_HEIGHT,
+                    left: 0,
+                    right: 0,
+                    overflowY: pdfMode ? 'visible' : 'auto', // 'visible' for print allows content to break across pages, 'auto' for screen allows scrolling.
+                }}
+            >
+                {children}
+            </div>
+            <div className="px-3 py-1 border-t border-gray-200 bg-gray-50 flex justify-between items-center text-xs text-gray-500" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: FOOTER_HEIGHT, zIndex: 10 }}>
+                <div className="flex-1 text-left"><span className="font-medium">Arquivo:</span><br /><span>{relatorio?.nome_arquivo || `RS-${relatorio.numero_relatorio || '00'}.pdf`}</span></div>
+                <div className="flex-1 flex flex-col items-center"><span>INTERATIVA ENGENHARIA</span><span>www.interativaengenharia.com.br</span></div>
+                <div className="flex-1 text-right"><span>Página {pageNumber} de {totalPages}</span></div>
+            </div>
         </div>
-      </div>
-      {/* Main content area: positioned absolutely to fill the space between header and footer */}
-      <div
-        className="absolute w-full"
-        style={{
-          top: HEADER_HEIGHT,
-          bottom: FOOTER_HEIGHT,
-          left: 0,
-          right: 0,
-          overflowY: pdfMode ? 'visible' : 'auto', // 'visible' for print allows content to break across pages, 'auto' for screen allows scrolling.
-        }}
-      >
-        {children}
-      </div>
-      <div className="px-3 py-1 border-t border-gray-200 bg-gray-50 flex justify-between items-center text-xs text-gray-500" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: FOOTER_HEIGHT, zIndex: 10 }}>
-        <div className="flex-1 text-left"><span className="font-medium">Arquivo:</span><br /><span>{relatorio?.nome_arquivo || `RS-${relatorio.numero_relatorio || '00'}.pdf`}</span></div>
-        <div className="flex-1 flex flex-col items-center"><span>INTERATIVA ENGENHARIA</span><span>www.interativaengenharia.com.br</span></div>
-        <div className="flex-1 text-right"><span>Página {pageNumber} de {totalPages}</span></div>
-      </div>
-    </div>
-  );
+    );
 };
 
 const CoverPage = ({ relatorio, empreendimento }) => {
@@ -81,12 +82,12 @@ const CoverPage = ({ relatorio, empreendimento }) => {
     const coverFrameOriginalUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png";
     const redDecorativeElementUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/513d57969_Designsemnome2.png';
     const bottomRightFrameUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/10e9b2570_erasebg-transformed.png';
-    const empreendimentoImageUrl = empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
+    const empreendimentoImageUrl = getUploadUrl(empreendimento?.foto_empreendimento) || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
     const logoInterativaUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png";
     const logoInterativaBrancoUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/22086ec44_LOGOPNG-branco.png";
-    
+
     const responsaveis = empreendimento?.texto_capa_rodape || empreendimento?.nome_empreendimento || '';
-    
+
     const getTextStyle = (text) => {
         const len = text ? text.length : 0;
         if (len <= 25) return { fontSize: '32px', letterSpacing: '1px', fontWeight: 'normal' };
@@ -97,7 +98,7 @@ const CoverPage = ({ relatorio, empreendimento }) => {
 
     return (
         <div className="relative w-full h-full bg-white font-sans overflow-hidden" style={{ margin: 0, padding: 5 }}>
-            <div className="absolute w-full h-full bg-center bg-no-repeat z-10 cover-background-image" style={{ backgroundImage: `url(${empreendimentoImageUrl})`, backgroundSize: 'cover', opacity: 0.2, top: '-10px', left: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)' }}/>
+            <div className="absolute w-full h-full bg-center bg-no-repeat z-10 cover-background-image" style={{ backgroundImage: `url(${empreendimentoImageUrl})`, backgroundSize: 'cover', opacity: 0.2, top: '-10px', left: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)' }} />
             <div className="absolute top-0 left-0 w-full h-full bg-contain bg-left-top bg-no-repeat z-20" style={{ backgroundImage: `url(${coverFrameOriginalUrl})`, height: '150%' }} />
             <div className="absolute z-50" style={{ top: '25px', left: '11px', width: '350px', height: '170px' }}>
                 <img src={logoInterativaUrl} alt="Logo Interativa" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }} />
@@ -112,13 +113,13 @@ const CoverPage = ({ relatorio, empreendimento }) => {
             <div className="absolute z-30" style={{ top: '50%', right: '-3%', width: '45%', padding: '1.3% 2.5%', textAlign: 'center' }}>
                 <h1 className="font-black uppercase" style={{ fontSize: '28px', lineHeight: '1.0', fontFamily: "'Inter', sans-serif", marginBottom: '6px', color: 'black' }}>Gerenciamento</h1>
             </div>
-            <div className="absolute z-20" style={{ top: '-350px', right: '-30%', width: '1700px', height: '1150px', backgroundColor: redColor, WebkitMaskImage: `url(${redDecorativeElementUrl})`, maskImage: `url(${redDecorativeElementUrl})`, WebkitMaskSize: '100% 100%', maskSize: '100% 100%', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center', maskPosition: 'center' }}/>
+            <div className="absolute z-20" style={{ top: '-350px', right: '-30%', width: '1700px', height: '1150px', backgroundColor: redColor, WebkitMaskImage: `url(${redDecorativeElementUrl})`, maskImage: `url(${redDecorativeElementUrl})`, WebkitMaskSize: '100% 100%', maskSize: '100% 100%', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center', maskPosition: 'center' }} />
             <div className="absolute z-50" style={{ top: '-10%', right: '-20%', width: '1800px', height: '800px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <img src={logoInterativaBrancoUrl} alt="Logo Interativa" style={{ width: '100%', height: '100%', objectFit: 'contain' }}/>
+                <img src={logoInterativaBrancoUrl} alt="Logo Interativa" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
-            <div className="absolute right-0 w-full h-full bg-no-repeat z-40" style={{ bottom: '-5%', backgroundImage: `url('${bottomRightFrameUrl}')`, height: '1000%', backgroundSize: '230% auto', backgroundPosition: '65% 100%' }}/>
+            <div className="absolute right-0 w-full h-full bg-no-repeat z-40" style={{ bottom: '-5%', backgroundImage: `url('${bottomRightFrameUrl}')`, height: '1000%', backgroundSize: '230% auto', backgroundPosition: '65% 100%' }} />
             <div className="absolute z-10" style={{ bottom: '0%', left: '0%', width: '450px', height: '800px', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 4px 8px rgba(0,0,0,0.2)', clipPath: 'polygon(0 0%, 100% 23%, 100% 100%, 0% 100%)' }}>
-                <img src={empreendimentoImageUrl} alt={empreendimento?.nome_empreendimento || 'Foto do empreendimento'} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+                <img src={empreendimentoImageUrl} alt={empreendimento?.nome_empreendimento || 'Foto do empreendimento'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
             <div className="absolute flex items-center justify-center z-50" style={{ bottom: '0', left: '0', right: '0', height: '65px', backgroundColor: redColor, clipPath: 'polygon(15% 0, 100% 0, 100% 100%, 5% 100%)', paddingLeft: '15%', paddingRight: '5%' }}>
                 <span className="text-white w-full" style={{ ...textStyle, fontFamily: 'Poppins', textAlign: 'center', lineHeight: '1.2' }}>{responsaveis}</span>
@@ -182,7 +183,7 @@ const PhotoPage = ({ photos }) => (
 const StatsChart = ({ data }) => {
     const chartData = useMemo(() => {
         if (!data || data.length === 0) return [];
-        
+
         const sortedData = [...data].sort((a, b) => new Date(a.semana) - new Date(b.semana));
 
         // Mapeia os dados para as barras
@@ -203,11 +204,11 @@ const StatsChart = ({ data }) => {
             </div>
         );
     }
-    
+
     return (
         <div className="break-inside-avoid mt-4 w-full">
-             <h3 className="bg-gray-300 font-bold p-1 text-center">ESTATÍSTICAS DE AVANÇO</h3>
-             <div style={{ width: '100%', height: 600 }} className="p-4 border"> 
+            <h3 className="bg-gray-300 font-bold p-1 text-center">ESTATÍSTICAS DE AVANÇO</h3>
+            <div style={{ width: '100%', height: 600 }} className="p-4 border">
                 <ResponsiveContainer>
                     <ComposedChart
                         data={chartData}
@@ -258,8 +259,8 @@ const paginateContent = (relatorio, empreendimento) => {
             <section className="text-sm break-inside-avoid mt-4"><h3 className="bg-gray-300 font-bold p-1 text-center">Avanço Físico | Acumulado</h3><table className="w-full border-collapse text-center"><thead><tr className="border"><th className="border p-1 font-normal w-1/5">Semana</th>{(relatorio.avanco_fisico_acumulado || []).map((item, index) => (<th key={index} className="border p-1 font-normal">{formatDate(item.semana)}</th>))}</tr></thead><tbody><tr className="border"><td className="border p-1 font-bold">Planejado</td>{(relatorio.avanco_fisico_acumulado || []).map((item, index) => (<td key={index} className="border p-1">{item.planejado || 0}%</td>))}</tr><tr className="border"><td className="border p-1 font-bold">Realizado</td>{(relatorio.avanco_fisico_acumulado || []).map((item, index) => (<td key={index} className="border p-1">{item.realizado || 0}%</td>))}</tr></tbody></table></section>
             <section className="text-sm break-inside-avoid mt-4"><h3 className="bg-gray-300 font-bold p-1 text-center">Avanço Financeiro - Desembolso | Acumulado</h3><table className="w-full border-collapse text-center"><thead><tr className="border"><th className="border p-1 font-normal w-1/5">Mês</th>{(relatorio.avanco_financeiro_acumulado || []).map((item, index) => (<th key={index} className="border p-1 font-normal">{item.mes}</th>))}</tr></thead><tbody><tr className="border"><td className="border p-1 font-bold">Planejado</td>{(relatorio.avanco_financeiro_acumulado || []).map((item, index) => (<td key={index} className="border p-1">{item.planejado || 0}%</td>))}</tr><tr className="border"><td className="border p-1 font-bold">Realizado</td>{(relatorio.avanco_financeiro_acumulado || []).map((item, index) => (<td key={index} className="border p-1">{item.realizado || 0}%</td>))}</tr></tbody></table></section>
             <section className="text-sm break-inside-avoid">
-                 <h3 className="bg-gray-300 font-bold p-1 text-center mt-4">ATIVIDADES</h3>
-                 <ActivityTable 
+                <h3 className="bg-gray-300 font-bold p-1 text-center mt-4">ATIVIDADES</h3>
+                <ActivityTable
                     title="Principais atividades da semana"
                     activities={atividadesPagina1}
                 />
@@ -270,16 +271,16 @@ const paginateContent = (relatorio, empreendimento) => {
 
     // Conteúdo restante para as próximas páginas
     const remainingContent = (
-         <div className="p-8 text-sm bg-white h-full space-y-4 print:overflow-visible">
+        <div className="p-8 text-sm bg-white h-full space-y-4 print:overflow-visible">
             <section className="text-sm break-inside-avoid">
-                 <h3 className="bg-gray-300 font-bold p-1 text-center">ATIVIDADES (continuação)</h3>
-                 {atividadesRestantes.length > 0 && (
-                     <ActivityTable 
+                <h3 className="bg-gray-300 font-bold p-1 text-center">ATIVIDADES (continuação)</h3>
+                {atividadesRestantes.length > 0 && (
+                    <ActivityTable
                         title="Principais atividades da semana"
                         activities={atividadesRestantes}
                     />
-                 )}
-                 <ActivityTable 
+                )}
+                <ActivityTable
                     title="Principais atividades da próxima semana"
                     activities={relatorio.atividades_proxima_semana_tabela}
                 />
@@ -291,7 +292,7 @@ const paginateContent = (relatorio, empreendimento) => {
     if (atividadesRestantes.length > 0 || (relatorio.atividades_proxima_semana_tabela || []).length > 0 || (relatorio.caminho_critico || []).length > 0 || relatorio.impedimentos) {
         pages.push({ type: 'content', content: remainingContent });
     }
-    
+
     // Adiciona a página do gráfico se houver dados para ele, garantindo que ocupe uma página completa
     if (relatorio.avanco_fisico_acumulado && relatorio.avanco_fisico_acumulado.length > 0) {
         pages.push({ type: 'content', content: <div className="p-8 text-sm bg-white h-full flex flex-col justify-center items-center"><StatsChart data={relatorio.avanco_fisico_acumulado} /></div> });
@@ -303,7 +304,7 @@ const paginateContent = (relatorio, empreendimento) => {
         const photoChunk = photos.slice(i, i + photosPerPage);
         pages.push({ type: 'content', content: <PhotoPage photos={photoChunk} /> });
     }
-    
+
     return pages;
 };
 
@@ -341,10 +342,10 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     // The first content page is index 1, so its page number is 1.
                     // The total number of content pages is total pages - 1 (for cover).
                     const contentPageNumber = index; // The cover page is index 0. The first content page is index 1, which should be page number 1.
-                    const totalContentPages = paginatedPages.length -1; // total pages excluding cover
+                    const totalContentPages = paginatedPages.length - 1; // total pages excluding cover
                     return (
                         <ReportPage key={`page-${index}`} pageNumber={contentPageNumber} totalPages={totalContentPages} relatorio={relatorio} empreendimento={empreendimento} pdfMode={isPrintingMode}>
-                           {React.cloneElement(page.content, { pdfMode: isPrintingMode })}
+                            {React.cloneElement(page.content, { pdfMode: isPrintingMode })}
                         </ReportPage>
                     );
                 })}
@@ -384,7 +385,7 @@ export default function VisualizarRelatorioSemanal() {
         // Forçar light color-scheme para relatórios
         const originalColorScheme = document.documentElement.style.colorScheme;
         document.documentElement.style.colorScheme = 'light';
-        
+
         let metaColorScheme = document.querySelector('meta[name="color-scheme"]');
         let metaWasCreated = false;
         if (!metaColorScheme) {
@@ -395,7 +396,7 @@ export default function VisualizarRelatorioSemanal() {
         }
         const originalMetaContent = metaColorScheme.content;
         metaColorScheme.content = 'light only';
-        
+
         return () => {
             document.documentElement.style.colorScheme = originalColorScheme;
             if (metaWasCreated && metaColorScheme.parentNode) {
@@ -425,7 +426,7 @@ export default function VisualizarRelatorioSemanal() {
                     throw new Error("ID do empreendimento associado é inválido.");
                 }
             }
-             catch (err) {
+            catch (err) {
                 console.error("Erro ao carregar dados:", err);
                 setError(err.message);
             } finally {
@@ -438,6 +439,6 @@ export default function VisualizarRelatorioSemanal() {
     if (loading) return <div className="flex flex-col items-center justify-center min-h-screen"><Loader2 className="h-12 w-12 animate-spin mb-4" /><p>Carregando relatório...</p></div>;
     if (error) return <div className="flex flex-col items-center justify-center min-h-screen"><AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" /><h2 className="text-xl font-bold text-red-600">Erro</h2><p className="text-gray-700">{error}</p><Button onClick={() => navigate(-1)} className="mt-4">Voltar</Button></div>;
     if (!relatorio || !empreendimento) return <div className="flex flex-col items-center justify-center min-h-screen"><AlertTriangle className="w-16 h-16 text-orange-500 mx-auto mb-4" /><h2 className="text-xl font-bold">Dados Incompletos</h2><p>Não foi possível carregar todas as informações do relatório.</p><Button onClick={() => navigate(-1)} className="mt-4">Voltar</Button></div>;
-    
+
     return <ReportContent relatorio={relatorio} empreendimento={empreendimento} navigate={navigate} />;
 }

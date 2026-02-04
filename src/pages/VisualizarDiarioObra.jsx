@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { getUploadUrl } from '@/api/config';
 import { DiarioDeObra } from '@/api/entities';
 import { Empreendimento } from '@/api/entities';
 import { UnidadeEmpreendimento } from '@/api/entities';
@@ -28,75 +29,75 @@ const translations = {
 // ************** Funções e Componentes Reutilizados de VisualizarRelatorioVistoria **************
 
 const compressImage = (url, maxWidth = 800, quality = 0.3) => {
-  return new Promise((resolve) => {
-    if (!url || typeof url !== 'string' || url.startsWith('data:image')) {
-      resolve(url);
-      return;
-    }
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      let width = img.width;
-      let height = img.height;
-      if (width > maxWidth) {
-        height *= maxWidth / width;
-        width = maxWidth;
-      }
-      canvas.width = width;
-      canvas.height = height;
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      const compressedUrl = canvas.toDataURL('image/jpeg', quality);
-      resolve(compressedUrl);
-    };
-    img.onerror = () => {
-      resolve(url);
-    };
-    img.src = url;
-  });
+    return new Promise((resolve) => {
+        if (!url || typeof url !== 'string' || url.startsWith('data:image')) {
+            resolve(url);
+            return;
+        }
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            let width = img.width;
+            let height = img.height;
+            if (width > maxWidth) {
+                height *= maxWidth / width;
+                width = maxWidth;
+            }
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const compressedUrl = canvas.toDataURL('image/jpeg', quality);
+            resolve(compressedUrl);
+        };
+        img.onerror = () => {
+            resolve(url);
+        };
+        img.src = url;
+    });
 };
 
 const useCompressedImage = (url, maxWidth, quality) => {
-  const [compressedUrl, setCompressedUrl] = useState(url);
-  useEffect(() => {
-    if (url && typeof url === 'string' && url.startsWith('http') && !url.startsWith('data:image')) {
-      compressImage(url, maxWidth, quality).then(setCompressedUrl);
-    } else {
-      setCompressedUrl(url);
-    }
-  }, [url, maxWidth, quality]);
-  return compressedUrl;
+    const [compressedUrl, setCompressedUrl] = useState(url);
+    useEffect(() => {
+        if (url && typeof url === 'string' && url.startsWith('http') && !url.startsWith('data:image')) {
+            compressImage(url, maxWidth, quality).then(setCompressedUrl);
+        } else {
+            setCompressedUrl(url);
+        }
+    }, [url, maxWidth, quality]);
+    return compressedUrl;
 };
 
 const ReportPage = ({ children, pageNumber, totalPages, diario, unidade, empreendimento, pdfMode, isFlowPage = false }) => {
-  const logoHorizontalOriginalUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png";
-  const logoHorizontalCompressed = useCompressedImage(logoHorizontalOriginalUrl, 400, 0.7);
-  const HEADER_HEIGHT = '80px';
-  const FOOTER_HEIGHT = '45px';
+    const logoHorizontalOriginalUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png";
+    const logoHorizontalCompressed = useCompressedImage(logoHorizontalOriginalUrl, 400, 0.7);
+    const HEADER_HEIGHT = '80px';
+    const FOOTER_HEIGHT = '45px';
 
-  return (
-    <div className={`report-page w-full relative bg-white ${pdfMode ? 'pdf-mode' : ''} ${isFlowPage ? 'flow-page' : ''}`}>
-      {pageNumber > 1 && (
-        <div className="flex justify-between items-center p-4 border-b border-gray-200" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: HEADER_HEIGHT }}>
-          <img src={logoHorizontalCompressed} alt="Logo Interativa Engenharia" className="h-12" />
-          <div className="text-right">
-            <h2 className="text-sm font-bold text-gray-800 uppercase">DIÁRIO DE OBRA</h2>
-            <p className="text-xs text-gray-600">{empreendimento?.nome_empreendimento} - {unidade?.unidade_empreendimento || diario?.unidade_texto}</p>
-            <p className="text-xs font-medium text-gray-800 mt-1">{diario?.data_diario ? format(new Date(diario.data_diario), 'dd/MM/yyyy', { locale: ptBR }) : ''}</p>
-          </div>
+    return (
+        <div className={`report-page w-full relative bg-white ${pdfMode ? 'pdf-mode' : ''} ${isFlowPage ? 'flow-page' : ''}`}>
+            {pageNumber > 1 && (
+                <div className="flex justify-between items-center p-4 border-b border-gray-200" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: HEADER_HEIGHT }}>
+                    <img src={logoHorizontalCompressed} alt="Logo Interativa Engenharia" className="h-12" />
+                    <div className="text-right">
+                        <h2 className="text-sm font-bold text-gray-800 uppercase">DIÁRIO DE OBRA</h2>
+                        <p className="text-xs text-gray-600">{empreendimento?.nome_empreendimento} - {unidade?.unidade_empreendimento || diario?.unidade_texto}</p>
+                        <p className="text-xs font-medium text-gray-800 mt-1">{diario?.data_diario ? format(new Date(diario.data_diario), 'dd/MM/yyyy', { locale: ptBR }) : ''}</p>
+                    </div>
+                </div>
+            )}
+            <div className={`${isFlowPage ? 'overflow-visible' : 'overflow-hidden'}`} style={{ paddingTop: pageNumber > 1 ? HEADER_HEIGHT : '0px', paddingBottom: FOOTER_HEIGHT }}>
+                {children}
+            </div>
+            <div className="px-3 py-1 border-t border-gray-200 bg-gray-50 flex justify-between items-center text-xs text-gray-500" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: FOOTER_HEIGHT }}>
+                <div className="flex-1 text-left"><span className="font-medium">Arquivo:</span><br /><span>{diario?.nome_arquivo || `DO-${diario?.numero_diario || 'S-N'}.pdf`}</span></div>
+                <div className="flex-1 flex flex-col items-center"><span>INTERATIVA ENGENHARIA</span><span>www.interativaengenharia.com.br</span></div>
+                <div className="flex-1 text-right"><span>Página {pageNumber} de {totalPages}</span></div>
+            </div>
         </div>
-      )}
-      <div className={`${isFlowPage ? 'overflow-visible' : 'overflow-hidden'}`} style={{ paddingTop: pageNumber > 1 ? HEADER_HEIGHT : '0px', paddingBottom: FOOTER_HEIGHT }}>
-        {children}
-      </div>
-      <div className="px-3 py-1 border-t border-gray-200 bg-gray-50 flex justify-between items-center text-xs text-gray-500" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: FOOTER_HEIGHT }}>
-        <div className="flex-1 text-left"><span className="font-medium">Arquivo:</span><br /><span>{diario?.nome_arquivo || `DO-${diario?.numero_diario || 'S-N'}.pdf`}</span></div>
-        <div className="flex-1 flex flex-col items-center"><span>INTERATIVA ENGENHARIA</span><span>www.interativaengenharia.com.br</span></div>
-        <div className="flex-1 text-right"><span>Página {pageNumber} de {totalPages}</span></div>
-      </div>
-    </div>
-  );
+    );
 };
 
 const CoverPage = ({ diario, unidade, empreendimento, t, pdfMode }) => {
@@ -104,10 +105,10 @@ const CoverPage = ({ diario, unidade, empreendimento, t, pdfMode }) => {
     const coverFrameOriginalUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png";
     const redDecorativeElementUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/513d57969_Designsemnome2.png';
     const bottomRightFrameUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/10e9b2570_erasebg-transformed.png';
-    const empreendimentoImageUrl = empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
+    const empreendimentoImageUrl = getUploadUrl(empreendimento?.foto_empreendimento) || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
     const logoInterativaUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png";
     const logoInterativaBrancoUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/22086ec44_LOGOPNG-branco.png";
-    
+
     const defaultResponsaveis = [empreendimento?.cli_empreendimento, empreendimento?.nome_empreendimento].filter(Boolean).join(' | ');
     const responsaveis = empreendimento?.texto_capa_rodape || defaultResponsaveis;
 
@@ -122,7 +123,7 @@ const CoverPage = ({ diario, unidade, empreendimento, t, pdfMode }) => {
 
     return (
         <div className="report-page relative w-full h-full bg-white font-sans overflow-hidden" style={{ margin: 0, padding: 5 }}>
-            <div className="absolute w-full h-full bg-center bg-no-repeat z-10 cover-background-image" style={{ backgroundImage: `url(${empreendimentoImageUrl})`, backgroundSize: 'cover', opacity: 0.2, top: '-10px', left: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)' }}/>
+            <div className="absolute w-full h-full bg-center bg-no-repeat z-10 cover-background-image" style={{ backgroundImage: `url(${empreendimentoImageUrl})`, backgroundSize: 'cover', opacity: 0.2, top: '-10px', left: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)' }} />
             <div className="absolute top-0 left-0 w-full h-full bg-contain bg-left-top bg-no-repeat z-20" style={{ backgroundImage: `url(${coverFrameOriginalUrl})`, height: '150%' }} />
             <div className="absolute z-50" style={{ top: '25px', left: '11px', width: '350px', height: '170px' }}>
                 <img src={logoInterativaUrl} alt="Logo Interativa" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }} />
@@ -138,13 +139,13 @@ const CoverPage = ({ diario, unidade, empreendimento, t, pdfMode }) => {
                 <h1 className="font-black uppercase" style={{ fontSize: '28px', lineHeight: '1.0', fontFamily: "'Inter', sans-serif", marginBottom: '6px', color: 'black' }}>{unidade?.cliente_unidade || 'Gerenciamento'}</h1>
                 <h2 className="text-gray-600 font-medium" style={{ fontSize: '16px', fontFamily: "'Inter', sans-serif" }}>{unidade?.unidade_empreendimento || diario?.unidade_texto || ''}</h2>
             </div>
-            <div className="absolute z-20" style={{ top: '-350px', right: '-30%', width: '1700px', height: '1150px', backgroundColor: redColor, WebkitMaskImage: `url(${redDecorativeElementUrl})`, maskImage: `url(${redDecorativeElementUrl})`, WebkitMaskSize: '100% 100%', maskSize: '100% 100%', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center', maskPosition: 'center' }}/>
+            <div className="absolute z-20" style={{ top: '-350px', right: '-30%', width: '1700px', height: '1150px', backgroundColor: redColor, WebkitMaskImage: `url(${redDecorativeElementUrl})`, maskImage: `url(${redDecorativeElementUrl})`, WebkitMaskSize: '100% 100%', maskSize: '100% 100%', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center', maskPosition: 'center' }} />
             <div className="absolute z-50" style={{ top: '-10%', right: '-20%', width: '1800px', height: '800px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <img src={logoInterativaBrancoUrl} alt="Logo Interativa" style={{ width: '100%', height: '100%', objectFit: 'contain' }}/>
+                <img src={logoInterativaBrancoUrl} alt="Logo Interativa" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
-            <div className="absolute right-0 w-full h-full bg-no-repeat z-40" style={{ bottom: '-5%', backgroundImage: `url('${bottomRightFrameUrl}')`, height: '1000%', backgroundSize: '230% auto', backgroundPosition: '65% 100%' }}/>
+            <div className="absolute right-0 w-full h-full bg-no-repeat z-40" style={{ bottom: '-5%', backgroundImage: `url('${bottomRightFrameUrl}')`, height: '1000%', backgroundSize: '230% auto', backgroundPosition: '65% 100%' }} />
             <div className="absolute z-10" style={{ bottom: '0%', left: '0%', width: '450px', height: '800px', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 4px 8px rgba(0,0,0,0.2)', clipPath: 'polygon(0 0%, 100% 23%, 100% 100%, 0% 100%)' }}>
-                <img src={empreendimentoImageUrl} alt={empreendimento?.nome_empreendimento || 'Foto do empreendimento'} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+                <img src={empreendimentoImageUrl} alt={empreendimento?.nome_empreendimento || 'Foto do empreendimento'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
             <div className="absolute flex items-center justify-center z-50" style={{ bottom: '0', left: '0', right: '0', height: '65px', backgroundColor: redColor, clipPath: 'polygon(15% 0, 100% 0, 100% 100%, 5% 100%)', paddingLeft: '15%', paddingRight: '5%' }}>
                 <span className="text-white w-full" style={{ ...textStyle, fontFamily: 'Poppins', textAlign: 'center', lineHeight: '1.2' }}>{formatResponsaveis(responsaveis)}</span>
@@ -154,13 +155,13 @@ const CoverPage = ({ diario, unidade, empreendimento, t, pdfMode }) => {
 };
 
 const CompressedPhoto = ({ url, legenda, index }) => {
-  const compressedUrl = useCompressedImage(url, 500, 0.5);
-  return (
-    <div className="text-center break-inside-avoid photo-item-print">
-      <img src={compressedUrl} alt={legenda || `Foto ${index}`} className="w-full h-auto max-h-80 object-contain rounded border photo-img-print bg-gray-50"/>
-      {legenda && <p className="text-xs mt-1 font-medium text-black">{legenda}</p>}
-    </div>
-  );
+    const compressedUrl = useCompressedImage(url, 500, 0.5);
+    return (
+        <div className="text-center break-inside-avoid photo-item-print">
+            <img src={compressedUrl} alt={legenda || `Foto ${index}`} className="w-full h-auto max-h-80 object-contain rounded border photo-img-print bg-gray-50" />
+            {legenda && <p className="text-xs mt-1 font-medium text-black">{legenda}</p>}
+        </div>
+    );
 };
 
 // ************** Fim dos Componentes Reutilizados **************
@@ -168,7 +169,7 @@ const CompressedPhoto = ({ url, legenda, index }) => {
 const DiarioContentPage = ({ diario, empreendimento, unidade, t }) => {
     // Only use diario.data_diario for relevant calculations for *this* diario
     const hoje = new Date(diario.data_diario);
-    
+
     const totalEfetivo = diario.efetivo?.reduce((acc, item) => {
         return {
             presente: acc.presente + (item.presente || 0),
@@ -176,7 +177,7 @@ const DiarioContentPage = ({ diario, empreendimento, unidade, t }) => {
             aus_sem: acc.aus_sem + (item.ausente_sem_justificativa || 0),
         };
     }, { presente: 0, aus_com: 0, aus_sem: 0 }) || { presente: 0, aus_com: 0, aus_sem: 0 };
-    
+
     totalEfetivo.total = totalEfetivo.presente + totalEfetivo.aus_com + totalEfetivo.aus_sem;
 
     const diaDaSemana = diario.data_diario ? format(new Date(diario.data_diario), 'eeee', { locale: ptBR }) : '';
@@ -190,7 +191,7 @@ const DiarioContentPage = ({ diario, empreendimento, unidade, t }) => {
         // then displayed in local time, shifting it back a day.
         // If date strings always contain timezone, or are consistently UTC, this might not be needed.
         // For robustness, consider using libraries like date-fns-tz or ensuring ISO strings for dates.
-        date.setDate(date.getDate() + 1); 
+        date.setDate(date.getDate() + 1);
         return format(date, 'dd/MM/yyyy');
     };
 
@@ -205,10 +206,10 @@ const DiarioContentPage = ({ diario, empreendimento, unidade, t }) => {
             {/* Informações do Contrato */}
             <div className="border border-black mb-2 text-center">
                 <div className="grid grid-cols-4">
-                    <div className="p-1 border-r border-black"><strong>Contrato nº:</strong><br/>{empreendimento?.os_number || 'N/A'}</div>
-                    <div className="p-1 border-r border-black"><strong>Data Início:</strong><br/>{formatDate(empreendimento?.data_inicio_contrato)}</div>
-                    <div className="p-1 border-r border-black"><strong>Data Término:</strong><br/>{formatDate(empreendimento?.data_termino_contrato)}</div>
-                    <div className="p-1"><strong>Prazo Contratual:</strong><br/>{empreendimento?.prazo_contratual_dias || 0} dias</div>
+                    <div className="p-1 border-r border-black"><strong>Contrato nº:</strong><br />{empreendimento?.os_number || 'N/A'}</div>
+                    <div className="p-1 border-r border-black"><strong>Data Início:</strong><br />{formatDate(empreendimento?.data_inicio_contrato)}</div>
+                    <div className="p-1 border-r border-black"><strong>Data Término:</strong><br />{formatDate(empreendimento?.data_termino_contrato)}</div>
+                    <div className="p-1"><strong>Prazo Contratual:</strong><br />{empreendimento?.prazo_contratual_dias || 0} dias</div>
                 </div>
             </div>
 
@@ -223,9 +224,9 @@ const DiarioContentPage = ({ diario, empreendimento, unidade, t }) => {
             {/* Período */}
             <div className="border-b border-black mb-1 p-1">
                 <strong className="mr-4">Período:</strong>
-                <span className="mr-4"><input type="checkbox" readOnly checked={diario.periodo_trabalhado?.manha} className="mr-1"/> Manhã</span>
-                <span className="mr-4"><input type="checkbox" readOnly checked={diario.periodo_trabalhado?.tarde} className="mr-1"/> Tarde</span>
-                <span><input type="checkbox" readOnly checked={diario.periodo_trabalhado?.noite} className="mr-1"/> Noite</span>
+                <span className="mr-4"><input type="checkbox" readOnly checked={diario.periodo_trabalhado?.manha} className="mr-1" /> Manhã</span>
+                <span className="mr-4"><input type="checkbox" readOnly checked={diario.periodo_trabalhado?.tarde} className="mr-1" /> Tarde</span>
+                <span><input type="checkbox" readOnly checked={diario.periodo_trabalhado?.noite} className="mr-1" /> Noite</span>
             </div>
 
             {/* Main Content Grid */}
@@ -292,7 +293,7 @@ const AnexosEControlePage = ({ diario, empreendimento, unidade }) => {
     // --- Logic from old AnexoOcorrrenciasPage ---
     const rawOcorrencias = diario.ocorrencias_observacoes || '';
     const ocorrencias = rawOcorrencias.split('\n').filter(line => line.trim() !== '');
-    
+
     // --- Logic from old ControleChuvaPage ---
     const hoje = new Date(diario.data_diario);
     const formatDate = (dateString) => {
@@ -320,9 +321,9 @@ const AnexosEControlePage = ({ diario, empreendimento, unidade }) => {
             <table className="w-full border-collapse border border-black text-center">
                 <tbody>
                     <tr>
-                        <td className="border border-black p-1 w-1/3"><strong>Obra</strong><br/>{empreendimento?.nome_empreendimento || 'N/A'}</td>
-                        <td className="border border-black p-1 w-1/3"><strong>Sigla</strong><br/>{empreendimento?.sigla_obra || 'N/A'}</td>
-                        <td className="border border-black p-1 w-1/3"><strong>Data</strong><br/>{diario?.data_diario ? format(new Date(diario.data_diario), 'dd/MM/yyyy') : 'N/A'}</td>
+                        <td className="border border-black p-1 w-1/3"><strong>Obra</strong><br />{empreendimento?.nome_empreendimento || 'N/A'}</td>
+                        <td className="border border-black p-1 w-1/3"><strong>Sigla</strong><br />{empreendimento?.sigla_obra || 'N/A'}</td>
+                        <td className="border border-black p-1 w-1/3"><strong>Data</strong><br />{diario?.data_diario ? format(new Date(diario.data_diario), 'dd/MM/yyyy') : 'N/A'}</td>
                     </tr>
                     <tr>
                         <td colSpan="3" className="border border-black p-1 text-left"><strong>Cliente:</strong> {unidade?.cliente_unidade || 'N/A'}</td>
@@ -332,7 +333,7 @@ const AnexosEControlePage = ({ diario, empreendimento, unidade }) => {
                     </tr>
                 </tbody>
             </table>
-            
+
             <div className="border-x border-black mt-4">
                 <div className="p-1 border-t border-black font-bold text-red-600">Ocorrências</div>
             </div>
@@ -463,7 +464,7 @@ const VistosPage = ({ diario, pdfMode }) => {
 const PhotoPage = ({ photos, pdfMode }) => {
     return (
         <div className="p-4 space-y-4">
-             <div className="w-full mb-4">
+            <div className="w-full mb-4">
                 <div className="text-base font-bold text-white p-3 rounded-md text-center" style={{ backgroundColor: blueColor }}>
                     <span>REGISTRO FOTOGRÁFICO</span>
                 </div>
@@ -484,10 +485,10 @@ const PhotoPage = ({ photos, pdfMode }) => {
 
 const paginateDiarioContent = (diario, empreendimento, unidade, t) => {
     const pages = [];
-    
+
     // Page 1: Cover
     pages.push({ content: <CoverPage diario={diario} empreendimento={empreendimento} unidade={unidade} t={t} />, isFlow: false });
-    
+
     // Page 2: Content (Diário)
     pages.push({ content: <DiarioContentPage diario={diario} empreendimento={empreendimento} unidade={unidade} t={t} />, isFlow: false });
 
@@ -516,7 +517,7 @@ const ReportContent = ({ diario, unidade, empreendimento, t, navigate, user, loa
 
     const handlePrint = async () => {
         setIsPrintingMode(true);
-        await new Promise(resolve => setTimeout(resolve, 50)); 
+        await new Promise(resolve => setTimeout(resolve, 50));
         window.print();
         setTimeout(() => {
             setIsPrintingMode(false);
@@ -533,7 +534,7 @@ const ReportContent = ({ diario, unidade, empreendimento, t, navigate, user, loa
         <div className="bg-gray-200 print:bg-white min-h-screen font-sans">
             {!loadingUser && (
                 <div className="no-print shadow-sm border-b p-4 mb-4 bg-white">
-                     <div className="flex justify-between items-center max-w-4xl mx-auto">
+                    <div className="flex justify-between items-center max-w-4xl mx-auto">
                         <Button onClick={handleBackClick} variant="outline"><ArrowLeft className="w-4 h-4 mr-2" />Voltar</Button>
                         <h1 className="text-xl font-semibold text-gray-800">Diário de Obra</h1>
                         <Button onClick={handlePrint} className="bg-green-600 hover:bg-green-700 text-white"><Printer className="w-4 h-4 mr-2" />Gerar PDF</Button>
@@ -630,7 +631,7 @@ export default function VisualizarDiarioObra() {
         // Forçar light color-scheme para relatórios (previne dark mode do navegador)
         const originalColorScheme = document.documentElement.style.colorScheme;
         document.documentElement.style.colorScheme = 'light';
-        
+
         let metaColorScheme = document.querySelector('meta[name="color-scheme"]');
         let metaWasCreated = false;
         if (!metaColorScheme) {
@@ -641,7 +642,7 @@ export default function VisualizarDiarioObra() {
         }
         const originalMetaContent = metaColorScheme.content;
         metaColorScheme.content = 'light only';
-        
+
         return () => {
             // Restaurar ao sair
             document.documentElement.style.colorScheme = originalColorScheme;
@@ -724,30 +725,30 @@ export default function VisualizarDiarioObra() {
 
     if (error) {
         return (
-             <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-8">
+            <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-8">
                 <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
-                  <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-                  <h2 className="text-xl font-bold text-red-600 mb-4">Erro ao Carregar Relatório</h2>
-                  <p className="text-gray-700 mb-6">{error}</p>
-                  <Button onClick={() => navigate(-1)} variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Voltar</Button>
+                    <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                    <h2 className="text-xl font-bold text-red-600 mb-4">Erro ao Carregar Relatório</h2>
+                    <p className="text-gray-700 mb-6">{error}</p>
+                    <Button onClick={() => navigate(-1)} variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Voltar</Button>
                 </div>
-              </div>
+            </div>
         );
     }
 
     if (!diario) {
-      return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-8">
-          <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
-            <AlertTriangle className="w-16 h-16 text-orange-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-orange-600 mb-4">Dados Incompletos</h2>
-            <p className="text-gray-700 mb-6">Não foi possível carregar as informações essenciais para gerar o diário de obra.</p>
-            <Button onClick={() => navigate(-1)} variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Voltar</Button>
-          </div>
-        </div>
-      );
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-8">
+                <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
+                    <AlertTriangle className="w-16 h-16 text-orange-500 mx-auto mb-4" />
+                    <h2 className="text-xl font-bold text-orange-600 mb-4">Dados Incompletos</h2>
+                    <p className="text-gray-700 mb-6">Não foi possível carregar as informações essenciais para gerar o diário de obra.</p>
+                    <Button onClick={() => navigate(-1)} variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Voltar</Button>
+                </div>
+            </div>
+        );
     }
-    
+
     return (
         <ReportContent
             diario={diario}

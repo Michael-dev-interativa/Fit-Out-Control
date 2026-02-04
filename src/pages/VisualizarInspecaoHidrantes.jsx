@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { InspecaoHidrantes } from '@/api/entities';
 import { Empreendimento } from '@/api/entities';
+import { getUploadUrl } from '@/api/config';
 import { Button } from '@/components/ui/button';
 import { Loader2, Printer, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -57,11 +58,8 @@ const useCompressedImage = (url, maxWidth = 800, quality = 0.7) => {
 const CoverPage = ({ relatorio, empreendimento }) => {
     const year = new Date(relatorio?.data_inspecao || Date.now()).getFullYear();
     const redColor = '#CE2D2D';
-    // Usa imagem do empreendimento somente se for URL http(s); caso contrário, aplica fallback
     const defaultEmpImage = 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
-    const empImgRaw = empreendimento?.foto_empreendimento;
-    const empImgSafe = (typeof empImgRaw === 'string' && /^https?:\/\//.test(empImgRaw)) ? empImgRaw : defaultEmpImage;
-    const empreendimentoImageUrl = useCompressedImage(empImgSafe, 800, 0.7);
+    const empreendimentoImageUrl = useCompressedImage(getUploadUrl(empreendimento?.foto_empreendimento) || defaultEmpImage, 800, 0.7);
     const logoInterativaUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png";
     const coverFrameOriginalUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png";
     const redDecorativeElementUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/513d57969_Designsemnome2.png';

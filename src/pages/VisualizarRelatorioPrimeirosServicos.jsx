@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { RelatorioPrimeirosServicos } from '@/api/entities';
 import { Empreendimento } from '@/api/entities';
+import { getUploadUrl } from '@/api/config';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -13,57 +14,57 @@ const redColor = '#CE2D2D';
 const isValidId = (id) => id && typeof id === 'string' && id.length > 0;
 
 const useCompressedImage = (url, maxWidth = 800, quality = 0.3) => {
-  const [compressedUrl, setCompressedUrl] = useState(url);
-  useEffect(() => {
-    if (url && typeof url === 'string' && url.startsWith('http') && !url.startsWith('data:image')) {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        let width = img.width, height = img.height;
-        if (width > maxWidth) { height *= maxWidth / width; width = maxWidth; }
-        canvas.width = width; canvas.height = height;
-        ctx.drawImage(img, 0, 0, width, height);
-        setCompressedUrl(canvas.toDataURL('image/jpeg', quality));
-      };
-      img.onerror = () => setCompressedUrl(url);
-      img.src = url;
-    } else {
-      setCompressedUrl(url);
-    }
-  }, [url, maxWidth, quality]);
-  return compressedUrl;
+    const [compressedUrl, setCompressedUrl] = useState(url);
+    useEffect(() => {
+        if (url && typeof url === 'string' && url.startsWith('http') && !url.startsWith('data:image')) {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                let width = img.width, height = img.height;
+                if (width > maxWidth) { height *= maxWidth / width; width = maxWidth; }
+                canvas.width = width; canvas.height = height;
+                ctx.drawImage(img, 0, 0, width, height);
+                setCompressedUrl(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = () => setCompressedUrl(url);
+            img.src = url;
+        } else {
+            setCompressedUrl(url);
+        }
+    }, [url, maxWidth, quality]);
+    return compressedUrl;
 };
 
 const ReportPage = ({ children, pageNumber, totalPages, relatorio, empreendimento, pdfMode }) => {
-  const logoHorizontalOriginalUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png";
-  const logoHorizontalCompressed = useCompressedImage(logoHorizontalOriginalUrl, 400, 0.7);
-  const HEADER_HEIGHT = '80px';
-  const FOOTER_HEIGHT = '45px';
+    const logoHorizontalOriginalUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png";
+    const logoHorizontalCompressed = useCompressedImage(logoHorizontalOriginalUrl, 400, 0.7);
+    const HEADER_HEIGHT = '80px';
+    const FOOTER_HEIGHT = '45px';
 
-  return (
-    <div className={`report-page w-full relative bg-white ${pdfMode ? 'pdf-mode' : ''}`}>
-      {/* Header - always rendered for content pages */}
-      <div className="flex justify-between items-center p-4 border-b border-gray-200" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: HEADER_HEIGHT }}>
-          <img src={logoHorizontalCompressed} alt="Logo Interativa Engenharia" className="h-12" />
-          <div className="text-right">
-            <h2 className="text-sm font-bold text-gray-800 uppercase">RELATÓRIO DE 1º SERVIÇOS</h2>
-            <p className="text-xs text-gray-600">{empreendimento?.nome_empreendimento} - {relatorio?.cliente}</p>
-            <p className="text-xs font-medium text-gray-800 mt-1">{relatorio?.data_relatorio ? format(new Date(relatorio.data_relatorio), 'dd/MM/yyyy', { locale: ptBR }) : ''}</p>
-          </div>
-      </div>
-      <div className="overflow-hidden print:overflow-visible" style={{ paddingTop: HEADER_HEIGHT, paddingBottom: FOOTER_HEIGHT }}>
-        {children}
-      </div>
-      {/* Footer - always rendered for content pages */}
-      <div className="px-3 py-1 border-t border-gray-200 bg-gray-50 flex justify-between items-center text-xs text-gray-500" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: FOOTER_HEIGHT }}>
-        <div className="flex-1 text-left"><span className="font-medium">Arquivo:</span><br /><span>{relatorio?.nome_arquivo || `RPS-${relatorio.id?.slice(-4)}.pdf`}</span></div>
-        <div className="flex-1 flex flex-col items-center"><span>INTERATIVA ENGENHARIA</span><span>www.interativaengenharia.com.br</span></div>
-        <div className="flex-1 text-right"><span>Página {pageNumber} de {totalPages}</span></div>
-      </div>
-    </div>
-  );
+    return (
+        <div className={`report-page w-full relative bg-white ${pdfMode ? 'pdf-mode' : ''}`}>
+            {/* Header - always rendered for content pages */}
+            <div className="flex justify-between items-center p-4 border-b border-gray-200" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: HEADER_HEIGHT }}>
+                <img src={logoHorizontalCompressed} alt="Logo Interativa Engenharia" className="h-12" />
+                <div className="text-right">
+                    <h2 className="text-sm font-bold text-gray-800 uppercase">RELATÓRIO DE 1º SERVIÇOS</h2>
+                    <p className="text-xs text-gray-600">{empreendimento?.nome_empreendimento} - {relatorio?.cliente}</p>
+                    <p className="text-xs font-medium text-gray-800 mt-1">{relatorio?.data_relatorio ? format(new Date(relatorio.data_relatorio), 'dd/MM/yyyy', { locale: ptBR }) : ''}</p>
+                </div>
+            </div>
+            <div className="overflow-hidden print:overflow-visible" style={{ paddingTop: HEADER_HEIGHT, paddingBottom: FOOTER_HEIGHT }}>
+                {children}
+            </div>
+            {/* Footer - always rendered for content pages */}
+            <div className="px-3 py-1 border-t border-gray-200 bg-gray-50 flex justify-between items-center text-xs text-gray-500" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: FOOTER_HEIGHT }}>
+                <div className="flex-1 text-left"><span className="font-medium">Arquivo:</span><br /><span>{relatorio?.nome_arquivo || `RPS-${relatorio.id?.slice(-4)}.pdf`}</span></div>
+                <div className="flex-1 flex flex-col items-center"><span>INTERATIVA ENGENHARIA</span><span>www.interativaengenharia.com.br</span></div>
+                <div className="flex-1 text-right"><span>Página {pageNumber} de {totalPages}</span></div>
+            </div>
+        </div>
+    );
 };
 
 const CoverPage = ({ relatorio, empreendimento, className }) => { // Added className prop
@@ -71,12 +72,12 @@ const CoverPage = ({ relatorio, empreendimento, className }) => { // Added class
     const coverFrameOriginalUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png";
     const redDecorativeElementUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/513d57969_Designsemnome2.png';
     const bottomRightFrameUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/10e9b2570_erasebg-transformed.png';
-    const empreendimentoImageUrl = empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
+    const empreendimentoImageUrl = getUploadUrl(empreendimento?.foto_empreendimento) || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
     const logoInterativaUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png";
     const logoInterativaBrancoUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/22086ec44_LOGOPNG-branco.png";
-    
+
     const responsaveis = empreendimento?.texto_capa_rodape || empreendimento?.nome_empreendimento || '';
-    
+
     const getTextStyle = (text) => {
         const len = text ? text.length : 0;
         if (len <= 25) return { fontSize: '32px', letterSpacing: '1px', fontWeight: 'normal' };
@@ -87,7 +88,7 @@ const CoverPage = ({ relatorio, empreendimento, className }) => { // Added class
 
     return (
         <div className={`relative w-full h-full bg-white font-sans ${className || ''}`} style={{ margin: 0, padding: 5 }}> {/* Applied className here */}
-            <div className="absolute w-full h-full bg-center bg-no-repeat z-10 cover-background-image" style={{ backgroundImage: `url(${empreendimentoImageUrl})`, backgroundSize: 'cover', opacity: 0.2, top: '-10px', left: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)' }}/>
+            <div className="absolute w-full h-full bg-center bg-no-repeat z-10 cover-background-image" style={{ backgroundImage: `url(${empreendimentoImageUrl})`, backgroundSize: 'cover', opacity: 0.2, top: '-10px', left: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)' }} />
             <div className="absolute top-0 left-0 w-full h-full bg-contain bg-left-top bg-no-repeat z-20" style={{ backgroundImage: `url(${coverFrameOriginalUrl})`, height: '150%' }} />
             <div className="absolute z-50" style={{ top: '25px', left: '11px', width: '350px', height: '170px' }}>
                 <img src={logoInterativaUrl} alt="Logo Interativa" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }} />
@@ -102,13 +103,13 @@ const CoverPage = ({ relatorio, empreendimento, className }) => { // Added class
             <div className="absolute z-30" style={{ top: '50%', right: '-3%', width: '45%', padding: '1.3% 2.5%', textAlign: 'center' }}>
                 <h1 className="font-black uppercase" style={{ fontSize: '28px', lineHeight: '1.0', fontFamily: "'Inter', sans-serif", marginBottom: '6px', color: 'black' }}>Gerenciamento</h1>
             </div>
-            <div className="absolute z-20" style={{ top: '-350px', right: '-30%', width: '1700px', height: '1150px', backgroundColor: redColor, WebkitMaskImage: `url(${redDecorativeElementUrl})`, maskImage: `url(${redDecorativeElementUrl})`, WebkitMaskSize: '100% 100%', maskSize: '100% 100%', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center', maskPosition: 'center' }}/>
+            <div className="absolute z-20" style={{ top: '-350px', right: '-30%', width: '1700px', height: '1150px', backgroundColor: redColor, WebkitMaskImage: `url(${redDecorativeElementUrl})`, maskImage: `url(${redDecorativeElementUrl})`, WebkitMaskSize: '100% 100%', maskSize: '100% 100%', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center', maskPosition: 'center' }} />
             <div className="absolute z-50" style={{ top: '-10%', right: '-20%', width: '1800px', height: '800px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <img src={logoInterativaBrancoUrl} alt="Logo Interativa" style={{ width: '100%', height: '100%', objectFit: 'contain' }}/>
+                <img src={logoInterativaBrancoUrl} alt="Logo Interativa" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
-            <div className="absolute right-0 w-full h-full bg-no-repeat z-40" style={{ bottom: '-5%', backgroundImage: `url('${bottomRightFrameUrl}')`, height: '1000%', backgroundSize: '230% auto', backgroundPosition: '65% 100%' }}/>
+            <div className="absolute right-0 w-full h-full bg-no-repeat z-40" style={{ bottom: '-5%', backgroundImage: `url('${bottomRightFrameUrl}')`, height: '1000%', backgroundSize: '230% auto', backgroundPosition: '65% 100%' }} />
             <div className="absolute z-10" style={{ bottom: '0%', left: '0%', width: '450px', height: '800px', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 4px 8px rgba(0,0,0,0.2)', clipPath: 'polygon(0 0%, 100% 23%, 100% 100%, 0% 100%)' }}>
-                <img src={empreendimentoImageUrl} alt={empreendimento?.nome_empreendimento || 'Foto do empreendimento'} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+                <img src={empreendimentoImageUrl} alt={empreendimento?.nome_empreendimento || 'Foto do empreendimento'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
             <div className="absolute flex items-center justify-center z-50" style={{ bottom: '0', left: '0', right: '0', height: '65px', backgroundColor: redColor, clipPath: 'polygon(15% 0, 100% 0, 100% 100%, 5% 100%)', paddingLeft: '15%', paddingRight: '5%' }}>
                 <span className="text-white w-full" style={{ ...textStyle, fontFamily: 'Poppins', textAlign: 'center', lineHeight: '1.2' }}>{responsaveis}</span>
@@ -137,7 +138,7 @@ const ServicosContentPage = ({ relatorio, photos }) => {
                     <div className="grid grid-cols-2 gap-4">
                         {(photos).map((foto, index) => (
                             <div key={index} className="text-center break-inside-avoid">
-                                <img src={foto.url} alt={foto.legenda || `Foto ${index + 1}`} className="w-full h-auto object-contain border max-h-64"/>
+                                <img src={foto.url} alt={foto.legenda || `Foto ${index + 1}`} className="w-full h-auto object-contain border max-h-64" />
                                 {foto.legenda && <p className="text-center text-xs mt-1">{foto.legenda}</p>}
                             </div>
                         ))}
@@ -154,7 +155,7 @@ const PhotoPage = ({ photos }) => (
         <div className="grid grid-cols-2 gap-4">
             {(photos || []).map((foto, index) => (
                 <div key={index} className="text-center break-inside-avoid">
-                    <img src={foto.url} alt={foto.legenda || `Foto ${index + 1}`} className="w-full h-auto object-contain border max-h-64"/>
+                    <img src={foto.url} alt={foto.legenda || `Foto ${index + 1}`} className="w-full h-auto object-contain border max-h-64" />
                     {foto.legenda && <p className="text-center text-xs mt-1">{foto.legenda}</p>}
                 </div>
             ))}
@@ -169,9 +170,9 @@ const AprovacaoPage = ({ relatorio }) => {
             <div className="flex items-stretch border-t border-l">
                 <div className="flex-1 p-2 border-b border-r">
                     <div className="flex flex-col space-y-2">
-                        <div className="flex items-center gap-2">{status === 'Aprovado' ? <CheckSquare className="w-4 h-4"/> : <Square className="w-4 h-4"/>} Aprovado</div>
-                        <div className="flex items-center gap-2">{status === 'Aprovado com Comentários' ? <CheckSquare className="w-4 h-4"/> : <Square className="w-4 h-4"/>} Aprovado com Comentários</div>
-                        <div className="flex items-center gap-2">{status === 'Reprovado' ? <CheckSquare className="w-4 h-4"/> : <Square className="w-4 h-4"/>} Reprovado</div>
+                        <div className="flex items-center gap-2">{status === 'Aprovado' ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />} Aprovado</div>
+                        <div className="flex items-center gap-2">{status === 'Aprovado com Comentários' ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />} Aprovado com Comentários</div>
+                        <div className="flex items-center gap-2">{status === 'Reprovado' ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />} Reprovado</div>
                     </div>
                 </div>
                 <div className="flex-1 p-2 border-b border-r"><p className="text-xs font-bold text-gray-600">Comentários</p><p>{relatorio?.comentarios_status}</p></div>
@@ -204,7 +205,7 @@ const paginateRelatorioContent = (relatorio, empreendimento) => {
     const pages = [];
     // A capa é um item especial agora, não precisa do wrapper ReportPage
     pages.push({ type: 'cover', content: <CoverPage relatorio={relatorio} empreendimento={empreendimento} /> });
-    
+
     const allPhotos = relatorio?.fotos || [];
     const photosOnFirstPageCount = 4;
     const photosOnSubsequentPagesCount = 4;
@@ -213,19 +214,19 @@ const paginateRelatorioContent = (relatorio, empreendimento) => {
     const remainingPhotos = allPhotos.slice(photosOnFirstPageCount);
 
     pages.push({ type: 'content', content: <ServicosContentPage relatorio={relatorio} photos={firstPagePhotos} /> });
-    
+
     if (remainingPhotos.length === 0) {
         pages.push({ type: 'content', content: <AprovacaoPage relatorio={relatorio} /> });
         return pages;
     }
-    
+
     const photoChunks = [];
     for (let i = 0; i < remainingPhotos.length; i += photosOnSubsequentPagesCount) {
         photoChunks.push(remainingPhotos.slice(i, i + photosOnSubsequentPagesCount));
     }
-    
+
     const lastPhotoChunk = photoChunks.pop();
-    
+
     for (const chunk of photoChunks) {
         pages.push({ type: 'content', content: <PhotoPage photos={chunk} /> });
     }
@@ -355,7 +356,7 @@ export default function VisualizarRelatorioPrimeirosServicos() {
         // Forçar light color-scheme para relatórios
         const originalColorScheme = document.documentElement.style.colorScheme;
         document.documentElement.style.colorScheme = 'light';
-        
+
         let metaColorScheme = document.querySelector('meta[name="color-scheme"]');
         let metaWasCreated = false;
         if (!metaColorScheme) {
@@ -366,7 +367,7 @@ export default function VisualizarRelatorioPrimeirosServicos() {
         }
         const originalMetaContent = metaColorScheme.content;
         metaColorScheme.content = 'light only';
-        
+
         return () => {
             document.documentElement.style.colorScheme = originalColorScheme;
             if (metaWasCreated && metaColorScheme.parentNode) {
@@ -405,6 +406,6 @@ export default function VisualizarRelatorioPrimeirosServicos() {
     if (loading) return <div className="flex flex-col items-center justify-center min-h-screen"><Loader2 className="h-12 w-12 animate-spin mb-4" /><p>Carregando relatório...</p></div>;
     if (error) return <div className="flex flex-col items-center justify-center min-h-screen"><AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" /><h2 className="text-xl font-bold text-red-600">Erro</h2><p className="text-gray-700">{error}</p><Button onClick={() => navigate(-1)} className="mt-4">Voltar</Button></div>;
     if (!relatorio || !empreendimento) return <div className="flex flex-col items-center justify-center min-h-screen"><AlertTriangle className="w-16 h-16 text-orange-500 mx-auto mb-4" /><h2 className="text-xl font-bold">Dados Incompletos</h2><p>Não foi possível carregar todas as informações do relatório.</p><Button onClick={() => navigate(-1)} className="mt-4">Voltar</Button></div>;
-    
+
     return <ReportContent relatorio={relatorio} empreendimento={empreendimento} navigate={navigate} />;
 }

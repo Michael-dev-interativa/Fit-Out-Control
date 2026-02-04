@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { InspecaoAlarmeIncendio } from '@/api/entities';
-import { Empreendimento } from '@/api/entities';
-import { Button } from '@/components/ui/button';
+import { Empreendimento } from '@/api/entities'; import { getUploadUrl } from '@/api/config'; import { Button } from '@/components/ui/button';
 import { Loader2, Printer, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -57,13 +56,13 @@ const useCompressedImage = (url, maxWidth = 800, quality = 0.7) => {
 const CoverPage = ({ relatorio, empreendimento }) => {
     const year = new Date(relatorio?.data_inspecao || Date.now()).getFullYear();
     const redColor = '#CE2D2D';
-    const empreendimentoImageUrl = useCompressedImage(empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80', 800, 0.7);
+    const empreendimentoImageUrl = useCompressedImage(getUploadUrl(empreendimento?.foto_empreendimento) || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80', 800, 0.7);
     const logoInterativaUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png";
     const coverFrameOriginalUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png";
     const redDecorativeElementUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/513d57969_Designsemnome2.png';
     const bottomRightFrameUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/10e9b2570_erasebg-transformed.png';
     const logoInterativaBrancoUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/22086ec44_LOGOPNG-branco.png";
-    
+
     const defaultResponsaveis = [empreendimento?.cli_empreendimento, empreendimento?.nome_empreendimento].filter(Boolean).join(' | ');
     const responsaveis = empreendimento?.texto_capa_rodape || defaultResponsaveis;
 
@@ -76,7 +75,7 @@ const CoverPage = ({ relatorio, empreendimento }) => {
 
     return (
         <>
-            <div className="absolute w-full h-full bg-center bg-no-repeat z-10" style={{ backgroundImage: `url(${empreendimentoImageUrl})`, backgroundPosition: 'center 15%', backgroundSize: 'cover', opacity: 0.2, top: '-10px', left: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)' }}/>
+            <div className="absolute w-full h-full bg-center bg-no-repeat z-10" style={{ backgroundImage: `url(${empreendimentoImageUrl})`, backgroundPosition: 'center 15%', backgroundSize: 'cover', opacity: 0.2, top: '-10px', left: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)' }} />
             <div className="absolute top-0 left-0 w-full h-full bg-contain bg-left-top bg-no-repeat z-20" style={{ backgroundImage: `url(${coverFrameOriginalUrl})`, height: '150%' }} />
             <div className="absolute z-50" style={{ top: '25px', left: '11px', width: '350px', height: '170px' }}>
                 <img src={logoInterativaUrl} alt="Logo Interativa" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }} />
@@ -92,13 +91,13 @@ const CoverPage = ({ relatorio, empreendimento }) => {
                 <h1 className="font-black uppercase" style={{ fontSize: '28px', lineHeight: '1.0', fontFamily: "'Inter', sans-serif", marginBottom: '6px', color: 'black' }}>{relatorio?.cliente || 'Cliente'}</h1>
                 <h2 className="text-gray-600 font-medium" style={{ fontSize: '16px', fontFamily: "'Inter', sans-serif" }}>{relatorio?.subtitulo_relatorio || ''}</h2>
             </div>
-            <div className="absolute z-20" style={{ top: '-350px', right: '-30%', width: '1700px', height: '1150px', backgroundColor: redColor, WebkitMaskImage: `url(${redDecorativeElementUrl})`, maskImage: `url(${redDecorativeElementUrl})`, WebkitMaskSize: '100% 100%', WebkitMaskRepeat: 'no-repeat', maskPosition: 'center' }}/>
+            <div className="absolute z-20" style={{ top: '-350px', right: '-30%', width: '1700px', height: '1150px', backgroundColor: redColor, WebkitMaskImage: `url(${redDecorativeElementUrl})`, maskImage: `url(${redDecorativeElementUrl})`, WebkitMaskSize: '100% 100%', WebkitMaskRepeat: 'no-repeat', maskPosition: 'center' }} />
             <div className="absolute z-50" style={{ top: '-10%', right: '-20%', width: '1800px', height: '800px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <img src={logoInterativaBrancoUrl} alt="Logo Interativa" style={{ width: '100%', height: '100%', objectFit: 'contain' }}/>
+                <img src={logoInterativaBrancoUrl} alt="Logo Interativa" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
-            <div className="absolute right-0 w-full h-full bg-no-repeat z-40" style={{ bottom: '-5%', backgroundImage: `url('${bottomRightFrameUrl}')`, height: '1000%', backgroundSize: '230% auto', backgroundPosition: '65% 100%' }}/>
+            <div className="absolute right-0 w-full h-full bg-no-repeat z-40" style={{ bottom: '-5%', backgroundImage: `url('${bottomRightFrameUrl}')`, height: '1000%', backgroundSize: '230% auto', backgroundPosition: '65% 100%' }} />
             <div className="absolute z-10" style={{ bottom: '0%', left: '0%', width: '450px', height: '800px', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 4px 8px rgba(0,0,0,0.2)', clipPath: 'polygon(0 0%, 100% 23%, 100% 100%, 0% 100%)' }}>
-                <img src={empreendimentoImageUrl} alt={empreendimento?.nome_empreendimento || 'Foto do empreendimento'} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+                <img src={empreendimentoImageUrl} alt={empreendimento?.nome_empreendimento || 'Foto do empreendimento'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
             <div className="absolute flex items-center justify-center z-50" style={{ bottom: '0', left: '0', right: '0', height: '65px', backgroundColor: redColor, clipPath: 'polygon(15% 0, 100% 0, 100% 100%, 5% 100%)', paddingLeft: '15%', paddingRight: '5%' }}>
                 <span className="text-white w-full font-normal" style={{ ...getTextStyle(responsaveis), fontFamily: 'Poppins', textAlign: 'center', lineHeight: '1.2' }}>{responsaveis}</span>
@@ -169,7 +168,7 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc }) => {
                         <tbody>
                             {items.map((item, idx) => {
                                 const isComentario = item.tipo === 'comentario' || item.isComentarioGeral;
-                                
+
                                 if (isComentario) {
                                     return (
                                         <tr key={idx} className="bg-gray-50" style={{ pageBreakInside: 'avoid', pageBreakAfter: 'auto' }}>
@@ -270,32 +269,32 @@ const ObservacoesGeraisPage = ({ observacoes }) => {
 
 const ReportContent = ({ relatorio, empreendimento, navigate }) => {
     const [isPrintingMode, setIsPrintingMode] = useState(false);
-    
+
     const hasDocumentacao = relatorio.itens_documentacao && relatorio.itens_documentacao.length > 0;
-    
+
     const paginateLocalItems = (local, maxItemsForFirstPage = 14) => {
         const pages = [];
         const maxItemsPerPage = 14;
         const MAX_FOTOS_PER_ITEM = 6;
         const allItems = [...(local.itens_inspecao || [])];
-        
+
         if (local.comentarios) {
             allItems.push({ tipo: 'comentario', comentarios: local.comentarios, isComentarioGeral: true });
         }
-        
+
         let currentPage = [];
         let isFirstPage = true;
-        
+
         allItems.forEach((item) => {
             const isComentario = item.tipo === 'comentario' || item.isComentarioGeral;
-            
+
             // Se o item tem mais de 6 fotos, dividir em múltiplas partes
             if (!isComentario && item.fotos && item.fotos.length > MAX_FOTOS_PER_ITEM) {
                 const fotosChunks = [];
                 for (let i = 0; i < item.fotos.length; i += MAX_FOTOS_PER_ITEM) {
                     fotosChunks.push(item.fotos.slice(i, i + MAX_FOTOS_PER_ITEM));
                 }
-                
+
                 // Primeiro chunk
                 const firstItemPart = { ...item, fotos: fotosChunks[0] };
                 const weight = 1 + (Math.ceil(fotosChunks[0].length / 3) * 2);
@@ -312,14 +311,14 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     return acc + 1;
                 }, 0);
                 const currentLimit = isFirstPage ? maxItemsForFirstPage : maxItemsPerPage;
-                
+
                 if (currentPage.length > 0 && currentWeight + weight > currentLimit) {
                     pages.push({ local, items: currentPage, isFirstPageOfLocal: isFirstPage });
                     currentPage = [];
                     isFirstPage = false;
                 }
                 currentPage.push(firstItemPart);
-                
+
                 // Chunks restantes
                 for (let i = 1; i < fotosChunks.length; i++) {
                     if (currentPage.length > 0) {
@@ -345,7 +344,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     const fotoRows = Math.ceil(item.fotos.length / 3);
                     itemWeight = 1 + (fotoRows * 2);
                 }
-                
+
                 const currentWeight = currentPage.reduce((acc, p) => {
                     const isC = p.tipo === 'comentario' || p.isComentarioGeral;
                     const text = p.texto || p.comentarios || '';
@@ -358,38 +357,38 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     }
                     return acc + 1;
                 }, 0);
-                
+
                 const currentLimit = isFirstPage ? maxItemsForFirstPage : maxItemsPerPage;
-                
+
                 if (currentWeight + itemWeight > currentLimit && currentPage.length > 0) {
                     pages.push({ local, items: currentPage, isFirstPageOfLocal: isFirstPage });
                     currentPage = [];
                     isFirstPage = false;
                 }
-                
+
                 currentPage.push(item);
             }
         });
-        
+
         if (currentPage.length > 0) {
             pages.push({ local, items: currentPage, isFirstPageOfLocal: isFirstPage });
         }
-        
+
         return pages;
     };
-    
+
     const docItemCount = hasDocumentacao ? (relatorio.itens_documentacao.length || 0) : 0;
     const combineDocWithContent = hasDocumentacao && docItemCount <= 6;
-    
+
     const firstPageItemLimit = combineDocWithContent ? Math.max(6, 12 - docItemCount) : 14;
-    
-    const contentPages = relatorio.locais.flatMap((local, index) => 
+
+    const contentPages = relatorio.locais.flatMap((local, index) =>
         paginateLocalItems(local, index === 0 ? firstPageItemLimit : 14)
     );
-    
+
     console.log('[VISUALIZAR] Assinaturas do relatório:', JSON.stringify(relatorio.assinaturas, null, 2));
     console.log('[VISUALIZAR] Quantidade de assinaturas:', relatorio.assinaturas?.length);
-    
+
     if (relatorio.assinaturas && relatorio.assinaturas.length > 0) {
         relatorio.assinaturas.forEach((ass, idx) => {
             console.log(`[VISUALIZAR] Assinatura ${idx}:`, {
@@ -404,11 +403,11 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
             });
         });
     }
-    
-    const hasAssinaturas = relatorio.assinaturas && relatorio.assinaturas.length > 0 && 
+
+    const hasAssinaturas = relatorio.assinaturas && relatorio.assinaturas.length > 0 &&
         relatorio.assinaturas.some(ass => (ass.nome && ass.nome.trim() !== '') || (ass.parte && ass.parte.trim() !== '') || (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== ''));
     console.log('[VISUALIZAR] hasAssinaturas:', hasAssinaturas);
-    
+
     const totalPages = 1 + (hasDocumentacao && !combineDocWithContent ? 1 : 0) + contentPages.length + 1 + (hasAssinaturas ? 1 : 0);
     console.log('[VISUALIZAR] Total de páginas:', totalPages, '(com assinaturas:', hasAssinaturas, ')');
     let currentPage = 1;
@@ -464,9 +463,9 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
 
                 {hasAssinaturas && (
                     <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                        <AssinaturasPage assinaturas={relatorio.assinaturas.filter(ass => 
-                            (ass.nome && ass.nome.trim() !== '') || 
-                            (ass.parte && ass.parte.trim() !== '') || 
+                        <AssinaturasPage assinaturas={relatorio.assinaturas.filter(ass =>
+                            (ass.nome && ass.nome.trim() !== '') ||
+                            (ass.parte && ass.parte.trim() !== '') ||
                             (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== '')
                         )} />
                     </ReportPageLayout>
@@ -591,7 +590,7 @@ export default function VisualizarInspecaoAlarme() {
             try {
                 const relatorioData = await InspecaoAlarmeIncendio.get(relatorioId);
                 if (!relatorioData) throw new Error("Relatório não encontrado.");
-                
+
                 const empreendimentoData = await Empreendimento.get(relatorioData.id_empreendimento);
                 if (!empreendimentoData) throw new Error("Empreendimento associado não encontrado.");
 
@@ -609,27 +608,27 @@ export default function VisualizarInspecaoAlarme() {
     useEffect(() => {
         const originalColorScheme = document.documentElement.style.colorScheme;
         document.documentElement.style.colorScheme = 'light';
-        
+
         let metaColorScheme = document.querySelector('meta[name="color-scheme"]');
         let metaWasCreated = false;
         if (!metaColorScheme) {
-          metaColorScheme = document.createElement('meta');
-          metaColorScheme.name = 'color-scheme';
-          document.head.appendChild(metaColorScheme);
-          metaWasCreated = true;
+            metaColorScheme = document.createElement('meta');
+            metaColorScheme.name = 'color-scheme';
+            document.head.appendChild(metaColorScheme);
+            metaWasCreated = true;
         }
         const originalMetaContent = metaColorScheme.content;
         metaColorScheme.content = 'light only';
-        
+
         return () => {
-          document.documentElement.style.colorScheme = originalColorScheme;
-          if (metaWasCreated && metaColorScheme.parentNode) {
-            metaColorScheme.parentNode.removeChild(metaColorScheme);
-          } else if (metaColorScheme) {
-            metaColorScheme.content = originalMetaContent;
-          }
+            document.documentElement.style.colorScheme = originalColorScheme;
+            if (metaWasCreated && metaColorScheme.parentNode) {
+                metaColorScheme.parentNode.removeChild(metaColorScheme);
+            } else if (metaColorScheme) {
+                metaColorScheme.content = originalMetaContent;
+            }
         };
-      }, []);
+    }, []);
 
     if (loading) {
         return <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100"><Loader2 className="h-12 w-12 animate-spin text-blue-600" /><p className="mt-4 text-gray-600">Carregando relatório...</p></div>;
@@ -647,6 +646,6 @@ export default function VisualizarInspecaoAlarme() {
             </div>
         );
     }
-    
+
     return <ReportContent relatorio={relatorio} empreendimento={empreendimento} navigate={navigate} />;
 }
