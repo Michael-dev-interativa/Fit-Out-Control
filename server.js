@@ -348,9 +348,14 @@ function requirePool() {
 app.post('/api/upload', upload.single('file'), (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'missing_file' });
-    const port = Number(process.env.PORT ?? 3000);
     const filePath = `/uploads/${req.file.filename}`;
-    const file_url = `http://localhost:${port}${filePath}`;
+    
+    // Em produção, retorna apenas o path relativo; em dev retorna URL completa
+    const isProduction = process.env.NODE_ENV === 'production';
+    const file_url = isProduction 
+      ? filePath  // Frontend vai construir a URL completa usando getUploadUrl
+      : `http://localhost:${Number(process.env.PORT ?? 5000)}${filePath}`;
+    
     res.status(201).json({ file_url, path: filePath, name: req.file.originalname, size: req.file.size });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
