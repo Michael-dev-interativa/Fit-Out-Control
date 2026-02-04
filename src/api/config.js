@@ -75,3 +75,7 @@ export function getUploadUrl(filePath) {
   const cleanPath = filePath.replace(/^\//, '');
   const finalPath = cleanPath.startsWith('uploads/') ? cleanPath : `uploads/${cleanPath}`;
   const finalUrl = `${currentApiBase}/${finalPath}`;
+  
+  console.log('🔨 URL construída:', finalUrl);
+  return finalUrl;
+}
