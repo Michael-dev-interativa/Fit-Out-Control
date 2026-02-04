@@ -1,5 +1,18 @@
 // API Base URL resolver - centralizado para evitar erros de "not defined"
 
+async function loadRuntimeConfig() {
+  try {
+    const response = await fetch('/api-config.json');
+    if (response.ok) {
+      const config = await response.json();
+      return config.apiUrl;
+    }
+  } catch (error) {
+    console.warn('Could not load runtime config:', error);
+  }
+  return null;
+}
+
 function getApiBase() {
   // Pega o VITE_API_URL do ambiente (injetado em build time)
   const envUrl = import.meta.env.VITE_API_URL;
@@ -13,7 +26,7 @@ function getApiBase() {
     base = injected && String(injected).trim().replace(/\/$/, "");
   }
 
-  // Fallback 3: URL de produção (se não houver env configurado)
+  // Fallback 3: URL de produção (hardcoded)
   if (!base) {
     base = "https://fit-out-backend.onrender.com";
   }
@@ -33,16 +46,16 @@ export function apiUrl(path = "") {
 // Função para construir URLs de uploads/imagens
 export function getUploadUrl(filePath) {
   if (!filePath) return null;
-  
+
   // Se já é URL completa, retorna direto
   if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
     return filePath;
   }
-  
+
   // Remove barra inicial e adiciona 'uploads/' se necessário
   const cleanPath = filePath.replace(/^\//, '');
   const finalPath = cleanPath.startsWith('uploads/') ? cleanPath : `uploads/${cleanPath}`;
-  
+
   return `${API_BASE}/${finalPath}`;
 }
 
