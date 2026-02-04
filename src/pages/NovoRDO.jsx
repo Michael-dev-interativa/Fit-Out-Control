@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Save, Loader2, Plus, Trash2, Upload } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import { getUploadUrl } from '@/api/config';
 import SignatureField from '@/components/signature/SignatureField';
 import SignatureDialog from '@/components/signature/SignatureDialog';
 
@@ -678,7 +679,7 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
               {formData.fotos?.map((foto, index) => (
                 <div key={index} className={`border rounded-lg p-3 ${isDark ? 'border-gray-600' : 'border-gray-300'}`}>
                   <img
-                    src={foto.url}
+                    src={getUploadUrl(foto.url) || foto.url}
                     alt={`Foto ${index + 1}`}
                     className="w-full h-48 object-cover rounded mb-2"
                   />

@@ -442,7 +442,7 @@ const paginateContent = (documento, empreendimento, t) => {
               {fotos.map((foto, idx) => (
                 <div key={idx} className="border border-gray-300 p-2">
                   <img
-                    src={foto.url}
+                    src={getUploadUrl(foto.url) || foto.url}
                     alt={foto.legenda || `Foto`}
                     className="w-full h-48 object-cover rounded mb-2"
                   />
