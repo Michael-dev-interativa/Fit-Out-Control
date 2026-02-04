@@ -51,7 +51,9 @@ export function getUploadUrl(filePath) {
   if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
     // Se for localhost, substituir pelo API_BASE correto
     if (filePath.includes('localhost')) {
-      return filePath.replace(/http:\/\/localhost:\d+/, API_BASE);
+      const correctedUrl = filePath.replace(/http:\/\/localhost:\d+/, API_BASE);
+      console.log('🔧 Corrigindo URL localhost:', { original: filePath, corrigida: correctedUrl, API_BASE });
+      return correctedUrl;
     }
     return filePath;
   }
