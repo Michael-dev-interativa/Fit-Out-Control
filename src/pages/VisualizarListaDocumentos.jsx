@@ -445,16 +445,7 @@ const paginateContent = (documento, empreendimento, t) => {
                     src={getUploadUrl(foto.url) || foto.url}
                     alt={foto.legenda || `Foto`}
                     className="w-full h-48 object-cover rounded mb-2"
-                    crossOrigin="anonymous"
                     loading="eager"
-                    onError={(e) => {
-                      console.error('❌ Erro ao carregar imagem:', {
-                        src: e.target.src,
-                        originalUrl: foto.url,
-                        processedUrl: getUploadUrl(foto.url)
-                      });
-                      e.target.style.border = '2px solid red';
-                    }}
                   />
                   {foto.legenda && (
                     <p className="text-xs text-gray-700 text-center">{foto.legenda}</p>
