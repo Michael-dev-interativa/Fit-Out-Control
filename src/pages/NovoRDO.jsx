@@ -155,7 +155,7 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
     assinaturas: [],
     observacoes: '',
     status_documento: 'Rascunho'
-    });
+  });
 
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
@@ -189,17 +189,23 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
       const date = new Date(formData.data_relatorio + 'T00:00:00');
       const days = ['Domingo', 'Segunda-Feira', 'Terça-Feira', 'Quarta-Feira', 'Quinta-Feira', 'Sexta-Feira', 'Sábado'];
       const dayName = days[date.getDay()];
-      setFormData(prev => ({...prev, dia_semana: dayName}));
+      setFormData(prev => ({ ...prev, dia_semana: dayName }));
     }
   }, [formData.data_relatorio]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await RDO.create({
+      const dataToSave = {
         id_empreendimento: empreendimentoId,
         ...formData
-      });
+      };
+
+      console.log('📝 Salvando RDO com dados:', dataToSave);
+      console.log('📸 Número de fotos:', dataToSave.fotos?.length || 0);
+      console.log('🖼️ Fotos:', dataToSave.fotos);
+
+      await RDO.create(dataToSave);
       navigate(createPageUrl(`EmpreendimentoListaDocumentos?empreendimentoId=${empreendimentoId}`));
     } catch (error) {
       console.error("Erro ao salvar documento:", error);
@@ -234,12 +240,20 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
 
     setUploadingPhoto(true);
     try {
-      const uploadPromises = files.map(file => 
+      const uploadPromises = files.map(file =>
         base44.integrations.Core.UploadFile({ file })
       );
       const results = await Promise.all(uploadPromises);
-      
-      const newFotos = results.map(result => ({ url: result.file_url, legenda: '' }));
+
+      console.log('✅ Upload de fotos concluído:', results);
+
+      const newFotos = results.map(result => {
+        console.log('📸 Foto uploadada - URL:', result.file_url);
+        return { url: result.file_url, legenda: '' };
+      });
+
+      console.log('🖼️ Novas fotos adicionadas:', newFotos);
+
       setFormData(prev => ({
         ...prev,
         fotos: [...(prev.fotos || []), ...newFotos]
@@ -262,7 +276,7 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
   const updateFotoLegenda = (index, legenda) => {
     setFormData(prev => ({
       ...prev,
-      fotos: prev.fotos.map((foto, i) => 
+      fotos: prev.fotos.map((foto, i) =>
         i === index ? { ...foto, legenda } : foto
       )
     }));
@@ -274,11 +288,11 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
 
     setUploadingPhoto(true);
     try {
-      const uploadPromises = files.map(file => 
+      const uploadPromises = files.map(file =>
         base44.integrations.Core.UploadFile({ file })
       );
       const results = await Promise.all(uploadPromises);
-      
+
       const newAssinaturas = results.map(result => ({ url: result.file_url, nome: '' }));
       setFormData(prev => ({
         ...prev,
@@ -302,7 +316,7 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
   const updateAssinaturaNome = (index, nome) => {
     setFormData(prev => ({
       ...prev,
-      assinaturas: prev.assinaturas.map((ass, i) => 
+      assinaturas: prev.assinaturas.map((ass, i) =>
         i === index ? { ...ass, nome } : ass
       )
     }));
@@ -318,7 +332,7 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
   const updateAssinatura = (index, field, value) => {
     setFormData(prev => ({
       ...prev,
-      assinaturas: prev.assinaturas.map((ass, i) => 
+      assinaturas: prev.assinaturas.map((ass, i) =>
         i === index ? { ...ass, [field]: value } : ass
       )
     }));
@@ -348,7 +362,7 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
           <ArrowLeft className="w-4 h-4 mr-2" />
           {t.backToList}
         </Button>
-        
+
         <Button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
           {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
           {saving ? t.saving : t.save}
@@ -366,7 +380,7 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label>{t.documentType}</Label>
-                <Select value={formData.tipo_documento} onValueChange={(val) => setFormData({...formData, tipo_documento: val})}>
+                <Select value={formData.tipo_documento} onValueChange={(val) => setFormData({ ...formData, tipo_documento: val })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -380,18 +394,18 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
               </div>
               <div>
                 <Label>{t.reportNumber}</Label>
-                <Input value={formData.numero_relatorio} onChange={(e) => setFormData({...formData, numero_relatorio: e.target.value})} />
+                <Input value={formData.numero_relatorio} onChange={(e) => setFormData({ ...formData, numero_relatorio: e.target.value })} />
               </div>
               <div>
                 <Label>{t.reportDate}</Label>
-                <Input type="date" value={formData.data_relatorio} onChange={(e) => setFormData({...formData, data_relatorio: e.target.value})} />
+                <Input type="date" value={formData.data_relatorio} onChange={(e) => setFormData({ ...formData, data_relatorio: e.target.value })} />
               </div>
               <div>
                 <Label>{t.dayOfWeek}</Label>
                 <Input type="text" value={formData.dia_semana} disabled className={isDark ? 'bg-gray-700' : ''} />
               </div>
-              </div>
-              </div>
+            </div>
+          </div>
 
           {/* Informações da Obra */}
           <div className="space-y-4">
@@ -399,60 +413,60 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>{t.workName}</Label>
-                <Input value={formData.obra_nome} onChange={(e) => setFormData({...formData, obra_nome: e.target.value})} />
+                <Input value={formData.obra_nome} onChange={(e) => setFormData({ ...formData, obra_nome: e.target.value })} />
               </div>
               <div>
                 <Label>{t.workLocation}</Label>
-                <Input value={formData.obra_local} onChange={(e) => setFormData({...formData, obra_local: e.target.value})} />
+                <Input value={formData.obra_local} onChange={(e) => setFormData({ ...formData, obra_local: e.target.value })} />
               </div>
               <div>
                 <Label>{t.contractor}</Label>
-                <Input value={formData.contratada} onChange={(e) => setFormData({...formData, contratada: e.target.value})} />
+                <Input value={formData.contratada} onChange={(e) => setFormData({ ...formData, contratada: e.target.value })} />
               </div>
               <div>
                 <Label>{t.responsible}</Label>
-                <Input value={formData.responsavel} onChange={(e) => setFormData({...formData, responsavel: e.target.value})} />
+                <Input value={formData.responsavel} onChange={(e) => setFormData({ ...formData, responsavel: e.target.value })} />
               </div>
             </div>
           </div>
 
           {/* Informações do Contrato */}
-           <div className="space-y-4">
-             <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : ''}`}>{t.contractInfo}</h3>
-             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-               <div>
-                 <Label>{t.contract}</Label>
-                 <Input value={formData.contrato} onChange={(e) => setFormData({...formData, contrato: e.target.value})} />
-               </div>
-               <div>
-                 <Label>{t.contractualDeadline}</Label>
-                 <Input type="number" value={formData.prazo_contratual} onChange={(e) => setFormData({...formData, prazo_contratual: e.target.value})} />
-               </div>
-               <div>
-                 <Label>{t.elapsedTime}</Label>
-                 <Input type="number" value={formData.prazo_decorrido} onChange={(e) => setFormData({...formData, prazo_decorrido: e.target.value})} />
-               </div>
-               <div>
-                 <Label>{t.remainingTime}</Label>
-                 <Input type="number" value={formData.prazo_vencer} onChange={(e) => setFormData({...formData, prazo_vencer: e.target.value})} />
-               </div>
-             </div>
-           </div>
+          <div className="space-y-4">
+            <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : ''}`}>{t.contractInfo}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <Label>{t.contract}</Label>
+                <Input value={formData.contrato} onChange={(e) => setFormData({ ...formData, contrato: e.target.value })} />
+              </div>
+              <div>
+                <Label>{t.contractualDeadline}</Label>
+                <Input type="number" value={formData.prazo_contratual} onChange={(e) => setFormData({ ...formData, prazo_contratual: e.target.value })} />
+              </div>
+              <div>
+                <Label>{t.elapsedTime}</Label>
+                <Input type="number" value={formData.prazo_decorrido} onChange={(e) => setFormData({ ...formData, prazo_decorrido: e.target.value })} />
+              </div>
+              <div>
+                <Label>{t.remainingTime}</Label>
+                <Input type="number" value={formData.prazo_vencer} onChange={(e) => setFormData({ ...formData, prazo_vencer: e.target.value })} />
+              </div>
+            </div>
+          </div>
 
-           {/* Condição Climática */}
-           <div className="space-y-4">
-             <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : ''}`}>{t.weatherCondition}</h3>
+          {/* Condição Climática */}
+          <div className="space-y-4">
+            <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : ''}`}>{t.weatherCondition}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-3">
                 <Label className="font-semibold">{t.morning}</Label>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-sm">{t.weather}</Label>
-                    <Select 
-                      value={formData.condicao_climatica.manha_tempo} 
+                    <Select
+                      value={formData.condicao_climatica.manha_tempo}
                       onValueChange={(val) => setFormData({
-                        ...formData, 
-                        condicao_climatica: {...formData.condicao_climatica, manha_tempo: val}
+                        ...formData,
+                        condicao_climatica: { ...formData.condicao_climatica, manha_tempo: val }
                       })}
                     >
                       <SelectTrigger>
@@ -467,11 +481,11 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
                   </div>
                   <div>
                     <Label className="text-sm">{t.workCondition}</Label>
-                    <Select 
-                      value={formData.condicao_climatica.manha_condicao} 
+                    <Select
+                      value={formData.condicao_climatica.manha_condicao}
                       onValueChange={(val) => setFormData({
-                        ...formData, 
-                        condicao_climatica: {...formData.condicao_climatica, manha_condicao: val}
+                        ...formData,
+                        condicao_climatica: { ...formData.condicao_climatica, manha_condicao: val }
                       })}
                     >
                       <SelectTrigger>
@@ -490,11 +504,11 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-sm">{t.weather}</Label>
-                    <Select 
-                      value={formData.condicao_climatica.tarde_tempo} 
+                    <Select
+                      value={formData.condicao_climatica.tarde_tempo}
                       onValueChange={(val) => setFormData({
-                        ...formData, 
-                        condicao_climatica: {...formData.condicao_climatica, tarde_tempo: val}
+                        ...formData,
+                        condicao_climatica: { ...formData.condicao_climatica, tarde_tempo: val }
                       })}
                     >
                       <SelectTrigger>
@@ -509,11 +523,11 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
                   </div>
                   <div>
                     <Label className="text-sm">{t.workCondition}</Label>
-                    <Select 
-                      value={formData.condicao_climatica.tarde_condicao} 
+                    <Select
+                      value={formData.condicao_climatica.tarde_condicao}
                       onValueChange={(val) => setFormData({
-                        ...formData, 
-                        condicao_climatica: {...formData.condicao_climatica, tarde_condicao: val}
+                        ...formData,
+                        condicao_climatica: { ...formData.condicao_climatica, tarde_condicao: val }
                       })}
                     >
                       <SelectTrigger>
@@ -536,45 +550,45 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <Label>{t.juniorEngineer}</Label>
-                <Input 
-                  type="number" 
-                  value={formData.equipes_campo.engenheiro_pleno} 
+                <Input
+                  type="number"
+                  value={formData.equipes_campo.engenheiro_pleno}
                   onChange={(e) => setFormData({
-                    ...formData, 
-                    equipes_campo: {...formData.equipes_campo, engenheiro_pleno: parseInt(e.target.value) || 0}
+                    ...formData,
+                    equipes_campo: { ...formData.equipes_campo, engenheiro_pleno: parseInt(e.target.value) || 0 }
                   })}
                 />
               </div>
               <div>
                 <Label>{t.seniorEngineer}</Label>
-                <Input 
-                  type="number" 
-                  value={formData.equipes_campo.engenheiro_senior} 
+                <Input
+                  type="number"
+                  value={formData.equipes_campo.engenheiro_senior}
                   onChange={(e) => setFormData({
-                    ...formData, 
-                    equipes_campo: {...formData.equipes_campo, engenheiro_senior: parseInt(e.target.value) || 0}
+                    ...formData,
+                    equipes_campo: { ...formData.equipes_campo, engenheiro_senior: parseInt(e.target.value) || 0 }
                   })}
                 />
               </div>
               <div>
                 <Label>{t.administrative}</Label>
-                <Input 
-                  type="number" 
-                  value={formData.equipes_campo.administrativo} 
+                <Input
+                  type="number"
+                  value={formData.equipes_campo.administrativo}
                   onChange={(e) => setFormData({
-                    ...formData, 
-                    equipes_campo: {...formData.equipes_campo, administrativo: parseInt(e.target.value) || 0}
+                    ...formData,
+                    equipes_campo: { ...formData.equipes_campo, administrativo: parseInt(e.target.value) || 0 }
                   })}
                 />
               </div>
               <div>
                 <Label>{t.thirdParty}</Label>
-                <Input 
-                  type="number" 
-                  value={formData.equipes_campo.terceiros} 
+                <Input
+                  type="number"
+                  value={formData.equipes_campo.terceiros}
                   onChange={(e) => setFormData({
-                    ...formData, 
-                    equipes_campo: {...formData.equipes_campo, terceiros: parseInt(e.target.value) || 0}
+                    ...formData,
+                    equipes_campo: { ...formData.equipes_campo, terceiros: parseInt(e.target.value) || 0 }
                   })}
                 />
               </div>
@@ -597,7 +611,7 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
                   onChange={(e) => {
                     const newAtividades = [...formData.atividades_realizadas];
                     newAtividades[idx].descricao = e.target.value;
-                    setFormData({...formData, atividades_realizadas: newAtividades});
+                    setFormData({ ...formData, atividades_realizadas: newAtividades });
                   }}
                   placeholder="Descrição da atividade"
                 />
@@ -621,7 +635,7 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
                   onChange={(e) => {
                     const newOcorrencias = [...formData.ocorrencias];
                     newOcorrencias[idx].descricao = e.target.value;
-                    setFormData({...formData, ocorrencias: newOcorrencias});
+                    setFormData({ ...formData, ocorrencias: newOcorrencias });
                   }}
                   placeholder="Descrição da ocorrência"
                 />
@@ -633,9 +647,9 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : ''}`}>Registros Fotográficos</h3>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => document.getElementById('photo-upload').click()}
                 disabled={uploadingPhoto}
               >
@@ -663,8 +677,8 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {formData.fotos?.map((foto, index) => (
                 <div key={index} className={`border rounded-lg p-3 ${isDark ? 'border-gray-600' : 'border-gray-300'}`}>
-                  <img 
-                    src={foto.url} 
+                  <img
+                    src={foto.url}
                     alt={`Foto ${index + 1}`}
                     className="w-full h-48 object-cover rounded mb-2"
                   />
@@ -691,17 +705,17 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
           {/* Observações */}
           <div>
             <Label>{t.observations}</Label>
-            <Textarea value={formData.observacoes} onChange={(e) => setFormData({...formData, observacoes: e.target.value})} rows={4} />
+            <Textarea value={formData.observacoes} onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })} rows={4} />
           </div>
 
           {/* Assinaturas */}
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : ''}`}>{t.signatures}</h3>
-              <Button 
+              <Button
                 type="button"
-                variant="outline" 
-                size="sm" 
+                variant="outline"
+                size="sm"
                 onClick={addAssinatura}
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -720,7 +734,7 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
                 />
               ))}
             </div>
-            <SignatureDialog 
+            <SignatureDialog
               open={signatureDialogOpen}
               onOpenChange={setSignatureDialogOpen}
               onSave={handleSignatureSave}
@@ -730,7 +744,7 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
           {/* Status */}
           <div>
             <Label>{t.status}</Label>
-            <Select value={formData.status_documento} onValueChange={(val) => setFormData({...formData, status_documento: val})}>
+            <Select value={formData.status_documento} onValueChange={(val) => setFormData({ ...formData, status_documento: val })}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
