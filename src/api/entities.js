@@ -6,6 +6,7 @@ function getAuthToken() {
 function getAuthHeaders(extra = {}) {
   const h = { ...extra };
   const t = getAuthToken();
+  console.log('🔑 Auth Token:', t ? `${t.substring(0, 20)}...` : 'NENHUM TOKEN');
   if (t) h['Authorization'] = `Bearer ${t}`;
   return h;
 }
