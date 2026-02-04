@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { getUploadUrl } from "@/api/config";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,8 +44,8 @@ export default function EmpreendimentoCard({ empreendimento, onUpdate }) {
     const v = (url ?? "").toString().trim();
     if (!v) return defaultImage;
     if (v.startsWith("blob:")) return defaultImage;
-    if (/^https?:\/\//i.test(v)) return v;
-    return defaultImage;
+    // Usa getUploadUrl para corrigir URLs localhost e construir URLs corretas
+    return getUploadUrl(v) || defaultImage;
   };
 
   const isEmpreendimentoValid = isValidId(empreendimento?.id);
