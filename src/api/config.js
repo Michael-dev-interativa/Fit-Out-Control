@@ -14,6 +14,11 @@ async function loadRuntimeConfig() {
 }
 
 function getApiBase() {
+  // Se está rodando em localhost, usa o backend local
+  if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+    return "http://localhost:5000";
+  }
+
   // Pega o VITE_API_URL do ambiente (injetado em build time)
   const envUrl = import.meta.env.VITE_API_URL;
 
