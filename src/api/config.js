@@ -52,14 +52,18 @@ export function apiUrl(path = "") {
 export function getUploadUrl(filePath) {
   if (!filePath) return null;
 
+  // Recalcula API_BASE para pegar hostname atual
+  const currentApiBase = getApiBase();
+
   console.log('🔍 getUploadUrl chamado com:', filePath);
-  console.log('📍 API_BASE atual:', API_BASE);
+  console.log('📍 API_BASE atual:', currentApiBase);
+  console.log('🌐 window.location.hostname:', window.location.hostname);
 
   // Se já é URL completa
   if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
     // Se for localhost, substituir pelo API_BASE correto
     if (filePath.includes('localhost')) {
-      const correctedUrl = filePath.replace(/http:\/\/localhost:\d+/, API_BASE);
+      const correctedUrl = filePath.replace(/http:\/\/localhost:\d+/, currentApiBase);
       console.log('✅ URL corrigida de', filePath, 'para', correctedUrl);
       return correctedUrl;
     }
@@ -70,8 +74,4 @@ export function getUploadUrl(filePath) {
   // Remove barra inicial e adiciona 'uploads/' se necessário
   const cleanPath = filePath.replace(/^\//, '');
   const finalPath = cleanPath.startsWith('uploads/') ? cleanPath : `uploads/${cleanPath}`;
-  const finalUrl = `${API_BASE}/${finalPath}`;
-
-  console.log('🔨 URL construída:', finalUrl);
-  return finalUrl;
-}
+  const finalUrl = `${currentApiBase}/${finalPath}`;
