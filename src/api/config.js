@@ -45,7 +45,10 @@ export function apiUrl(path = "") {
 
 // Função para construir URLs de uploads/imagens
 export function getUploadUrl(filePath) {
-  if (!filePath) return null;
+  if (!filePath) {
+    console.warn('⚠️ getUploadUrl: filePath vazio');
+    return null;
+  }
 
   // Se já é URL completa, retorna direto
   if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
@@ -64,8 +67,15 @@ export function getUploadUrl(filePath) {
   console.log('   - finalPath:', finalPath);
 
   return url;
+}
+
+// Log único de configuração (apenas uma vez)
+if (!window.__apiConfigLogged) {
+  window.__apiConfigLogged = true;
+  console.group("📡 API Configuration");
   console.log("VITE_API_URL:", import.meta.env.VITE_API_URL);
   console.log("Resolved base:", API_BASE);
   console.log("Environment:", import.meta.env.MODE);
   console.groupEnd();
 }
+
