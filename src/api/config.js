@@ -45,20 +45,14 @@ export function apiUrl(path = "") {
 
 // Função para construir URLs de uploads/imagens
 export function getUploadUrl(filePath) {
-  if (!filePath) {
-    console.warn('⚠️ getUploadUrl: filePath vazio');
-    return null;
-  }
+  if (!filePath) return null;
 
   // Se já é URL completa
   if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
     // Se for localhost, substituir pelo API_BASE correto
     if (filePath.includes('localhost')) {
-      const fixedUrl = filePath.replace(/http:\/\/localhost:\d+/, API_BASE);
-      console.log('🔧 URL localhost corrigida:', fixedUrl);
-      return fixedUrl;
+      return filePath.replace(/http:\/\/localhost:\d+/, API_BASE);
     }
-    console.log('🖼️ Upload URL (já completa):', filePath);
     return filePath;
   }
 
@@ -66,22 +60,5 @@ export function getUploadUrl(filePath) {
   const cleanPath = filePath.replace(/^\//, '');
   const finalPath = cleanPath.startsWith('uploads/') ? cleanPath : `uploads/${cleanPath}`;
 
-  const url = `${API_BASE}/${finalPath}`;
-  console.log('🖼️ Upload URL construída:', url);
-  console.log('   - API_BASE:', API_BASE);
-  console.log('   - filePath original:', filePath);
-  console.log('   - finalPath:', finalPath);
-
-  return url;
+  return `${API_BASE}/${finalPath}`;
 }
-
-// Log único de configuração (apenas uma vez)
-if (!window.__apiConfigLogged) {
-  window.__apiConfigLogged = true;
-  console.group("📡 API Configuration");
-  console.log("VITE_API_URL:", import.meta.env.VITE_API_URL);
-  console.log("Resolved base:", API_BASE);
-  console.log("Environment:", import.meta.env.MODE);
-  console.groupEnd();
-}
-

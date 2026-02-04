@@ -202,10 +202,6 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
         ...formData
       };
 
-      console.log('📝 Salvando RDO com dados:', dataToSave);
-      console.log('📸 Número de fotos:', dataToSave.fotos?.length || 0);
-      console.log('🖼️ Fotos:', dataToSave.fotos);
-
       await RDO.create(dataToSave);
       navigate(createPageUrl(`EmpreendimentoListaDocumentos?empreendimentoId=${empreendimentoId}`));
     } catch (error) {
@@ -246,14 +242,10 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
       );
       const results = await Promise.all(uploadPromises);
 
-      console.log('✅ Upload de fotos concluído:', results);
-
-      const newFotos = results.map(result => {
-        console.log('📸 Foto uploadada - URL:', result.file_url);
-        return { url: result.file_url, legenda: '' };
-      });
-
-      console.log('🖼️ Novas fotos adicionadas:', newFotos);
+      const newFotos = results.map(result => ({
+        url: result.file_url,
+        legenda: ''
+      }));
 
       setFormData(prev => ({
         ...prev,
