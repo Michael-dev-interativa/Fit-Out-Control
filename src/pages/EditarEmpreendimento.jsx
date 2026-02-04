@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Empreendimento } from '@/api/entities';
 import { UploadFile } from '@/api/integrations';
+import { getUploadUrl } from '@/api/config';
 import { createPageUrl } from '@/utils';
 import { addDays, format, differenceInDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -399,13 +400,13 @@ export default function EditarEmpreendimento() {
                             <Label>Foto Principal</Label>
                             <Input type="file" accept="image/*" onChange={handleFileUpload} disabled={uploading} />
                             {uploading && <Loader2 className="w-4 h-4 animate-spin mt-2" />}
-                            {formData.foto_empreendimento && <img src={formData.foto_empreendimento} alt="Preview" className="w-full h-48 object-cover rounded-lg mt-2" />}
+                            {formData.foto_empreendimento && <img src={getUploadUrl(formData.foto_empreendimento)} alt="Preview" className="w-full h-48 object-cover rounded-lg mt-2" />}
                         </div>
                         <div>
                             <Label>Logo do Responsável</Label>
                             <Input type="file" accept="image/*" onChange={handleLogoUpload} disabled={uploadingLogo} />
                             {uploadingLogo && <Loader2 className="w-4 h-4 animate-spin mt-2" />}
-                            {formData.logo_responsavel && <img src={formData.logo_responsavel} alt="Logo" className="h-20 object-contain rounded-lg mt-2 bg-gray-100 p-2" />}
+                            {formData.logo_responsavel && <img src={getUploadUrl(formData.logo_responsavel)} alt="Logo" className="h-20 object-contain rounded-lg mt-2 bg-gray-100 p-2" />}
                         </div>
                         <div>
                             <Label>Galeria de Fotos</Label>
