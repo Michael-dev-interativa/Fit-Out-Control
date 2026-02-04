@@ -50,8 +50,14 @@ export function getUploadUrl(filePath) {
     return null;
   }
 
-  // Se já é URL completa, retorna direto
+  // Se já é URL completa
   if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+    // Se for localhost, substituir pelo API_BASE correto
+    if (filePath.includes('localhost')) {
+      const fixedUrl = filePath.replace(/http:\/\/localhost:\d+/, API_BASE);
+      console.log('🔧 URL localhost corrigida:', fixedUrl);
+      return fixedUrl;
+    }
     console.log('🖼️ Upload URL (já completa):', filePath);
     return filePath;
   }
