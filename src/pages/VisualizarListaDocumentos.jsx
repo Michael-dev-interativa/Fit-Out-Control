@@ -445,6 +445,16 @@ const paginateContent = (documento, empreendimento, t) => {
                     src={getUploadUrl(foto.url) || foto.url}
                     alt={foto.legenda || `Foto`}
                     className="w-full h-48 object-cover rounded mb-2"
+                    crossOrigin="anonymous"
+                    loading="eager"
+                    onError={(e) => {
+                      console.error('❌ Erro ao carregar imagem:', {
+                        src: e.target.src,
+                        originalUrl: foto.url,
+                        processedUrl: getUploadUrl(foto.url)
+                      });
+                      e.target.style.border = '2px solid red';
+                    }}
                   />
                   {foto.legenda && (
                     <p className="text-xs text-gray-700 text-center">{foto.legenda}</p>
@@ -620,7 +630,30 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
     }
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
+    // Aguardar todas as imagens carregarem antes de imprimir
+    const images = document.querySelectorAll('img');
+    const imagePromises = Array.from(images).map(img => {
+      if (img.complete) return Promise.resolve();
+      return new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => {
+          console.warn('Erro ao carregar imagem:', img.src);
+          resolve(); // Continua mesmo com erro
+        };
+        // Timeout de 5 segundos por imagem
+        setTimeout(resolve, 5000);
+      });
+    });
+
+    try {
+      await Promise.all(imagePromises);
+      // Pequeno delay adicional para garantir renderização
+      await new Promise(resolve => setTimeout(resolve, 500));
+    } catch (error) {
+      console.error('Erro ao aguardar carregamento de imagens:', error);
+    }
+
     window.print();
   };
 
