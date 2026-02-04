@@ -49,6 +49,7 @@ export function getUploadUrl(filePath) {
 
   // Se já é URL completa, retorna direto
   if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+    console.log('🖼️ Upload URL (já completa):', filePath);
     return filePath;
   }
 
@@ -56,13 +57,13 @@ export function getUploadUrl(filePath) {
   const cleanPath = filePath.replace(/^\//, '');
   const finalPath = cleanPath.startsWith('uploads/') ? cleanPath : `uploads/${cleanPath}`;
 
-  return `${API_BASE}/${finalPath}`;
-}
+  const url = `${API_BASE}/${finalPath}`;
+  console.log('🖼️ Upload URL construída:', url);
+  console.log('   - API_BASE:', API_BASE);
+  console.log('   - filePath original:', filePath);
+  console.log('   - finalPath:', finalPath);
 
-// Log único de configuração (apenas uma vez)
-if (!window.__apiConfigLogged) {
-  window.__apiConfigLogged = true;
-  console.group("📡 API Configuration");
+  return url;
   console.log("VITE_API_URL:", import.meta.env.VITE_API_URL);
   console.log("Resolved base:", API_BASE);
   console.log("Environment:", import.meta.env.MODE);
