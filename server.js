@@ -12,17 +12,39 @@ dotenv.config();
 
 const app = express();
 
-// Configuração CORS permissiva para aceitar qualquer origem
+// Configuração CORS mais permissiva para aceitar todas as origens do Render
 app.use(cors({
-  origin: true,
+  origin: function (origin, callback) {
+    // Permite requisições sem origin (mobile apps, curl, etc)
+    if (!origin) return callback(null, true);
+
+    // Lista de origens permitidas
+    const allowedOrigins = [
+      'https://fit-out-control-frontend1.onrender.com',
+      'https://fitout-frontend.onrender.com',
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://localhost:5174'
+    ];
+
+    // Permite qualquer subdomínio do onrender.com
+    if (origin.includes('onrender.com')) {
+      return callback(null, true);
+    }
+
+    // Verifica se a origem está na lista permitida
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('Origin blocked by CORS:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   exposedHeaders: ['Content-Range', 'X-Content-Range']
 }));
-
-// Handler para OPTIONS requests (preflight)
-app.options('*', cors());
 
 app.use(express.json());
 
