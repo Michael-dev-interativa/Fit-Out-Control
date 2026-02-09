@@ -11,8 +11,20 @@ import crypto from "crypto";
 dotenv.config();
 
 const app = express();
-// CORS aberto provisório para facilitar o deploy (ajustar depois)
-app.use(cors({ origin: "*" }));
+
+// Configuração CORS mais explícita
+app.use(cors({
+  origin: [
+    'https://fit-out-control-frontend1.onrender.com',
+    'https://fitout-frontend.onrender.com',
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
 app.use(express.json());
 
 
