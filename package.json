@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node -e \"const fs = require('fs'); const path = require('path'); const src = path.join('public', '_redirects'); const dest = path.join('dist', '_redirects'); if (fs.existsSync(src)) { fs.copyFileSync(src, dest); console.log('_redirects copied to dist'); }\"",
     "lint": "eslint .",
     "preview": "vite preview",
     "server": "node server.js",
