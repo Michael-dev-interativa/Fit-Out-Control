@@ -242,10 +242,18 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
       );
       const results = await Promise.all(uploadPromises);
 
-      const newFotos = results.map(result => ({
-        url: result.file_url,
-        legenda: ''
-      }));
+      console.log('📸 Resultados do upload:', results);
+
+      const newFotos = results.map(result => {
+        console.log('🔗 URL retornada:', result.file_url);
+        if (result.file_url && result.file_url.startsWith('blob:')) {
+          console.error('❌ ERRO: URL de blob detectada! Upload pode ter falhado.');
+        }
+        return {
+          url: result.file_url,
+          legenda: ''
+        };
+      });
 
       setFormData(prev => ({
         ...prev,
@@ -253,6 +261,7 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
       }));
     } catch (error) {
       console.error("Erro ao fazer upload das fotos:", error);
+      alert('Erro ao fazer upload das fotos. Verifique o console para mais detalhes.');
     } finally {
       setUploadingPhoto(false);
       e.target.value = '';
