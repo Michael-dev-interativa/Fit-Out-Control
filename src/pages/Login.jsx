@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Auth, User, Empreendimento } from '@/api/entities';
-import { apiUrl } from '@/api/config';
+import { apiUrl, getUploadUrl } from '@/api/config';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -49,7 +49,7 @@ export default function Login({ theme = 'light' }) {
           id: e.id,
           title: e.nome_empreendimento || e.nome || 'Empreendimento',
           city: e.cidade || e.localidade || '',
-          image: e.foto_empreendimento || e.capa || e.banner || null,
+          image: getUploadUrl(e.foto_empreendimento || e.capa || e.banner) || null,
         })).filter(Boolean);
         if (!cancelled && items.length) setPortfolio(items);
       } catch {
