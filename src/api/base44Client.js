@@ -1,21 +1,9 @@
 // Cliente local stub para evitar redirecionamentos/SDK externos do Base44
-function createObjectUrl(file) {
-  try {
-    return URL.createObjectURL(file);
-  } catch {
-    return null;
-  }
-}
+import { UploadFile as RealUploadFile } from './integrations';
 
+// Usa a função real de upload do integrations.js
 async function UploadFile({ file }) {
-  if (!file) throw new Error('file is required');
-  const file_url = createObjectUrl(file) || `data:${file.type};base64,`;
-  return {
-    file_url,
-    name: file.name,
-    size: file.size,
-    mime_type: file.type,
-  };
+  return RealUploadFile({ file });
 }
 
 async function UploadPrivateFile({ file }) {
