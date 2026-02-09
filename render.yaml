@@ -1,14 +1,12 @@
 services:
-  # Frontend - Static Site
+  # Frontend - Web Service com Express
   - type: web
     name: fitout-frontend
-    runtime: static
+    runtime: node
     buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
+    startCommand: node serve-frontend.js
     envVars:
       - key: VITE_API_URL
         value: https://fitout-backend.onrender.com
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
+      - key: NODE_ENV
+        value: production
