@@ -19,6 +19,11 @@ function getApiBase() {
     return "http://localhost:5000";
   }
 
+  // Em produção no Render, sempre usar o backend correto
+  if (typeof window !== "undefined" && window.location.hostname.includes("onrender.com")) {
+    return "https://fitout-backend.onrender.com";
+  }
+
   // Pega o VITE_API_URL do ambiente (injetado em build time)
   const envUrl = import.meta.env.VITE_API_URL;
 
@@ -33,7 +38,7 @@ function getApiBase() {
 
   // Fallback 3: URL de produção (hardcoded)
   if (!base) {
-    base = "https://fit-out-backend.onrender.com";
+    base = "https://fitout-backend.onrender.com";
   }
 
   return base;
