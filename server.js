@@ -12,19 +12,26 @@ dotenv.config();
 
 const app = express();
 
-// Configuração CORS simplificada e mais permissiva
-app.use(cors({
-  origin: true, // Aceita todas as origens
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-  exposedHeaders: ['Content-Range', 'X-Content-Range'],
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-}));
+// CORS mais permissivo com logging
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  console.log(`[CORS] ${req.method} ${req.path} from origin: ${origin}`);
 
-// Handler explícito para requisições OPTIONS (preflight)
-app.options('*', cors());
+  // Permite todas as origens
+  res.header('Access-Control-Allow-Origin', origin || '*');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Expose-Headers', 'Content-Range, X-Content-Range');
+
+  // Responde imediatamente a requisições OPTIONS
+  if (req.method === 'OPTIONS') {
+    console.log('[CORS] Responding to preflight request');
+    return res.sendStatus(200);
+  }
+
+  next();
+});
 
 app.use(express.json());
 
