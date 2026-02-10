@@ -68,16 +68,12 @@ try {
 } catch { }
 app.use('/uploads', express.static(uploadRoot));
 
-// Configuração do multer para uploads
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadRoot),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname || '');
-    const base = path.basename(file.originalname || 'file', ext).replace(/[^a-z0-9-_]/gi, '_');
-    cb(null, `${Date.now()}_${base}${ext}`);
-  }
+// Configuração do multer para uploads em memória (não em disco)
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
 });
-const upload = multer({ storage });
 
 // Fallback de desenvolvimento quando o banco não está acessível
 const memory = {
@@ -379,20 +375,68 @@ function requirePool() {
   return pool;
 }
 
-// Upload de arquivo: retorna URL pública em /uploads
-app.post('/api/upload', upload.single('file'), (req, res) => {
+// Upload de arquivo: salva no banco de dados PostgreSQL
+app.post('/api/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'missing_file' });
-    const filePath = `/uploads/${req.file.filename}`;
 
-    // Em produção, retorna apenas o path relativo; em dev retorna URL completa
-    const isProduction = process.env.NODE_ENV === 'production';
-    const file_url = isProduction
-      ? filePath  // Frontend vai construir a URL completa usando getUploadUrl
-      : `http://localhost:${Number(process.env.PORT ?? 5000)}${filePath}`;
+    const p = requirePool();
 
-    res.status(201).json({ file_url, path: filePath, name: req.file.originalname, size: req.file.size });
+    // Cria tabela se não existir
+    await p.query(`
+      CREATE TABLE IF NOT EXISTS arquivos (
+        id SERIAL PRIMARY KEY,
+        nome_original VARCHAR(255),
+        mime_type VARCHAR(100),
+        tamanho INTEGER,
+        dados BYTEA,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    // Salva arquivo no banco
+    const { rows } = await p.query(
+      `INSERT INTO arquivos (nome_original, mime_type, tamanho, dados) 
+       VALUES ($1, $2, $3, $4) RETURNING id`,
+      [req.file.originalname, req.file.mimetype, req.file.size, req.file.buffer]
+    );
+
+    const fileId = rows[0].id;
+    const file_url = `/api/files/${fileId}`;
+
+    res.status(201).json({
+      file_url,
+      id: fileId,
+      name: req.file.originalname,
+      size: req.file.size,
+      mime_type: req.file.mimetype
+    });
   } catch (err) {
+    console.error('Erro ao fazer upload:', err);
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: msg });
+  }
+});
+
+// Rota para servir arquivos do banco de dados
+app.get('/api/files/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const { rows } = await p.query(
+      'SELECT nome_original, mime_type, dados FROM arquivos WHERE id = $1',
+      [req.params.id]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ error: 'file_not_found' });
+    }
+
+    const file = rows[0];
+    res.setHeader('Content-Type', file.mime_type);
+    res.setHeader('Content-Disposition', `inline; filename="${file.nome_original}"`);
+    res.send(file.dados);
+  } catch (err) {
+    console.error('Erro ao buscar arquivo:', err);
     const msg = err instanceof Error ? err.message : String(err);
     res.status(500).json({ error: msg });
   }
