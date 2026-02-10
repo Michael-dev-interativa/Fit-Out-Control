@@ -12,6 +12,8 @@ dotenv.config();
 
 const app = express();
 
+console.log('🚀 Iniciando servidor com CORS configurado - versão 2.0');
+
 // Configuração CORS completa com headers explícitos
 app.use(cors({
   origin: "*",  // Aceita todas as origens
@@ -28,14 +30,13 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
   res.header('Access-Control-Allow-Credentials', 'true');
-  
+
   // Responde imediatamente a requisições OPTIONS (preflight)
   if (req.method === 'OPTIONS') {
-    return res.sendStatus(204);
-  }
-  
-  next();
-});
+    console.log(`✅ OPTIONS request received for: ${req.path}`);
+
+    next();
+  });
 
 app.use(express.json());
 
