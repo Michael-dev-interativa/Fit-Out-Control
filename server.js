@@ -428,18 +428,29 @@ app.get('/api/files/:id', async (req, res) => {
     );
 
     if (!rows.length) {
+      console.warn(`⚠️ Arquivo não encontrado: ${req.params.id}`);
       return res.status(404).json({ error: 'file_not_found' });
     }
 
     const file = rows[0];
     res.setHeader('Content-Type', file.mime_type);
     res.setHeader('Content-Disposition', `inline; filename="${file.nome_original}"`);
+    res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache de 1 ano
     res.send(file.dados);
   } catch (err) {
     console.error('Erro ao buscar arquivo:', err);
     const msg = err instanceof Error ? err.message : String(err);
     res.status(500).json({ error: msg });
   }
+});
+
+// Fallback: tentar servir arquivos antigos da pasta uploads (se existirem)
+app.get('/uploads/:filename', (req, res) => {
+  console.warn(`⚠️ Tentativa de acessar arquivo antigo: /uploads/${req.params.filename}`);
+  res.status(410).json({
+    error: 'file_migrated',
+    message: 'Este arquivo foi criado antes da migração para banco de dados e não está mais disponível. Por favor, faça upload novamente.'
+  });
 });
 
 // Map DB row to API payload
