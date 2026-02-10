@@ -1,4 +1,21 @@
 services:
+  # Backend - Web Service
+  - type: web
+    name: fitout-backend
+    runtime: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: fitout-db
+          property: connectionString
+    healthCheckPath: /api/health
+
   # Frontend - Web Service com Express
   - type: web
     name: fitout-frontend
