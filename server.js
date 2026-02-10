@@ -20,13 +20,13 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
-  
+
   // Responde OPTIONS imediatamente
   if (req.method === 'OPTIONS') {
     console.log(`✅ OPTIONS ${req.path}`);
     return res.status(204).end();
   }
-  
+
   next();
 });
 
@@ -44,7 +44,12 @@ if (LOG_REQUESTS) {
 }
 
 const { DATABASE_URL } = process.env;
-const pool = DATABASE_URL ? new Pool({ connectionString: DATABASE_URL }) : null;
+const pool = DATABASE_URL ? new Pool({
+  connectionString: DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+}) : null;
 try {
   if (DATABASE_URL) {
     const u = new URL(DATABASE_URL);
