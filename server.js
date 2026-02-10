@@ -12,29 +12,19 @@ dotenv.config();
 
 const app = express();
 
-console.log('🚀 Iniciando servidor com CORS configurado - versão 2.0');
+console.log('🚀 Iniciando servidor com CORS configurado - versão 2.1');
 
-// Configuração CORS completa com headers explícitos
-app.use(cors({
-  origin: "*",  // Aceita todas as origens
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-  exposedHeaders: ['Content-Range', 'X-Content-Range'],
-  optionsSuccessStatus: 204
-}));
-
-// Middleware adicional para garantir headers CORS em todas as respostas
+// Configuração CORS ULTRA simplificada
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
-  res.header('Access-Control-Allow-Credentials', 'true');
+  // Define headers CORS antes de tudo
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
   
-  // Responde imediatamente a requisições OPTIONS (preflight)
+  // Responde OPTIONS imediatamente
   if (req.method === 'OPTIONS') {
-    console.log(`✅ OPTIONS request received for: ${req.path}`);
-    return res.sendStatus(204);
+    console.log(`✅ OPTIONS ${req.path}`);
+    return res.status(204).end();
   }
   
   next();
@@ -353,6 +343,19 @@ app.get('/api/health', async (_req, res) => {
     const msg = err instanceof Error ? err.message : String(err);
     res.status(500).json({ status: "error", error: msg });
   }
+});
+
+// Endpoint de teste de CORS
+app.get('/api/cors-test', (_req, res) => {
+  res.json({
+    message: "CORS está funcionando!",
+    timestamp: new Date().toISOString(),
+    headers: {
+      'Access-Control-Allow-Origin': res.getHeader('Access-Control-Allow-Origin'),
+      'Access-Control-Allow-Methods': res.getHeader('Access-Control-Allow-Methods'),
+      'Access-Control-Allow-Headers': res.getHeader('Access-Control-Allow-Headers')
+    }
+  });
 });
 
 // Root endpoint to avoid "Cannot GET /"
