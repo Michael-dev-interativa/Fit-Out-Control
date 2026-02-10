@@ -21,7 +21,7 @@ services:
     name: fitout-frontend
     runtime: node
     buildCommand: npm install && npm run build
-    startCommand: node serve-frontend.js
+    startCommand: npm run start:frontend
     envVars:
       - key: VITE_API_URL
         value: https://fit-out-backend.onrender.com
