@@ -11,7 +11,8 @@
     "server": "node server.js",
     "start": "node server.js",
     "start:frontend": "node serve-frontend.js",
-    "db:init": "node scripts/init-db.js"
+    "db:init": "node scripts/init-db.js",
+    "migrate:base44": "node scripts/migrate-from-base44.js"
   },
   "dependencies": {
     "@base44/sdk": "^0.1.2",
