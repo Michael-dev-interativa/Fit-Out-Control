@@ -2,85 +2,217 @@
 
 ## 📋 Pré-requisitos
 
-1. ✅ Acesso ao painel do Base44/Supabase
-2. ✅ String de conexão do banco origem
+1. ✅ Acesso ao painel do Base44
+2. ✅ Dados exportados do Base44 em formato JSON
 3. ✅ String de conexão do banco Render (já configurada no `.env`)
 4. ✅ Backup dos dados (importante!)
 
 ---
 
-## 🚀 Método 1: Script Automatizado (Recomendado)
+## 🚀 Passo a Passo Completo
 
-### Passo 1: Obter String de Conexão do Base44
+### **Passo 1: Exportar Dados do Base44**
 
-**No painel do Base44 ou Supabase:**
-1. Acesse: **Database → Settings**
-2. Procure por: **Connection String** ou **Database URL**
-3. Copie a URL no formato:
+No painel do **Base44**:
+
+1. Acesse cada **Entidade** (tabela) que você deseja migrar:
+   - Empreendimentos
+   - Unidades
+   - Usuários
+   - Registros
+   - Relatórios
+   - etc.
+
+2. Para cada entidade, procure por:
+   - Botão **"Exportar"** ou **"Export"**
+   - Opção **"Download JSON"** ou **"Export to JSON"**
+   - Ou menu **"⋮"** → **"Export Data"**
+
+3. Salve todos os arquivos JSON em uma pasta, por exemplo:
    ```
-   postgresql://username:password@host:port/database
+   C:\exports\base44\
+   ├── Empreendimentos.json
+   ├── Unidades.json
+   ├── Usuarios.json
+   ├── RegistrosUnidade.json
+   └── ...
    ```
 
-### Passo 2: Configurar DATABASE_URL do Render
+**💡 Dica:** Nomeie os arquivos conforme o nome da entidade no Base44.
+
+---
+
+### **Passo 2: Configurar DATABASE_URL do Render**
 
 **No arquivo `.env`:**
 ```bash
 DATABASE_URL=postgresql://fitout_user:SENHA@dpg-xxx-a.virginia-postgres.render.com/fitout
 ```
 
-> 💡 Obtenha esta URL no painel do Render: Database → Connection String
+> 💡 Obtenha esta URL no painel do Render: **Database → Connection String**
 
-### Passo 3: Executar Script de Migração
+---
+
+### **Passo 3: Executar Script de Importação**
+
+Abra o PowerShell na pasta do projeto e execute:
 
 ```powershell
-# Rodar o script
-node scripts/migrate-from-base44.js
+npm run migrate:base44
 ```
 
 O script irá:
-1. ✅ Pedir a URL do Base44
-2. ✅ Conectar aos dois bancos
-3. ✅ Listar tabelas encontradas
-4. ✅ Perguntar confirmação para cada tabela
-5. ✅ Migrar dados em lotes
+1. ✅ Pedir o caminho da pasta com os JSONs exportados
+2. ✅ Conectar ao banco Render
+3. ✅ Listar arquivos encontrados
+4. ✅ Pedir confirmação para cada entidade
+5. ✅ Importar dados automaticamente
 6. ✅ Mostrar resumo final
 
 ---
 
-## 🛠️ Método 2: Dump/Restore Manual
-
-### Opção A: Usando pg_dump (Windows)
+### **Exemplo de Execução:**
 
 ```powershell
-# 1. Exportar do Base44
-pg_dump "postgresql://user:pass@base44-host/db" -f backup.sql
+PS> npm run migrate:base44
 
-# 2. Importar para Render
-psql "$env:DATABASE_URL" -f backup.sql
+📊 MIGRAÇÃO DE DADOS - Base44 → Render PostgreSQL
+
+Este script importa dados exportados do Base44 (formato JSON).
+
+📁 Cole o caminho da pasta com os arquivos JSON exportados do Base44:
+(exemplo: C:\exports\base44)
+> C:\Users\Michael\Desktop\exports\base44
+
+✅ Pasta encontrada!
+✅ Conectado ao Render PostgreSQL!
+
+🚀 Iniciando importação...
+
+📦 Importando: Empreendimentos → empreendimentos
+   📊 12 registros encontrados em Empreendimentos.json
+   ❓ Importar 12 registros? (s/N): s
+   ✅ 12 registros importados (0 erros)
+
+📦 Importando: Unidades → unidades_empreendimento
+   📊 45 registros encontrados em Unidades.json
+   ❓ Importar 45 registros? (s/N): s
+   ✅ 45 registros importados (0 erros)
+
+...
+
+✅ Total de registros importados: 127
+
+🎉 Importação concluída!
 ```
 
-### Opção B: Usando Supabase CLI
+---
 
-```powershell
-# 1. Instalar Supabase CLI
-npm install -g supabase
+## � Formato dos Arquivos JSON
 
-# 2. Fazer backup
-supabase db dump --db-url "postgresql://..." > backup.sql
+Os arquivos exportados do Base44 devem estar em um dos formatos:
 
-# 3. Restaurar no Render
-psql "$env:DATABASE_URL" -f backup.sql
+### **Formato 1: Array de Objetos (Preferido)**
+```json
+[
+  {
+    "nome_empreendimento": "Edifício Central",
+    "os_number": "OS-2024-001",
+    "valor_contratual": 1500000.00,
+    "created": "2024-01-15T10:00:00Z"
+  },
+  {
+    "nome_empreendimento": "Residencial Park",
+    "os_number": "OS-2024-002",
+    "valor_contratual": 2300000.00,
+    "created": "2024-02-20T14:30:00Z"
+  }
+]
 ```
+
+### **Formato 2: Objeto Único**
+```json
+{
+  "nome_empreendimento": "Edifício Central",
+  "os_number": "OS-2024-001",
+  "valor_contratual": 1500000.00,
+  "created": "2024-01-15T10:00:00Z"
+}
+```
+
+**O script automaticamente:**
+- ✅ Remove campos internos do Base44 (`_id`, `__v`, `createdBy`, etc.)
+- ✅ Converte `created` → `created_at`
+- ✅ Converte `updated` → `updated_at`
+- ✅ Ignora registros duplicados (`ON CONFLICT DO NOTHING`)
+
+---
+
+## 🔧 Opções Alternativas de Exportação
+
+### **Opção A: Exportar Via API do Base44** (se disponível)
+
+Se o Base44 disponibilizar API:
+
+```javascript
+// Script customizado para buscar via API
+const fetch = require('node-fetch');
+
+async function exportFromBase44API() {
+  const response = await fetch('https://api.base44.com/entities/Empreendimentos', {
+    headers: {
+      'Authorization': 'Bearer SEU_TOKEN_AQUI'
+    }
+  });
+  
+  const data = await response.json();
+  fs.writeFileSync('Empreendimentos.json', JSON.stringify(data, null, 2));
+}
+```
+
+### **Opção B: Exportar para CSV e Converter**
+
+Se o Base44 só exporta CSV:
+
+1. Exporte para CSV
+2. Use uma ferramenta online para converter CSV → JSON:
+   - https://www.convertcsv.com/csv-to-json.htm
+   - https://csvjson.com/csv2json
+
+3. Salve o JSON gerado
 
 ---
 
 ## ⚠️ Problemas Comuns e Soluções
 
-### ❌ "SSL required"
-**Solução:**
+### ❌ "Arquivo não encontrado"
+**Causa:** Nome do arquivo JSON não corresponde ao esperado
+
+**Solução:** Renomeie os arquivos para:
+- `Empreendimentos.json`
+- `Unidades.json`
+- `Usuarios.json`
+- etc.
+
+Ou edite o array `ENTITY_TABLE_MAP` no script.
+
+### ❌ "Column X does not exist"
+**Causa:** Campos do Base44 não existem no PostgreSQL
+
+**Solução:** Edite a função `mapBase44ToPostgres()` no script:
+
 ```javascript
-// O script já trata isso com:
-ssl: { rejectUnauthorized: false }
+function mapBase44ToPostgres(entityName, base44Data) {
+  const mapped = { ...base44Data };
+  
+  // Mapear campos específicos
+  if (entityName === 'Empreendimentos') {
+    mapped.nome_empreendimento = base44Data.nome || base44Data.title;
+    mapped.valor_contratual = parseFloat(base44Data.valor || 0);
+  }
+  
+  return mapped;
+}
 ```
 
 ### ❌ "Constraint violation"
@@ -88,16 +220,16 @@ ssl: { rejectUnauthorized: false }
 
 **Solução:**
 ```sql
--- Limpar dados antigos antes de migrar
-TRUNCATE TABLE usuarios CASCADE;
+-- Limpar dados antigos antes de importar
+TRUNCATE TABLE empreendimentos CASCADE;
 ```
 
-### ❌ "Permission denied"
-**Causa:** Falta de permissão no banco destino
+### ❌ "Invalid JSON"
+**Causa:** Arquivo JSON mal formatado
 
-**Solução:** No Render Dashboard:
-- Database → Settings → Reset Database (cuidado!)
-- Ou ajuste permissões
+**Solução:** Valide o JSON em:
+- https://jsonlint.com/
+- Ou use um editor com validação (VS Code)
 
 ---
 
