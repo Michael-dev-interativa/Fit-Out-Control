@@ -45,6 +45,9 @@ async function loadBase44Export() {
 
   console.log('✅ Pasta encontrada!\n');
   return normalizedPath;
+}
+
+async function connectToRender() {
   const renderUrl = process.env.DATABASE_URL;
 
   if (!renderUrl) {
@@ -192,6 +195,39 @@ async function importEntity(renderPool, entityName, tableName, exportPath) {
 
     // Importa registros
     let migrated = 0;
+
+    for (const record of records) {
+      try {
+        const mapped = mapBase44ToPostgres(entityName, record);
+
+        const fields = Object.keys(mapped);
+        const values = Object.values(mapped);
+        const placeholders = fields.map((_, i) => `$${i + 1}`).join(', ');
+
+        const sql = `
+          INSERT INTO ${tableName} (${fields.join(', ')})
+          VALUES (${placeholders})
+          ON CONFLICT DO NOTHING
+        `;
+
+        await renderPool.query(sql, values);
+        migrated++;
+      } catch (error) {
+        console.error(`   ⚠️  Erro ao importar registro:`, error.message);
+      }
+    }
+
+    console.log(`   ✅ ${migrated} registros importados`);
+    return { entity: entityName, migrated, skipped: false };
+
+  } catch (error) {
+    console.error(`   ❌ Erro em ${entityName}:`, error.message);
+    return { entity: entityName, migrated: 0, error: error.message };
+  }
+}
+
+async function main() {
+  try {
     // Carrega export do Base44
     const exportPath = await loadBase44Export();
     const renderPool = await connectToRender();
@@ -235,46 +271,13 @@ async function importEntity(renderPool, entityName, tableName, exportPath) {
     await renderPool.end();
     rl.close();
 
-    console.log('\n🎉 Importação concluída!\n');❌ Migração cancelada.');
+    console.log('\n🎉 Importação concluída!\n');
     process.exit(0);
+
+  } catch (error) {
+    console.error('\n❌ Erro fatal:', error);
+    process.exit(1);
   }
-
-    // Migra cada tabela
-    const results = [];
-  for (const table of TABLES) {
-    const result = await migrateTable(base44Pool, renderPool, table);
-    results.push(result);
-  }
-
-  // Resumo
-  console.log('\n\n📊 RESUMO DA MIGRAÇÃO:\n');
-  console.log('┌─────────────────────────────────┬──────────┬────────┐');
-  console.log('│ Tabela                          │ Migrados │ Status │');
-  console.log('├─────────────────────────────────┼──────────┼────────┤');
-
-  for (const result of results) {
-    const status = result.error ? '❌ Erro' : result.skipped ? '⏭️  Pulado' : '✅ OK';
-    const name = result.table.padEnd(30);
-    const count = String(result.migrated).padStart(8);
-    console.log(`│ ${name} │ ${count} │ ${status} │`);
-  }
-
-  console.log('└─────────────────────────────────┴──────────┴────────┘');
-
-  const totalMigrated = results.reduce((sum, r) => sum + r.migrated, 0);
-  console.log(`\n✅ Total de registros migrados: ${totalMigrated}`);
-
-  // Fecha conexões
-  await base44Pool.end();
-  await renderPool.end();
-  rl.close();
-
-  console.log('\n🎉 Migração concluída!\n');
-
-} catch (error) {
-  console.error('\n❌ Erro fatal:', error);
-  process.exit(1);
-}
 }
 
 main();
