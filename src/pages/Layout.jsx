@@ -238,6 +238,11 @@ export default function Layout({ children }) {
   const loadUser = async () => {
     try {
       const me = await User.me();
+      console.log('========== LAYOUT.JSX loadUser() ==========');
+      console.log('User.me() retornou:', me);
+      console.log('me.role:', me?.role);
+      console.log('localStorage.appRole:', localStorage.getItem('appRole'));
+      console.log('localStorage.perfilCliente:', localStorage.getItem('perfilCliente'));
       if (!me) {
         // Fallback: construir usuário mínimo a partir do localStorage
         try {
@@ -267,6 +272,9 @@ export default function Layout({ children }) {
       let finalRole = (roleMe === 'admin') ? 'admin' : (roleMe === 'cliente' ? 'cliente' : 'user');
       const perfilCliente = me?.perfil_cliente === true || finalRole === 'cliente';
       const currentUser = { ...me, role: finalRole, perfil_cliente: perfilCliente };
+      console.log('Layout - CURRENT USER CONSTRUÍDO:', currentUser);
+      console.log('Layout - currentUser.role:', currentUser.role);
+      console.log('Layout - currentUser.perfil_cliente:', currentUser.perfil_cliente);
       // Persistir papel/perfil para consistência entre renders
       try {
         if (currentUser?.role) localStorage.setItem('appRole', String(currentUser.role));
@@ -274,6 +282,7 @@ export default function Layout({ children }) {
       } catch { }
       console.log("Layout - Usuário carregado:", currentUser);
       console.log("Layout - perfil_cliente value:", currentUser?.perfil_cliente);
+      console.log('==========================================');
       setUser(currentUser);
       setRedirectChecked(true);
     } catch (error) {

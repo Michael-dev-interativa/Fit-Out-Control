@@ -131,14 +131,21 @@ export const ListaDocumentosReport = makeEntity('lista-documentos-report');
 export const User = {
   ...makeEntity('usuarios'),
   async me() {
+    console.log('🔍 User.me() - INICIANDO');
+    console.log('🔑 Token:', getAuthToken() ? 'PRESENTE' : 'AUSENTE');
     try {
       let url = apiUrl('/api/auth/me');
       let r = await fetch(url, { headers: getAuthHeaders() });
+      console.log('📡 /api/auth/me - Status:', r.status);
+
       if (!r.ok) {
         url = apiUrl('/api/usuarios/me');
         r = await fetch(url, { headers: getAuthHeaders() });
+        console.log('📡 /api/usuarios/me - Status:', r.status);
       }
+
       if (!r.ok) {
+        console.log('⚠️ User.me() - Backend falhou, usando fallback localStorage');
         // Fallback: reconstruir usuário a partir do localStorage
         try {
           const role = (localStorage.getItem('appRole') || '').toLowerCase();
@@ -147,15 +154,23 @@ export const User = {
           const nome = localStorage.getItem('userName') || (email ? email.split('@')[0] : null);
           const idStr = localStorage.getItem('userId');
           const id = idStr ? Number(idStr) : null;
+          console.log('📦 localStorage fallback - role:', role, 'perfilCliente:', perfilCliente);
           if (role || perfilCliente || email) {
             const finalRole = role === 'admin' ? 'admin' : (role === 'cliente' ? 'cliente' : (perfilCliente ? 'cliente' : 'user'));
-            return { id, email, nome, role: finalRole, perfil_cliente: finalRole === 'cliente' };
+            const fallbackUser = { id, email, nome, role: finalRole, perfil_cliente: finalRole === 'cliente' };
+            console.log('✅ User.me() - Retornando fallback:', fallbackUser);
+            return fallbackUser;
           }
         } catch { }
+        console.log('❌ User.me() - Fallback falhou, retornando null');
         return null;
       }
-      return r.json();
-    } catch {
+
+      const userData = await r.json();
+      console.log('✅ User.me() - Backend retornou:', userData);
+      return userData;
+    } catch (error) {
+      console.log('⚠️ User.me() - ERRO DE REDE:', error.message);
       // Fallback em erro de rede
       try {
         const role = (localStorage.getItem('appRole') || '').toLowerCase();
@@ -164,11 +179,15 @@ export const User = {
         const nome = localStorage.getItem('userName') || (email ? email.split('@')[0] : null);
         const idStr = localStorage.getItem('userId');
         const id = idStr ? Number(idStr) : null;
+        console.log('📦 localStorage fallback (erro) - role:', role, 'perfilCliente:', perfilCliente);
         if (role || perfilCliente || email) {
           const finalRole = role === 'admin' ? 'admin' : (role === 'cliente' ? 'cliente' : (perfilCliente ? 'cliente' : 'user'));
-          return { id, email, nome, role: finalRole, perfil_cliente: finalRole === 'cliente' };
+          const fallbackUser = { id, email, nome, role: finalRole, perfil_cliente: finalRole === 'cliente' };
+          console.log('✅ User.me() - Retornando fallback após erro:', fallbackUser);
+          return fallbackUser;
         }
       } catch { }
+      console.log('❌ User.me() - Falhou completamente, retornando null');
       return null;
     }
   }
@@ -176,6 +195,7 @@ export const User = {
 
 export const Auth = {
   async login(email, password) {
+    console.log('🔐 Auth.login() - INICIANDO para:', email);
     const url = apiUrl('/api/auth/login');
     const r = await fetch(url, {
       method: 'POST',
@@ -183,15 +203,25 @@ export const Auth = {
       body: JSON.stringify({ email, password })
     });
     const data = await handleResponse(r, 'auth', 'LOGIN');
+    console.log('📥 Auth.login() - Backend retornou:', data);
+    console.log('👤 Backend user.role:', data?.user?.role);
+    console.log('👤 Backend user.perfil_cliente:', data?.user?.perfil_cliente);
+
     try {
+      console.log('🧹 Auth.login() - Limpando localStorage antigo');
       // Limpar TODOS os dados antigos antes de salvar os novos
       this.logout();
+
+      console.log('💾 Auth.login() - Salvando novos dados no localStorage');
       // Salvar novo token
       localStorage.setItem('authToken', data.token);
       const role = data?.user?.role || null;
       const perfilCliente = data?.user?.perfil_cliente === true || role === 'cliente';
       if (role) localStorage.setItem('appRole', String(role));
       localStorage.setItem('perfilCliente', String(perfilCliente));
+      console.log('💾 Salvou appRole:', role);
+      console.log('💾 Salvou perfilCliente:', perfilCliente);
+
       // Persistir dados básicos do usuário para fallback
       if (email) localStorage.setItem('userEmail', String(email));
       localStorage.setItem('lastLoginEmail', String(email || ''));
@@ -200,7 +230,11 @@ export const Auth = {
       const id = data?.user?.id;
       if (id !== undefined) localStorage.setItem('userId', String(id));
       try { localStorage.setItem('userJson', JSON.stringify(data?.user || {})); } catch { }
-    } catch { }
+
+      console.log('✅ Auth.login() - localStorage atualizado');
+    } catch (e) {
+      console.error('❌ Auth.login() - Erro ao salvar no localStorage:', e);
+    }
     return data;
   },
   async register(email, password, nome) {

@@ -77,14 +77,30 @@ export default function Login({ theme = 'light' }) {
     try {
       const loginData = await Auth.login(email, password);
       const me = await User.me();
-      console.log('Login.jsx -> loginData.user:', loginData?.user);
-      console.log('Login.jsx -> me:', me);
+      console.log('========== LOGIN DEBUG ==========');
+      console.log('loginData:', loginData);
+      console.log('loginData.user:', loginData?.user);
+      console.log('loginData.user.role:', loginData?.user?.role);
+      console.log('me:', me);
+      console.log('me.role:', me?.role);
+      console.log('localStorage.appRole:', localStorage.getItem('appRole'));
+      console.log('localStorage.perfilCliente:', localStorage.getItem('perfilCliente'));
+      console.log('=================================');
+
       const nome = me?.full_name || me?.nome || loginData?.user?.nome || (email ? email.split('@')[0] : '');
       setGreetingName(nome);
       setLogoMode('greeting');
-      const role = ((loginData?.user?.role) || (me?.role) || (localStorage.getItem('appRole') || '')).toLowerCase();
-      const isCliente = (role === 'cliente') || (loginData?.user?.perfil_cliente === true) || (me?.perfil_cliente === true) || (localStorage.getItem('perfilCliente') === 'true');
-      console.log('Login.jsx -> role:', role, 'isCliente:', isCliente);
+
+      // USAR APENAS DADOS DO BACKEND - NÃO verificar localStorage aqui
+      // O localStorage já foi atualizado dentro do Auth.login(), mas vamos confiar apenas no backend
+      const role = (me?.role || loginData?.user?.role || '').toLowerCase();
+      const perfilClienteBackend = me?.perfil_cliente === true || loginData?.user?.perfil_cliente === true;
+      const isCliente = (role === 'cliente') || perfilClienteBackend;
+
+      console.log('Login.jsx -> ROLE FINAL (do backend):', role);
+      console.log('Login.jsx -> PERFIL_CLIENTE (do backend):', perfilClienteBackend);
+      console.log('Login.jsx -> IS_CLIENTE:', isCliente);
+      console.log('Login.jsx -> REDIRECIONANDO PARA:', isCliente ? 'DashboardCliente' : 'Dashboard');
       setTimeout(() => {
         navigate(createPageUrl(isCliente ? 'DashboardCliente' : 'Dashboard'));
       }, 700);
