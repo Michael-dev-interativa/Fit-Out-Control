@@ -72,7 +72,7 @@ export function getUploadUrl(filePath) {
 
   // Remove barra inicial
   const cleanPath = filePath.replace(/^\//, '');
-  
+
   // Se é um caminho antigo de uploads (uploads/xxxxx.jpg)
   if (cleanPath.startsWith('uploads/')) {
     return `${currentApiBase}/${cleanPath}`;

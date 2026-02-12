@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import readline from 'readline';
 import fs from 'fs';
 import path from 'path';
+import { parse } from 'csv-parse/sync';
 
 dotenv.config();
 
@@ -32,9 +33,9 @@ const ENTITY_TABLE_MAP = {
 
 async function loadBase44Export() {
   console.log('\n📊 MIGRAÇÃO DE DADOS - Base44 → Render PostgreSQL\n');
-  console.log('Este script importa dados exportados do Base44 (formato JSON).\n');
+  console.log('Este script importa dados exportados do Base44 (formato CSV).\n');
 
-  const exportPath = await question('📁 Cole o caminho da pasta com os arquivos JSON exportados do Base44:\n(exemplo: C:\\exports\\base44)\n> ');
+  const exportPath = await question('📁 Cole o caminho da pasta com os arquivos CSV exportados do Base44:\n(exemplo: C:\\exports\\base44)\n> ');
 
   const normalizedPath = exportPath.trim().replace(/['"]/g, '');
 
@@ -71,10 +72,16 @@ async function connectToRender() {
   }
 }
 
-async function loadJSONFile(filePath) {
+async function loadCSVFile(filePath) {
   try {
     const content = fs.readFileSync(filePath, 'utf-8');
-    return JSON.parse(content);
+    const records = parse(content, {
+      columns: true,
+      skip_empty_lines: true,
+      trim: true,
+      bom: true
+    });
+    return records;
   } catch (error) {
     console.error(`   ⚠️  Erro ao ler ${filePath}:`, error.message);
     return null;
@@ -156,30 +163,30 @@ async function importEntity(renderPool, entityName, tableName, exportPath) {
   try {
     console.log(`\n📦 Importando: ${entityName} → ${tableName}`);
 
-    // Procura arquivo JSON
+    // Procura arquivo CSV
     const possibleFiles = [
-      path.join(exportPath, `${entityName}.json`),
-      path.join(exportPath, `${tableName}.json`),
-      path.join(exportPath, `${entityName.toLowerCase()}.json`)
+      path.join(exportPath, `${entityName}.csv`),
+      path.join(exportPath, `${tableName}.csv`),
+      path.join(exportPath, `${entityName.toLowerCase()}.csv`)
     ];
 
-    let jsonData = null;
+    let csvData = null;
     let usedFile = null;
 
     for (const file of possibleFiles) {
       if (fs.existsSync(file)) {
-        jsonData = await loadJSONFile(file);
+        csvData = await loadCSVFile(file);
         usedFile = file;
         break;
       }
     }
 
-    if (!jsonData) {
+    if (!csvData) {
       console.log(`   ⚠️  Arquivo não encontrado - pulando`);
       return { entity: entityName, migrated: 0, skipped: true };
     }
 
-    const records = Array.isArray(jsonData) ? jsonData : [jsonData];
+    const records = Array.isArray(csvData) ? csvData : [csvData];
     console.log(`   📊 ${records.length} registros encontrados em ${path.basename(usedFile)}`);
 
     if (records.length === 0) {

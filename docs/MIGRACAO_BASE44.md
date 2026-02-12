@@ -3,7 +3,7 @@
 ## 📋 Pré-requisitos
 
 1. ✅ Acesso ao painel do Base44
-2. ✅ Dados exportados do Base44 em formato JSON
+2. ✅ Dados exportados do Base44 em formato CSV
 3. ✅ String de conexão do banco Render (já configurada no `.env`)
 4. ✅ Backup dos dados (importante!)
 
@@ -25,16 +25,16 @@ No painel do **Base44**:
 
 2. Para cada entidade, procure por:
    - Botão **"Exportar"** ou **"Export"**
-   - Opção **"Download JSON"** ou **"Export to JSON"**
+   - Opção **"Download CSV"** ou **"Export to CSV"**
    - Ou menu **"⋮"** → **"Export Data"**
 
-3. Salve todos os arquivos JSON em uma pasta, por exemplo:
+3. Salve todos os arquivos CSV em uma pasta, por exemplo:
    ```
    C:\exports\base44\
-   ├── Empreendimentos.json
-   ├── Unidades.json
-   ├── Usuarios.json
-   ├── RegistrosUnidade.json
+   ├── Empreendimentos.csv
+   ├── Unidades.csv
+   ├── Usuarios.csv
+   ├── RegistrosUnidade.csv
    └── ...
    ```
 
@@ -90,13 +90,13 @@ Este script importa dados exportados do Base44 (formato JSON).
 🚀 Iniciando importação...
 
 📦 Importando: Empreendimentos → empreendimentos
-   📊 12 registros encontrados em Empreendimentos.json
-   ❓ Importar 12 registros? (s/N): s
+   📊 12 registros encontrados em Empreendimentos.csv
+   ⏳ Importando...
    ✅ 12 registros importados (0 erros)
 
 📦 Importando: Unidades → unidades_empreendimento
-   📊 45 registros encontrados em Unidades.json
-   ❓ Importar 45 registros? (s/N): s
+   📊 45 registros encontrados em Unidades.csv
+   ⏳ Importando...
    ✅ 45 registros importados (0 erros)
 
 ...
@@ -150,13 +150,13 @@ Os arquivos exportados do Base44 devem estar em um dos formatos:
 
 ## 🔧 Opções Alternativas de Exportação
 
-### **Opção A: Exportar Via API do Base44** (se disponível)
+### **Exportar Via API do Base44** (se disponível)
 
-Se o Base44 disponibilizar API:
+Se o Base44 disponibilizar API, você pode criar um script customizado:
 
 ```javascript
-// Script customizado para buscar via API
 const fetch = require('node-fetch');
+const fs = require('fs');
 
 async function exportFromBase44API() {
   const response = await fetch('https://api.base44.com/entities/Empreendimentos', {
@@ -166,32 +166,31 @@ async function exportFromBase44API() {
   });
   
   const data = await response.json();
-  fs.writeFileSync('Empreendimentos.json', JSON.stringify(data, null, 2));
+  
+  // Converte para CSV
+  const csv = convertToCSV(data);
+  fs.writeFileSync('Empreendimentos.csv', csv);
+}
+
+function convertToCSV(data) {
+  if (!data.length) return '';
+  const headers = Object.keys(data[0]);
+  const rows = data.map(row => headers.map(h => JSON.stringify(row[h] || '')).join(','));
+  return [headers.join(','), ...rows].join('\n');
 }
 ```
-
-### **Opção B: Exportar para CSV e Converter**
-
-Se o Base44 só exporta CSV:
-
-1. Exporte para CSV
-2. Use uma ferramenta online para converter CSV → JSON:
-   - https://www.convertcsv.com/csv-to-json.htm
-   - https://csvjson.com/csv2json
-
-3. Salve o JSON gerado
 
 ---
 
 ## ⚠️ Problemas Comuns e Soluções
 
 ### ❌ "Arquivo não encontrado"
-**Causa:** Nome do arquivo JSON não corresponde ao esperado
+**Causa:** Nome do arquivo CSV não corresponde ao esperado
 
 **Solução:** Renomeie os arquivos para:
-- `Empreendimentos.json`
-- `Unidades.json`
-- `Usuarios.json`
+- `Empreendimentos.csv`
+- `Unidades.csv`
+- `Usuarios.csv`
 - etc.
 
 Ou edite o array `ENTITY_TABLE_MAP` no script.
