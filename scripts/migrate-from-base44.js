@@ -117,10 +117,31 @@ async function loadCSVFile(filePath) {
   }
 }
 
-function mapBase44ToPostgres(entityName, base44Data) {
-  // Mapeia campos do Base44 para PostgreSQL
-  // Ajuste conforme sua estrutura real
+// Cache de colunas válidas por tabela
+const tableColumnsCache = {};
 
+async function getTableColumns(pool, tableName) {
+  if (tableColumnsCache[tableName]) {
+    return tableColumnsCache[tableName];
+  }
+
+  try {
+    const result = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = $1
+    `, [tableName]);
+
+    const columns = result.rows.map(row => row.column_name);
+    tableColumnsCache[tableName] = columns;
+    return columns;
+  } catch (error) {
+    console.error(`   ⚠️  Erro ao obter colunas de ${tableName}:`, error.message);
+    return [];
+  }
+}
+
+function mapBase44ToPostgres(entityName, base44Data, validColumns = null) {
   const mapped = { ...base44Data };
 
   // Remove campos de sistema do Base44
@@ -129,7 +150,7 @@ function mapBase44ToPostgres(entityName, base44Data) {
   delete mapped.createdBy;
   delete mapped.updatedBy;
 
-  // Renomeia campos se necessário
+  // Renomeia campos de timestamp
   if (mapped.created) {
     mapped.created_at = mapped.created;
     delete mapped.created;
@@ -140,50 +161,19 @@ function mapBase44ToPostgres(entityName, base44Data) {
     delete mapped.updated;
   }
 
-  // === MAPEAMENTO ESPECÍFICO POR ENTIDADE ===
-  // Descomente e adapte conforme necessário
+  // Remove campos que não existem no PostgreSQL
+  if (validColumns) {
+    const invalidFields = Object.keys(mapped).filter(key => !validColumns.includes(key));
+    if (invalidFields.length > 0) {
+      invalidFields.forEach(field => delete mapped[field]);
+    }
+  }
 
-  /*
+  // === MAPEAMENTOS ESPECÍFICOS ===
   if (entityName === 'Empreendimentos') {
-    // Exemplo: renomear campos
-    if (base44Data.titulo) {
-      mapped.nome_empreendimento = base44Data.titulo;
-      delete mapped.titulo;
-    }
-    
-    // Exemplo: converter tipos
-    if (base44Data.valor) {
-      mapped.valor_contratual = parseFloat(base44Data.valor);
-      delete mapped.valor;
-    }
-    
-    // Exemplo: valores padrão
-    mapped.status = mapped.status || 'ativo';
+    // Remove campos extras do Base44 que não existem no PostgreSQL
+    delete mapped.quantidade_conjuntos;
   }
-  
-  if (entityName === 'Usuarios') {
-    // Base44 pode usar 'username' enquanto PostgreSQL usa 'nome'
-    if (base44Data.username) {
-      mapped.nome = base44Data.username;
-      delete mapped.username;
-    }
-    
-    // Senha: Base44 pode ter hash diferente
-    // Sugestão: gerar senha temporária ou deixar NULL para forçar reset
-    if (base44Data.senha) {
-      // mapped.senha = await bcrypt.hash('senhaTemporaria123', 10);
-      delete mapped.senha; // Deixa NULL para forçar reset
-    }
-  }
-  
-  if (entityName === 'Unidades') {
-    // Exemplo: prefixar valores
-    if (base44Data.numero) {
-      mapped.numero_unidade = `UN-${base44Data.numero}`;
-      delete mapped.numero;
-    }
-  }
-  */
 
   return mapped;
 }
@@ -225,15 +215,40 @@ async function importEntity(renderPool, entityName, tableName, exportPath) {
 
     console.log(`   ⏳ Importando...`);
 
+    // Obtém colunas válidas da tabela
+    const validColumns = await getTableColumns(renderPool, tableName);
+    console.log(`   ℹ️  Colunas disponíveis: ${validColumns.length}`);
+
     // Importa registros
     let migrated = 0;
+    let errors = 0;
+    let firstRecord = true;
 
     for (const record of records) {
       try {
-        const mapped = mapBase44ToPostgres(entityName, record);
+        const mapped = mapBase44ToPostgres(entityName, record, validColumns);
+
+        // Mostra campos ignorados apenas no primeiro registro
+        if (firstRecord) {
+          const allFields = Object.keys(record);
+          const keptFields = Object.keys(mapped);
+          const ignoredFields = allFields.filter(f => !keptFields.includes(f) && f !== '_id' && f !== '__v');
+
+          if (ignoredFields.length > 0) {
+            console.log(`   ℹ️  Campos ignorados: ${ignoredFields.join(', ')}`);
+          }
+          firstRecord = false;
+        }
 
         const fields = Object.keys(mapped);
         const values = Object.values(mapped);
+
+        if (fields.length === 0) {
+          console.error(`   ⚠️  Nenhum campo válido encontrado no registro`);
+          errors++;
+          continue;
+        }
+
         const placeholders = fields.map((_, i) => `$${i + 1}`).join(', ');
 
         const sql = `
@@ -246,11 +261,16 @@ async function importEntity(renderPool, entityName, tableName, exportPath) {
         migrated++;
       } catch (error) {
         console.error(`   ⚠️  Erro ao importar registro:`, error.message);
+        errors++;
       }
     }
 
-    console.log(`   ✅ ${migrated} registros importados`);
-    return { entity: entityName, migrated, skipped: false };
+    if (errors > 0) {
+      console.log(`   ⚠️  ${migrated} registros importados, ${errors} erros`);
+    } else {
+      console.log(`   ✅ ${migrated} registros importados`);
+    }
+    return { entity: entityName, migrated, skipped: false, errors };
 
   } catch (error) {
     console.error(`   ❌ Erro em ${entityName}:`, error.message);
@@ -275,20 +295,27 @@ async function main() {
 
     // Resumo
     console.log('\n\n📊 RESUMO DA IMPORTAÇÃO:\n');
-    console.log('┌─────────────────────────────────┬──────────┬────────┐');
-    console.log('│ Entidade                        │ Importados │ Status │');
-    console.log('├─────────────────────────────────┼──────────┼────────┤');
+    console.log('┌─────────────────────────────────┬────────────┬──────────────┐');
+    console.log('│ Entidade                        │ Importados │ Status       │');
+    console.log('├─────────────────────────────────┼────────────┼──────────────┤');
 
     for (const result of results) {
-      const status = result.error ? '❌ Erro' : result.skipped ? '⏭️  Pulado' : '✅ OK';
+      let status = '✅ OK';
+      if (result.error) {
+        status = '❌ Erro';
+      } else if (result.skipped) {
+        status = '⏭️  Pulado';
+      } else if (result.errors && result.errors > 0) {
+        status = `⚠️  ${result.errors} erros`;
+      }
+
       const name = result.entity.padEnd(30);
       const count = String(result.migrated).padStart(9);
-      console.log(`│ ${name} │ ${count} │ ${status} │`);
+      const statusPadded = status.padEnd(12);
+      console.log(`│ ${name} │ ${count} │ ${statusPadded} │`);
     }
 
-    console.log('└─────────────────────────────────┴──────────┴────────┘');
-
-    const totalMigrated = results.reduce((sum, r) => sum + r.migrated, 0);
+    console.log('└─────────────────────────────────┴────────────┴──────────────┘');
     console.log(`\n✅ Total de registros importados: ${totalMigrated}`);
 
     // Fecha conexão
