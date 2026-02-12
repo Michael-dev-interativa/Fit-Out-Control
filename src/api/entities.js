@@ -184,6 +184,9 @@ export const Auth = {
     });
     const data = await handleResponse(r, 'auth', 'LOGIN');
     try {
+      // Limpar TODOS os dados antigos antes de salvar os novos
+      this.logout();
+      // Salvar novo token
       localStorage.setItem('authToken', data.token);
       const role = data?.user?.role || null;
       const perfilCliente = data?.user?.perfil_cliente === true || role === 'cliente';
@@ -208,8 +211,40 @@ export const Auth = {
       body: JSON.stringify({ email, password, nome })
     });
     const data = await handleResponse(r, 'auth', 'REGISTER');
-    try { localStorage.setItem('authToken', data.token); } catch { }
+    try {
+      // Limpar dados antigos antes de salvar novos
+      Auth.logout();
+      // Salvar novo token
+      localStorage.setItem('authToken', data.token);
+      // Salvar dados do novo usuário se disponíveis
+      if (data?.user) {
+        const role = data.user.role || null;
+        const perfilCliente = data.user.perfil_cliente === true || role === 'cliente';
+        if (role) localStorage.setItem('appRole', String(role));
+        localStorage.setItem('perfilCliente', String(perfilCliente));
+        if (email) localStorage.setItem('userEmail', String(email));
+        localStorage.setItem('lastLoginEmail', String(email || ''));
+        const nomeUsuario = data.user.nome || '';
+        if (nomeUsuario) localStorage.setItem('userName', String(nomeUsuario));
+        const id = data.user.id;
+        if (id !== undefined) localStorage.setItem('userId', String(id));
+        try { localStorage.setItem('userJson', JSON.stringify(data.user || {})); } catch { }
+      }
+    } catch { }
     return data;
   },
-  logout() { try { localStorage.removeItem('authToken'); localStorage.removeItem('token'); } catch { } }
+  logout() {
+    try {
+      // Remove todos os dados de autenticação
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('token');
+      localStorage.removeItem('appRole');
+      localStorage.removeItem('perfilCliente');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('lastLoginEmail');
+      localStorage.removeItem('userName');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('userJson');
+    } catch { }
+  }
 };
