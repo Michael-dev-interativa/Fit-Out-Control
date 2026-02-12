@@ -127,18 +127,92 @@ async function getTableColumns(pool, tableName) {
 
   try {
     const result = await pool.query(`
-      SELECT column_name 
+      SELECT column_name, data_type
       FROM information_schema.columns 
       WHERE table_name = $1
+      ORDER BY ordinal_position
     `, [tableName]);
 
-    const columns = result.rows.map(row => row.column_name);
+    const columns = result.rows.map(row => ({
+      name: row.column_name,
+      type: row.data_type
+    }));
     tableColumnsCache[tableName] = columns;
     return columns;
   } catch (error) {
     console.error(`   ⚠️  Erro ao obter colunas de ${tableName}:`, error.message);
     return [];
   }
+}
+
+function isValidForDataType(value, dataType) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const strValue = String(value).trim();
+
+  // Valores inválidos genéricos
+  if (strValue === '' ||
+    strValue.toLowerCase() === 'null' ||
+    strValue.toLowerCase() === 'n/a' ||
+    strValue.toLowerCase() === 'none') {
+    return null;
+  }
+
+  // INTEGER e BIGINT
+  if (dataType === 'integer' || dataType === 'bigint') {
+    // Detecta ObjectIds do MongoDB (hexadecimal de 24 caracteres)
+    if (/^[0-9a-f]{24}$/i.test(strValue)) {
+      return null;
+    }
+
+    // Detecta números decimais para campos INTEGER
+    if (strValue.includes('.') || strValue.includes(',')) {
+      return null;
+    }
+
+    // Tenta converter para número
+    const num = Number(strValue);
+    if (isNaN(num)) {
+      return null;
+    }
+
+    return Math.floor(num); // Garante INTEGER
+  }
+
+  // JSON e JSONB
+  if (dataType === 'json' || dataType === 'jsonb') {
+    if (typeof strValue === 'string' && (strValue.startsWith('{') || strValue.startsWith('['))) {
+      try {
+        JSON.parse(strValue);
+        return strValue;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  // DATE e TIMESTAMP
+  if (dataType.includes('date') || dataType.includes('timestamp')) {
+    const date = new Date(strValue);
+    if (isNaN(date.getTime())) {
+      return null;
+    }
+    return strValue;
+  }
+
+  // BOOLEAN
+  if (dataType === 'boolean') {
+    const lower = strValue.toLowerCase();
+    if (lower === 'true' || lower === '1' || lower === 't') return true;
+    if (lower === 'false' || lower === '0' || lower === 'f') return false;
+    return null;
+  }
+
+  // TEXT, VARCHAR, etc - aceita qualquer coisa
+  return strValue;
 }
 
 function mapBase44ToPostgres(entityName, base44Data, validColumns = null) {
@@ -162,31 +236,42 @@ function mapBase44ToPostgres(entityName, base44Data, validColumns = null) {
     delete mapped.updated;
   }
 
+  // Cria mapa de colunas para lookup rápido
+  const columnMap = validColumns ?
+    new Map(validColumns.map(col => [col.name, col.type])) :
+    null;
+
   // Remove campos que não existem no PostgreSQL
   if (validColumns) {
-    const invalidFields = Object.keys(mapped).filter(key => !validColumns.includes(key));
+    const columnNames = validColumns.map(c => c.name);
+    const invalidFields = Object.keys(mapped).filter(key => !columnNames.includes(key));
     if (invalidFields.length > 0) {
       invalidFields.forEach(field => delete mapped[field]);
     }
   }
 
-  // Converte strings vazias para NULL (PostgreSQL não aceita "" para DATE, INTEGER, etc.)
+  // Valida e converte valores baseado no tipo de dados
   Object.keys(mapped).forEach(key => {
     const value = mapped[key];
+    const dataType = columnMap ? columnMap.get(key) : null;
 
-    // Strings vazias → NULL
-    if (value === '' || value === null || value === undefined) {
-      mapped[key] = null;
-    }
-    // Trata campos JSON que vêm como strings inválidas
-    else if (typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))) {
-      try {
-        // Tenta parsear para validar se é JSON válido
-        JSON.parse(value);
-        // Se válido, mantém como string (PostgreSQL aceita string para JSON)
-      } catch {
-        // Se inválido, converte para NULL
+    if (dataType) {
+      // Usa validação específica por tipo
+      const validatedValue = isValidForDataType(value, dataType);
+      mapped[key] = validatedValue;
+    } else {
+      // Fallback: converte strings vazias para NULL
+      if (value === '' || value === null || value === undefined) {
         mapped[key] = null;
+      }
+      // Trata campos JSON que vêm como strings inválidas
+      else if (typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))) {
+        try {
+          JSON.parse(value);
+          // Se válido, mantém como string
+        } catch {
+          mapped[key] = null;
+        }
       }
     }
   });
@@ -245,7 +330,7 @@ async function importEntity(renderPool, entityName, tableName, exportPath) {
     let migrated = 0;
     let errors = 0;
     let firstRecord = true;
-    const errorTypes = new Map(); // Agrupa erros por tipo
+    const errorTypes = new Map(); // Agrupa erros por tipo {message: {count, samples: []}}
 
     for (const record of records) {
       try {
@@ -255,7 +340,8 @@ async function importEntity(renderPool, entityName, tableName, exportPath) {
         if (firstRecord) {
           const allFields = Object.keys(record);
           const keptFields = Object.keys(mapped);
-          const ignoredFields = allFields.filter(f => !keptFields.includes(f) && f !== '_id' && f !== '__v' && f !== 'id');
+          const columnNames = validColumns.map(c => c.name);
+          const ignoredFields = allFields.filter(f => !columnNames.includes(f) && f !== '_id' && f !== '__v' && f !== 'id');
 
           if (ignoredFields.length > 0) {
             console.log(`   ℹ️  Campos ignorados: ${ignoredFields.join(', ')}`);
@@ -268,7 +354,10 @@ async function importEntity(renderPool, entityName, tableName, exportPath) {
 
         if (fields.length === 0) {
           const errorMsg = 'Nenhum campo válido encontrado';
-          errorTypes.set(errorMsg, (errorTypes.get(errorMsg) || 0) + 1);
+          if (!errorTypes.has(errorMsg)) {
+            errorTypes.set(errorMsg, { count: 0, samples: [] });
+          }
+          errorTypes.get(errorMsg).count++;
           errors++;
           continue;
         }
@@ -284,9 +373,21 @@ async function importEntity(renderPool, entityName, tableName, exportPath) {
         await renderPool.query(sql, values);
         migrated++;
       } catch (error) {
-        // Agrupa erros por tipo
+        // Agrupa erros por tipo com samples
         const errorKey = error.message.split(':')[0]; // Pega só o tipo do erro
-        errorTypes.set(errorKey, (errorTypes.get(errorKey) || 0) + 1);
+
+        if (!errorTypes.has(errorKey)) {
+          errorTypes.set(errorKey, { count: 0, samples: [] });
+        }
+
+        const errorInfo = errorTypes.get(errorKey);
+        errorInfo.count++;
+
+        // Coleta até 3 samples por tipo de erro
+        if (errorInfo.samples.length < 3) {
+          errorInfo.samples.push(error.message);
+        }
+
         errors++;
       }
     }
@@ -294,8 +395,13 @@ async function importEntity(renderPool, entityName, tableName, exportPath) {
     // Mostra resumo de erros por tipo
     if (errorTypes.size > 0) {
       console.log(`\n   📋 Resumo de erros:`);
-      errorTypes.forEach((count, errorType) => {
-        console.log(`      • ${errorType}: ${count}x`);
+      errorTypes.forEach((info, errorType) => {
+        console.log(`      • ${errorType}: ${info.count}x`);
+        if (info.samples.length > 0) {
+          info.samples.forEach((sample, idx) => {
+            console.log(`         ${idx + 1}. ${sample.substring(0, 100)}`);
+          });
+        }
       });
     }
 

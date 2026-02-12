@@ -28,28 +28,6 @@ const TABLES_TO_COPY = [
   'arquivos'
 ];
 
-async function connectToLocal() {
-  console.log('🔌 Conectando ao PostgreSQL LOCAL...');
-
-  const localUrl = process.env.DATABASE_URL_LOCAL || 'postgres://postgres:postgres@localhost:5432/fitout';
-
-  const pool = new Pool({
-    connectionString: localUrl,
-    ssl: false
-  });
-
-  try {
-    await pool.query('SELECT 1');
-    console.log('✅ Conectado ao PostgreSQL LOCAL!\n');
-    return pool;
-  } catch (error) {
-    console.error('❌ Erro ao conectar no PostgreSQL local:', error.message);
-    console.error('\n💡 Configure DATABASE_URL_LOCAL no .env');
-    console.error('   Exemplo: DATABASE_URL_LOCAL=postgres://postgres:postgres@localhost:5432/fitout\n');
-    process.exit(1);
-  }
-}
-
 async function connectToRender() {
   console.log('🔌 Conectando ao PostgreSQL do RENDER...');
 
@@ -72,6 +50,28 @@ async function connectToRender() {
     return pool;
   } catch (error) {
     console.error('❌ Erro ao conectar no Render:', error.message);
+    process.exit(1);
+  }
+}
+
+async function connectToLocal() {
+  console.log('🔌 Conectando ao PostgreSQL LOCAL...');
+
+  const localUrl = process.env.DATABASE_URL_LOCAL || 'postgres://postgres:postgres@localhost:5432/fitout';
+
+  const pool = new Pool({
+    connectionString: localUrl,
+    ssl: false
+  });
+
+  try {
+    await pool.query('SELECT 1');
+    console.log('✅ Conectado ao PostgreSQL LOCAL!\n');
+    return pool;
+  } catch (error) {
+    console.error('❌ Erro ao conectar no PostgreSQL local:', error.message);
+    console.error('\n💡 Configure DATABASE_URL_LOCAL no .env');
+    console.error('   Exemplo: DATABASE_URL_LOCAL=postgres://postgres:postgres@localhost:5432/fitout\n');
     process.exit(1);
   }
 }
@@ -145,54 +145,58 @@ function isValidJSON(value, dataType) {
   return true;
 }
 
-async function copyTable(localPool, renderPool, tableName) {
+async function copyTable(renderPool, localPool, tableName) {
   try {
     console.log(`\n📋 Tabela: ${tableName}`);
-
-    // Conta registros no local
-    const localCount = await getTableCount(localPool, tableName);
-    console.log(`   📊 Local: ${localCount} registros`);
-
-    if (localCount === 0) {
-      console.log(`   ⏭️  Pulando (vazia)`);
-      return { table: tableName, copied: 0, skipped: true };
-    }
 
     // Conta registros no Render
     const renderCount = await getTableCount(renderPool, tableName);
     console.log(`   📊 Render: ${renderCount} registros`);
 
-    // Consulta colunas disponíveis em AMBOS os bancos
-    const localColumns = await getTableColumns(localPool, tableName);
-    const renderColumns = await getTableColumns(renderPool, tableName);
+    if (renderCount === 0) {
+      console.log(`   ⏭️  Pulando (vazia)`);
+      return { table: tableName, copied: 0, skipped: true };
+    }
 
-    // Mapeia colunas do Render para comparação rápida
-    const renderColumnMap = new Map(renderColumns.map(c => [c.name, c.type]));
+    // Conta registros no Local
+    const localCount = await getTableCount(localPool, tableName);
+    console.log(`   📊 Local: ${localCount} registros`);
+
+    // Consulta colunas disponíveis em AMBOS os bancos
+    const renderColumns = await getTableColumns(renderPool, tableName);
+    const localColumns = await getTableColumns(localPool, tableName);
+
+    // Mapeia colunas do Local para comparação rápida
+    const localColumnMap = new Map(localColumns.map(c => [c.name, c.type]));
 
     // Filtra apenas colunas que existem em AMBOS os bancos
-    const commonColumns = localColumns.filter(col => renderColumnMap.has(col.name));
+    const commonColumns = renderColumns.filter(col => localColumnMap.has(col.name));
 
     if (commonColumns.length === 0) {
-      console.log(`   ⚠️  Nenhuma coluna compatível entre local e Render`);
+      console.log(`   ⚠️  Nenhuma coluna compatível entre Render e Local`);
       return { table: tableName, copied: 0, errors: 0 };
     }
 
-    console.log(`   🔍 Colunas compatíveis: ${commonColumns.length} de ${localColumns.length}`);
+    console.log(`   🔍 Colunas compatíveis: ${commonColumns.length} de ${renderColumns.length}`);
 
-    // Busca dados do local
-    const { rows } = await localPool.query(`SELECT * FROM ${tableName}`);
+    // Busca dados do Render
+    const { rows } = await renderPool.query(`SELECT * FROM ${tableName}`);
+
+    console.log(`   📥 Buscados do Render: ${rows.length} registros`);
 
     if (rows.length === 0) {
       console.log(`   ⏭️  Nenhum dado para copiar`);
       return { table: tableName, copied: 0, skipped: true };
     }
 
-    // Insere no Render
+    // Insere no Local
     let copied = 0;
     let errors = 0;
     let errorSamples = [];
+    let processed = 0;
 
     for (const row of rows) {
+      processed++;
       try {
         // Usa apenas colunas comuns
         const fields = [];
@@ -231,7 +235,7 @@ async function copyTable(localPool, renderPool, tableName) {
           ON CONFLICT DO NOTHING
         `;
 
-        const result = await renderPool.query(sql, values);
+        const result = await localPool.query(sql, values);
 
         // ON CONFLICT DO NOTHING retorna rowCount = 0 se houve conflito
         if (result.rowCount === 0) {
@@ -249,6 +253,8 @@ async function copyTable(localPool, renderPool, tableName) {
         }
       }
     }
+
+    console.log(`   🔄 Processados: ${processed} registros`);
 
     if (errors > 0) {
       console.log(`   ⚠️  ${copied} copiados, ${errors} pulados/erros`);
@@ -269,25 +275,26 @@ async function copyTable(localPool, renderPool, tableName) {
 
 async function main() {
   try {
-    console.log('\n🔄 SINCRONIZAÇÃO: PostgreSQL Local → Render\n');
-    console.log('⚠️  Este script copia dados do banco LOCAL para o RENDER');
-    console.log('   Dados existentes no Render NÃO serão sobrescritos.\n');
+    console.log('\n🔄 SINCRONIZAÇÃO: PostgreSQL Render → Local\n');
+    console.log('⚠️  Este script copia dados do RENDER para o banco LOCAL');
+    console.log('   Dados existentes no Local NÃO serão sobrescritos.\n');
 
-    const confirm = await question('Deseja continuar? (s/N): ');
-    if (confirm.toLowerCase() !== 's') {
-      console.log('❌ Operação cancelada.');
+    const answer = await question('Deseja continuar? (s/N): ');
+    if (answer.toLowerCase() !== 's') {
+      console.log('❌ Sincronização cancelada.');
       rl.close();
       process.exit(0);
     }
 
-    const localPool = await connectToLocal();
     const renderPool = await connectToRender();
+    const localPool = await connectToLocal();
 
     console.log('🚀 Iniciando cópia...\n');
 
     const results = [];
+
     for (const tableName of TABLES_TO_COPY) {
-      const result = await copyTable(localPool, renderPool, tableName);
+      const result = await copyTable(renderPool, localPool, tableName);
       results.push(result);
     }
 
@@ -297,38 +304,33 @@ async function main() {
     console.log('│ Tabela                          │ Copiados   │ Status       │');
     console.log('├─────────────────────────────────┼────────────┼──────────────┤');
 
-    for (const result of results) {
-      let status = '✅ OK';
-      if (result.error) {
-        status = '❌ Erro';
-      } else if (result.skipped) {
-        status = '⏭️  Pulado';
-      } else if (result.errors && result.errors > 0) {
-        status = `⚠️  ${result.errors} dup`;
+    results.forEach(r => {
+      const paddedTable = r.table.padEnd(31);
+      const paddedCopied = String(r.copied).padStart(10);
+      let status = '✅ OK        ';
+
+      if (r.skipped) {
+        status = '⏭️  Pulado   ';
+      } else if (r.errors > 0) {
+        status = `⚠️  ${r.errors} dup   `.padEnd(13);
       }
 
-      const name = result.table.padEnd(30);
-      const count = String(result.copied).padStart(9);
-      const statusPadded = status.padEnd(12);
-      console.log(`│ ${name} │ ${count} │ ${statusPadded} │`);
-    }
+      console.log(`│ ${paddedTable} │ ${paddedCopied} │ ${status} │`);
+    });
 
     console.log('└─────────────────────────────────┴────────────┴──────────────┘');
 
     const totalCopied = results.reduce((sum, r) => sum + (r.copied || 0), 0);
-    console.log(`\n✅ Total de registros copiados: ${totalCopied}`);
+    console.log(`\n✅ Total de registros copiados: ${totalCopied}\n`);
 
-    // Fecha conexões
-    await localPool.end();
     await renderPool.end();
+    await localPool.end();
     rl.close();
 
-    console.log('\n🎉 Sincronização concluída!\n');
-    process.exit(0);
+    console.log('🎉 Sincronização concluída!\n');
 
   } catch (error) {
-    console.error('\n❌ Erro fatal:', error);
-    rl.close();
+    console.error('\n❌ Erro fatal:', error.message);
     process.exit(1);
   }
 }

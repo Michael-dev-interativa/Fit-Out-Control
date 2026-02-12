@@ -14,7 +14,6 @@ export default function Login({ theme = 'light' }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showDebug, setShowDebug] = useState(false);
   const [error, setError] = useState(null);
   const [logoMode, setLogoMode] = useState('logo'); // 'logo' | 'greeting'
   const [greetingName, setGreetingName] = useState('');
@@ -208,24 +207,6 @@ export default function Login({ theme = 'light' }) {
                 >
                   {loading ? 'Entrando...' : 'Entrar'}
                 </Button>
-
-                {/* Debug info - toggle com Ctrl+D */}
-                <div className="text-xs text-center mt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowDebug(!showDebug)}
-                    className="px-4 py-2 bg-yellow-500/90 hover:bg-yellow-600 text-black font-bold rounded transition-colors shadow-lg"
-                  >
-                    {showDebug ? '🔍 Ocultar Debug' : '🔍 Mostrar Debug'}
-                  </button>
-                  {showDebug && (
-                    <div className="mt-2 p-2 bg-black/40 rounded text-left space-y-1">
-                      <div><strong>API_BASE:</strong> {API_BASE}</div>
-                      <div><strong>VITE_API_URL:</strong> {import.meta.env.VITE_API_URL || '(não configurado)'}</div>
-                      <div><strong>Origin:</strong> {typeof window !== 'undefined' ? window.location.origin : 'N/A'}</div>
-                    </div>
-                  )}
-                </div>
               </form>
             </CardContent>
           </Card>
