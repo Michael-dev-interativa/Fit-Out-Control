@@ -54,225 +54,248 @@ async function connectToRender() {
   if (!renderUrl) {
     console.error('❌ DATABASE_URL não configurada!');
     console.log('Configure a variável DATABASE_URL no arquivo .env');
+    console.log('\n💡 Exemplo:');
+    console.log('DATABASE_URL=postgresql://user:password@host:5432/database\n');
     process.exit(1);
   }
 
+  // Mostra informações da conexão (sem mostrar senha)
+  const urlParts = renderUrl.match(/postgresql:\/\/([^:]+):([^@]+)@([^\/]+)\/(.+)/);
+  if (urlParts) {
+    console.log(`📡 Conectando em: ${urlParts[3]} (usuário: ${urlParts[1]})`);
+  }
+
+  // Tenta conectar sem SSL primeiro
   try {
+    console.log('🔌 Tentando conectar sem SSL...');
     const renderPool = new Pool({
       connectionString: renderUrl,
-      ssl: { rejectUnauthorized: false }
+      ssl: false
     });
 
     await renderPool.query('SELECT 1');
-    console.log('✅ Conectado ao Render PostgreSQL!\n');
+    console.log('✅ Conectado ao PostgreSQL (sem SSL)!\n');
     return renderPool;
-  } catch (error) {
-    console.error('❌ Erro ao conectar no Render:', error.message);
-    process.exit(1);
-  }
-}
+  } catch (errorNoSSL) {
+    console.log('⚠️  Falhou sem SSL, tentando com SSL...');
 
-async function loadCSVFile(filePath) {
-  try {
-    const content = fs.readFileSync(filePath, 'utf-8');
-    const records = parse(content, {
-      columns: true,
-      skip_empty_lines: true,
-      trim: true,
-      bom: true
-    });
-    return records;
-  } catch (error) {
-    console.error(`   ⚠️  Erro ao ler ${filePath}:`, error.message);
-    return null;
-  }
-}
+    // Se falhar, tenta com SSL
+    try {
+      const renderPool = new Pool({
+        connectionString: renderUrl,
+        ssl: { rejectUnauthorized: false }
+      });
 
-function mapBase44ToPostgres(entityName, base44Data) {
-  // Mapeia campos do Base44 para PostgreSQL
-  // Ajuste conforme sua estrutura real
-
-  const mapped = { ...base44Data };
-
-  // Remove campos de sistema do Base44
-  delete mapped._id;
-  delete mapped.__v;
-  delete mapped.createdBy;
-  delete mapped.updatedBy;
-
-  // Renomeia campos se necessário
-  if (mapped.created) {
-    mapped.created_at = mapped.created;
-    delete mapped.created;
-  }
-
-  if (mapped.updated) {
-    mapped.updated_at = mapped.updated;
-    delete mapped.updated;
-  }
-
-  // === MAPEAMENTO ESPECÍFICO POR ENTIDADE ===
-  // Descomente e adapte conforme necessário
-
-  /*
-  if (entityName === 'Empreendimentos') {
-    // Exemplo: renomear campos
-    if (base44Data.titulo) {
-      mapped.nome_empreendimento = base44Data.titulo;
-      delete mapped.titulo;
-    }
-    
-    // Exemplo: converter tipos
-    if (base44Data.valor) {
-      mapped.valor_contratual = parseFloat(base44Data.valor);
-      delete mapped.valor;
-    }
-    
-    // Exemplo: valores padrão
-    mapped.status = mapped.status || 'ativo';
-  }
-  
-  if (entityName === 'Usuarios') {
-    // Base44 pode usar 'username' enquanto PostgreSQL usa 'nome'
-    if (base44Data.username) {
-      mapped.nome = base44Data.username;
-      delete mapped.username;
-    }
-    
-    // Senha: Base44 pode ter hash diferente
-    // Sugestão: gerar senha temporária ou deixar NULL para forçar reset
-    if (base44Data.senha) {
-      // mapped.senha = await bcrypt.hash('senhaTemporaria123', 10);
-      delete mapped.senha; // Deixa NULL para forçar reset
-    }
-  }
-  
-  if (entityName === 'Unidades') {
-    // Exemplo: prefixar valores
-    if (base44Data.numero) {
-      mapped.numero_unidade = `UN-${base44Data.numero}`;
-      delete mapped.numero;
-    }
-  }
-  */
-
-  return mapped;
-}
-
-async function importEntity(renderPool, entityName, tableName, exportPath) {
-  try {
-    console.log(`\n📦 Importando: ${entityName} → ${tableName}`);
-
-    // Procura arquivo CSV
-    const possibleFiles = [
-      path.join(exportPath, `${entityName}.csv`),
-      path.join(exportPath, `${tableName}.csv`),
-      path.join(exportPath, `${entityName.toLowerCase()}.csv`)
-    ];
-
-    let csvData = null;
-    let usedFile = null;
-
-    for (const file of possibleFiles) {
-      if (fs.existsSync(file)) {
-        csvData = await loadCSVFile(file);
-        usedFile = file;
-        break;
+      await renderPool.query('SELECT 1');
+      console.log('✅ Conectado ao PostgreSQL (com SSL)!\n');
+      return renderPool;
+    } catch (errorSSL) {
+      console.error('❌ Erro ao conectar no banco de dados:', errorSSL.message);
+      console.error('\n💡 Verifique:');
+      console.error('   1. DATABASE_URL está correta no .env');
+      console.error('   2. Banco de dados está ativo');
+      console.error('   3. Credenciais estão corretas');
+      console.error('   4. Firewall/rede permite a conexão');
+      try {
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const records = parse(content, {
+          columns: true,
+          skip_empty_lines: true,
+          trim: true,
+          bom: true
+        });
+        return records;
+      } catch (error) {
+        console.error(`   ⚠️  Erro ao ler ${filePath}:`, error.message);
+        return null;
       }
     }
 
-    if (!csvData) {
-      console.log(`   ⚠️  Arquivo não encontrado - pulando`);
-      return { entity: entityName, migrated: 0, skipped: true };
+    function mapBase44ToPostgres(entityName, base44Data) {
+      // Mapeia campos do Base44 para PostgreSQL
+      // Ajuste conforme sua estrutura real
+
+      const mapped = { ...base44Data };
+
+      // Remove campos de sistema do Base44
+      delete mapped._id;
+      delete mapped.__v;
+      delete mapped.createdBy;
+      delete mapped.updatedBy;
+
+      // Renomeia campos se necessário
+      if (mapped.created) {
+        mapped.created_at = mapped.created;
+        delete mapped.created;
+      }
+
+      if (mapped.updated) {
+        mapped.updated_at = mapped.updated;
+        delete mapped.updated;
+      }
+
+      // === MAPEAMENTO ESPECÍFICO POR ENTIDADE ===
+      // Descomente e adapte conforme necessário
+
+      /*
+      if (entityName === 'Empreendimentos') {
+        // Exemplo: renomear campos
+        if (base44Data.titulo) {
+          mapped.nome_empreendimento = base44Data.titulo;
+          delete mapped.titulo;
+        }
+        
+        // Exemplo: converter tipos
+        if (base44Data.valor) {
+          mapped.valor_contratual = parseFloat(base44Data.valor);
+          delete mapped.valor;
+        }
+        
+        // Exemplo: valores padrão
+        mapped.status = mapped.status || 'ativo';
+      }
+      
+      if (entityName === 'Usuarios') {
+        // Base44 pode usar 'username' enquanto PostgreSQL usa 'nome'
+        if (base44Data.username) {
+          mapped.nome = base44Data.username;
+          delete mapped.username;
+        }
+        
+        // Senha: Base44 pode ter hash diferente
+        // Sugestão: gerar senha temporária ou deixar NULL para forçar reset
+        if (base44Data.senha) {
+          // mapped.senha = await bcrypt.hash('senhaTemporaria123', 10);
+          delete mapped.senha; // Deixa NULL para forçar reset
+        }
+      }
+      
+      if (entityName === 'Unidades') {
+        // Exemplo: prefixar valores
+        if (base44Data.numero) {
+          mapped.numero_unidade = `UN-${base44Data.numero}`;
+          delete mapped.numero;
+        }
+      }
+      */
+
+      return mapped;
     }
 
-    const records = Array.isArray(csvData) ? csvData : [csvData];
-    console.log(`   📊 ${records.length} registros encontrados em ${path.basename(usedFile)}`);
-
-    if (records.length === 0) {
-      console.log(`   ✅ Nenhum dado para importar`);
-      return { entity: entityName, migrated: 0, skipped: false };
-    }
-
-    console.log(`   ⏳ Importando...`);
-
-    // Importa registros
-    let migrated = 0;
-
-    for (const record of records) {
+    async function importEntity(renderPool, entityName, tableName, exportPath) {
       try {
-        const mapped = mapBase44ToPostgres(entityName, record);
+        console.log(`\n📦 Importando: ${entityName} → ${tableName}`);
 
-        const fields = Object.keys(mapped);
-        const values = Object.values(mapped);
-        const placeholders = fields.map((_, i) => `$${i + 1}`).join(', ');
+        // Procura arquivo CSV
+        const possibleFiles = [
+          path.join(exportPath, `${entityName}.csv`),
+          path.join(exportPath, `${tableName}.csv`),
+          path.join(exportPath, `${entityName.toLowerCase()}.csv`)
+        ];
 
-        const sql = `
+        let csvData = null;
+        let usedFile = null;
+
+        for (const file of possibleFiles) {
+          if (fs.existsSync(file)) {
+            csvData = await loadCSVFile(file);
+            usedFile = file;
+            break;
+          }
+        }
+
+        if (!csvData) {
+          console.log(`   ⚠️  Arquivo não encontrado - pulando`);
+          return { entity: entityName, migrated: 0, skipped: true };
+        }
+
+        const records = Array.isArray(csvData) ? csvData : [csvData];
+        console.log(`   📊 ${records.length} registros encontrados em ${path.basename(usedFile)}`);
+
+        if (records.length === 0) {
+          console.log(`   ✅ Nenhum dado para importar`);
+          return { entity: entityName, migrated: 0, skipped: false };
+        }
+
+        console.log(`   ⏳ Importando...`);
+
+        // Importa registros
+        let migrated = 0;
+
+        for (const record of records) {
+          try {
+            const mapped = mapBase44ToPostgres(entityName, record);
+
+            const fields = Object.keys(mapped);
+            const values = Object.values(mapped);
+            const placeholders = fields.map((_, i) => `$${i + 1}`).join(', ');
+
+            const sql = `
           INSERT INTO ${tableName} (${fields.join(', ')})
           VALUES (${placeholders})
           ON CONFLICT DO NOTHING
         `;
 
-        await renderPool.query(sql, values);
-        migrated++;
+            await renderPool.query(sql, values);
+            migrated++;
+          } catch (error) {
+            console.error(`   ⚠️  Erro ao importar registro:`, error.message);
+          }
+        }
+
+        console.log(`   ✅ ${migrated} registros importados`);
+        return { entity: entityName, migrated, skipped: false };
+
       } catch (error) {
-        console.error(`   ⚠️  Erro ao importar registro:`, error.message);
+        console.error(`   ❌ Erro em ${entityName}:`, error.message);
+        return { entity: entityName, migrated: 0, error: error.message };
       }
     }
 
-    console.log(`   ✅ ${migrated} registros importados`);
-    return { entity: entityName, migrated, skipped: false };
+    async function main() {
+      try {
+        // Carrega export do Base44
+        const exportPath = await loadBase44Export();
+        const renderPool = await connectToRender();
 
-  } catch (error) {
-    console.error(`   ❌ Erro em ${entityName}:`, error.message);
-    return { entity: entityName, migrated: 0, error: error.message };
-  }
-}
+        console.log('🚀 Iniciando importação automática...\n');
 
-async function main() {
-  try {
-    // Carrega export do Base44
-    const exportPath = await loadBase44Export();
-    const renderPool = await connectToRender();
+        // Importa cada entidade
+        const results = [];
+        for (const [entityName, tableName] of Object.entries(ENTITY_TABLE_MAP)) {
+          const result = await importEntity(renderPool, entityName, tableName, exportPath);
+          results.push(result);
+        }
 
-    console.log('🚀 Iniciando importação automática...\n');
+        // Resumo
+        console.log('\n\n📊 RESUMO DA IMPORTAÇÃO:\n');
+        console.log('┌─────────────────────────────────┬──────────┬────────┐');
+        console.log('│ Entidade                        │ Importados │ Status │');
+        console.log('├─────────────────────────────────┼──────────┼────────┤');
 
-    // Importa cada entidade
-    const results = [];
-    for (const [entityName, tableName] of Object.entries(ENTITY_TABLE_MAP)) {
-      const result = await importEntity(renderPool, entityName, tableName, exportPath);
-      results.push(result);
+        for (const result of results) {
+          const status = result.error ? '❌ Erro' : result.skipped ? '⏭️  Pulado' : '✅ OK';
+          const name = result.entity.padEnd(30);
+          const count = String(result.migrated).padStart(9);
+          console.log(`│ ${name} │ ${count} │ ${status} │`);
+        }
+
+        console.log('└─────────────────────────────────┴──────────┴────────┘');
+
+        const totalMigrated = results.reduce((sum, r) => sum + r.migrated, 0);
+        console.log(`\n✅ Total de registros importados: ${totalMigrated}`);
+
+        // Fecha conexão
+        await renderPool.end();
+        rl.close();
+
+        console.log('\n🎉 Importação concluída!\n');
+        process.exit(0);
+
+      } catch (error) {
+        console.error('\n❌ Erro fatal:', error);
+        process.exit(1);
+      }
     }
 
-    // Resumo
-    console.log('\n\n📊 RESUMO DA IMPORTAÇÃO:\n');
-    console.log('┌─────────────────────────────────┬──────────┬────────┐');
-    console.log('│ Entidade                        │ Importados │ Status │');
-    console.log('├─────────────────────────────────┼──────────┼────────┤');
-
-    for (const result of results) {
-      const status = result.error ? '❌ Erro' : result.skipped ? '⏭️  Pulado' : '✅ OK';
-      const name = result.entity.padEnd(30);
-      const count = String(result.migrated).padStart(9);
-      console.log(`│ ${name} │ ${count} │ ${status} │`);
-    }
-
-    console.log('└─────────────────────────────────┴──────────┴────────┘');
-
-    const totalMigrated = results.reduce((sum, r) => sum + r.migrated, 0);
-    console.log(`\n✅ Total de registros importados: ${totalMigrated}`);
-
-    // Fecha conexão
-    await renderPool.end();
-    rl.close();
-
-    console.log('\n🎉 Importação concluída!\n');
-    process.exit(0);
-
-  } catch (error) {
-    console.error('\n❌ Erro fatal:', error);
-    process.exit(1);
-  }
-}
-
-main();
+    main();
