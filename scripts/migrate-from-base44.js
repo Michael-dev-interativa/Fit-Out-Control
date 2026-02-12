@@ -187,11 +187,7 @@ async function importEntity(renderPool, entityName, tableName, exportPath) {
       return { entity: entityName, migrated: 0, skipped: false };
     }
 
-    const shouldImport = await question(`   ❓ Importar ${records.length} registros? (s/N): `);
-    if (shouldImport.toLowerCase() !== 's') {
-      console.log(`   ⏭️  Pulando ${entityName}`);
-      return { entity: entityName, migrated: 0, skipped: true };
-    }
+    console.log(`   ⏳ Importando...`);
 
     // Importa registros
     let migrated = 0;
@@ -232,15 +228,7 @@ async function main() {
     const exportPath = await loadBase44Export();
     const renderPool = await connectToRender();
 
-    console.log('🚀 Iniciando importação...\n');
-    console.log('⚠️  ATENÇÃO: Esta operação irá importar dados para o Render PostgreSQL.');
-    console.log('   Certifique-se de ter backup dos dados antes de continuar.\n');
-
-    const confirm = await question('Deseja continuar? (s/N): ');
-    if (confirm.toLowerCase() !== 's') {
-      console.log('❌ Importação cancelada.');
-      process.exit(0);
-    }
+    console.log('🚀 Iniciando importação automática...\n');
 
     // Importa cada entidade
     const results = [];
