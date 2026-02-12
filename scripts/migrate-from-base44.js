@@ -144,11 +144,12 @@ async function getTableColumns(pool, tableName) {
 function mapBase44ToPostgres(entityName, base44Data, validColumns = null) {
   const mapped = { ...base44Data };
 
-  // Remove campos de sistema do Base44
+  // Remove campos de sistema do Base44 e MongoDB
   delete mapped._id;
   delete mapped.__v;
   delete mapped.createdBy;
   delete mapped.updatedBy;
+  delete mapped.id; // ID do MongoDB (ObjectId como string)
 
   // Renomeia campos de timestamp
   if (mapped.created) {
@@ -171,8 +172,22 @@ function mapBase44ToPostgres(entityName, base44Data, validColumns = null) {
 
   // Converte strings vazias para NULL (PostgreSQL não aceita "" para DATE, INTEGER, etc.)
   Object.keys(mapped).forEach(key => {
-    if (mapped[key] === '' || mapped[key] === null || mapped[key] === undefined) {
+    const value = mapped[key];
+
+    // Strings vazias → NULL
+    if (value === '' || value === null || value === undefined) {
       mapped[key] = null;
+    }
+    // Trata campos JSON que vêm como strings inválidas
+    else if (typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))) {
+      try {
+        // Tenta parsear para validar se é JSON válido
+        JSON.parse(value);
+        // Se válido, mantém como string (PostgreSQL aceita string para JSON)
+      } catch {
+        // Se inválido, converte para NULL
+        mapped[key] = null;
+      }
     }
   });
 
@@ -230,6 +245,7 @@ async function importEntity(renderPool, entityName, tableName, exportPath) {
     let migrated = 0;
     let errors = 0;
     let firstRecord = true;
+    const errorTypes = new Map(); // Agrupa erros por tipo
 
     for (const record of records) {
       try {
@@ -239,7 +255,7 @@ async function importEntity(renderPool, entityName, tableName, exportPath) {
         if (firstRecord) {
           const allFields = Object.keys(record);
           const keptFields = Object.keys(mapped);
-          const ignoredFields = allFields.filter(f => !keptFields.includes(f) && f !== '_id' && f !== '__v');
+          const ignoredFields = allFields.filter(f => !keptFields.includes(f) && f !== '_id' && f !== '__v' && f !== 'id');
 
           if (ignoredFields.length > 0) {
             console.log(`   ℹ️  Campos ignorados: ${ignoredFields.join(', ')}`);
@@ -251,7 +267,8 @@ async function importEntity(renderPool, entityName, tableName, exportPath) {
         const values = Object.values(mapped);
 
         if (fields.length === 0) {
-          console.error(`   ⚠️  Nenhum campo válido encontrado no registro`);
+          const errorMsg = 'Nenhum campo válido encontrado';
+          errorTypes.set(errorMsg, (errorTypes.get(errorMsg) || 0) + 1);
           errors++;
           continue;
         }
@@ -267,9 +284,19 @@ async function importEntity(renderPool, entityName, tableName, exportPath) {
         await renderPool.query(sql, values);
         migrated++;
       } catch (error) {
-        console.error(`   ⚠️  Erro ao importar registro:`, error.message);
+        // Agrupa erros por tipo
+        const errorKey = error.message.split(':')[0]; // Pega só o tipo do erro
+        errorTypes.set(errorKey, (errorTypes.get(errorKey) || 0) + 1);
         errors++;
       }
+    }
+
+    // Mostra resumo de erros por tipo
+    if (errorTypes.size > 0) {
+      console.log(`\n   📋 Resumo de erros:`);
+      errorTypes.forEach((count, errorType) => {
+        console.log(`      • ${errorType}: ${count}x`);
+      });
     }
 
     if (errors > 0) {
