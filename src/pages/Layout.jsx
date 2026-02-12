@@ -352,11 +352,21 @@ export default function Layout({ children }) {
     );
   }
 
-  const NavItems = ({ mobile = false, user }) => (
-    <div className={`${mobile ? 'space-y-1' : 'space-y-2'}`}>
-      {getNavigationItems(user)
-        .filter(item => !item.adminOnly || (user?.role === "admin"))
-        .map((item) => (
+  const NavItems = ({ mobile = false, user }) => {
+    console.log('🔍 NavItems - user recebido:', user);
+    console.log('🔍 NavItems - user.role:', user?.role);
+    console.log('🔍 NavItems - user.role === "admin":', user?.role === "admin");
+
+    const items = getNavigationItems(user);
+    const filteredItems = items.filter(item => !item.adminOnly || (user?.role === "admin"));
+
+    console.log('📋 NavItems - Total de itens:', items.length);
+    console.log('📋 NavItems - Itens filtrados:', filteredItems.length);
+    console.log('📋 NavItems - Itens:', filteredItems.map(i => ({ title: i.title, adminOnly: i.adminOnly })));
+
+    return (
+      <div className={`${mobile ? 'space-y-1' : 'space-y-2'}`}>
+        {filteredItems.map((item) => (
           <Link
             key={item.title}
             to={item.url}
@@ -374,8 +384,9 @@ export default function Layout({ children }) {
             <span className="font-medium">{item.title}</span>
           </Link>
         ))}
-    </div>
-  );
+      </div>
+    );
+  };
 
   const isDark = theme === 'dark';
   const logoUrl = isDark
