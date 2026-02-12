@@ -1,7 +1,5 @@
-  }
-
-}
-
+import React, { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Auth, User } from "@/api/entities";
 import ApiConnectionAlert from "@/components/ApiConnectionAlert";
