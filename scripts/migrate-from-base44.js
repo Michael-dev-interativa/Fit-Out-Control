@@ -169,6 +169,13 @@ function mapBase44ToPostgres(entityName, base44Data, validColumns = null) {
     }
   }
 
+  // Converte strings vazias para NULL (PostgreSQL não aceita "" para DATE, INTEGER, etc.)
+  Object.keys(mapped).forEach(key => {
+    if (mapped[key] === '' || mapped[key] === null || mapped[key] === undefined) {
+      mapped[key] = null;
+    }
+  });
+
   // === MAPEAMENTOS ESPECÍFICOS ===
   if (entityName === 'Empreendimentos') {
     // Remove campos extras do Base44 que não existem no PostgreSQL
@@ -316,7 +323,15 @@ async function main() {
     }
 
     console.log('└─────────────────────────────────┴────────────┴──────────────┘');
+
+    const totalMigrated = results.reduce((sum, r) => sum + (r.migrated || 0), 0);
     console.log(`\n✅ Total de registros importados: ${totalMigrated}`);
+
+    // Mostra total de erros se houver
+    const totalErrors = results.reduce((sum, r) => sum + (r.errors || 0), 0);
+    if (totalErrors > 0) {
+      console.log(`⚠️  Total de erros: ${totalErrors}`);
+    }
 
     // Fecha conexão
     await renderPool.end();
@@ -327,6 +342,7 @@ async function main() {
 
   } catch (error) {
     console.error('\n❌ Erro fatal:', error);
+    rl.close();
     process.exit(1);
   }
 }
