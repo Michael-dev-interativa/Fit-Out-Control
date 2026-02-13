@@ -32,6 +32,7 @@ import {
   CalendarClock, // Added CalendarClock icon
   ClipboardPlus // Added new icon
 } from 'lucide-react';
+import { Folder, ChevronRight } from 'lucide-react';
 import UnidadeCard from '../components/empreendimento/UnidadeCard';
 import NovaUnidadeDialog from '../components/empreendimento/NovaUnidadeDialog';
 import GaleriaFotosDialog from '../components/empreendimento/GaleriaFotosDialog';
@@ -390,13 +391,30 @@ export default function EmpreendimentoPage({ language: initialLanguage, theme: i
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex gap-2 mb-3">
-                  <Button variant="ghost" onClick={() => setShowGroupGerenciamento(!showGroupGerenciamento)} className="h-8 text-sm">
-                    {showGroupGerenciamento ? '▾' : '▸'} Gerenciamento de Obra
-                  </Button>
-                  <Button variant="ghost" onClick={() => setShowGroupProcessos(!showGroupProcessos)} className="h-8 text-sm">
-                    {showGroupProcessos ? '▾' : '▸'} Processos Fit-Out
-                  </Button>
+                <div className="space-y-2 mb-3">
+                  <div
+                    role="button"
+                    onClick={() => setShowGroupProcessos(!showGroupProcessos)}
+                    className={`flex items-center justify-between p-3 rounded cursor-pointer ${isDark ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}
+                  >
+                    <div className="flex items-center">
+                      <Folder className="w-5 h-5 mr-2" />
+                      <span className={`${isDark ? 'text-white' : 'text-gray-700'} font-medium`}>Processos Fit Out</span>
+                    </div>
+                    <ChevronRight className={`w-5 h-5 transform ${showGroupProcessos ? 'rotate-90' : ''} ${isDark ? 'text-gray-200' : 'text-gray-600'}`} />
+                  </div>
+
+                  <div
+                    role="button"
+                    onClick={() => setShowGroupGerenciamento(!showGroupGerenciamento)}
+                    className={`flex items-center justify-between p-3 rounded cursor-pointer ${isDark ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}
+                  >
+                    <div className="flex items-center">
+                      <Folder className="w-5 h-5 mr-2" />
+                      <span className={`${isDark ? 'text-white' : 'text-gray-700'} font-medium`}>Gerenciamento de Obras</span>
+                    </div>
+                    <ChevronRight className={`w-5 h-5 transform ${showGroupGerenciamento ? 'rotate-90' : ''} ${isDark ? 'text-gray-200' : 'text-gray-600'}`} />
+                  </div>
                 </div>
 
                 {showGroupProcessos && (
