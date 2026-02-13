@@ -373,22 +373,6 @@ const EmpreendimentoPage = () => {
                 <Button
                   variant="outline"
                   className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                  onClick={() => navigate(createPageUrl(`EmpreendimentoDiariosObra?empreendimentoId=${empreendimentoId}`))}
-                >
-                  <ClipboardCheck className="w-5 h-5" />
-                  <span className="text-center leading-tight">{t['Diários de Obra']}</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                  onClick={() => navigate(createPageUrl(`EmpreendimentoListaDocumentos?empreendimentoId=${empreendimentoId}`))}
-                >
-                  <FileText className="w-5 h-5" />
-                  <span className="text-center leading-tight">{t['Lista de Documentos']}</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
                   onClick={() => navigate(createPageUrl(`EmpreendimentoListaDocumentosReport?empreendimentoId=${empreendimentoId}`))}
                 >
                   <ClipboardList className="w-5 h-5" />
