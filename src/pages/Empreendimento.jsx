@@ -167,7 +167,7 @@ const EmpreendimentoPage = () => {
           {t.invalidIdErrorMessage}
         </p>
         <Button onClick={() => navigate(createPageUrl('Empreendimentos'))}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> {t.backToProjects}
+          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para Empreendimentos
         </Button>
       </div>
     );
@@ -193,7 +193,7 @@ const EmpreendimentoPage = () => {
         </p>
         <Button onClick={() => navigate(createPageUrl('Empreendimentos'), { replace: true })} className="mt-4">
           <ArrowLeft className="w-4 h-4 mr-2" />
-          {t.backToProjects}
+          Voltar para Empreendimentos
         </Button>
       </div>
     );
@@ -209,7 +209,7 @@ const EmpreendimentoPage = () => {
     <div className={`min-h-screen ${isDark ? 'bg-gray-900' : 'bg-gray-50'} p-2 md:p-4 space-y-4`}>
       <Button variant="outline" onClick={() => navigate(createPageUrl('Empreendimentos'))} className={`${isDark ? 'text-white border-gray-600 hover:bg-gray-800' : ''}`}>
         <ArrowLeft className="w-4 h-4 mr-2" />
-        {t.backToProjects}
+        Voltar para Empreendimentos
       </Button>
 
       <div className="w-full max-w-full mx-auto">
@@ -238,7 +238,7 @@ const EmpreendimentoPage = () => {
               <CardHeader className="pb-3">
                 <CardTitle className={`flex items-center gap-2 text-lg ${isDark ? 'text-white' : ''}`}>
                   <Zap className="w-5 h-5" />
-                  {t['Ações Rápidas']}
+                  Ações Rápidas
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -562,21 +562,21 @@ const EmpreendimentoPage = () => {
               <CardHeader className="pb-3">
                 <CardTitle className={`flex items-center gap-2 text-lg ${isDark ? 'text-white' : ''}`}>
                   <Building className="w-5 h-5" />
-                  {t['Unidades do Empreendimento']}
+                  Unidades
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <Button variant="outline" onClick={() => setShowUnidades(!showUnidades)} className="h-10 text-sm">
                   <Layers className="w-4 h-4 mr-2" />
-                  {showUnidades ? t.hideFloors : t.viewFloors}
+                  {showUnidades ? 'Ocultar Unidades' : 'Ver Unidades'}
                 </Button>
                 <Button variant="outline" onClick={() => setShowNovaUnidade(true)} className="h-10 text-sm">
                   <Building className="w-4 h-4 mr-2" />
-                  {t.addUnit}
+                  Adicionar Unidade
                 </Button>
                 <Button variant="outline" onClick={() => navigate(createPageUrl(`EditarEmpreendimento?empreendimentoId=${empreendimentoId}`))} className="h-10 text-sm">
                   <Edit className="w-4 h-4 mr-2" />
-                  {t.editProject}
+                  Editar Empreendimento
                 </Button>
               </CardContent>
             </Card>
@@ -584,7 +584,7 @@ const EmpreendimentoPage = () => {
             {showUnidades && (
               <Card className={`${isDark ? 'bg-gray-800' : ''}`}>
                 <CardHeader className="pb-3">
-                  <CardTitle className={`text-lg ${isDark ? 'text-white' : ''}`}>{t.unitsTitle}</CardTitle>
+                  <CardTitle className={`text-lg ${isDark ? 'text-white' : ''}`}>Unidades</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {unidades.length > 0 ? (
@@ -608,7 +608,7 @@ const EmpreendimentoPage = () => {
                       })}
                     </div>
                   ) : (
-                    <p className={`${isDark ? 'text-gray-400' : 'text-gray-500'} text-center py-4`}>{t.noUnits}</p>
+                    <p className={`${isDark ? 'text-gray-400' : 'text-gray-500'} text-center py-4`}>Nenhuma unidade</p>
                   )}
                 </CardContent>
               </Card>
