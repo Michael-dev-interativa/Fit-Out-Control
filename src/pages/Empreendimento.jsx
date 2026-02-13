@@ -238,7 +238,7 @@ const EmpreendimentoPage = () => {
               <CardHeader className="pb-3">
                 <CardTitle className={`flex items-center gap-2 text-lg ${isDark ? 'text-white' : ''}`}>
                   <Zap className="w-5 h-5" />
-                  {t.quickActions}
+                  {t['Ações Rápidas']}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -249,7 +249,7 @@ const EmpreendimentoPage = () => {
                     onClick={() => setShowProjetos(true)}
                   >
                     <FileText className="w-5 h-5" />
-                    <span className="text-center leading-tight">{t.originalProjects}</span>
+                    <span className="text-center leading-tight">{t['Projetos Originais']}</span>
                   </Button>
 
                   <Button
@@ -258,7 +258,7 @@ const EmpreendimentoPage = () => {
                     onClick={() => setShowManuais(true)}
                   >
                     <BookOpen className="w-5 h-5" />
-                    <span className="text-center leading-tight">{t.generalManuals}</span>
+                    <span className="text-center leading-tight">{t['Manuais Gerais']}</span>
                   </Button>
 
                   <Button
@@ -267,7 +267,7 @@ const EmpreendimentoPage = () => {
                     onClick={() => setShowGaleria(true)}
                   >
                     <Image className="w-5 h-5" />
-                    <span className="text-center leading-tight">{t.photoGallery}</span>
+                    <span className="text-center leading-tight">{t['Galeria de Fotos']}</span>
                   </Button>
 
                   <Button
@@ -276,7 +276,7 @@ const EmpreendimentoPage = () => {
                     onClick={() => setShowParticularidades(true)}
                   >
                     <AlertCircle className="w-5 h-5" />
-                    <span className="text-center leading-tight">{t.particularities}</span>
+                    <span className="text-center leading-tight">{t['Particularidades']}</span>
                   </Button>
 
                   <Button
@@ -285,7 +285,7 @@ const EmpreendimentoPage = () => {
                     onClick={() => navigate(createPageUrl(`EmpreendimentoDiariosObra?empreendimentoId=${empreendimentoId}`))}
                   >
                     <ClipboardCheck className="w-5 h-5" />
-                    <span className="text-center leading-tight">{t.dailyReport}</span>
+                    <span className="text-center leading-tight">{t['Diários de Obra']}</span>
                   </Button>
 
                   <Button
@@ -294,7 +294,7 @@ const EmpreendimentoPage = () => {
                     onClick={() => navigate(createPageUrl(`EmpreendimentoListaDocumentos?empreendimentoId=${empreendimentoId}`))}
                   >
                     <ClipboardList className="w-5 h-5" />
-                    <span className="text-center leading-tight">{t.documentList}</span>
+                    <span className="text-center leading-tight">{t['Lista de Documentos']}</span>
                   </Button>
 
                   <Button
@@ -303,7 +303,7 @@ const EmpreendimentoPage = () => {
                     onClick={() => navigate(createPageUrl(`EmpreendimentoAtaReuniao?empreendimentoId=${empreendimentoId}`))}
                   >
                     <ClipboardList className="w-5 h-5" />
-                    <span className="text-center leading-tight">Ata de Reunião</span>
+                    <span className="text-center leading-tight">{t['Ata de Reunião']}</span>
                   </Button>
                 </div>
 
@@ -347,7 +347,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => navigate(createPageUrl(`EmpreendimentoTermoAceite?empreendimentoId=${empreendimentoId}`))}
                 >
                   <ClipboardList className="w-5 h-5" />
-                  <span className="text-center leading-tight">Termo de Aceite</span>
+                  <span className="text-center leading-tight">{t['Termo de Aceite']}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -355,7 +355,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => navigate(createPageUrl(`EmpreendimentoRelatorioEntrada?empreendimentoId=${empreendimentoId}`))}
                 >
                   <ClipboardList className="w-5 h-5" />
-                  <span className="text-center leading-tight">Relatório de Entrada</span>
+                  <span className="text-center leading-tight">{t['Relatório de Entrada']}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -363,7 +363,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => navigate(createPageUrl(`EmpreendimentoRelatorioSaida?empreendimentoId=${empreendimentoId}`))}
                 >
                   <ClipboardList className="w-5 h-5" />
-                  <span className="text-center leading-tight">Relatório de Saída</span>
+                  <span className="text-center leading-tight">{t['Relatório de Saída']}</span>
                 </Button>
               </div>
             )}
@@ -376,7 +376,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => setShowProjetos(true)}
                 >
                   <FileText className="w-5 h-5" />
-                  <span className="text-center leading-tight">{t.originalProjects}</span>
+                  <span className="text-center leading-tight">{t['Projetos Originais']}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -384,7 +384,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => setShowManuais(true)}
                 >
                   <BookOpen className="w-5 h-5" />
-                  <span className="text-center leading-tight">{t.generalManuals}</span>
+                  <span className="text-center leading-tight">{t['Manuais Gerais']}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -392,7 +392,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => setShowGaleria(true)}
                 >
                   <Image className="w-5 h-5" />
-                  <span className="text-center leading-tight">{t.photoGallery}</span>
+                  <span className="text-center leading-tight">{t['Galeria de Fotos']}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -400,7 +400,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => setShowParticularidades(true)}
                 >
                   <AlertCircle className="w-5 h-5" />
-                  <span className="text-center leading-tight">{t.particularities}</span>
+                  <span className="text-center leading-tight">{t['Particularidades']}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -408,7 +408,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => navigate(createPageUrl(`EmpreendimentoDiariosObra?empreendimentoId=${empreendimentoId}`))}
                 >
                   <ClipboardCheck className="w-5 h-5" />
-                  <span className="text-center leading-tight">{t.dailyReport}</span>
+                  <span className="text-center leading-tight">{t['Diários de Obra']}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -416,7 +416,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => navigate(createPageUrl(`EmpreendimentoListaDocumentos?empreendimentoId=${empreendimentoId}`))}
                 >
                   <FileText className="w-5 h-5" />
-                  <span className="text-center leading-tight">{t.rdo}</span>
+                  <span className="text-center leading-tight">{t['Lista de Documentos']}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -424,7 +424,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => navigate(createPageUrl(`EmpreendimentoListaDocumentosReport?empreendimentoId=${empreendimentoId}`))}
                 >
                   <ClipboardList className="w-5 h-5" />
-                  <span className="text-center leading-tight">{t.documentList}</span>
+                  <span className="text-center leading-tight">{t['Relatório de Documentos']}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -432,7 +432,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => navigate(createPageUrl(`EmpreendimentoAmostras?empreendimentoId=${empreendimentoId}`))}
                 >
                   <Beaker className="w-5 h-5" />
-                  <span className="text-center leading-tight">Aprovação de Amostras</span>
+                  <span className="text-center leading-tight">{t['Aprovação de Amostras']}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -440,7 +440,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => navigate(createPageUrl(`EmpreendimentoVistoriasTerminalidade?empreendimentoId=${empreendimentoId}`))}
                 >
                   <ClipboardList className="w-5 h-5" />
-                  <span className="text-center leading-tight">Vistoria de Terminalidade</span>
+                  <span className="text-center leading-tight">{t['Vistoria de Terminalidade']}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -448,7 +448,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => navigate(createPageUrl(`EmpreendimentoPrimeirosServicos?empreendimentoId=${empreendimentoId}`))}
                 >
                   <ClipboardPlus className="w-5 h-5" />
-                  <span className="text-center leading-tight">{t.firstServicesReport}</span>
+                  <span className="text-center leading-tight">{t['Relatório de Primeiros Serviços']}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -456,7 +456,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => navigate(createPageUrl(`EmpreendimentoRelatoriosSemanais?empreendimentoId=${empreendimentoId}`))}
                 >
                   <CalendarClock className="w-5 h-5" />
-                  <span className="text-center leading-tight">{t.weeklyReport}</span>
+                  <span className="text-center leading-tight">{t['Relatórios Semanais']}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -464,7 +464,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => navigate(createPageUrl(`EmpreendimentoPlanoComissionamento?empreendimentoId=${empreendimentoId}`))}
                 >
                   <ClipboardList className="w-5 h-5" />
-                  <span className="text-center leading-tight">Plano de Comissionamento</span>
+                  <span className="text-center leading-tight">{t['Plano de Comissionamento']}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -472,7 +472,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoHidrantes?empreendimentoId=${empreendimentoId}`))}
                 >
                   <ClipboardList className="w-5 h-5" />
-                  <span className="text-center leading-tight">Inspeção de Hidrantes</span>
+                  <span className="text-center leading-tight">{t['Inspeção de Hidrantes']}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -480,7 +480,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoSprinklers?empreendimentoId=${empreendimentoId}`))}
                 >
                   <ClipboardList className="w-5 h-5" />
-                  <span className="text-center leading-tight">Inspeção de Sprinklers</span>
+                  <span className="text-center leading-tight">{t['Inspeção de Sprinklers']}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -488,7 +488,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoAlarme?empreendimentoId=${empreendimentoId}`))}
                 >
                   <ClipboardList className="w-5 h-5" />
-                  <span className="text-center leading-tight">Inspeção de Alarme</span>
+                  <span className="text-center leading-tight">{t['Inspeção de Alarme']}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -496,7 +496,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoArCondicionado?empreendimentoId=${empreendimentoId}`))}
                 >
                   <ClipboardList className="w-5 h-5" />
-                  <span className="text-center leading-tight">Inspeção de Ar Condicionado</span>
+                  <span className="text-center leading-tight">{t['Inspeção de Ar Condicionado']}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -504,7 +504,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoControleAcesso?empreendimentoId=${empreendimentoId}`))}
                 >
                   <ClipboardList className="w-5 h-5" />
-                  <span className="text-center leading-tight">Inspeção de Controle de Acesso</span>
+                  <span className="text-center leading-tight">{t['Inspeção de Controle de Acesso']}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -512,7 +512,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoCFTV?empreendimentoId=${empreendimentoId}`))}
                 >
                   <ClipboardList className="w-5 h-5" />
-                  <span className="text-center leading-tight">Inspeção de CFTV</span>
+                  <span className="text-center leading-tight">{t['Inspeção de CFTV']}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -520,7 +520,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoSDAI?empreendimentoId=${empreendimentoId}`))}
                 >
                   <ClipboardList className="w-5 h-5" />
-                  <span className="text-center leading-tight">Inspeção de Central SDAI</span>
+                  <span className="text-center leading-tight">{t['Inspeção de Central SDAI']}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -528,7 +528,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoEletrica?empreendimentoId=${empreendimentoId}`))}
                 >
                   <ClipboardList className="w-5 h-5" />
-                  <span className="text-center leading-tight">Inspeção Elétrica</span>
+                  <span className="text-center leading-tight">{t['Inspeção Elétrica']}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -536,7 +536,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoHidraulica?empreendimentoId=${empreendimentoId}`))}
                 >
                   <ClipboardList className="w-5 h-5" />
-                  <span className="text-center leading-tight">Inspeção Hidráulica</span>
+                  <span className="text-center leading-tight">{t['Inspeção Hidráulica']}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -544,7 +544,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoGas?empreendimentoId=${empreendimentoId}`))}
                 >
                   <ClipboardList className="w-5 h-5" />
-                  <span className="text-center leading-tight">Inspeção de Gás</span>
+                  <span className="text-center leading-tight">{t['Inspeção de Gás']}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -552,7 +552,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => navigate(createPageUrl(`EmpreendimentoNaoConformidade?empreendimentoId=${empreendimentoId}`))}
                 >
                   <AlertCircle className="w-5 h-5" />
-                  <span className="text-center leading-tight">Não Conformidade</span>
+                  <span className="text-center leading-tight">{t['Não Conformidade']}</span>
                 </Button>
               </div>
             )}
