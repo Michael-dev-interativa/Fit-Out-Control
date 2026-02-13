@@ -3919,7 +3919,9 @@ app.put('/api/usuarios/:id', async (req, res) => {
     const u = requireAdmin(req, res); if (!u) return;
     const id = Number(req.params.id);
     const b = req.body || {};
-    const role = b.role ? (String(b.role).toLowerCase() === 'admin' ? 'admin' : 'cliente') : null;
+    const role = (typeof b.role !== 'undefined' && b.role !== null)
+      ? (String(b.role).toLowerCase() === 'admin' ? 'admin' : (String(b.role).toLowerCase() === 'cliente' ? 'cliente' : 'user'))
+      : null;
     const nome = typeof b.nome !== 'undefined' ? String(b.nome) : null;
     const perfil_cliente = typeof b.perfil_cliente !== 'undefined' ? !!b.perfil_cliente : null;
     const newPwd = typeof b.password !== 'undefined' ? String(b.password) : null;
@@ -3949,6 +3951,7 @@ app.put('/api/usuarios/:id', async (req, res) => {
         if (!up.rows.length) return res.status(404).json({ error: 'not_found' });
         row = up.rows[0];
       } catch (errUp) {
+        // Fallback: tentar atualizar sem tocar a coluna `perfil_cliente` (algumas instalações não têm essa coluna)
         const sql2 = `UPDATE public.usuarios SET
   nome = COALESCE($1, nome),
     role = COALESCE($2, role),
@@ -3959,6 +3962,20 @@ app.put('/api/usuarios/:id', async (req, res) => {
         const up2 = await p.query(sql2, params2);
         if (!up2.rows.length) return res.status(404).json({ error: 'not_found' });
         row = up2.rows[0];
+
+        // Em instalações onde a coluna `perfil_cliente` existe mas o UPDATE original falhou,
+        // tentamos setar `perfil_cliente` separadamente sem tocar no JSON para evitar problemas
+        // com casting JSON. Ignoramos erros aqui (coluna pode não existir).
+        try {
+          if (typeof perfil_cliente !== 'undefined' && perfil_cliente !== null) {
+            await p.query('UPDATE public.usuarios SET perfil_cliente = $1 WHERE id = $2', [perfil_cliente, id]);
+            // Recarregar a linha atualizada
+            const { rows: refreshed } = await p.query('SELECT id, email, nome, role, perfil_cliente, perfil, created_at, updated_at FROM public.usuarios WHERE id = $1', [id]);
+            if (refreshed && refreshed.length) row = refreshed[0];
+          }
+        } catch (e) {
+          // ignore
+        }
       }
       res.json(mapUsuarioRow(row));
     } catch (err) {

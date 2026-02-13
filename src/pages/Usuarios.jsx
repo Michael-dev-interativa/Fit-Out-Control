@@ -231,6 +231,7 @@ export default function Usuarios({ language: initialLanguage }) {
     if (!selectedUser) return;
     setSaving(true);
     try {
+      console.log('Selected role before save:', selectedRole);
       const isCliente = selectedRole === 'cliente';
       const ids = (selectedEmpreendimentos || [])
         .map((x) => (typeof x === 'object' ? x.id : x))
@@ -241,7 +242,9 @@ export default function Usuarios({ language: initialLanguage }) {
       const updateData = {
         perfil_cliente: isCliente,
         role: isCliente ? 'cliente' : (selectedRole === 'admin' ? 'admin' : 'user'),
-        empreendimentos_vinculados: isCliente ? ids : []
+        empreendimentos_vinculados: isCliente ? ids : [],
+        // Enviar também em `perfil` para garantir persistência em bancos sem coluna `perfil_cliente`
+        perfil: isCliente ? { ...(selectedUser?.perfil || {}), empreendimentos_vinculados: ids } : { ...(selectedUser?.perfil || {}), empreendimentos_vinculados: [] }
       };
 
       // Permitir que administradores ajustem o email do usuário
