@@ -100,9 +100,9 @@ export default function Login({ theme = 'light' }) {
       console.log('Login.jsx -> ROLE FINAL (do backend):', role);
       console.log('Login.jsx -> PERFIL_CLIENTE (do backend):', perfilClienteBackend);
       console.log('Login.jsx -> IS_CLIENTE:', isCliente);
-      console.log('Login.jsx -> REDIRECIONANDO PARA:', isCliente ? 'DashboardCliente' : 'Dashboard');
+      console.log('Login.jsx -> REDIRECIONANDO PARA:', isCliente ? 'DashboardCliente' : 'Empreendimentos');
       setTimeout(() => {
-        navigate(createPageUrl(isCliente ? 'DashboardCliente' : 'Dashboard'));
+        navigate(createPageUrl(isCliente ? 'DashboardCliente' : 'Empreendimentos'));
       }, 700);
     } catch (err) {
       setError('Credenciais inválidas');

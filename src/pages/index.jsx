@@ -419,12 +419,12 @@ function PagesContent() {
         <Layout currentPageName={currentPage}>
             <Routes>
 
-                <Route path="/" element={hasToken() ? <Dashboard /> : <Login />} />
+                <Route path="/" element={hasToken() ? <Empreendimentos /> : <Login />} />
                 {/* Garantir variação minúscula com guarda */}
-                <Route path="/dashboard" element={hasToken() ? <Dashboard /> : <Login />} />
+                <Route path="/dashboard" element={hasToken() ? <Empreendimentos /> : <Login />} />
 
 
-                <Route path="/Dashboard" element={hasToken() ? <Dashboard /> : <Login />} />
+                <Route path="/Dashboard" element={hasToken() ? <Empreendimentos /> : <Login />} />
 
                 <Route path="/Empreendimentos" element={hasToken() ? <Empreendimentos /> : <Login />} />
                 <Route path="/empreendimentos" element={hasToken() ? <Empreendimentos /> : <Login />} />
@@ -433,7 +433,7 @@ function PagesContent() {
                 <Route path="/Register" element={<Register />} />
                 <Route path="/register" element={<Register />} />
                 {/* Catch-all: exige login para qualquer rota */}
-                <Route path="*" element={hasToken() ? <Dashboard /> : <Login />} />
+                <Route path="*" element={hasToken() ? <Empreendimentos /> : <Login />} />
 
                 <Route path="/Usuarios" element={<Usuarios />} />
 
