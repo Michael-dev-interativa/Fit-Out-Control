@@ -37,7 +37,14 @@ export default function DocumentoCard({ documento, onUpdate, theme = 'light' }) 
             {documento.numero_documento && (
               <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>#{documento.numero_documento}</p>
             )}
-            <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{format(new Date(documento.created_date), "dd/MM/yyyy")}</p>
+            <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+              {(() => {
+                try {
+                  const d = documento?.created_date ? new Date(documento.created_date) : null;
+                  return d && !Number.isNaN(d.getTime()) ? format(d, "dd/MM/yyyy") : '';
+                } catch (e) { return ''; }
+              })()}
+            </p>
           </div>
         </div>
       </CardContent>
