@@ -213,7 +213,6 @@ export default function Layout({ children }) {
         title: t.planning,
         url: createPageUrl("Planejamento"),
         icon: Calendar,
-        adminOnly: true
       },
       {
         title: t.users,
