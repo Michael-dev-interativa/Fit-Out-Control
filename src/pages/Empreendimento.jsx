@@ -15,213 +15,65 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import {
-  ArrowLeft,
-  Loader2,
-  Building,
-  Layers,
-  FileText,
-  Edit,
   AlertTriangle,
+  ArrowLeft,
+  Building,
   Zap,
+  FileText,
   BookOpen,
   Image,
   AlertCircle,
-  ClipboardCheck, // Added ClipboardCheck icon
-  Beaker, // Added Beaker icon
-  ClipboardList, // ADDED
-  CalendarClock, // Added CalendarClock icon
-  ClipboardPlus // Added new icon
+  ClipboardCheck,
+  ClipboardList,
+  Folder,
+  ChevronRight,
+  Edit,
+  Layers,
+  ClipboardPlus,
+  CalendarClock,
+  Beaker,
+  Loader2
 } from 'lucide-react';
-import { Folder, ChevronRight } from 'lucide-react';
-import UnidadeCard from '../components/empreendimento/UnidadeCard';
-import NovaUnidadeDialog from '../components/empreendimento/NovaUnidadeDialog';
-import GaleriaFotosDialog from '../components/empreendimento/GaleriaFotosDialog';
-import ManuaisGeraisDialog from '../components/empreendimento/ManuaisGeraisDialog';
-import ProjetosOriginaisDialog from '../components/empreendimento/ProjetosOriginaisDialog';
+import UnidadeCard from '@/components/empreendimento/UnidadeCard';
+import { InfoGeral } from '@/components/empreendimento/InfoGeral';
+import { TabelaContatos } from '@/components/empreendimento/TabelaContatos';
+import { TabelaInformacoesTecnicas } from '@/components/empreendimento/TabelaInformacoesTecnicas';
+import NovaUnidadeDialog from '@/components/empreendimento/NovaUnidadeDialog';
+import { GaleriaFotosDialog } from '@/components/empreendimento/GaleriaFotosDialog';
+import { ManuaisGeraisDialog } from '@/components/empreendimento/ManuaisGeraisDialog';
+import { ProjetosOriginaisDialog } from '@/components/empreendimento/ProjetosOriginaisDialog';
+import { ParticularidadesDialog } from '@/components/empreendimento/ParticularidadesDialog';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
-// Import new components
-import InfoGeral from '../components/empreendimento/InfoGeral';
-import TabelaContatos from '../components/empreendimento/TabelaContatos';
-import TabelaInformacoesTecnicas from '../components/empreendimento/TabelaInformacoesTecnicas';
-import ParticularidadesDialog from "../components/empreendimento/ParticularidadesDialog";
-
-const translations = {
-  pt: {
-    backToProjects: "Voltar aos Empreendimentos",
-    projectDetails: "Detalhes do Empreendimento",
-    units: "Unidades",
-    searchUnits: "Buscar unidades...",
-    newUnit: "Nova Unidade",
-    noUnits: "Nenhuma unidade encontrada.",
-    addFirstUnit: "Adicione a primeira unidade para este empreendimento.",
-    noResults: "Nenhum resultado encontrado para sua busca.",
-    loading: "Carregando dados do empreendimento...",
-    projectNotFound: "Empreendimento não encontrado",
-    projectNotFoundMessage: "O empreendimento que você está procurando não existe ou foi removido.",
-    invalidIdErrorTitle: "ID do Empreendimento Inválido",
-    invalidIdErrorMessage: "A página não pôde ser carregada porque o ID do empreendimento está ausente ou é inválido.",
-    registrations: "Registros",
-    pending: "Pendentes",
-    inProgress: "Em Andamento",
-    completed: "Concluídos",
-    quickAccess: "Acesso Rápido",
-    quickActions: "Ações Rápidas",
-    originalProjects: "Projetos Originais",
-    generalManuals: "Manuais Gerais",
-    photoGallery: "Galeria de Fotos",
-    generalInfo: "Informações Gerais",
-    contacts: "Contatos",
-    technicalInfo: "Informações Técnicas",
-    addUnit: 'Adicionar Unidade/Pavimento',
-    viewFloors: 'Visualizar Pavimentos',
-    hideFloors: 'Ocultar Pavimentos',
-    editProject: 'Editar Empreendimento',
-    unitsTitle: 'Pavimentos do Empreendimento',
-    particularities: "Particularidades",
-    dailyReport: "Diário de Obra",
-    rdo: "RDO",
-    documentList: "Lista de Documentos",
-    sampleApproval: "Aprovação de Amostras",
-    terminalityInspection: "Vistoria de Terminalidade", // ADDED
-    weeklyReport: "Relatório Semanal", // Added new translation
-    firstServicesReport: "Relatório de 1º Serviços", // Added new translation
-  },
-  en: {
-    backToProjects: "Back to Projects",
-    projectDetails: "Project Details",
-    units: "Units",
-    searchUnits: "Search units...",
-    newUnit: "New Unit",
-    noUnits: "No floors registered for this project.",
-    addFirstUnit: "Add the first unit for this project.",
-    noResults: "No results found for your search.",
-    loading: "Loading project data...",
-    projectNotFound: "Project not found",
-    projectNotFoundMessage: "The project you are looking for does not exist or has been removed.",
-    invalidIdErrorTitle: "Invalid Project ID",
-    invalidIdErrorMessage: "The page could not be loaded because the project ID is missing or invalid.",
-    registrations: "Registrations",
-    pending: "Pending",
-    inProgress: "In Progress",
-    completed: "Completed",
-    quickAccess: "Quick Access",
-    quickActions: "Quick Actions",
-    originalProjects: "Original Projects",
-    generalManuals: "General Manuals",
-    photoGallery: "Photo Gallery",
-    generalInfo: "General Information",
-    contacts: "Contacts",
-    technicalInfo: "Technical Information",
-    addUnit: 'Add Unit/Floor',
-    viewFloors: 'View Floors',
-    hideFloors: 'Hide Floors',
-    editProject: 'Edit Project',
-    unitsTitle: 'Project Floors',
-    particularities: "Particularities",
-    dailyReport: "Daily Report", // Added new translation
-    rdo: "RDO",
-    documentList: "Document List",
-    sampleApproval: "Sample Approval", // Added new translation
-    terminalityInspection: "Terminality Inspection", // ADDED
-    weeklyReport: "Weekly Report", // Added new translation
-    firstServicesReport: "First Services Report", // Added new translation
-  },
-};
-
-export default function EmpreendimentoPage({ language: initialLanguage, theme: initialTheme }) {
+const EmpreendimentoPage = () => {
+  const { isDark, theme } = useTheme();
+  const { language, t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Validação de ID compatível com banco: aceita inteiros positivos e strings não vazias
-  const isValidId = (id) => {
-    if (id === null || id === undefined) return false;
-    const cleanId = String(id).trim();
-    if (!cleanId || cleanId === '-' || cleanId === 'null' || cleanId === 'undefined' || cleanId === 'NaN') return false;
-    // Aceita IDs numéricos positivos (ex.: "1", "2")
-    if (/^\d+$/.test(cleanId)) {
-      return Number(cleanId) > 0;
-    }
-    // Para IDs não numéricos (UUID/ULID), exige pelo menos 8 caracteres
-    return cleanId.length >= 8;
-  };
-
-  const getEmpreendimentoId = () => {
-    const urlParams = new URLSearchParams(location.search);
-    const id = urlParams.get('empreendimentoId');
-
-    // Log para debug
-    console.log("ID extraído da URL:", id);
-
-    if (!isValidId(id)) {
-      // Redirecionar imediatamente para a lista de empreendimentos
-      setTimeout(() => {
-        navigate(createPageUrl("Empreendimentos"), { replace: true });
-      }, 100);
-      return null;
-    }
-
-    return id;
-  };
-
-  const empreendimentoId = getEmpreendimentoId();
+  const queryParams = new URLSearchParams(location.search);
+  const empreendimentoId = queryParams.get('empreendimentoId');
 
   const [empreendimento, setEmpreendimento] = useState(null);
   const [unidades, setUnidades] = useState([]);
   const [registros, setRegistros] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [editingUnidade, setEditingUnidade] = useState(null);
-  const [language, setLanguage] = useState(initialLanguage || 'pt');
-  const [theme, setTheme] = useState(initialTheme || 'light');
-
-  // Renamed dialog states to align with outline pattern (remove "Dialog" suffix)
   const [showUnidades, setShowUnidades] = useState(false);
   const [showNovaUnidade, setShowNovaUnidade] = useState(false);
   const [showGaleria, setShowGaleria] = useState(false);
   const [showManuais, setShowManuais] = useState(false);
   const [showProjetos, setShowProjetos] = useState(false);
   const [showParticularidades, setShowParticularidades] = useState(false);
-  // Groups for quick actions
-  const [showGroupGerenciamento, setShowGroupGerenciamento] = useState(true);
-  const [showGroupProcessos, setShowGroupProcessos] = useState(true);
+  const [showGroupProcessos, setShowGroupProcessos] = useState(false);
+  const [showGroupGerenciamento, setShowGroupGerenciamento] = useState(false);
 
-  const t = translations[language];
-  const isDark = theme === 'dark';
-
-  // Debug logging com mais detalhes
-  console.log("EmpreendimentoPage - Parâmetros da URL:", {
-    empreendimentoId: empreendimentoId,
-    urlCompleta: location.search,
-    todosParametros: Object.fromEntries(new URLSearchParams(location.search).entries())
-  });
-
-  useEffect(() => {
-    // Theme and language listeners
-    const handleLanguageChange = () => setLanguage(localStorage.getItem('language') || 'pt');
-    const handleThemeChange = () => setTheme(localStorage.getItem('theme') || 'light');
-    window.addEventListener('language-change', handleLanguageChange);
-    window.addEventListener('theme-change', handleThemeChange);
-    handleLanguageChange();
-    handleThemeChange();
-    return () => {
-      window.removeEventListener('language-change', handleLanguageChange);
-      window.removeEventListener('theme-change', handleThemeChange);
-    };
-  }, []);
+  const isValidId = (id) => id && String(id).trim() !== '';
 
   const loadEmpreendimentoData = async () => {
-    // PRIMEIRA VERIFICAÇÃO: Se o ID já foi identificado como inválido, não fazer nada
-    if (!empreendimentoId) {
-      console.error("EmpreendimentoPage - loadEmpreendimentoData chamado com ID inválido:", empreendimentoId);
-      setLoading(false);
-      return; // Não redirecionar aqui pois já foi feito no getEmpreendimentoId
-    }
-
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null); // Reset error state on new load attempt
-      console.log("EmpreendimentoPage - Carregando dados para empreendimento com ID:", empreendimentoId);
-
       // Fetch empreendimento and unidades in parallel
       const [empData, unidadesData] = await Promise.all([
         Empreendimento.get(empreendimentoId),
@@ -270,7 +122,6 @@ export default function EmpreendimentoPage({ language: initialLanguage, theme: i
       } else {
         setRegistros([]);
       }
-
     } catch (error) {
       console.error("EmpreendimentoPage - Erro ao carregar dados iniciais:", error);
       setEmpreendimento(null);
@@ -456,252 +307,255 @@ export default function EmpreendimentoPage({ language: initialLanguage, theme: i
                   </Button>
                 </div>
 
-                <div className="space-y-2 mb-3">
-                  <div
-                    role="button"
-                    onClick={() => setShowGroupProcessos(!showGroupProcessos)}
-                    className={`flex items-center justify-between p-3 rounded cursor-pointer ${isDark ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}
-                  >
-                    <div className="flex items-center">
-                      <Folder className="w-5 h-5 mr-2" />
-                      <span className={`${isDark ? 'text-white' : 'text-gray-700'} font-medium`}>Processos Fit Out</span>
-                    </div>
-                    <ChevronRight className={`w-5 h-5 transform ${showGroupProcessos ? 'rotate-90' : ''} ${isDark ? 'text-gray-200' : 'text-gray-600'}`} />
-                  </div>
 
-                  <div
-                    role="button"
-                    onClick={() => setShowGroupGerenciamento(!showGroupGerenciamento)}
-                    className={`flex items-center justify-between p-3 rounded cursor-pointer ${isDark ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}
-                  >
-                    <div className="flex items-center">
-                      <Folder className="w-5 h-5 mr-2" />
-                      <span className={`${isDark ? 'text-white' : 'text-gray-700'} font-medium`}>Gerenciamento de Obras</span>
-                    </div>
-                    <ChevronRight className={`w-5 h-5 transform ${showGroupGerenciamento ? 'rotate-90' : ''} ${isDark ? 'text-gray-200' : 'text-gray-600'}`} />
-                  </div>
-                </div>
-
-                {showGroupProcessos && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 mb-4">
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => navigate(createPageUrl(`EmpreendimentoTermoAceite?empreendimentoId=${empreendimentoId}`))}
-                    >
-                      <ClipboardList className="w-5 h-5" />
-                      <span className="text-center leading-tight">Termo de Aceite</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => navigate(createPageUrl(`EmpreendimentoRelatorioEntrada?empreendimentoId=${empreendimentoId}`))}
-                    >
-                      <ClipboardList className="w-5 h-5" />
-                      <span className="text-center leading-tight">Relatório de Entrada</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => navigate(createPageUrl(`EmpreendimentoRelatorioSaida?empreendimentoId=${empreendimentoId}`))}
-                    >
-                      <ClipboardList className="w-5 h-5" />
-                      <span className="text-center leading-tight">Relatório de Saída</span>
-                    </Button>
-                  </div>
-                )}
-
-                {showGroupGerenciamento && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 mb-4">
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => setShowProjetos(true)}
-                    >
-                      <FileText className="w-5 h-5" />
-                      <span className="text-center leading-tight">{t.originalProjects}</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => setShowManuais(true)}
-                    >
-                      <BookOpen className="w-5 h-5" />
-                      <span className="text-center leading-tight">{t.generalManuals}</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border_GRAY-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => setShowGaleria(true)}
-                    >
-                      <Image className="w-5 h-5" />
-                      <span className="text-center leading-tight">{t.photoGallery}</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => setShowParticularidades(true)}
-                    >
-                      <AlertCircle className="w-5 h-5" />
-                      <span className="text-center leading-tight">{t.particularities}</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => navigate(createPageUrl(`EmpreendimentoDiariosObra?empreendimentoId=${empreendimentoId}`))}
-                    >
-                      <ClipboardCheck className="w-5 h-5" />
-                      <span className="text-center leading-tight">{t.dailyReport}</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => navigate(createPageUrl(`EmpreendimentoListaDocumentos?empreendimentoId=${empreendimentoId}`))}
-                    >
-                      <FileText className="w-5 h-5" />
-                      <span className="text-center leading-tight">{t.rdo}</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => navigate(createPageUrl(`EmpreendimentoListaDocumentosReport?empreendimentoId=${empreendimentoId}`))}
-                    >
-                      <ClipboardList className="w-5 h-5" />
-                      <span className="text-center leading-tight">{t.documentList}</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => navigate(createPageUrl(`EmpreendimentoAmostras?empreendimentoId=${empreendimentoId}`))}
-                    >
-                      <Beaker className="w-5 h-5" />
-                      <span className="text-center leading-tight">Aprovação de Amostras</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => navigate(createPageUrl(`EmpreendimentoVistoriasTerminalidade?empreendimentoId=${empreendimentoId}`))}
-                    >
-                      <ClipboardList className="w-5 h-5" />
-                      <span className="text-center leading-tight">Vistoria de Terminalidade</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => navigate(createPageUrl(`EmpreendimentoPrimeirosServicos?empreendimentoId=${empreendimentoId}`))}
-                    >
-                      <ClipboardPlus className="w-5 h-5" />
-                      <span className="text-center leading-tight">{t.firstServicesReport}</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => navigate(createPageUrl(`EmpreendimentoRelatoriosSemanais?empreendimentoId=${empreendimentoId}`))}
-                    >
-                      <CalendarClock className="w-5 h-5" />
-                      <span className="text-center leading-tight">{t.weeklyReport}</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => navigate(createPageUrl(`EmpreendimentoPlanoComissionamento?empreendimentoId=${empreendimentoId}`))}
-                    >
-                      <ClipboardList className="w-5 h-5" />
-                      <span className="text-center leading-tight">Plano de Comissionamento</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoHidrantes?empreendimentoId=${empreendimentoId}`))}
-                    >
-                      <ClipboardList className="w-5 h-5" />
-                      <span className="text-center leading-tight">Inspeção de Hidrantes</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoSprinklers?empreendimentoId=${empreendimentoId}`))}
-                    >
-                      <ClipboardList className="w-5 h-5" />
-                      <span className="text-center leading-tight">Inspeção de Sprinklers</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoAlarme?empreendimentoId=${empreendimentoId}`))}
-                    >
-                      <ClipboardList className="w-5 h-5" />
-                      <span className="text-center leading-tight">Inspeção de Alarme</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoArCondicionado?empreendimentoId=${empreendimentoId}`))}
-                    >
-                      <ClipboardList className="w-5 h-5" />
-                      <span className="text-center leading-tight">Inspeção de Ar Condicionado</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoControleAcesso?empreendimentoId=${empreendimentoId}`))}
-                    >
-                      <ClipboardList className="w-5 h-5" />
-                      <span className="text-center leading-tight">Inspeção de Controle de Acesso</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoCFTV?empreendimentoId=${empreendimentoId}`))}
-                    >
-                      <ClipboardList className="w-5 h-5" />
-                      <span className="text-center leading-tight">Inspeção de CFTV</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoSDAI?empreendimentoId=${empreendimentoId}`))}
-                    >
-                      <ClipboardList className="w-5 h-5" />
-                      <span className="text-center leading-tight">Inspeção de Central SDAI</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoEletrica?empreendimentoId=${empreendimentoId}`))}
-                    >
-                      <ClipboardList className="w-5 h-5" />
-                      <span className="text-center leading-tight">Inspeção Elétrica</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoHidraulica?empreendimentoId=${empreendimentoId}`))}
-                    >
-                      <ClipboardList className="w-5 h-5" />
-                      <span className="text-center leading-tight">Inspeção Hidráulica</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoGas?empreendimentoId=${empreendimentoId}`))}
-                    >
-                      <ClipboardList className="w-5 h-5" />
-                      <span className="text-center leading-tight">Inspeção de Gás</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                      onClick={() => navigate(createPageUrl(`EmpreendimentoNaoConformidade?empreendimentoId=${empreendimentoId}`))}
-                    >
-                      <AlertCircle className="w-5 h-5" />
-                      <span className="text-center leading-tight">Não Conformidade</span>
-                    </Button>
-                  </div>
-                )}
 
               </CardContent>
             </Card>
+
+            {/* Pastas (independentes de Ações Rápidas) */}
+            <div className="space-y-2 mb-3">
+              <div
+                role="button"
+                onClick={() => setShowGroupProcessos(!showGroupProcessos)}
+                className={`flex items-center justify-between p-3 rounded cursor-pointer ${isDark ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}
+              >
+                <div className="flex items-center">
+                  <Folder className="w-5 h-5 mr-2" />
+                  <span className={`${isDark ? 'text-white' : 'text-gray-700'} font-medium`}>Processos Fit Out</span>
+                </div>
+                <ChevronRight className={`w-5 h-5 transform ${showGroupProcessos ? 'rotate-90' : ''} ${isDark ? 'text-gray-200' : 'text-gray-600'}`} />
+              </div>
+
+              <div
+                role="button"
+                onClick={() => setShowGroupGerenciamento(!showGroupGerenciamento)}
+                className={`flex items-center justify-between p-3 rounded cursor-pointer ${isDark ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}
+              >
+                <div className="flex items-center">
+                  <Folder className="w-5 h-5 mr-2" />
+                  <span className={`${isDark ? 'text-white' : 'text-gray-700'} font-medium`}>Gerenciamento de Obras</span>
+                </div>
+                <ChevronRight className={`w-5 h-5 transform ${showGroupGerenciamento ? 'rotate-90' : ''} ${isDark ? 'text-gray-200' : 'text-gray-600'}`} />
+              </div>
+            </div>
+
+            {showGroupProcessos && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 mb-4">
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => navigate(createPageUrl(`EmpreendimentoTermoAceite?empreendimentoId=${empreendimentoId}`))}
+                >
+                  <ClipboardList className="w-5 h-5" />
+                  <span className="text-center leading-tight">Termo de Aceite</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => navigate(createPageUrl(`EmpreendimentoRelatorioEntrada?empreendimentoId=${empreendimentoId}`))}
+                >
+                  <ClipboardList className="w-5 h-5" />
+                  <span className="text-center leading-tight">Relatório de Entrada</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => navigate(createPageUrl(`EmpreendimentoRelatorioSaida?empreendimentoId=${empreendimentoId}`))}
+                >
+                  <ClipboardList className="w-5 h-5" />
+                  <span className="text-center leading-tight">Relatório de Saída</span>
+                </Button>
+              </div>
+            )}
+
+            {showGroupGerenciamento && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 mb-4">
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => setShowProjetos(true)}
+                >
+                  <FileText className="w-5 h-5" />
+                  <span className="text-center leading-tight">{t.originalProjects}</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => setShowManuais(true)}
+                >
+                  <BookOpen className="w-5 h-5" />
+                  <span className="text-center leading-tight">{t.generalManuals}</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border_GRAY-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => setShowGaleria(true)}
+                >
+                  <Image className="w-5 h-5" />
+                  <span className="text-center leading-tight">{t.photoGallery}</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => setShowParticularidades(true)}
+                >
+                  <AlertCircle className="w-5 h-5" />
+                  <span className="text-center leading-tight">{t.particularities}</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => navigate(createPageUrl(`EmpreendimentoDiariosObra?empreendimentoId=${empreendimentoId}`))}
+                >
+                  <ClipboardCheck className="w-5 h-5" />
+                  <span className="text-center leading-tight">{t.dailyReport}</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => navigate(createPageUrl(`EmpreendimentoListaDocumentos?empreendimentoId=${empreendimentoId}`))}
+                >
+                  <FileText className="w-5 h-5" />
+                  <span className="text-center leading-tight">{t.rdo}</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => navigate(createPageUrl(`EmpreendimentoListaDocumentosReport?empreendimentoId=${empreendimentoId}`))}
+                >
+                  <ClipboardList className="w-5 h-5" />
+                  <span className="text-center leading-tight">{t.documentList}</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => navigate(createPageUrl(`EmpreendimentoAmostras?empreendimentoId=${empreendimentoId}`))}
+                >
+                  <Beaker className="w-5 h-5" />
+                  <span className="text-center leading-tight">Aprovação de Amostras</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => navigate(createPageUrl(`EmpreendimentoVistoriasTerminalidade?empreendimentoId=${empreendimentoId}`))}
+                >
+                  <ClipboardList className="w-5 h-5" />
+                  <span className="text-center leading-tight">Vistoria de Terminalidade</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => navigate(createPageUrl(`EmpreendimentoPrimeirosServicos?empreendimentoId=${empreendimentoId}`))}
+                >
+                  <ClipboardPlus className="w-5 h-5" />
+                  <span className="text-center leading-tight">{t.firstServicesReport}</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => navigate(createPageUrl(`EmpreendimentoRelatoriosSemanais?empreendimentoId=${empreendimentoId}`))}
+                >
+                  <CalendarClock className="w-5 h-5" />
+                  <span className="text-center leading-tight">{t.weeklyReport}</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => navigate(createPageUrl(`EmpreendimentoPlanoComissionamento?empreendimentoId=${empreendimentoId}`))}
+                >
+                  <ClipboardList className="w-5 h-5" />
+                  <span className="text-center leading-tight">Plano de Comissionamento</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoHidrantes?empreendimentoId=${empreendimentoId}`))}
+                >
+                  <ClipboardList className="w-5 h-5" />
+                  <span className="text-center leading-tight">Inspeção de Hidrantes</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoSprinklers?empreendimentoId=${empreendimentoId}`))}
+                >
+                  <ClipboardList className="w-5 h-5" />
+                  <span className="text-center leading-tight">Inspeção de Sprinklers</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoAlarme?empreendimentoId=${empreendimentoId}`))}
+                >
+                  <ClipboardList className="w-5 h-5" />
+                  <span className="text-center leading-tight">Inspeção de Alarme</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoArCondicionado?empreendimentoId=${empreendimentoId}`))}
+                >
+                  <ClipboardList className="w-5 h-5" />
+                  <span className="text-center leading-tight">Inspeção de Ar Condicionado</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoControleAcesso?empreendimentoId=${empreendimentoId}`))}
+                >
+                  <ClipboardList className="w-5 h-5" />
+                  <span className="text-center leading-tight">Inspeção de Controle de Acesso</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoCFTV?empreendimentoId=${empreendimentoId}`))}
+                >
+                  <ClipboardList className="w-5 h-5" />
+                  <span className="text-center leading-tight">Inspeção de CFTV</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoSDAI?empreendimentoId=${empreendimentoId}`))}
+                >
+                  <ClipboardList className="w-5 h-5" />
+                  <span className="text-center leading-tight">Inspeção de Central SDAI</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoEletrica?empreendimentoId=${empreendimentoId}`))}
+                >
+                  <ClipboardList className="w-5 h-5" />
+                  <span className="text-center leading-tight">Inspeção Elétrica</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoHidraulica?empreendimentoId=${empreendimentoId}`))}
+                >
+                  <ClipboardList className="w-5 h-5" />
+                  <span className="text-center leading-tight">Inspeção Hidráulica</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoGas?empreendimentoId=${empreendimentoId}`))}
+                >
+                  <ClipboardList className="w-5 h-5" />
+                  <span className="text-center leading-tight">Inspeção de Gás</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                  onClick={() => navigate(createPageUrl(`EmpreendimentoNaoConformidade?empreendimentoId=${empreendimentoId}`))}
+                >
+                  <AlertCircle className="w-5 h-5" />
+                  <span className="text-center leading-tight">Não Conformidade</span>
+                </Button>
+              </div>
+            )}
 
             {/* Unidades - Responsivo */}
             <Card className={`${isDark ? 'bg-gray-800' : ''}`}>
