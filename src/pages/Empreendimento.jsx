@@ -35,14 +35,14 @@ import {
   Loader2
 } from 'lucide-react';
 import UnidadeCard from '@/components/empreendimento/UnidadeCard';
-import { InfoGeral } from '@/components/empreendimento/InfoGeral';
-import { TabelaContatos } from '@/components/empreendimento/TabelaContatos';
-import { TabelaInformacoesTecnicas } from '@/components/empreendimento/TabelaInformacoesTecnicas';
+import InfoGeral from '@/components/empreendimento/InfoGeral';
+import TabelaContatos from '@/components/empreendimento/TabelaContatos';
+import TabelaInformacoesTecnicas from '@/components/empreendimento/TabelaInformacoesTecnicas';
 import NovaUnidadeDialog from '@/components/empreendimento/NovaUnidadeDialog';
-import { GaleriaFotosDialog } from '@/components/empreendimento/GaleriaFotosDialog';
-import { ManuaisGeraisDialog } from '@/components/empreendimento/ManuaisGeraisDialog';
-import { ProjetosOriginaisDialog } from '@/components/empreendimento/ProjetosOriginaisDialog';
-import { ParticularidadesDialog } from '@/components/empreendimento/ParticularidadesDialog';
+import GaleriaFotosDialog from '@/components/empreendimento/GaleriaFotosDialog';
+import ManuaisGeraisDialog from '@/components/empreendimento/ManuaisGeraisDialog';
+import ProjetosOriginaisDialog from '@/components/empreendimento/ProjetosOriginaisDialog';
+import ParticularidadesDialog from '@/components/empreendimento/ParticularidadesDialog';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -661,3 +661,5 @@ const EmpreendimentoPage = () => {
     </div>
   );
 }
+
+export default EmpreendimentoPage;
