@@ -562,7 +562,7 @@ const EmpreendimentoPage = () => {
               <CardHeader className="pb-3">
                 <CardTitle className={`flex items-center gap-2 text-lg ${isDark ? 'text-white' : ''}`}>
                   <Building className="w-5 h-5" />
-                  {t.unitsTitle}
+                  {t['Unidade Empreendimento']}
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-2">
