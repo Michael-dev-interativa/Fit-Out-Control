@@ -391,6 +391,71 @@ export default function EmpreendimentoPage({ language: initialLanguage, theme: i
                 </CardTitle>
               </CardHeader>
               <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2 mb-3">
+                  <Button
+                    variant="outline"
+                    className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                    onClick={() => setShowProjetos(true)}
+                  >
+                    <FileText className="w-5 h-5" />
+                    <span className="text-center leading-tight">{t.originalProjects}</span>
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                    onClick={() => setShowManuais(true)}
+                  >
+                    <BookOpen className="w-5 h-5" />
+                    <span className="text-center leading-tight">{t.generalManuals}</span>
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                    onClick={() => setShowGaleria(true)}
+                  >
+                    <Image className="w-5 h-5" />
+                    <span className="text-center leading-tight">{t.photoGallery}</span>
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                    onClick={() => setShowParticularidades(true)}
+                  >
+                    <AlertCircle className="w-5 h-5" />
+                    <span className="text-center leading-tight">{t.particularities}</span>
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                    onClick={() => navigate(createPageUrl(`EmpreendimentoDiariosObra?empreendimentoId=${empreendimentoId}`))}
+                  >
+                    <ClipboardCheck className="w-5 h-5" />
+                    <span className="text-center leading-tight">{t.dailyReport}</span>
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                    onClick={() => navigate(createPageUrl(`EmpreendimentoListaDocumentos?empreendimentoId=${empreendimentoId}`))}
+                  >
+                    <ClipboardList className="w-5 h-5" />
+                    <span className="text-center leading-tight">{t.documentList}</span>
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                    onClick={() => navigate(createPageUrl(`EmpreendimentoAtaReuniao?empreendimentoId=${empreendimentoId}`))}
+                  >
+                    <ClipboardList className="w-5 h-5" />
+                    <span className="text-center leading-tight">Ata de Reunião</span>
+                  </Button>
+                </div>
+
                 <div className="space-y-2 mb-3">
                   <div
                     role="button"
