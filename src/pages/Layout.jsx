@@ -205,11 +205,6 @@ export default function Layout({ children }) {
 
     return [
       {
-        title: t.dashboard,
-        url: createPageUrl("Dashboard"),
-        icon: Home,
-      },
-      {
         title: t.projects,
         url: createPageUrl("Empreendimentos"),
         icon: Building2,
@@ -242,6 +237,20 @@ export default function Layout({ children }) {
   };
 
   const navigationItems = getNavigationItems(user);
+
+  // Redirecionar rota raiz/ Dashboard para Empreendimentos
+  useEffect(() => {
+    try {
+      if (!redirectChecked) return;
+      if (isAuthPage || isReportPage) return;
+      const path = (location.pathname || '').toLowerCase();
+      const dashboardUrl = (createPageUrl('Dashboard') || '').toLowerCase();
+      const empreendimentosUrl = createPageUrl('Empreendimentos');
+      if (path === '/' || path === '' || path === dashboardUrl) {
+        navigate(empreendimentosUrl);
+      }
+    } catch (e) { }
+  }, [redirectChecked, location.pathname, user]);
 
   const loadUser = async () => {
     if (isLoadingUser) {

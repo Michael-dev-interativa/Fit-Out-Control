@@ -1,6 +1,5 @@
 import Layout from "./Layout.jsx";
 
-import Dashboard from "./Dashboard";
 
 import Empreendimentos from "./Empreendimentos";
 
@@ -198,7 +197,7 @@ import Register from "./Register.jsx";
 
 const PAGES = {
 
-    Dashboard: Dashboard,
+    // Dashboard removed: redirects elsewhere
 
     Empreendimentos: Empreendimentos,
 

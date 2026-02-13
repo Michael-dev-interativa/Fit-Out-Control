@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { 
-  Plus, 
-  Search, 
-  Edit, 
+import {
+  Plus,
+  Search,
+  Edit,
   Eye,
   Trash2,
   FileText,
@@ -85,7 +85,7 @@ export default function GerenciarFormularios({ language: initialLanguage = 'pt',
   const [showNovoDialog, setShowNovoDialog] = useState(false);
   const [editingFormulario, setEditingFormulario] = useState(null);
   const [showEditarDialog, setShowEditarDialog] = useState(false);
-  
+
   const navigate = useNavigate();
   const t = translations[initialLanguage];
   const isDark = initialTheme === 'dark';
@@ -97,13 +97,13 @@ export default function GerenciarFormularios({ language: initialLanguage = 'pt',
         setCurrentUser(user);
         if (user.role !== 'admin') {
           // Non-admins are redirected
-          navigate(createPageUrl("Dashboard"));
+          navigate(createPageUrl("Empreendimentos"));
         } else {
           loadFormularios();
         }
       } catch (error) {
         // Not logged in, redirect
-        navigate(createPageUrl("Dashboard"));
+        navigate(createPageUrl("Empreendimentos"));
       }
     };
     checkUser();
@@ -166,8 +166,8 @@ export default function GerenciarFormularios({ language: initialLanguage = 'pt',
           <p className={`${isDark ? 'text-gray-400' : 'text-gray-600'} mt-1`}>{t.subtitle}</p>
         </div>
         <div className="flex gap-2">
-          <Button 
-            onClick={() => navigate(createPageUrl('AtualizarFormularioEmMassa'))} 
+          <Button
+            onClick={() => navigate(createPageUrl('AtualizarFormularioEmMassa'))}
             variant="outline"
             className={isDark ? 'border-gray-600 text-white hover:bg-gray-700' : ''}
           >
