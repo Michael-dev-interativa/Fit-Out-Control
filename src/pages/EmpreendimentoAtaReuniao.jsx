@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
+import { AtaReuniao, Empreendimento as EmpreendimentoEntity, User } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -48,7 +49,7 @@ export default function NovaAtaReuniao() {
 
   useEffect(() => {
     if (empreendimentoId) {
-      base44.entities.Empreendimento.get(empreendimentoId).catch(err => console.error("Erro ao buscar empreendimento:", err));
+      EmpreendimentoEntity.get(empreendimentoId).catch(err => console.error("Erro ao buscar empreendimento:", err));
     }
   }, [empreendimentoId]);
 
@@ -201,11 +202,12 @@ export default function NovaAtaReuniao() {
     e.preventDefault();
     setSaving(true);
     try {
+      const me = await User.me();
       const dataToSubmit = {
         ...formData,
-        responsavel_reuniao: (await base44.auth.me()).email
+        responsavel_reuniao: me?.email || null
       };
-      await base44.entities.AtaReuniao.create(dataToSubmit);
+      await AtaReuniao.create(dataToSubmit);
       toast.success("Ata de reunião criada com sucesso!");
       navigate(createPageUrl(`EmpreendimentoAtasReuniao?empreendimentoId=${empreendimentoId}`));
     } catch (error) {
