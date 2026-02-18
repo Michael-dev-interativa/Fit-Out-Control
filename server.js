@@ -2623,8 +2623,17 @@ app.delete('/api/diarios-obra/:id', async (req, res) => {
       try {
         const other = await p.query('SELECT id FROM public.lista_documentos_report WHERE id = $1', [id]);
         if (other && other.rowCount) {
-          console.log('[DELETE /api/diarios-obra] id found in lista_documentos_report id=', id);
-          return res.status(409).json({ error: 'resource_in_other_table', table: 'lista_documentos_report', message: 'record exists but in a different resource (lista_documentos_report). Frontend may be calling the wrong endpoint.' });
+          console.log('[DELETE /api/diarios-obra] id found in lista_documentos_report id=', id, '— performing delete there to recover');
+          try {
+            const del = await p.query('DELETE FROM public.lista_documentos_report WHERE id = $1', [id]);
+            if (del && del.rowCount) {
+              console.log('[DELETE /api/diarios-obra] deleted id from lista_documentos_report id=', id);
+              return res.json({ ok: true, deletedFrom: 'lista_documentos_report', note: 'deleted because frontend called /diarios-obra but resource lived in lista_documentos_report' });
+            }
+          } catch (delErr) {
+            console.log('[DELETE /api/diarios-obra] error deleting from lista_documentos_report:', delErr && delErr.message ? delErr.message : String(delErr));
+            // fall through to memory fallback / 404 below
+          }
         }
       } catch (chkErr) {
         // ignore check errors and continue to memory fallback
