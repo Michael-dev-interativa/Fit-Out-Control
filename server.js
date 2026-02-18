@@ -26,7 +26,6 @@ const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
-app.use('/api/', apiLimiter);
 
 // CORS: restrict by allowed origins set in env `ALLOWED_ORIGINS` (comma separated)
 const ALLOWED_ORIGINS_ENV = process.env.ALLOWED_ORIGINS;
@@ -65,6 +64,9 @@ app.use((err, req, res, next) => {
 });
 
 app.use(express.json());
+
+// Apply rate limiting after CORS so preflight (OPTIONS) receives the CORS headers
+app.use('/api/', apiLimiter);
 
 
 const LOG_REQUESTS = (process.env.LOG_REQUESTS || '').toLowerCase() === 'true';
