@@ -152,6 +152,33 @@ function normalizeDate(date) {
   }
 }
 
+// Util: formata valor de data/timestamp retornado pelo PG para ISO com horário zero (UTC)
+function formatDateForAPI(val) {
+  if (val === null || val === undefined) return null;
+  try {
+    // Se já for string no formato YYYY-MM-DD
+    if (typeof val === 'string') {
+      const m = String(val).match(/^(\d{4}-\d{2}-\d{2})$/);
+      if (m) return `${m[1]}T00:00:00.000Z`;
+      // se for ISO-like, retorna como está
+      if (/^\d{4}-\d{2}-\d{2}T/.test(val)) return val;
+    }
+    // Se for Date object, construir midnight UTC
+    if (val instanceof Date) {
+      const y = val.getUTCFullYear();
+      const m = String(val.getUTCMonth() + 1).padStart(2, '0');
+      const d = String(val.getUTCDate()).padStart(2, '0');
+      return `${y}-${m}-${d}T00:00:00.000Z`;
+    }
+    // fallback: try to coerce and parse
+    const s = String(val);
+    const m2 = s.match(/^(\d{4}-\d{2}-\d{2})/);
+    return m2 ? `${m2[1]}T00:00:00.000Z` : null;
+  } catch {
+    return null;
+  }
+}
+
 // ====== Auth helpers (JWT HS256 + PBKDF2) ======
 // Read JWT secret from env; do not hardcode defaults here. In production JWT_SECRET must be set.
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -511,8 +538,8 @@ function mapRelatorioRow(row) {
     id_empreendimento: row.id_empreendimento,
     numero_relatorio: row.numero_relatorio,
     nome_arquivo: row.nome_arquivo,
-    data_inicio_semana: row.data_inicio_semana,
-    data_fim_semana: row.data_fim_semana,
+    data_inicio_semana: formatDateForAPI(row.data_inicio_semana),
+    data_fim_semana: formatDateForAPI(row.data_fim_semana),
     fisico_real_total: row.fisico_real_total,
     efetivo: row.efetivo,
     avanco_fisico_acumulado: row.avanco_fisico_acumulado,
@@ -568,8 +595,8 @@ function mapVistoriaRow(row) {
     estrutura_formulario: row.estrutura_formulario,
     nome_vistoria: row.nome_vistoria,
     nome_arquivo: row.nome_arquivo,
-    data_vistoria: row.data_vistoria,
-    data_relatorio: row.data_relatorio,
+    data_vistoria: formatDateForAPI(row.data_vistoria),
+    data_relatorio: formatDateForAPI(row.data_relatorio),
     consultor_responsavel: row.consultor_responsavel,
     participantes: row.participantes,
     texto_os_proposta: row.texto_os_proposta,
@@ -691,10 +718,21 @@ app.post('/api/relatorios-semanais', async (req, res) => {
       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15
     ) RETURNING *`;
     const params = [
-      b.id_empreendimento, b.numero_relatorio, b.nome_arquivo, b.data_inicio_semana, b.data_fim_semana,
-      b.fisico_real_total ?? null, b.efetivo ?? null, b.avanco_fisico_acumulado ?? null, b.avanco_financeiro_acumulado ?? null,
-      b.principais_atividades_semana ?? null, b.atividades_proxima_semana_tabela ?? null, b.caminho_critico ?? null,
-      b.impedimentos ?? null, b.fotos ?? null, b.vistos ?? null,
+      b.id_empreendimento,
+      b.numero_relatorio,
+      b.nome_arquivo,
+      normalizeDate(b.data_inicio_semana) ?? null,
+      normalizeDate(b.data_fim_semana) ?? null,
+      b.fisico_real_total ?? null,
+      b.efetivo ?? null,
+      b.avanco_fisico_acumulado ?? null,
+      b.avanco_financeiro_acumulado ?? null,
+      b.principais_atividades_semana ?? null,
+      b.atividades_proxima_semana_tabela ?? null,
+      b.caminho_critico ?? null,
+      b.impedimentos ?? null,
+      b.fotos ?? null,
+      b.vistos ?? null,
     ];
     const { rows } = await p.query(sql, params);
     res.status(201).json(mapRelatorioRow(rows[0]));
@@ -709,7 +747,7 @@ function mapInspecaoHidrantesRow(row) {
   return {
     id: row.id,
     id_empreendimento: row.id_empreendimento,
-    data_inspecao: row.data_inspecao,
+    data_inspecao: formatDateForAPI(row.data_inspecao),
     titulo_relatorio: row.titulo_relatorio,
     subtitulo_relatorio: row.subtitulo_relatorio,
     cliente: row.cliente,
@@ -882,7 +920,7 @@ function mapInspecaoSprinklersRow(row) {
   return {
     id: row.id,
     id_empreendimento: row.id_empreendimento,
-    data_inspecao: row.data_inspecao,
+    data_inspecao: formatDateForAPI(row.data_inspecao),
     titulo_relatorio: row.titulo_relatorio,
     subtitulo_relatorio: row.subtitulo_relatorio,
     cliente: row.cliente,
@@ -1958,10 +1996,21 @@ app.put('/api/relatorios-semanais/:id', async (req, res) => {
       vistos = COALESCE($15, vistos)
     WHERE id = $16 RETURNING *`;
     const params = [
-      b.id_empreendimento ?? null, b.numero_relatorio ?? null, b.nome_arquivo ?? null, b.data_inicio_semana ?? null, b.data_fim_semana ?? null,
-      b.fisico_real_total ?? null, b.efetivo ?? null, b.avanco_fisico_acumulado ?? null, b.avanco_financeiro_acumulado ?? null,
-      b.principais_atividades_semana ?? null, b.atividades_proxima_semana_tabela ?? null, b.caminho_critico ?? null,
-      b.impedimentos ?? null, b.fotos ?? null, b.vistos ?? null,
+      b.id_empreendimento ?? null,
+      b.numero_relatorio ?? null,
+      b.nome_arquivo ?? null,
+      normalizeDate(b.data_inicio_semana) ?? null,
+      normalizeDate(b.data_fim_semana) ?? null,
+      b.fisico_real_total ?? null,
+      b.efetivo ?? null,
+      b.avanco_fisico_acumulado ?? null,
+      b.avanco_financeiro_acumulado ?? null,
+      b.principais_atividades_semana ?? null,
+      b.atividades_proxima_semana_tabela ?? null,
+      b.caminho_critico ?? null,
+      b.impedimentos ?? null,
+      b.fotos ?? null,
+      b.vistos ?? null,
       id,
     ];
     const { rows } = await p.query(sql, params);
