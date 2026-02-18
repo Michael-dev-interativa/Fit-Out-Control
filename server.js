@@ -20,11 +20,30 @@ console.log('🚀 Iniciando servidor (segurança básica: CORS restrito, helmet,
 app.use(helmet());
 
 // Rate limiting for API endpoints
+const RATE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // limit each IP to 200 requests per windowMs
+  windowMs: RATE_WINDOW_MS,
+  max: process.env.RATE_LIMIT_MAX ? parseInt(process.env.RATE_LIMIT_MAX, 10) : 200,
   standardHeaders: true,
   legacyHeaders: false,
+  // Use authenticated user id as key if available, else use IP
+  keyGenerator: (req /*, res */) => {
+    try {
+      return req.user && req.user.sub ? `user:${req.user.sub}` : req.ip;
+    } catch {
+      return req.ip;
+    }
+  },
+  // Custom handler so we can log and return JSON with Retry-After
+  handler: (req, res /*, next */) => {
+    try {
+      console.warn(`[RATE LIMIT] ip=${req.ip} user=${req.user ? req.user.sub : 'anon'} method=${req.method} url=${req.originalUrl}`);
+    } catch (e) {
+      console.warn('[RATE LIMIT] hit, could not log details');
+    }
+    res.set('Retry-After', Math.ceil(RATE_WINDOW_MS / 1000));
+    return res.status(429).json({ error: 'rate_limited', message: 'Too many requests' });
+  }
 });
 
 // CORS: restrict by allowed origins set in env `ALLOWED_ORIGINS` (comma separated)
