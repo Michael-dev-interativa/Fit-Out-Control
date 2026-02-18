@@ -1,6 +1,8 @@
 import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import { Pool } from "pg";
 import multer from "multer";
 import fs from "fs";
@@ -12,23 +14,36 @@ dotenv.config();
 
 const app = express();
 
-console.log('🚀 Iniciando servidor com CORS configurado - versão 2.1');
+console.log('🚀 Iniciando servidor (segurança básica: CORS restrito, helmet, rate-limit)');
 
-// Configuração CORS ULTRA simplificada
-app.use((req, res, next) => {
-  // Define headers CORS antes de tudo
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+// Security middleware
+app.use(helmet());
 
-  // Responde OPTIONS imediatamente
-  if (req.method === 'OPTIONS') {
-    console.log(`✅ OPTIONS ${req.path}`);
-    return res.status(204).end();
-  }
-
-  next();
+// Rate limiting for API endpoints
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200, // limit each IP to 200 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
 });
+app.use('/api/', apiLimiter);
+
+// CORS: restrict by allowed origins set in env `ALLOWED_ORIGINS` (comma separated)
+const ALLOWED_ORIGINS_ENV = process.env.ALLOWED_ORIGINS;
+const ALLOWED_ORIGINS = ALLOWED_ORIGINS_ENV
+  ? ALLOWED_ORIGINS_ENV.split(',').map(s => s.trim()).filter(Boolean)
+  : (process.env.NODE_ENV === 'production' ? [] : ['http://localhost:5173']);
+app.use(cors({
+  origin: (origin, callback) => {
+    // allow requests with no origin (curl, server-to-server)
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.length === 0) return callback(new Error('CORS not configured'), false);
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'), false);
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+}));
 
 app.use(express.json());
 
@@ -66,7 +81,7 @@ const uploadRoot = path.resolve(process.cwd(), 'uploads');
 try {
   if (!fs.existsSync(uploadRoot)) fs.mkdirSync(uploadRoot, { recursive: true });
 } catch { }
-app.use('/uploads', express.static(uploadRoot));
+// NOTE: don't serve uploads as static files. Use authenticated/validated route below.
 
 // Configuração do multer para uploads em memória (não em disco)
 const storage = multer.memoryStorage();
@@ -119,7 +134,15 @@ function normalizeDate(date) {
 }
 
 // ====== Auth helpers (JWT HS256 + PBKDF2) ======
-const JWT_SECRET = process.env.JWT_SECRET || "dev-secret";
+// Read JWT secret from env; do not hardcode defaults here. In production JWT_SECRET must be set.
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+  console.error('FATAL: JWT_SECRET is not set. Set environment variable JWT_SECRET and restart.');
+  process.exit(1);
+}
+if (!JWT_SECRET) {
+  console.warn('Warning: JWT_SECRET not set — running without a signing secret (development only).');
+}
 function base64url(input) {
   return Buffer.from(input).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
 }
@@ -376,9 +399,17 @@ function requirePool() {
 }
 
 // Upload de arquivo: salva no banco de dados PostgreSQL
+// Security: validate mime types, size enforced by multer limits, sanitize names
 app.post('/api/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'missing_file' });
+
+    // MIME whitelist (adjust as needed)
+    const ALLOWED_MIMES = new Set(['image/jpeg', 'image/png', 'application/pdf']);
+    if (!ALLOWED_MIMES.has(req.file.mimetype)) return res.status(400).json({ error: 'invalid_mime_type' });
+
+    // sanitize original name
+    const originalName = String(req.file.originalname || '').replace(/\"/g, '').slice(0, 255);
 
     const p = requirePool();
 
@@ -398,7 +429,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     const { rows } = await p.query(
       `INSERT INTO arquivos (nome_original, mime_type, tamanho, dados) 
        VALUES ($1, $2, $3, $4) RETURNING id`,
-      [req.file.originalname, req.file.mimetype, req.file.size, req.file.buffer]
+      [originalName, req.file.mimetype, req.file.size, req.file.buffer]
     );
 
     const fileId = rows[0].id;
@@ -433,8 +464,9 @@ app.get('/api/files/:id', async (req, res) => {
     }
 
     const file = rows[0];
-    res.setHeader('Content-Type', file.mime_type);
-    res.setHeader('Content-Disposition', `inline; filename="${file.nome_original}"`);
+    const safeName = String(path.basename(file.nome_original || 'file')).replace(/\"/g, '').slice(0, 255);
+    res.setHeader('Content-Type', file.mime_type || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `inline; filename="${safeName}"`);
     res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache de 1 ano
     res.send(file.dados);
   } catch (err) {
