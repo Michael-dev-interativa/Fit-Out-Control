@@ -2614,17 +2614,29 @@ app.delete('/api/diarios-obra/:id', async (req, res) => {
   try {
     const p = requirePool();
     const id = Number(req.params.id);
+    console.log('[DELETE /api/diarios-obra] incoming id=', id, 'auth_present=', !!req.headers.authorization);
     const { rowCount } = await p.query('DELETE FROM public.diarios_obra WHERE id = $1', [id]);
-    if (!rowCount) return res.status(404).json({ error: 'not_found' });
+    console.log('[DELETE /api/diarios-obra] db rowCount=', rowCount, 'id=', id);
+    if (!rowCount) {
+      console.log('[DELETE /api/diarios-obra] not found in DB id=', id);
+      return res.status(404).json({ error: 'not_found' });
+    }
+    console.log('[DELETE /api/diarios-obra] deleted id=', id);
     res.json({ ok: true });
   } catch (err) {
+    console.error('[DELETE /api/diarios-obra] error during delete:', err && err.message ? err.message : String(err));
     if (!shouldReturnEmptyOnDbError(err)) {
       res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
       return;
     }
+    console.log('[DELETE /api/diarios-obra] falling back to in-memory deletion due to DB error');
     const id = Number(req.params.id);
     const idx = (memory.diarios_obra || []).findIndex(d => d.id === id);
-    if (idx === -1) return res.status(404).json({ error: 'not_found' });
+    console.log('[DELETE /api/diarios-obra] in-memory idx=', idx, 'id=', id);
+    if (idx === -1) {
+      console.log('[DELETE /api/diarios-obra] not found in memory id=', id);
+      return res.status(404).json({ error: 'not_found' });
+    }
     memory.diarios_obra.splice(idx, 1);
     res.json({ ok: true });
   }
