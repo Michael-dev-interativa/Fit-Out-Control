@@ -179,6 +179,28 @@ function formatDateForAPI(val) {
   }
 }
 
+// Util: retorna string YYYY-MM-DD (útil para inputs type=date)
+function dateOnlyForInput(val) {
+  if (val === null || val === undefined) return null;
+  try {
+    if (typeof val === 'string') {
+      const m = String(val).match(/^(\d{4}-\d{2}-\d{2})/);
+      if (m) return m[1];
+    }
+    if (val instanceof Date) {
+      const y = val.getUTCFullYear();
+      const m = String(val.getUTCMonth() + 1).padStart(2, '0');
+      const d = String(val.getUTCDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    const s = String(val);
+    const m2 = s.match(/^(\d{4}-\d{2}-\d{2})/);
+    return m2 ? m2[1] : null;
+  } catch {
+    return null;
+  }
+}
+
 // ====== Auth helpers (JWT HS256 + PBKDF2) ======
 // Read JWT secret from env; do not hardcode defaults here. In production JWT_SECRET must be set.
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -2615,7 +2637,7 @@ function mapRDO(row) {
     id_empreendimento: row.id_empreendimento,
     tipo_documento: row.tipo_documento,
     numero_relatorio: row.numero_relatorio,
-    data_relatorio: row.data_relatorio,
+    data_relatorio: dateOnlyForInput(row.data_relatorio),
     dia_semana: row.dia_semana,
     obra_nome: row.obra_nome,
     obra_local: row.obra_local,
