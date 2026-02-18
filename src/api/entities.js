@@ -1,5 +1,6 @@
 // Cliente local: wrappers que chamam nosso backend Express
 import { apiUrl } from './config';
+import { base44 } from './base44Client';
 function getAuthToken() {
   try { return localStorage.getItem('authToken') || localStorage.getItem('token') || null; } catch { return null; }
 }
@@ -127,6 +128,9 @@ export const DiarioDeObra = makeEntity('diarios-obra');
 export const RDO = makeEntity('rdos');
 export const ListaDocumentosReport = makeEntity('lista-documentos-report');
 export const AtaReuniao = makeEntity('ata-reuniao');
+// Expor também no objeto runtime `base44.entities` para compatibilidade com código que
+// acessa `base44.entities.<Entity>` (ex: VisualizarAtaReuniao.jsx usa base44.entities.AtaReuniao)
+try { base44.entities = base44.entities || {}; base44.entities.AtaReuniao = AtaReuniao; } catch (e) { /* ignore in static build */ }
 
 // Auth local mínima
 export const User = {
