@@ -80,6 +80,7 @@ import EditarAprovacaoAmostra from "./EditarAprovacaoAmostra";
 import VisualizarAprovacaoAmostra from "./VisualizarAprovacaoAmostra";
 
 import EmpreendimentoVistoriasTerminalidade from "./EmpreendimentoVistoriasTerminalidade";
+import EmpreendimentoAtaReuniao from "./EmpreendimentoAtaReuniao";
 
 import NovaVistoriaTerminalidade from "./NovaVistoriaTerminalidade";
 
@@ -278,6 +279,8 @@ const PAGES = {
     VisualizarAprovacaoAmostra: VisualizarAprovacaoAmostra,
 
     EmpreendimentoVistoriasTerminalidade: EmpreendimentoVistoriasTerminalidade,
+
+    EmpreendimentoAtaReuniao: EmpreendimentoAtaReuniao,
 
     NovaVistoriaTerminalidade: NovaVistoriaTerminalidade,
 
@@ -512,6 +515,9 @@ function PagesContent() {
                 <Route path="/VisualizarAprovacaoAmostra" element={<VisualizarAprovacaoAmostra />} />
 
                 <Route path="/EmpreendimentoVistoriasTerminalidade" element={<EmpreendimentoVistoriasTerminalidade />} />
+
+                <Route path="/EmpreendimentoAtaReuniao" element={<EmpreendimentoAtaReuniao />} />
+                <Route path="/empreendimentoatareuniao" element={<EmpreendimentoAtaReuniao />} />
 
                 <Route path="/NovaVistoriaTerminalidade" element={<NovaVistoriaTerminalidade />} />
 

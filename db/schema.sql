@@ -1001,3 +1001,34 @@ CREATE INDEX IF NOT EXISTS idx_lista_documentos_report_numero
 CREATE INDEX IF NOT EXISTS idx_lista_documentos_report_status
   ON public.lista_documentos_report (status_documento);
 
+-- Tabela: atas_reuniao (atas de reunião, separada de lista_documentos_report)
+CREATE TABLE IF NOT EXISTS public.atas_reuniao (
+  id BIGSERIAL PRIMARY KEY,
+  id_empreendimento BIGINT NOT NULL REFERENCES public.empreendimentos(id) ON DELETE CASCADE,
+  titulo_reuniao TEXT,
+  subtitulo_reuniao TEXT,
+  data_reuniao DATE,
+  participantes JSONB,
+  informacoes_obra JSONB,
+  itens_discutidos JSONB,
+  assinaturas JSONB,
+  nome_arquivo TEXT,
+  texto_rodape_capa TEXT,
+  edificio TEXT,
+  locatario TEXT,
+  titulo_capa TEXT,
+  subtitulo_capa TEXT,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+DROP TRIGGER IF EXISTS atas_reuniao_set_updated_at ON public.atas_reuniao;
+CREATE TRIGGER atas_reuniao_set_updated_at
+BEFORE UPDATE ON public.atas_reuniao
+FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE INDEX IF NOT EXISTS idx_atas_reuniao_empreendimento
+  ON public.atas_reuniao (id_empreendimento);
+CREATE INDEX IF NOT EXISTS idx_atas_reuniao_data
+  ON public.atas_reuniao (data_reuniao);
+

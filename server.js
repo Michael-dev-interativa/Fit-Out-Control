@@ -3028,6 +3028,164 @@ app.delete('/api/lista-documentos-report/:id', async (req, res) => {
   }
 });
 
+// ---- Ata de Reunião (tabela própria: public.atas_reuniao) ----
+function mapAtaReuniao(row) {
+  return {
+    id: row.id,
+    id_empreendimento: row.id_empreendimento,
+    titulo_reuniao: row.titulo_reuniao,
+    subtitulo_reuniao: row.subtitulo_reuniao,
+    data_reuniao: row.data_reuniao,
+    participantes: row.participantes || [],
+    informacoes_obra: row.informacoes_obra || [],
+    itens_discutidos: row.itens_discutidos || [],
+    assinaturas: row.assinaturas || [],
+    nome_arquivo: row.nome_arquivo || null,
+    texto_rodape_capa: row.texto_rodape_capa || null,
+    edificio: row.edificio || null,
+    locatario: row.locatario || null,
+    titulo_capa: row.titulo_capa || null,
+    subtitulo_capa: row.subtitulo_capa || null,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+app.get('/api/ata-reuniao', async (req, res) => {
+  try {
+    const p = requirePool();
+    const { id_empreendimento, order } = req.query;
+    const where = [];
+    const params = [];
+    if (id_empreendimento) { where.push('id_empreendimento = $' + (params.length + 1)); params.push(Number(id_empreendimento)); }
+    const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+    const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
+    const { rows } = await p.query(`SELECT * FROM public.atas_reuniao ${whereClause} ${orderClause} `, params);
+    res.json(rows.map(mapAtaReuniao));
+  } catch (err) {
+    if (shouldReturnEmptyOnDbError(err)) {
+      return res.json([]);
+    }
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.get('/api/ata-reuniao/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const { rows } = await p.query('SELECT * FROM public.atas_reuniao WHERE id = $1', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapAtaReuniao(rows[0]));
+  } catch (err) {
+    if (shouldReturnEmptyOnDbError(err)) {
+      return res.status(404).json({ error: 'not_found' });
+    }
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.post('/api/ata-reuniao', async (req, res) => {
+  try {
+    const p = requirePool();
+    const b = req.body || {};
+    const sql = `INSERT INTO public.atas_reuniao(
+      id_empreendimento, titulo_reuniao, subtitulo_reuniao, data_reuniao,
+      participantes, informacoes_obra, itens_discutidos, assinaturas,
+      nome_arquivo, texto_rodape_capa, edificio, locatario, titulo_capa, subtitulo_capa
+    ) VALUES(
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14
+    ) RETURNING * `;
+    const params = [
+      b.id_empreendimento ?? null,
+      b.titulo_reuniao ?? null,
+      b.subtitulo_reuniao ?? null,
+      normalizeDate(b.data_reuniao) ?? null,
+      toJson(b.participantes),
+      toJson(b.informacoes_obra),
+      toJson(b.itens_discutidos),
+      toJson(b.assinaturas),
+      b.nome_arquivo ?? null,
+      b.texto_rodape_capa ?? null,
+      b.edificio ?? null,
+      b.locatario ?? null,
+      b.titulo_capa ?? null,
+      b.subtitulo_capa ?? null,
+    ];
+    const { rows } = await p.query(sql, params);
+    res.status(201).json(mapAtaReuniao(rows[0]));
+  } catch (err) {
+    if (shouldReturnEmptyOnDbError(err)) {
+      return res.status(500).json({ error: 'database_unavailable' });
+    }
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.put('/api/ata-reuniao/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const b = req.body || {};
+    const sql = `UPDATE public.atas_reuniao SET
+      id_empreendimento = COALESCE($1, id_empreendimento),
+      titulo_reuniao = COALESCE($2, titulo_reuniao),
+      subtitulo_reuniao = COALESCE($3, subtitulo_reuniao),
+      data_reuniao = COALESCE($4, data_reuniao),
+      participantes = COALESCE($5, participantes),
+      informacoes_obra = COALESCE($6, informacoes_obra),
+      itens_discutidos = COALESCE($7, itens_discutidos),
+      assinaturas = COALESCE($8, assinaturas),
+      nome_arquivo = COALESCE($9, nome_arquivo),
+      texto_rodape_capa = COALESCE($10, texto_rodape_capa),
+      edificio = COALESCE($11, edificio),
+      locatario = COALESCE($12, locatario),
+      titulo_capa = COALESCE($13, titulo_capa),
+      subtitulo_capa = COALESCE($14, subtitulo_capa)
+    WHERE id = $15 RETURNING * `;
+    const params = [
+      b.id_empreendimento ?? null,
+      b.titulo_reuniao ?? null,
+      b.subtitulo_reuniao ?? null,
+      normalizeDate(b.data_reuniao) ?? null,
+      toJson(b.participantes),
+      toJson(b.informacoes_obra),
+      toJson(b.itens_discutidos),
+      toJson(b.assinaturas),
+      b.nome_arquivo ?? null,
+      b.texto_rodape_capa ?? null,
+      b.edificio ?? null,
+      b.locatario ?? null,
+      b.titulo_capa ?? null,
+      b.subtitulo_capa ?? null,
+      id,
+    ];
+    const { rows } = await p.query(sql, params);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapAtaReuniao(rows[0]));
+  } catch (err) {
+    if (shouldReturnEmptyOnDbError(err)) {
+      return res.status(404).json({ error: 'not_found' });
+    }
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.delete('/api/ata-reuniao/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const { rowCount } = await p.query('DELETE FROM public.atas_reuniao WHERE id = $1', [id]);
+    if (!rowCount) return res.status(404).json({ error: 'not_found' });
+    res.json({ ok: true });
+  } catch (err) {
+    if (shouldReturnEmptyOnDbError(err)) {
+      return res.status(404).json({ error: 'not_found' });
+    }
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
 // ---- Vistorias Terminalidade ----
 function mapTerminalidade(row) {
   return {
