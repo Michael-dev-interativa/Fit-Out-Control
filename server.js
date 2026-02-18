@@ -2618,7 +2618,14 @@ app.delete('/api/diarios-obra/:id', async (req, res) => {
     const { rowCount } = await p.query('DELETE FROM public.diarios_obra WHERE id = $1', [id]);
     console.log('[DELETE /api/diarios-obra] db rowCount=', rowCount, 'id=', id);
     if (!rowCount) {
-      console.log('[DELETE /api/diarios-obra] not found in DB id=', id);
+      console.log('[DELETE /api/diarios-obra] not found in DB id=', id, '— attempting in-memory fallback');
+      // Try to remove from in-memory store if present (fallback for dev)
+      const idx = (memory.diarios_obra || []).findIndex(d => Number(d.id) === id);
+      if (idx !== -1) {
+        memory.diarios_obra.splice(idx, 1);
+        console.log('[DELETE /api/diarios-obra] removed from memory id=', id);
+        return res.json({ ok: true, fallback: 'memory' });
+      }
       return res.status(404).json({ error: 'not_found' });
     }
     console.log('[DELETE /api/diarios-obra] deleted id=', id);
