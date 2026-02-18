@@ -55,7 +55,7 @@ export default function EmpreendimentoAtasReuniao() {
               </div>
               <div className="flex gap-2">
                 <Button onClick={() => navigate(createPageUrl(`VisualizarAtaReuniao?ataId=${a.id}`))}>Visualizar</Button>
-                <Button onClick={() => navigate(createPageUrl(`EditarAtaReuniao?ataId=${a.id}`))} variant="outline">Editar</Button>
+                <Button onClick={() => navigate(createPageUrl(`EmpreendimentoAtaReuniao?ataId=${a.id}&empreendimentoId=${empreendimentoId}`))} variant="outline">Editar</Button>
               </div>
             </div>
           ))}

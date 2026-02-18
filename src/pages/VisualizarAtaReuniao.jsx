@@ -199,7 +199,7 @@ const ReportContent = ({ ata, empreendimento, navigate }) => {
           <Button onClick={() => navigate(createPageUrl(`EmpreendimentoAtasReuniao?empreendimentoId=${ata.id_empreendimento}`))} variant="outline"><ArrowLeft className="w-4 h-4 mr-2" />Voltar</Button>
           <h1 className="text-xl font-semibold text-gray-800">Visualizar Ata de Reunião</h1>
           <div className="flex gap-2">
-            <Button onClick={() => navigate(createPageUrl(`EditarAtaReuniao?ataId=${ata.id}`))} variant="outline" className="bg-blue-50"><Edit2 className="w-4 h-4 mr-2" />Editar</Button>
+            <Button onClick={() => navigate(createPageUrl(`EmpreendimentoAtaReuniao?ataId=${ata.id}&empreendimentoId=${ata.id_empreendimento}`))} variant="outline" className="bg-blue-50"><Edit2 className="w-4 h-4 mr-2" />Editar</Button>
             <Button onClick={handlePrint} className="bg-green-600 hover:bg-green-700 text-white"><Printer className="w-4 h-4 mr-2" />Gerar PDF</Button>
           </div>
         </div>

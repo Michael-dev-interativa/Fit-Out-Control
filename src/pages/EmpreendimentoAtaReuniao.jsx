@@ -20,7 +20,11 @@ const statusOptions = ["Pendente", "Em Andamento", "Concluído", "Cancelado"];
 export default function NovaAtaReuniao() {
   const navigate = useNavigate();
   const location = useLocation();
-  const empreendimentoId = new URLSearchParams(location.search).get('empreendimentoId');
+  const query = new URLSearchParams(location.search);
+  const empreendimentoId = query.get('empreendimentoId');
+  const ataId = query.get('ataId');
+
+  const [editing, setEditing] = useState(false);
 
   const [formData, setFormData] = useState({
     id_empreendimento: empreendimentoId,
@@ -50,6 +54,23 @@ export default function NovaAtaReuniao() {
   useEffect(() => {
     if (empreendimentoId) {
       EmpreendimentoEntity.get(empreendimentoId).catch(err => console.error("Erro ao buscar empreendimento:", err));
+    }
+    if (ataId) {
+      (async () => {
+        try {
+          const existing = await AtaReuniao.get(ataId);
+          if (existing) {
+            const normalized = { ...existing };
+            if (normalized.data_reuniao) {
+              try { normalized.data_reuniao = new Date(normalized.data_reuniao).toISOString().split('T')[0]; } catch (e) { }
+            }
+            setFormData(f => ({ ...f, ...normalized }));
+            setEditing(true);
+          }
+        } catch (e) {
+          console.error('Erro ao carregar ata para edição', e);
+        }
+      })();
     }
   }, [empreendimentoId]);
 
@@ -207,8 +228,13 @@ export default function NovaAtaReuniao() {
         ...formData,
         responsavel_reuniao: me?.email || null
       };
-      await AtaReuniao.create(dataToSubmit);
-      toast.success("Ata de reunião criada com sucesso!");
+      if (editing && ataId) {
+        await AtaReuniao.update(ataId, dataToSubmit);
+        toast.success("Ata atualizada com sucesso!");
+      } else {
+        await AtaReuniao.create(dataToSubmit);
+        toast.success("Ata de reunião criada com sucesso!");
+      }
       navigate(createPageUrl(`EmpreendimentoAtasReuniao?empreendimentoId=${empreendimentoId}`));
     } catch (error) {
       console.error("Erro ao criar ata:", error);
