@@ -2618,7 +2618,19 @@ app.delete('/api/diarios-obra/:id', async (req, res) => {
     const { rowCount } = await p.query('DELETE FROM public.diarios_obra WHERE id = $1', [id]);
     console.log('[DELETE /api/diarios-obra] db rowCount=', rowCount, 'id=', id);
     if (!rowCount) {
-      console.log('[DELETE /api/diarios-obra] not found in DB id=', id, '— attempting in-memory fallback');
+      console.log('[DELETE /api/diarios-obra] not found in DB id=', id, '— checking other tables and memory fallback');
+      // If the ID exists in another table (common deploy mismatch), return a helpful message
+      try {
+        const other = await p.query('SELECT id FROM public.lista_documentos_report WHERE id = $1', [id]);
+        if (other && other.rowCount) {
+          console.log('[DELETE /api/diarios-obra] id found in lista_documentos_report id=', id);
+          return res.status(409).json({ error: 'resource_in_other_table', table: 'lista_documentos_report', message: 'record exists but in a different resource (lista_documentos_report). Frontend may be calling the wrong endpoint.' });
+        }
+      } catch (chkErr) {
+        // ignore check errors and continue to memory fallback
+        console.log('[DELETE /api/diarios-obra] error checking lista_documentos_report:', chkErr && chkErr.message ? chkErr.message : String(chkErr));
+      }
+
       // Try to remove from in-memory store if present (fallback for dev)
       const idx = (memory.diarios_obra || []).findIndex(d => Number(d.id) === id);
       if (idx !== -1) {
