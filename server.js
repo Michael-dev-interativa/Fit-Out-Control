@@ -33,6 +33,14 @@ const ALLOWED_ORIGINS_ENV = process.env.ALLOWED_ORIGINS;
 const ALLOWED_ORIGINS = ALLOWED_ORIGINS_ENV
   ? ALLOWED_ORIGINS_ENV.split(',').map(s => s.trim()).filter(Boolean)
   : (process.env.NODE_ENV === 'production' ? [] : ['http://localhost:5173']);
+
+// In production require ALLOWED_ORIGINS to be explicitly set
+if (process.env.NODE_ENV === 'production' && (!ALLOWED_ORIGINS_ENV || ALLOWED_ORIGINS.length === 0)) {
+  console.error('FATAL: ALLOWED_ORIGINS is not set. Set environment variable ALLOWED_ORIGINS with allowed frontend origins and restart.');
+  process.exit(1);
+}
+
+const ALLOW_CREDENTIALS = (process.env.ALLOW_CREDENTIALS || '').toLowerCase() === 'true';
 app.use(cors({
   origin: (origin, callback) => {
     // allow requests with no origin (curl, server-to-server)
@@ -42,8 +50,19 @@ app.use(cors({
     return callback(new Error('Not allowed by CORS'), false);
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  credentials: ALLOW_CREDENTIALS,
+  optionsSuccessStatus: 204
 }));
+
+// Global error handler for CORS rejection to return explicit 403
+app.use((err, req, res, next) => {
+  if (!err) return next();
+  if (err.message && (err.message.includes('CORS') || err.message.includes('Not allowed by CORS') || err.message.includes('CORS not configured'))) {
+    return res.status(403).json({ error: 'cors_not_allowed', message: err.message });
+  }
+  next(err);
+});
 
 app.use(express.json());
 
