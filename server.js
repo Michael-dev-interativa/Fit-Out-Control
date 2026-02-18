@@ -4422,7 +4422,13 @@ app.get('/api/disciplinas-gerais', (_req, res) => {
 
 // ---- Iniciar servidor ----
 // IMPORTANTE: app.listen() deve estar DEPOIS de todas as definições de rotas
-const PORT = Number(process.env.PORT ?? 3000);
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT} `);
-});
+const DEFAULT_PORT = 5001;
+const PORT = Number(process.env.PORT ?? DEFAULT_PORT);
+try {
+  app.listen(PORT, () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
+  });
+} catch (err) {
+  console.error('Erro ao iniciar servidor:', err && err.message ? err.message : String(err));
+  process.exit(1);
+}
