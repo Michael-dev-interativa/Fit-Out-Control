@@ -435,8 +435,7 @@ function PagesContent() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/Register" element={<Register />} />
                 <Route path="/register" element={<Register />} />
-                {/* Catch-all: exige login para qualquer rota */}
-                <Route path="*" element={hasToken() ? <Empreendimentos /> : <Login />} />
+                {/* Catch-all: exige login para qualquer rota -- movido para o final das rotas */}
 
                 <Route path="/Usuarios" element={<Usuarios />} />
 
@@ -628,7 +627,8 @@ function PagesContent() {
                 <Route path="/EmpreendimentoListaDocumentosReport" element={<EmpreendimentoListaDocumentosReport />} />
 
                 <Route path="/EditarListaDocumentosReport" element={<EditarListaDocumentosReport />} />
-
+                {/* Catch-all: exige login para qualquer rota */}
+                <Route path="*" element={hasToken() ? <Empreendimentos /> : <Login />} />
             </Routes>
         </Layout>
     );
