@@ -85,7 +85,33 @@ app.use((err, req, res, next) => {
 app.use(express.json());
 
 // Apply rate limiting after CORS so preflight (OPTIONS) receives the CORS headers
-app.use('/api/', apiLimiter);
+// Create an auth-specific limiter with a higher default limit so public registration/login
+// endpoints are not easily rate-limited by the global API limiter.
+const authLimiter = rateLimit({
+  windowMs: RATE_WINDOW_MS,
+  max: process.env.RATE_LIMIT_AUTH_MAX ? parseInt(process.env.RATE_LIMIT_AUTH_MAX, 10) : 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: apiLimiter.options.keyGenerator,
+  handler: (req, res) => {
+    try {
+      console.warn(`[RATE LIMIT][AUTH] ip=${req.ip} user=${req.user ? req.user.sub : 'anon'} method=${req.method} url=${req.originalUrl}`);
+    } catch (e) {
+      console.warn('[RATE LIMIT][AUTH] hit, could not log details');
+    }
+    res.set('Retry-After', Math.ceil(RATE_WINDOW_MS / 1000));
+    return res.status(429).json({ error: 'rate_limited', message: 'Too many requests (auth)' });
+  }
+});
+
+// Mount auth limiter specifically on auth routes
+app.use('/api/auth', authLimiter);
+
+// Global API limiter — but skip auth routes (they use authLimiter)
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/auth')) return next();
+  return apiLimiter(req, res, next);
+});
 
 
 const LOG_REQUESTS = (process.env.LOG_REQUESTS || '').toLowerCase() === 'true';

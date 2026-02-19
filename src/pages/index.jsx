@@ -1,100 +1,53 @@
 import Layout from "./Layout.jsx";
-
-
 import Empreendimentos from "./Empreendimentos";
-
 import Usuarios from "./Usuarios";
-
 import Empreendimento from "./Empreendimento";
-
 import Unidade from "./Unidade";
-
 import EditarEmpreendimento from "./EditarEmpreendimento";
-
 import EditarRegistro from "./EditarRegistro";
-
 import RelatorioUnidade from "./RelatorioUnidade";
-
 import VisualizarRelatorio from "./VisualizarRelatorio";
-
 import UnidadeDocumentos from "./UnidadeDocumentos";
-
 import UnidadeRegistros from "./UnidadeRegistros";
-
 import NovaEmissao from "./NovaEmissao";
-
 import UnidadeAnalises from "./UnidadeAnalises";
-
 import NovaEmissaoAnalise from "./NovaEmissaoAnalise";
-
 import UnidadeKickOff from "./UnidadeKickOff";
-
 import NovaEmissaoVistoria from "./NovaEmissaoVistoria";
-
 import RelatorioVistoria from "./RelatorioVistoria";
-
 import VisualizarRelatorioVistoria from "./VisualizarRelatorioVistoria";
-
 import AdicionarVistoriaFromGeral from "./AdicionarVistoriaFromGeral";
-
 import RelatorioAnalise from "./RelatorioAnalise";
-
 import VisualizarRelatorioAnalise from "./VisualizarRelatorioAnalise";
-
 import RelatorioKickOff from "./RelatorioKickOff";
-
 import VisualizarRelatorioKickOff from "./VisualizarRelatorioKickOff";
-
 import GerenciarFormularios from "./GerenciarFormularios";
-
 import NovaVistoriaFormulario from "./NovaVistoriaFormulario";
-
 import IniciarVistoria from "./IniciarVistoria";
-
 import PreencherVistoria from "./PreencherVistoria";
-
 import UnidadeVistoria from "./UnidadeVistoria";
-
 import RelatorioVistoriaObras from "./RelatorioVistoriaObras";
-
 import GaleriaRelatorio from "./GaleriaRelatorio";
-
 import Planejamento from "./Planejamento";
-
 import AtividadesPadrao from "./AtividadesPadrao";
-
 import NovoDiarioObra from "./NovoDiarioObra";
-
 import VisualizarDiarioObra from "./VisualizarDiarioObra";
-
 import EditarDiarioObra from "./EditarDiarioObra";
-
 import EmpreendimentoDiariosObra from "./EmpreendimentoDiariosObra";
-
 import EmpreendimentoAmostras from "./EmpreendimentoAmostras";
-
 import NovaAprovacaoAmostra from "./NovaAprovacaoAmostra";
-
 import EditarAprovacaoAmostra from "./EditarAprovacaoAmostra";
-
 import VisualizarAprovacaoAmostra from "./VisualizarAprovacaoAmostra";
-
 import EmpreendimentoVistoriasTerminalidade from "./EmpreendimentoVistoriasTerminalidade";
 import EmpreendimentoAtaReuniao from "./EmpreendimentoAtaReuniao";
 import EmpreendimentoAtasReuniao from "./EmpreendimentoAtasReuniao";
-
+import VisualizarAtaReuniao from "./VisualizarAtaReuniao";
 import NovaVistoriaTerminalidade from "./NovaVistoriaTerminalidade";
-
 import VisualizarVistoriaTerminalidade from "./VisualizarVistoriaTerminalidade";
-
 import EditarVistoriaTerminalidade from "./EditarVistoriaTerminalidade";
-
 import GaleriaVistoriaTerminalidade from "./GaleriaVistoriaTerminalidade";
-
 import EmpreendimentoRelatoriosSemanais from "./EmpreendimentoRelatoriosSemanais";
-
 import NovoRelatorioSemanal from "./NovoRelatorioSemanal";
-
 import EmpreendimentoPrimeirosServicos from "./EmpreendimentoPrimeirosServicos";
 
 import NovoRelatorioPrimeirosServicos from "./NovoRelatorioPrimeirosServicos";
@@ -521,6 +474,8 @@ function PagesContent() {
                 <Route path="/empreendimentoatareuniao" element={<EmpreendimentoAtaReuniao />} />
                 <Route path="/EmpreendimentoAtasReuniao" element={<EmpreendimentoAtasReuniao />} />
                 <Route path="/empreendimentoatasreuniao" element={<EmpreendimentoAtasReuniao />} />
+                <Route path="/VisualizarAtaReuniao" element={<VisualizarAtaReuniao />} />
+                <Route path="/visualizaratareuniao" element={<VisualizarAtaReuniao />} />
 
                 <Route path="/NovaVistoriaTerminalidade" element={<NovaVistoriaTerminalidade />} />
 
