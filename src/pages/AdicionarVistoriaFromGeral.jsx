@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, ArrowLeft, Check, AlertTriangle, FilePlus } from "lucide-react";
-import _ from 'lodash';
+import { uniq } from '@/lib/utils';
 
 export default function AdicionarVistoriaFromGeral() {
     const navigate = useNavigate();
@@ -140,7 +140,7 @@ export default function AdicionarVistoriaFromGeral() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">Todas as Disciplinas</SelectItem>
-                                    {_.uniq(registrosGerais.map(r => r.disciplina)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                                    {uniq(registrosGerais.map(r => r.disciplina)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         </div>

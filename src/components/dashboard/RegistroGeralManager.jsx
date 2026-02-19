@@ -26,7 +26,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Plus, Edit, Trash2, FileText, Search } from "lucide-react";
-import _ from 'lodash'; // New import
+import { groupBy } from '@/lib/utils';
 
 const tipoOptions = ["Kick Off", "Análise de Projetos", "Vistoria de Obras"];
 const emissaoOptions = ["1ª Emissão", "2ª Emissão", "3ª Emissão", "4ª Emissão", "5ª Emissão"];
@@ -114,14 +114,14 @@ export default function RegistroGeralManager({ language = 'pt', theme = 'light' 
         RegistroGeral.list("-created_date", 500), // Limit to 500 most recent records
         DisciplinaGeral.list("prefixo_disciplina") // Fetches disciplines and sorts by prefix
       ]);
-      
+
       setRegistros(registrosData);
       setDisciplinasGerais(disciplinasData);
 
       // Criar mapa de prefixos
       const prefixMap = disciplinasData.reduce((acc, disc) => {
-          acc[disc.descricao_disciplina] = disc.prefixo_disciplina;
-          return acc;
+        acc[disc.descricao_disciplina] = disc.prefixo_disciplina;
+        return acc;
       }, {});
       setDisciplinaPrefixMap(prefixMap);
 
@@ -196,7 +196,7 @@ export default function RegistroGeralManager({ language = 'pt', theme = 'light' 
         const existingRecords = await RegistroGeral.filter({ disciplina, tipo_registro, tipo_relatorio });
         const maxNumeracao = existingRecords.reduce((max, r) => (r.numeracao || 0) > max ? r.numeracao : max, 0);
         const newNumeracao = maxNumeracao + 1; // This will start at 1 since maxNumeracao starts at 0
-        
+
         await RegistroGeral.create({ ...formData, numeracao: newNumeracao });
       }
       await loadData();
@@ -293,7 +293,7 @@ export default function RegistroGeralManager({ language = 'pt', theme = 'light' 
                     className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}
                   />
                 </div>
-                 <div className="space-y-2">
+                <div className="space-y-2">
                   <Label htmlFor="tipo_relatorio" className={isDark ? 'text-gray-300' : ''}>{t.reportType}</Label>
                   <Input
                     id="tipo_relatorio"
@@ -390,21 +390,21 @@ export default function RegistroGeralManager({ language = 'pt', theme = 'light' 
           </div>
         ) : (
           <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2">
-            {Object.entries(_.groupBy(filteredRegistros, 'tipo_registro')).map(([tipo, group1]) => (
+            {Object.entries(groupBy(filteredRegistros, 'tipo_registro')).map(([tipo, group1]) => (
               <div key={tipo}>
                 <h3 className={`font-bold text-lg mb-2 pb-1 border-b ${isDark ? 'text-blue-400 border-gray-700' : 'text-blue-600 border-gray-200'}`}>{tipo}</h3>
-                {Object.entries(_.groupBy(group1, 'emissao_registro')).map(([emissao, group2]) => (
+                {Object.entries(groupBy(group1, 'emissao_registro')).map(([emissao, group2]) => (
                   <div key={emissao} className="pl-2">
                     <h4 className={`font-semibold mt-2 ${isDark ? 'text-green-400' : 'text-green-700'}`}>{emissao}</h4>
-                    {Object.entries(_.groupBy(group2, (item) => item.tipo_relatorio || "Geral")).map(([tipoRelatorio, group3]) => (
+                    {Object.entries(groupBy(group2, (item) => item.tipo_relatorio || "Geral")).map(([tipoRelatorio, group3]) => (
                       <div key={tipoRelatorio} className="pl-4">
                         <h5 className={`font-medium text-base mt-1.5 ${isDark ? 'text-yellow-400' : 'text-yellow-600'}`}>{tipoRelatorio}</h5>
-                        {Object.entries(_.groupBy(group3, 'disciplina')).map(([disciplina, registros]) => (
+                        {Object.entries(groupBy(group3, 'disciplina')).map(([disciplina, registros]) => (
                           <div key={disciplina} className="pl-6">
                             <h6 className={`font-medium text-sm mt-1 ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>{disciplina}</h6>
                             <div className="space-y-3 pt-2">
                               {registros.sort((a, b) => (a.numeracao || 0) - (b.numeracao || 0)).map((registro) => (
-                                <div 
+                                <div
                                   key={registro.id}
                                   className={`p-3 rounded-lg border transition-colors ${isDark ? 'bg-gray-700/50 border-gray-600 hover:bg-gray-700' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'}`}
                                 >

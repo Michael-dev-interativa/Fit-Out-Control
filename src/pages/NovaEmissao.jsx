@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import _ from 'lodash';
+import { uniq, keyBy } from '@/lib/utils';
 
 export default function NovaEmissao() {
   const navigate = useNavigate();
@@ -17,10 +17,10 @@ export default function NovaEmissao() {
   const [disciplinasGerais, setDisciplinasGerais] = useState([]);
   const [tiposRelatorio, setTiposRelatorio] = useState([]);
   const [emissoes, setEmissoes] = useState([]);
-  
+
   const [selectedTipoRelatorio, setSelectedTipoRelatorio] = useState("");
   const [selectedEmissao, setSelectedEmissao] = useState("");
-  
+
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
@@ -43,12 +43,10 @@ export default function NovaEmissao() {
 
   useEffect(() => {
     if (selectedTipoRelatorio) {
-      const filteredEmissoes = _.chain(registrosGerais)
+      const filteredEmissoes = uniq(registrosGerais
         .filter(rg => rg.tipo_relatorio === selectedTipoRelatorio && rg.tipo_registro === tipoRegistro)
-        .map('emissao_registro')
-        .uniq()
-        .sort()
-        .value();
+        .map(rg => rg.emissao_registro)
+      ).sort();
       setEmissoes(filteredEmissoes);
       setSelectedEmissao("");
     } else {
@@ -66,14 +64,12 @@ export default function NovaEmissao() {
       ]);
       setRegistrosGerais(regsGeraisData);
       setDisciplinasGerais(discsGeraisData);
-      
-      const uniqueTiposRelatorio = _.chain(regsGeraisData)
-        .filter(rg => rg.tipo_registro === tipoRegistro)
-        .map('tipo_relatorio')
-        .uniq()
-        .filter(Boolean)
-        .sort()
-        .value();
+
+      const uniqueTiposRelatorio = uniq(
+        regsGeraisData
+          .filter(rg => rg.tipo_registro === tipoRegistro)
+          .map(rg => rg.tipo_relatorio)
+      ).filter(Boolean).sort();
       setTiposRelatorio(uniqueTiposRelatorio);
     } catch (err) {
       setError("Erro ao carregar dados para emissão.");
@@ -92,21 +88,20 @@ export default function NovaEmissao() {
     // Se ambos os campos estiverem em branco, navega para a página de registros vazia,
     // que permitirá a criação manual. Isso é implícito, a página de destino já lida com a ausência de registros.
     if (!selectedTipoRelatorio && !selectedEmissao) {
-        console.log("Gerando emissão em branco...");
-        // A navegação para a página de registros fará com que ela apareça vazia,
-        // e o botão de "Nova Emissão" será na verdade um "Novo Registro" dentro daquele contexto.
-        // Por simplicidade, vamos apenas gerar os registros se os filtros forem selecionados.
-        // A criação de uma emissão "vazia" é um conceito abstrato que pode ser tratado na página de destino.
-        navigate(createPageUrl(`UnidadeRegistros?unidade=${unidadeId}&emp=${empreendimentoId}&tipo=${tipoRegistro}`));
-        return;
+      console.log("Gerando emissão em branco...");
+      // A navegação para a página de registros fará com que ela apareça vazia,
+      // e o botão de "Nova Emissão" será na verdade um "Novo Registro" dentro daquele contexto.
+      // Por simplicidade, vamos apenas gerar os registros se os filtros forem selecionados.
+      // A criação de uma emissão "vazia" é um conceito abstrato que pode ser tratado na página de destino.
+      navigate(createPageUrl(`UnidadeRegistros?unidade=${unidadeId}&emp=${empreendimentoId}&tipo=${tipoRegistro}`));
+      return;
     }
 
     setGenerating(true);
     try {
-      const disciplinaPrefixMap = _.keyBy(disciplinasGerais, 'descricao_disciplina');
-      
+      const disciplinaPrefixMap = keyBy(disciplinasGerais, 'descricao_disciplina');
       const registrosParaCriar = registrosGerais
-        .filter(rg => 
+        .filter(rg =>
           rg.tipo_registro === tipoRegistro &&
           rg.tipo_relatorio === selectedTipoRelatorio &&
           rg.emissao_registro === selectedEmissao
@@ -130,7 +125,7 @@ export default function NovaEmissao() {
           await RegistroUnidade.create(registro);
         }
       }
-      
+
       navigate(createPageUrl(`UnidadeRegistros?unidade=${unidadeId}&emp=${empreendimentoId}&tipo=${tipoRegistro}`));
     } catch (err) {
       setError("Falha ao gerar emissão.");
@@ -138,7 +133,7 @@ export default function NovaEmissao() {
     }
     setGenerating(false);
   };
-  
+
   const isDark = theme === 'dark';
 
   return (
@@ -183,7 +178,7 @@ export default function NovaEmissao() {
               </SelectContent>
             </Select>
           </div>
-          
+
           {error && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />

@@ -2,9 +2,20 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
+// Try to include rollup visualizer if available (dev-only helper)
+let visualizerPlugin = null;
+try {
+  // dynamic import so build doesn't fail if not installed
+  // eslint-disable-next-line no-undef
+  const mod = await import('rollup-plugin-visualizer');
+  if (mod && mod.visualizer) visualizerPlugin = mod.visualizer({ filename: 'dist/stats.html', open: false });
+} catch (e) {
+  // ignore if plugin not installed
+}
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react()].concat(visualizerPlugin ? [visualizerPlugin] : []),
   server: {
     allowedHosts: true,
     proxy: {

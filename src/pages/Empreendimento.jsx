@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { getUploadUrl } from '@/api/config';
@@ -34,15 +34,16 @@ import {
   Beaker,
   Loader2
 } from 'lucide-react';
-import UnidadeCard from '@/components/empreendimento/UnidadeCard';
-import InfoGeral from '@/components/empreendimento/InfoGeral';
-import TabelaContatos from '@/components/empreendimento/TabelaContatos';
-import TabelaInformacoesTecnicas from '@/components/empreendimento/TabelaInformacoesTecnicas';
-import NovaUnidadeDialog from '@/components/empreendimento/NovaUnidadeDialog';
-import GaleriaFotosDialog from '@/components/empreendimento/GaleriaFotosDialog';
-import ManuaisGeraisDialog from '@/components/empreendimento/ManuaisGeraisDialog';
-import ProjetosOriginaisDialog from '@/components/empreendimento/ProjetosOriginaisDialog';
-import ParticularidadesDialog from '@/components/empreendimento/ParticularidadesDialog';
+// Lazy-load heavy subcomponents to reduce initial bundle size
+const UnidadeCard = lazy(() => import('@/components/empreendimento/UnidadeCard'));
+const InfoGeral = lazy(() => import('@/components/empreendimento/InfoGeral'));
+const TabelaContatos = lazy(() => import('@/components/empreendimento/TabelaContatos'));
+const TabelaInformacoesTecnicas = lazy(() => import('@/components/empreendimento/TabelaInformacoesTecnicas'));
+const NovaUnidadeDialog = lazy(() => import('@/components/empreendimento/NovaUnidadeDialog'));
+const GaleriaFotosDialog = lazy(() => import('@/components/empreendimento/GaleriaFotosDialog'));
+const ManuaisGeraisDialog = lazy(() => import('@/components/empreendimento/ManuaisGeraisDialog'));
+const ProjetosOriginaisDialog = lazy(() => import('@/components/empreendimento/ProjetosOriginaisDialog'));
+const ParticularidadesDialog = lazy(() => import('@/components/empreendimento/ParticularidadesDialog'));
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -90,7 +91,7 @@ const EmpreendimentoPage = () => {
       setEmpreendimento(empData);
       const units = unidadesData || [];
       setUnidades(units);
-      console.log("EmpreendimentoPage - Unidades carregadas:", units.length, "unidades para empreendimento:", empreendimentoId);
+      if (import.meta.env && import.meta.env.DEV) console.log("EmpreendimentoPage - Unidades carregadas:", units.length, "unidades para empreendimento:", empreendimentoId);
 
       // Debug each unit
       units.forEach((unidade, index) => {
@@ -107,7 +108,7 @@ const EmpreendimentoPage = () => {
           .map(u => String(u.id))
           .filter(id => isValidId(id));
 
-        console.log("EmpreendimentoPage - IDs válidos das unidades para registros:", validUnidadeIds);
+        if (import.meta.env && import.meta.env.DEV) console.log("EmpreendimentoPage - IDs válidos das unidades para registros:", validUnidadeIds);
 
         if (validUnidadeIds.length > 0) {
           const [koData, apData, voData] = await Promise.all([
@@ -199,7 +200,7 @@ const EmpreendimentoPage = () => {
     );
   }
 
-  console.log("EmpreendimentoPage - Renderizando com:", {
+  if (import.meta.env && import.meta.env.DEV) console.log("EmpreendimentoPage - Renderizando com:", {
     empreendimentoId: empreendimentoId,
     quantidadeUnidades: unidades.length,
     empreendimento: empreendimento?.nome_empreendimento
@@ -215,9 +216,10 @@ const EmpreendimentoPage = () => {
       <div className="w-full max-w-full mx-auto">
         <div className="grid grid-cols-1 gap-4">
           <div className="w-full space-y-4">
-            <InfoGeral empreendimento={empreendimento} theme={theme} />
-
-            <TabelaContatos contatos={empreendimento.contatos_proprietario} theme={theme} />
+            <Suspense fallback={<div className="p-4">Carregando informações...</div>}>
+              <InfoGeral empreendimento={empreendimento} theme={theme} />
+              <TabelaContatos contatos={empreendimento.contatos_proprietario} theme={theme} />
+            </Suspense>
 
             {empreendimento.foto_empreendimento && (
               <div className="w-full">
@@ -311,6 +313,10 @@ const EmpreendimentoPage = () => {
 
               </CardContent>
             </Card>
+
+            <Suspense fallback={<div className="p-4">Carregando tabela técnica...</div>}>
+              <TabelaInformacoesTecnicas informacoes={empreendimento.informacoes_tecnicas} theme={theme} />
+            </Suspense>
 
             {/* Pastas (independentes de Ações Rápidas) */}
             <div className="space-y-2 mb-3">
@@ -540,14 +546,9 @@ const EmpreendimentoPage = () => {
                 </CardHeader>
                 <CardContent>
                   {unidades.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                      {unidades.map(unidade => {
-                        console.log("EmpreendimentoPage - Renderizando UnidadeCard:", {
-                          unidadeId: unidade.id,
-                          empreendimentoId: empreendimentoId,
-                          stats: unidadeStats[unidade.id]
-                        });
-                        return (
+                    <Suspense fallback={<div className="p-4">Carregando unidades...</div>}>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {unidades.map(unidade => (
                           <UnidadeCard
                             key={unidade.id}
                             unidade={unidade}
@@ -556,9 +557,9 @@ const EmpreendimentoPage = () => {
                             language={language}
                             theme={theme}
                           />
-                        );
-                      })}
-                    </div>
+                        ))}
+                      </div>
+                    </Suspense>
                   ) : (
                     <p className={`${isDark ? 'text-gray-400' : 'text-gray-500'} text-center py-4`}>Nenhuma unidade</p>
                   )}
@@ -566,50 +567,51 @@ const EmpreendimentoPage = () => {
               </Card>
             )}
 
-            <TabelaInformacoesTecnicas informacoes={empreendimento.informacoes_tecnicas} theme={theme} />
           </div>
         </div>
       </div>
 
-      {/* Dialogs */}
-      <NovaUnidadeDialog
-        open={showNovaUnidade}
-        onOpenChange={setShowNovaUnidade}
-        id_empreendimento={empreendimento?.id}
-        onSuccess={loadEmpreendimentoData}
-        language={language}
-        theme={theme}
-      />
-      <GaleriaFotosDialog
-        open={showGaleria}
-        onOpenChange={setShowGaleria}
-        empreendimento={empreendimento}
-        fotos={empreendimento?.fotos_empreendimento || []}
-        nomeEmpreendimento={empreendimento?.nome_empreendimento}
-        language={language}
-        theme={theme}
-      />
-      <ManuaisGeraisDialog
-        open={showManuais}
-        onOpenChange={setShowManuais}
-        empreendimentoId={empreendimento?.id}
-        language={language}
-        theme={theme}
-      />
-      <ProjetosOriginaisDialog
-        open={showProjetos}
-        onOpenChange={setShowProjetos}
-        empreendimentoId={empreendimento?.id}
-        language={language}
-        theme={theme}
-      />
-      <ParticularidadesDialog
-        open={showParticularidades}
-        onOpenChange={setShowParticularidades}
-        empreendimento={empreendimento}
-        language={language}
-        theme={theme}
-      />
+      {/* Dialogs (lazy-loaded) */}
+      <Suspense fallback={null}>
+        <NovaUnidadeDialog
+          open={showNovaUnidade}
+          onOpenChange={setShowNovaUnidade}
+          id_empreendimento={empreendimento?.id}
+          onSuccess={loadEmpreendimentoData}
+          language={language}
+          theme={theme}
+        />
+        <GaleriaFotosDialog
+          open={showGaleria}
+          onOpenChange={setShowGaleria}
+          empreendimento={empreendimento}
+          fotos={empreendimento?.fotos_empreendimento || []}
+          nomeEmpreendimento={empreendimento?.nome_empreendimento}
+          language={language}
+          theme={theme}
+        />
+        <ManuaisGeraisDialog
+          open={showManuais}
+          onOpenChange={setShowManuais}
+          empreendimentoId={empreendimento?.id}
+          language={language}
+          theme={theme}
+        />
+        <ProjetosOriginaisDialog
+          open={showProjetos}
+          onOpenChange={setShowProjetos}
+          empreendimentoId={empreendimento?.id}
+          language={language}
+          theme={theme}
+        />
+        <ParticularidadesDialog
+          open={showParticularidades}
+          onOpenChange={setShowParticularidades}
+          empreendimento={empreendimento}
+          language={language}
+          theme={theme}
+        />
+      </Suspense>
     </div>
   );
 }

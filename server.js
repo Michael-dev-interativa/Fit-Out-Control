@@ -8,6 +8,7 @@ import multer from "multer";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import compression from 'compression';
 
 
 dotenv.config();
@@ -15,6 +16,12 @@ dotenv.config();
 const app = express();
 
 console.log('🚀 Iniciando servidor (segurança básica: CORS restrito, helmet, rate-limit)');
+
+// Silence verbose logs in production to reduce noise and bundle size
+if (process.env.NODE_ENV === 'production') {
+  console.log = () => { };
+  console.debug = () => { };
+}
 
 // Security middleware
 app.use(helmet());
@@ -315,6 +322,9 @@ function authMiddleware(req, res, next) {
   next();
 }
 app.use(authMiddleware);
+
+// Enable gzip compression for API responses and static assets
+app.use(compression());
 
 // ===== Auth routes =====
 app.post('/api/auth/register', async (req, res) => {

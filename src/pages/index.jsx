@@ -1,154 +1,157 @@
+import React, { lazy, Suspense } from "react";
 import Layout from "./Layout.jsx";
-import Empreendimentos from "./Empreendimentos";
-import Usuarios from "./Usuarios";
-import Empreendimento from "./Empreendimento";
-import Unidade from "./Unidade";
-import EditarEmpreendimento from "./EditarEmpreendimento";
-import EditarRegistro from "./EditarRegistro";
-import RelatorioUnidade from "./RelatorioUnidade";
-import VisualizarRelatorio from "./VisualizarRelatorio";
-import UnidadeDocumentos from "./UnidadeDocumentos";
-import UnidadeRegistros from "./UnidadeRegistros";
-import NovaEmissao from "./NovaEmissao";
-import UnidadeAnalises from "./UnidadeAnalises";
-import NovaEmissaoAnalise from "./NovaEmissaoAnalise";
-import UnidadeKickOff from "./UnidadeKickOff";
-import NovaEmissaoVistoria from "./NovaEmissaoVistoria";
-import RelatorioVistoria from "./RelatorioVistoria";
-import VisualizarRelatorioVistoria from "./VisualizarRelatorioVistoria";
-import AdicionarVistoriaFromGeral from "./AdicionarVistoriaFromGeral";
-import RelatorioAnalise from "./RelatorioAnalise";
-import VisualizarRelatorioAnalise from "./VisualizarRelatorioAnalise";
-import RelatorioKickOff from "./RelatorioKickOff";
-import VisualizarRelatorioKickOff from "./VisualizarRelatorioKickOff";
-import GerenciarFormularios from "./GerenciarFormularios";
-import NovaVistoriaFormulario from "./NovaVistoriaFormulario";
-import IniciarVistoria from "./IniciarVistoria";
-import PreencherVistoria from "./PreencherVistoria";
-import UnidadeVistoria from "./UnidadeVistoria";
-import RelatorioVistoriaObras from "./RelatorioVistoriaObras";
-import GaleriaRelatorio from "./GaleriaRelatorio";
-import Planejamento from "./Planejamento";
-import AtividadesPadrao from "./AtividadesPadrao";
-import NovoDiarioObra from "./NovoDiarioObra";
-import VisualizarDiarioObra from "./VisualizarDiarioObra";
-import EditarDiarioObra from "./EditarDiarioObra";
-import EmpreendimentoDiariosObra from "./EmpreendimentoDiariosObra";
-import EmpreendimentoAmostras from "./EmpreendimentoAmostras";
-import NovaAprovacaoAmostra from "./NovaAprovacaoAmostra";
-import EditarAprovacaoAmostra from "./EditarAprovacaoAmostra";
-import VisualizarAprovacaoAmostra from "./VisualizarAprovacaoAmostra";
-import EmpreendimentoVistoriasTerminalidade from "./EmpreendimentoVistoriasTerminalidade";
-import EmpreendimentoAtaReuniao from "./EmpreendimentoAtaReuniao";
-import EmpreendimentoAtasReuniao from "./EmpreendimentoAtasReuniao";
-import VisualizarAtaReuniao from "./VisualizarAtaReuniao";
-import NovaVistoriaTerminalidade from "./NovaVistoriaTerminalidade";
-import VisualizarVistoriaTerminalidade from "./VisualizarVistoriaTerminalidade";
-import EditarVistoriaTerminalidade from "./EditarVistoriaTerminalidade";
-import GaleriaVistoriaTerminalidade from "./GaleriaVistoriaTerminalidade";
-import EmpreendimentoRelatoriosSemanais from "./EmpreendimentoRelatoriosSemanais";
-import NovoRelatorioSemanal from "./NovoRelatorioSemanal";
-import EmpreendimentoPrimeirosServicos from "./EmpreendimentoPrimeirosServicos";
-
-import NovoRelatorioPrimeirosServicos from "./NovoRelatorioPrimeirosServicos";
-
-import EditarRelatorioPrimeirosServicos from "./EditarRelatorioPrimeirosServicos";
-
-import VisualizarRelatorioPrimeirosServicos from "./VisualizarRelatorioPrimeirosServicos";
-
-import EditarRelatorioSemanal from "./EditarRelatorioSemanal";
-
-import VisualizarRelatorioSemanal from "./VisualizarRelatorioSemanal";
-
-import AtualizarFormularioEmMassa from "./AtualizarFormularioEmMassa";
-
-import EmpreendimentoInspecaoHidrantes from "./EmpreendimentoInspecaoHidrantes";
-
-import NovaInspecaoHidrantes from "./NovaInspecaoHidrantes";
-
-import EditarInspecaoHidrantes from "./EditarInspecaoHidrantes";
-
-import VisualizarInspecaoHidrantes from "./VisualizarInspecaoHidrantes";
-
-import EmpreendimentoInspecaoSprinklers from "./EmpreendimentoInspecaoSprinklers";
-
-import NovaInspecaoSprinklers from "./NovaInspecaoSprinklers";
-
-import EditarInspecaoSprinklers from "./EditarInspecaoSprinklers";
-
-import VisualizarInspecaoSprinklers from "./VisualizarInspecaoSprinklers";
-
-import EmpreendimentoInspecaoAlarme from "./EmpreendimentoInspecaoAlarme";
-
-import NovaInspecaoAlarme from "./NovaInspecaoAlarme";
-
-import EditarInspecaoAlarme from "./EditarInspecaoAlarme";
-
-import VisualizarInspecaoAlarme from "./VisualizarInspecaoAlarme";
-
-import NovaInspecaoArCondicionado from "./NovaInspecaoArCondicionado";
-
-import EditarInspecaoArCondicionado from "./EditarInspecaoArCondicionado";
-
-import VisualizarInspecaoArCondicionado from "./VisualizarInspecaoArCondicionado";
-
-import EmpreendimentoInspecaoArCondicionado from "./EmpreendimentoInspecaoArCondicionado";
-
-import EmpreendimentoInspecaoControleAcesso from "./EmpreendimentoInspecaoControleAcesso";
-
-import NovaInspecaoControleAcesso from "./NovaInspecaoControleAcesso";
-
-import VisualizarInspecaoControleAcesso from "./VisualizarInspecaoControleAcesso";
-
-import EditarInspecaoControleAcesso from "./EditarInspecaoControleAcesso";
-
-import NovaInspecaoCFTV from "./NovaInspecaoCFTV";
-
-import EditarInspecaoCFTV from "./EditarInspecaoCFTV";
-
-import EmpreendimentoInspecaoCFTV from "./EmpreendimentoInspecaoCFTV";
-
-import VisualizarInspecaoCFTV from "./VisualizarInspecaoCFTV";
-
-import EmpreendimentoInspecaoSDAI from "./EmpreendimentoInspecaoSDAI";
-
-import NovaInspecaoSDAI from "./NovaInspecaoSDAI";
-
-import EditarInspecaoSDAI from "./EditarInspecaoSDAI";
-
-import VisualizarInspecaoSDAI from "./VisualizarInspecaoSDAI";
-
-import DashboardCliente from "./DashboardCliente";
-
-import RelatoriosCliente from "./RelatoriosCliente";
-
-import NovaInspecaoEletrica from "./NovaInspecaoEletrica";
-
-import EditarInspecaoEletrica from "./EditarInspecaoEletrica";
-
-import EmpreendimentoInspecaoEletrica from "./EmpreendimentoInspecaoEletrica";
-
-import VisualizarInspecaoEletrica from "./VisualizarInspecaoEletrica";
-
-import VisualizarListaDocumentos from "./VisualizarListaDocumentos";
-
-import EmpreendimentoListaDocumentos from "./EmpreendimentoListaDocumentos";
-
-import NovoRDO from "./NovoRDO";
-
-import EditarListaDocumentos from "./EditarListaDocumentos";
-
-import VisualizarListaDocumentosReport from "./VisualizarListaDocumentosReport";
-
-import NovoListaDocumentosReport from "./NovoListaDocumentosReport";
-
-import EmpreendimentoListaDocumentosReport from "./EmpreendimentoListaDocumentosReport";
-
-import EditarListaDocumentosReport from "./EditarListaDocumentosReport";
-
-import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import Login from "./Login.jsx";
 import Register from "./Register.jsx";
+
+// Lazy-load large pages to reduce initial bundle size
+const Empreendimentos = lazy(() => import("./Empreendimentos"));
+const Usuarios = lazy(() => import("./Usuarios"));
+const Empreendimento = lazy(() => import("./Empreendimento"));
+const Unidade = lazy(() => import("./Unidade"));
+const EditarEmpreendimento = lazy(() => import("./EditarEmpreendimento"));
+const EditarRegistro = lazy(() => import("./EditarRegistro"));
+const RelatorioUnidade = lazy(() => import("./RelatorioUnidade"));
+const VisualizarRelatorio = lazy(() => import("./VisualizarRelatorio"));
+const UnidadeDocumentos = lazy(() => import("./UnidadeDocumentos"));
+const UnidadeRegistros = lazy(() => import("./UnidadeRegistros"));
+const NovaEmissao = lazy(() => import("./NovaEmissao"));
+const UnidadeAnalises = lazy(() => import("./UnidadeAnalises"));
+const NovaEmissaoAnalise = lazy(() => import("./NovaEmissaoAnalise"));
+const UnidadeKickOff = lazy(() => import("./UnidadeKickOff"));
+const NovaEmissaoVistoria = lazy(() => import("./NovaEmissaoVistoria"));
+const RelatorioVistoria = lazy(() => import("./RelatorioVistoria"));
+const VisualizarRelatorioVistoria = lazy(() => import("./VisualizarRelatorioVistoria"));
+const AdicionarVistoriaFromGeral = lazy(() => import("./AdicionarVistoriaFromGeral"));
+const RelatorioAnalise = lazy(() => import("./RelatorioAnalise"));
+const VisualizarRelatorioAnalise = lazy(() => import("./VisualizarRelatorioAnalise"));
+const RelatorioKickOff = lazy(() => import("./RelatorioKickOff"));
+const VisualizarRelatorioKickOff = lazy(() => import("./VisualizarRelatorioKickOff"));
+const GerenciarFormularios = lazy(() => import("./GerenciarFormularios"));
+const NovaVistoriaFormulario = lazy(() => import("./NovaVistoriaFormulario"));
+const IniciarVistoria = lazy(() => import("./IniciarVistoria"));
+const PreencherVistoria = lazy(() => import("./PreencherVistoria"));
+const UnidadeVistoria = lazy(() => import("./UnidadeVistoria"));
+const RelatorioVistoriaObras = lazy(() => import("./RelatorioVistoriaObras"));
+const GaleriaRelatorio = lazy(() => import("./GaleriaRelatorio"));
+const Planejamento = lazy(() => import("./Planejamento"));
+const AtividadesPadrao = lazy(() => import("./AtividadesPadrao"));
+const NovoDiarioObra = lazy(() => import("./NovoDiarioObra"));
+const VisualizarDiarioObra = lazy(() => import("./VisualizarDiarioObra"));
+const EditarDiarioObra = lazy(() => import("./EditarDiarioObra"));
+const EmpreendimentoDiariosObra = lazy(() => import("./EmpreendimentoDiariosObra"));
+const EmpreendimentoAmostras = lazy(() => import("./EmpreendimentoAmostras"));
+const NovaAprovacaoAmostra = lazy(() => import("./NovaAprovacaoAmostra"));
+const EditarAprovacaoAmostra = lazy(() => import("./EditarAprovacaoAmostra"));
+const VisualizarAprovacaoAmostra = lazy(() => import("./VisualizarAprovacaoAmostra"));
+const EmpreendimentoVistoriasTerminalidade = lazy(() => import("./EmpreendimentoVistoriasTerminalidade"));
+const EmpreendimentoAtaReuniao = lazy(() => import("./EmpreendimentoAtaReuniao"));
+const EmpreendimentoAtasReuniao = lazy(() => import("./EmpreendimentoAtasReuniao"));
+const VisualizarAtaReuniao = lazy(() => import("./VisualizarAtaReuniao"));
+const NovaVistoriaTerminalidade = lazy(() => import("./NovaVistoriaTerminalidade"));
+const VisualizarVistoriaTerminalidade = lazy(() => import("./VisualizarVistoriaTerminalidade"));
+const EditarVistoriaTerminalidade = lazy(() => import("./EditarVistoriaTerminalidade"));
+const GaleriaVistoriaTerminalidade = lazy(() => import("./GaleriaVistoriaTerminalidade"));
+const EmpreendimentoRelatoriosSemanais = lazy(() => import("./EmpreendimentoRelatoriosSemanais"));
+const NovoRelatorioSemanal = lazy(() => import("./NovoRelatorioSemanal"));
+const EmpreendimentoPrimeirosServicos = lazy(() => import("./EmpreendimentoPrimeirosServicos"));
+
+const NovoRelatorioPrimeirosServicos = lazy(() => import("./NovoRelatorioPrimeirosServicos"));
+
+const EditarRelatorioPrimeirosServicos = lazy(() => import("./EditarRelatorioPrimeirosServicos"));
+
+const VisualizarRelatorioPrimeirosServicos = lazy(() => import("./VisualizarRelatorioPrimeirosServicos"));
+
+const EditarRelatorioSemanal = lazy(() => import("./EditarRelatorioSemanal"));
+
+const VisualizarRelatorioSemanal = lazy(() => import("./VisualizarRelatorioSemanal"));
+
+const AtualizarFormularioEmMassa = lazy(() => import("./AtualizarFormularioEmMassa"));
+
+const EmpreendimentoInspecaoHidrantes = lazy(() => import("./EmpreendimentoInspecaoHidrantes"));
+
+const NovaInspecaoHidrantes = lazy(() => import("./NovaInspecaoHidrantes"));
+
+const EditarInspecaoHidrantes = lazy(() => import("./EditarInspecaoHidrantes"));
+
+const VisualizarInspecaoHidrantes = lazy(() => import("./VisualizarInspecaoHidrantes"));
+
+const EmpreendimentoInspecaoSprinklers = lazy(() => import("./EmpreendimentoInspecaoSprinklers"));
+
+const NovaInspecaoSprinklers = lazy(() => import("./NovaInspecaoSprinklers"));
+
+const EditarInspecaoSprinklers = lazy(() => import("./EditarInspecaoSprinklers"));
+
+const VisualizarInspecaoSprinklers = lazy(() => import("./VisualizarInspecaoSprinklers"));
+
+const EmpreendimentoInspecaoAlarme = lazy(() => import("./EmpreendimentoInspecaoAlarme"));
+
+const NovaInspecaoAlarme = lazy(() => import("./NovaInspecaoAlarme"));
+
+const EditarInspecaoAlarme = lazy(() => import("./EditarInspecaoAlarme"));
+
+const VisualizarInspecaoAlarme = lazy(() => import("./VisualizarInspecaoAlarme"));
+
+const NovaInspecaoArCondicionado = lazy(() => import("./NovaInspecaoArCondicionado"));
+
+const EditarInspecaoArCondicionado = lazy(() => import("./EditarInspecaoArCondicionado"));
+
+const VisualizarInspecaoArCondicionado = lazy(() => import("./VisualizarInspecaoArCondicionado"));
+
+const EmpreendimentoInspecaoArCondicionado = lazy(() => import("./EmpreendimentoInspecaoArCondicionado"));
+
+const EmpreendimentoInspecaoControleAcesso = lazy(() => import("./EmpreendimentoInspecaoControleAcesso"));
+
+const NovaInspecaoControleAcesso = lazy(() => import("./NovaInspecaoControleAcesso"));
+
+const VisualizarInspecaoControleAcesso = lazy(() => import("./VisualizarInspecaoControleAcesso"));
+
+const EditarInspecaoControleAcesso = lazy(() => import("./EditarInspecaoControleAcesso"));
+
+const NovaInspecaoCFTV = lazy(() => import("./NovaInspecaoCFTV"));
+
+const EditarInspecaoCFTV = lazy(() => import("./EditarInspecaoCFTV"));
+
+const EmpreendimentoInspecaoCFTV = lazy(() => import("./EmpreendimentoInspecaoCFTV"));
+
+const VisualizarInspecaoCFTV = lazy(() => import("./VisualizarInspecaoCFTV"));
+
+const EmpreendimentoInspecaoSDAI = lazy(() => import("./EmpreendimentoInspecaoSDAI"));
+
+const NovaInspecaoSDAI = lazy(() => import("./NovaInspecaoSDAI"));
+
+const EditarInspecaoSDAI = lazy(() => import("./EditarInspecaoSDAI"));
+
+const VisualizarInspecaoSDAI = lazy(() => import("./VisualizarInspecaoSDAI"));
+
+const DashboardCliente = lazy(() => import("./DashboardCliente"));
+
+const RelatoriosCliente = lazy(() => import("./RelatoriosCliente"));
+
+const NovaInspecaoEletrica = lazy(() => import("./NovaInspecaoEletrica"));
+
+const EditarInspecaoEletrica = lazy(() => import("./EditarInspecaoEletrica"));
+
+const EmpreendimentoInspecaoEletrica = lazy(() => import("./EmpreendimentoInspecaoEletrica"));
+
+const VisualizarInspecaoEletrica = lazy(() => import("./VisualizarInspecaoEletrica"));
+
+const VisualizarListaDocumentos = lazy(() => import("./VisualizarListaDocumentos"));
+
+const EmpreendimentoListaDocumentos = lazy(() => import("./EmpreendimentoListaDocumentos"));
+
+const NovoRDO = lazy(() => import("./NovoRDO"));
+
+const EditarListaDocumentos = lazy(() => import("./EditarListaDocumentos"));
+
+const VisualizarListaDocumentosReport = lazy(() => import("./VisualizarListaDocumentosReport"));
+
+const NovoListaDocumentosReport = lazy(() => import("./NovoListaDocumentosReport"));
+
+const EmpreendimentoListaDocumentosReport = lazy(() => import("./EmpreendimentoListaDocumentosReport"));
+
+const EditarListaDocumentosReport = lazy(() => import("./EditarListaDocumentosReport"));
+
+import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 
 const PAGES = {
 
@@ -375,220 +378,222 @@ function PagesContent() {
 
     return (
         <Layout currentPageName={currentPage}>
-            <Routes>
+            <Suspense fallback={<div className="p-6">Carregando...</div>}>
+                <Routes>
 
-                <Route path="/" element={hasToken() ? <Empreendimentos /> : <Login />} />
-                {/* Garantir variação minúscula com guarda */}
-                <Route path="/dashboard" element={hasToken() ? <Empreendimentos /> : <Login />} />
+                    <Route path="/" element={hasToken() ? <Empreendimentos /> : <Login />} />
+                    {/* Garantir variação minúscula com guarda */}
+                    <Route path="/dashboard" element={hasToken() ? <Empreendimentos /> : <Login />} />
 
 
-                <Route path="/Dashboard" element={hasToken() ? <Empreendimentos /> : <Login />} />
+                    <Route path="/Dashboard" element={hasToken() ? <Empreendimentos /> : <Login />} />
 
-                <Route path="/Empreendimentos" element={hasToken() ? <Empreendimentos /> : <Login />} />
-                <Route path="/empreendimentos" element={hasToken() ? <Empreendimentos /> : <Login />} />
-                <Route path="/Login" element={<Login />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/Register" element={<Register />} />
-                <Route path="/register" element={<Register />} />
-                {/* Catch-all: exige login para qualquer rota -- movido para o final das rotas */}
+                    <Route path="/Empreendimentos" element={hasToken() ? <Empreendimentos /> : <Login />} />
+                    <Route path="/empreendimentos" element={hasToken() ? <Empreendimentos /> : <Login />} />
+                    <Route path="/Login" element={<Login />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/Register" element={<Register />} />
+                    <Route path="/register" element={<Register />} />
+                    {/* Catch-all: exige login para qualquer rota -- movido para o final das rotas */}
 
-                <Route path="/Usuarios" element={<Usuarios />} />
+                    <Route path="/Usuarios" element={<Usuarios />} />
 
-                <Route path="/Empreendimento" element={<Empreendimento />} />
+                    <Route path="/Empreendimento" element={<Empreendimento />} />
 
-                <Route path="/Unidade" element={<Unidade />} />
+                    <Route path="/Unidade" element={<Unidade />} />
 
-                <Route path="/EditarEmpreendimento" element={<EditarEmpreendimento />} />
+                    <Route path="/EditarEmpreendimento" element={<EditarEmpreendimento />} />
 
-                <Route path="/EditarRegistro" element={<EditarRegistro />} />
+                    <Route path="/EditarRegistro" element={<EditarRegistro />} />
 
-                <Route path="/RelatorioUnidade" element={<RelatorioUnidade />} />
+                    <Route path="/RelatorioUnidade" element={<RelatorioUnidade />} />
 
-                <Route path="/VisualizarRelatorio" element={<VisualizarRelatorio />} />
+                    <Route path="/VisualizarRelatorio" element={<VisualizarRelatorio />} />
 
-                <Route path="/UnidadeDocumentos" element={<UnidadeDocumentos />} />
+                    <Route path="/UnidadeDocumentos" element={<UnidadeDocumentos />} />
 
-                <Route path="/UnidadeRegistros" element={<UnidadeRegistros />} />
+                    <Route path="/UnidadeRegistros" element={<UnidadeRegistros />} />
 
-                <Route path="/NovaEmissao" element={<NovaEmissao />} />
+                    <Route path="/NovaEmissao" element={<NovaEmissao />} />
 
-                <Route path="/UnidadeAnalises" element={<UnidadeAnalises />} />
+                    <Route path="/UnidadeAnalises" element={<UnidadeAnalises />} />
 
-                <Route path="/NovaEmissaoAnalise" element={<NovaEmissaoAnalise />} />
+                    <Route path="/NovaEmissaoAnalise" element={<NovaEmissaoAnalise />} />
 
-                <Route path="/UnidadeKickOff" element={<UnidadeKickOff />} />
+                    <Route path="/UnidadeKickOff" element={<UnidadeKickOff />} />
 
-                <Route path="/NovaEmissaoVistoria" element={<NovaEmissaoVistoria />} />
+                    <Route path="/NovaEmissaoVistoria" element={<NovaEmissaoVistoria />} />
 
-                <Route path="/RelatorioVistoria" element={<RelatorioVistoria />} />
+                    <Route path="/RelatorioVistoria" element={<RelatorioVistoria />} />
 
-                <Route path="/VisualizarRelatorioVistoria" element={<VisualizarRelatorioVistoria />} />
+                    <Route path="/VisualizarRelatorioVistoria" element={<VisualizarRelatorioVistoria />} />
 
-                <Route path="/AdicionarVistoriaFromGeral" element={<AdicionarVistoriaFromGeral />} />
+                    <Route path="/AdicionarVistoriaFromGeral" element={<AdicionarVistoriaFromGeral />} />
 
-                <Route path="/RelatorioAnalise" element={<RelatorioAnalise />} />
+                    <Route path="/RelatorioAnalise" element={<RelatorioAnalise />} />
 
-                <Route path="/VisualizarRelatorioAnalise" element={<VisualizarRelatorioAnalise />} />
+                    <Route path="/VisualizarRelatorioAnalise" element={<VisualizarRelatorioAnalise />} />
 
-                <Route path="/RelatorioKickOff" element={<RelatorioKickOff />} />
+                    <Route path="/RelatorioKickOff" element={<RelatorioKickOff />} />
 
-                <Route path="/VisualizarRelatorioKickOff" element={<VisualizarRelatorioKickOff />} />
+                    <Route path="/VisualizarRelatorioKickOff" element={<VisualizarRelatorioKickOff />} />
 
-                <Route path="/GerenciarFormularios" element={<GerenciarFormularios />} />
+                    <Route path="/GerenciarFormularios" element={<GerenciarFormularios />} />
 
-                <Route path="/NovaVistoriaFormulario" element={<NovaVistoriaFormulario />} />
+                    <Route path="/NovaVistoriaFormulario" element={<NovaVistoriaFormulario />} />
 
-                <Route path="/IniciarVistoria" element={<IniciarVistoria />} />
+                    <Route path="/IniciarVistoria" element={<IniciarVistoria />} />
 
-                <Route path="/PreencherVistoria" element={<PreencherVistoria />} />
+                    <Route path="/PreencherVistoria" element={<PreencherVistoria />} />
 
-                <Route path="/UnidadeVistoria" element={<UnidadeVistoria />} />
+                    <Route path="/UnidadeVistoria" element={<UnidadeVistoria />} />
 
-                <Route path="/RelatorioVistoriaObras" element={<RelatorioVistoriaObras />} />
+                    <Route path="/RelatorioVistoriaObras" element={<RelatorioVistoriaObras />} />
 
-                <Route path="/GaleriaRelatorio" element={<GaleriaRelatorio />} />
+                    <Route path="/GaleriaRelatorio" element={<GaleriaRelatorio />} />
 
-                <Route path="/Planejamento" element={<Planejamento />} />
+                    <Route path="/Planejamento" element={<Planejamento />} />
 
-                <Route path="/AtividadesPadrao" element={<AtividadesPadrao />} />
+                    <Route path="/AtividadesPadrao" element={<AtividadesPadrao />} />
 
-                <Route path="/NovoDiarioObra" element={<NovoDiarioObra />} />
+                    <Route path="/NovoDiarioObra" element={<NovoDiarioObra />} />
 
-                <Route path="/VisualizarDiarioObra" element={<VisualizarDiarioObra />} />
+                    <Route path="/VisualizarDiarioObra" element={<VisualizarDiarioObra />} />
 
-                <Route path="/EditarDiarioObra" element={<EditarDiarioObra />} />
+                    <Route path="/EditarDiarioObra" element={<EditarDiarioObra />} />
 
-                <Route path="/EmpreendimentoDiariosObra" element={<EmpreendimentoDiariosObra />} />
+                    <Route path="/EmpreendimentoDiariosObra" element={<EmpreendimentoDiariosObra />} />
 
-                <Route path="/EmpreendimentoAmostras" element={<EmpreendimentoAmostras />} />
+                    <Route path="/EmpreendimentoAmostras" element={<EmpreendimentoAmostras />} />
 
-                <Route path="/NovaAprovacaoAmostra" element={<NovaAprovacaoAmostra />} />
+                    <Route path="/NovaAprovacaoAmostra" element={<NovaAprovacaoAmostra />} />
 
-                <Route path="/EditarAprovacaoAmostra" element={<EditarAprovacaoAmostra />} />
+                    <Route path="/EditarAprovacaoAmostra" element={<EditarAprovacaoAmostra />} />
 
-                <Route path="/VisualizarAprovacaoAmostra" element={<VisualizarAprovacaoAmostra />} />
+                    <Route path="/VisualizarAprovacaoAmostra" element={<VisualizarAprovacaoAmostra />} />
 
-                <Route path="/EmpreendimentoVistoriasTerminalidade" element={<EmpreendimentoVistoriasTerminalidade />} />
+                    <Route path="/EmpreendimentoVistoriasTerminalidade" element={<EmpreendimentoVistoriasTerminalidade />} />
 
-                <Route path="/EmpreendimentoAtaReuniao" element={<EmpreendimentoAtaReuniao />} />
-                <Route path="/empreendimentoatareuniao" element={<EmpreendimentoAtaReuniao />} />
-                <Route path="/EmpreendimentoAtasReuniao" element={<EmpreendimentoAtasReuniao />} />
-                <Route path="/empreendimentoatasreuniao" element={<EmpreendimentoAtasReuniao />} />
-                <Route path="/VisualizarAtaReuniao" element={<VisualizarAtaReuniao />} />
-                <Route path="/visualizaratareuniao" element={<VisualizarAtaReuniao />} />
+                    <Route path="/EmpreendimentoAtaReuniao" element={<EmpreendimentoAtaReuniao />} />
+                    <Route path="/empreendimentoatareuniao" element={<EmpreendimentoAtaReuniao />} />
+                    <Route path="/EmpreendimentoAtasReuniao" element={<EmpreendimentoAtasReuniao />} />
+                    <Route path="/empreendimentoatasreuniao" element={<EmpreendimentoAtasReuniao />} />
+                    <Route path="/VisualizarAtaReuniao" element={<VisualizarAtaReuniao />} />
+                    <Route path="/visualizaratareuniao" element={<VisualizarAtaReuniao />} />
 
-                <Route path="/NovaVistoriaTerminalidade" element={<NovaVistoriaTerminalidade />} />
+                    <Route path="/NovaVistoriaTerminalidade" element={<NovaVistoriaTerminalidade />} />
 
-                <Route path="/VisualizarVistoriaTerminalidade" element={<VisualizarVistoriaTerminalidade />} />
+                    <Route path="/VisualizarVistoriaTerminalidade" element={<VisualizarVistoriaTerminalidade />} />
 
-                <Route path="/EditarVistoriaTerminalidade" element={<EditarVistoriaTerminalidade />} />
+                    <Route path="/EditarVistoriaTerminalidade" element={<EditarVistoriaTerminalidade />} />
 
-                <Route path="/GaleriaVistoriaTerminalidade" element={<GaleriaVistoriaTerminalidade />} />
+                    <Route path="/GaleriaVistoriaTerminalidade" element={<GaleriaVistoriaTerminalidade />} />
 
-                <Route path="/EmpreendimentoRelatoriosSemanais" element={<EmpreendimentoRelatoriosSemanais />} />
+                    <Route path="/EmpreendimentoRelatoriosSemanais" element={<EmpreendimentoRelatoriosSemanais />} />
 
-                <Route path="/NovoRelatorioSemanal" element={<NovoRelatorioSemanal />} />
+                    <Route path="/NovoRelatorioSemanal" element={<NovoRelatorioSemanal />} />
 
-                <Route path="/EmpreendimentoPrimeirosServicos" element={<EmpreendimentoPrimeirosServicos />} />
+                    <Route path="/EmpreendimentoPrimeirosServicos" element={<EmpreendimentoPrimeirosServicos />} />
 
-                <Route path="/NovoRelatorioPrimeirosServicos" element={<NovoRelatorioPrimeirosServicos />} />
+                    <Route path="/NovoRelatorioPrimeirosServicos" element={<NovoRelatorioPrimeirosServicos />} />
 
-                <Route path="/EditarRelatorioPrimeirosServicos" element={<EditarRelatorioPrimeirosServicos />} />
+                    <Route path="/EditarRelatorioPrimeirosServicos" element={<EditarRelatorioPrimeirosServicos />} />
 
-                <Route path="/VisualizarRelatorioPrimeirosServicos" element={<VisualizarRelatorioPrimeirosServicos />} />
+                    <Route path="/VisualizarRelatorioPrimeirosServicos" element={<VisualizarRelatorioPrimeirosServicos />} />
 
-                <Route path="/EditarRelatorioSemanal" element={<EditarRelatorioSemanal />} />
+                    <Route path="/EditarRelatorioSemanal" element={<EditarRelatorioSemanal />} />
 
-                <Route path="/VisualizarRelatorioSemanal" element={<VisualizarRelatorioSemanal />} />
+                    <Route path="/VisualizarRelatorioSemanal" element={<VisualizarRelatorioSemanal />} />
 
-                <Route path="/AtualizarFormularioEmMassa" element={<AtualizarFormularioEmMassa />} />
+                    <Route path="/AtualizarFormularioEmMassa" element={<AtualizarFormularioEmMassa />} />
 
-                <Route path="/EmpreendimentoInspecaoHidrantes" element={<EmpreendimentoInspecaoHidrantes />} />
+                    <Route path="/EmpreendimentoInspecaoHidrantes" element={<EmpreendimentoInspecaoHidrantes />} />
 
-                <Route path="/NovaInspecaoHidrantes" element={<NovaInspecaoHidrantes />} />
+                    <Route path="/NovaInspecaoHidrantes" element={<NovaInspecaoHidrantes />} />
 
-                <Route path="/EditarInspecaoHidrantes" element={<EditarInspecaoHidrantes />} />
+                    <Route path="/EditarInspecaoHidrantes" element={<EditarInspecaoHidrantes />} />
 
-                <Route path="/VisualizarInspecaoHidrantes" element={<VisualizarInspecaoHidrantes />} />
+                    <Route path="/VisualizarInspecaoHidrantes" element={<VisualizarInspecaoHidrantes />} />
 
-                <Route path="/EmpreendimentoInspecaoSprinklers" element={<EmpreendimentoInspecaoSprinklers />} />
+                    <Route path="/EmpreendimentoInspecaoSprinklers" element={<EmpreendimentoInspecaoSprinklers />} />
 
-                <Route path="/NovaInspecaoSprinklers" element={<NovaInspecaoSprinklers />} />
+                    <Route path="/NovaInspecaoSprinklers" element={<NovaInspecaoSprinklers />} />
 
-                <Route path="/EditarInspecaoSprinklers" element={<EditarInspecaoSprinklers />} />
+                    <Route path="/EditarInspecaoSprinklers" element={<EditarInspecaoSprinklers />} />
 
-                <Route path="/VisualizarInspecaoSprinklers" element={<VisualizarInspecaoSprinklers />} />
+                    <Route path="/VisualizarInspecaoSprinklers" element={<VisualizarInspecaoSprinklers />} />
 
-                <Route path="/EmpreendimentoInspecaoAlarme" element={<EmpreendimentoInspecaoAlarme />} />
+                    <Route path="/EmpreendimentoInspecaoAlarme" element={<EmpreendimentoInspecaoAlarme />} />
 
-                <Route path="/NovaInspecaoAlarme" element={<NovaInspecaoAlarme />} />
+                    <Route path="/NovaInspecaoAlarme" element={<NovaInspecaoAlarme />} />
 
-                <Route path="/EditarInspecaoAlarme" element={<EditarInspecaoAlarme />} />
+                    <Route path="/EditarInspecaoAlarme" element={<EditarInspecaoAlarme />} />
 
-                <Route path="/VisualizarInspecaoAlarme" element={<VisualizarInspecaoAlarme />} />
+                    <Route path="/VisualizarInspecaoAlarme" element={<VisualizarInspecaoAlarme />} />
 
-                <Route path="/NovaInspecaoArCondicionado" element={<NovaInspecaoArCondicionado />} />
+                    <Route path="/NovaInspecaoArCondicionado" element={<NovaInspecaoArCondicionado />} />
 
-                <Route path="/EditarInspecaoArCondicionado" element={<EditarInspecaoArCondicionado />} />
+                    <Route path="/EditarInspecaoArCondicionado" element={<EditarInspecaoArCondicionado />} />
 
-                <Route path="/VisualizarInspecaoArCondicionado" element={<VisualizarInspecaoArCondicionado />} />
+                    <Route path="/VisualizarInspecaoArCondicionado" element={<VisualizarInspecaoArCondicionado />} />
 
-                <Route path="/EmpreendimentoInspecaoArCondicionado" element={<EmpreendimentoInspecaoArCondicionado />} />
+                    <Route path="/EmpreendimentoInspecaoArCondicionado" element={<EmpreendimentoInspecaoArCondicionado />} />
 
-                <Route path="/EmpreendimentoInspecaoControleAcesso" element={<EmpreendimentoInspecaoControleAcesso />} />
+                    <Route path="/EmpreendimentoInspecaoControleAcesso" element={<EmpreendimentoInspecaoControleAcesso />} />
 
-                <Route path="/NovaInspecaoControleAcesso" element={<NovaInspecaoControleAcesso />} />
+                    <Route path="/NovaInspecaoControleAcesso" element={<NovaInspecaoControleAcesso />} />
 
-                <Route path="/VisualizarInspecaoControleAcesso" element={<VisualizarInspecaoControleAcesso />} />
+                    <Route path="/VisualizarInspecaoControleAcesso" element={<VisualizarInspecaoControleAcesso />} />
 
-                <Route path="/EditarInspecaoControleAcesso" element={<EditarInspecaoControleAcesso />} />
+                    <Route path="/EditarInspecaoControleAcesso" element={<EditarInspecaoControleAcesso />} />
 
-                <Route path="/NovaInspecaoCFTV" element={<NovaInspecaoCFTV />} />
+                    <Route path="/NovaInspecaoCFTV" element={<NovaInspecaoCFTV />} />
 
-                <Route path="/EditarInspecaoCFTV" element={<EditarInspecaoCFTV />} />
+                    <Route path="/EditarInspecaoCFTV" element={<EditarInspecaoCFTV />} />
 
-                <Route path="/EmpreendimentoInspecaoCFTV" element={<EmpreendimentoInspecaoCFTV />} />
+                    <Route path="/EmpreendimentoInspecaoCFTV" element={<EmpreendimentoInspecaoCFTV />} />
 
-                <Route path="/VisualizarInspecaoCFTV" element={<VisualizarInspecaoCFTV />} />
+                    <Route path="/VisualizarInspecaoCFTV" element={<VisualizarInspecaoCFTV />} />
 
-                <Route path="/EmpreendimentoInspecaoSDAI" element={<EmpreendimentoInspecaoSDAI />} />
+                    <Route path="/EmpreendimentoInspecaoSDAI" element={<EmpreendimentoInspecaoSDAI />} />
 
-                <Route path="/NovaInspecaoSDAI" element={<NovaInspecaoSDAI />} />
+                    <Route path="/NovaInspecaoSDAI" element={<NovaInspecaoSDAI />} />
 
-                <Route path="/EditarInspecaoSDAI" element={<EditarInspecaoSDAI />} />
+                    <Route path="/EditarInspecaoSDAI" element={<EditarInspecaoSDAI />} />
 
-                <Route path="/VisualizarInspecaoSDAI" element={<VisualizarInspecaoSDAI />} />
+                    <Route path="/VisualizarInspecaoSDAI" element={<VisualizarInspecaoSDAI />} />
 
-                <Route path="/DashboardCliente" element={<DashboardCliente />} />
+                    <Route path="/DashboardCliente" element={<DashboardCliente />} />
 
-                <Route path="/RelatoriosCliente" element={<RelatoriosCliente />} />
+                    <Route path="/RelatoriosCliente" element={<RelatoriosCliente />} />
 
-                <Route path="/NovaInspecaoEletrica" element={<NovaInspecaoEletrica />} />
+                    <Route path="/NovaInspecaoEletrica" element={<NovaInspecaoEletrica />} />
 
-                <Route path="/EditarInspecaoEletrica" element={<EditarInspecaoEletrica />} />
+                    <Route path="/EditarInspecaoEletrica" element={<EditarInspecaoEletrica />} />
 
-                <Route path="/EmpreendimentoInspecaoEletrica" element={<EmpreendimentoInspecaoEletrica />} />
+                    <Route path="/EmpreendimentoInspecaoEletrica" element={<EmpreendimentoInspecaoEletrica />} />
 
-                <Route path="/VisualizarInspecaoEletrica" element={<VisualizarInspecaoEletrica />} />
+                    <Route path="/VisualizarInspecaoEletrica" element={<VisualizarInspecaoEletrica />} />
 
-                <Route path="/VisualizarListaDocumentos" element={<VisualizarListaDocumentos />} />
+                    <Route path="/VisualizarListaDocumentos" element={<VisualizarListaDocumentos />} />
 
-                <Route path="/EmpreendimentoListaDocumentos" element={<EmpreendimentoListaDocumentos />} />
+                    <Route path="/EmpreendimentoListaDocumentos" element={<EmpreendimentoListaDocumentos />} />
 
-                <Route path="/NovoRDO" element={<NovoRDO />} />
+                    <Route path="/NovoRDO" element={<NovoRDO />} />
 
-                <Route path="/EditarListaDocumentos" element={<EditarListaDocumentos />} />
+                    <Route path="/EditarListaDocumentos" element={<EditarListaDocumentos />} />
 
-                <Route path="/VisualizarListaDocumentosReport" element={<VisualizarListaDocumentosReport />} />
+                    <Route path="/VisualizarListaDocumentosReport" element={<VisualizarListaDocumentosReport />} />
 
-                <Route path="/NovoListaDocumentosReport" element={<NovoListaDocumentosReport />} />
+                    <Route path="/NovoListaDocumentosReport" element={<NovoListaDocumentosReport />} />
 
-                <Route path="/EmpreendimentoListaDocumentosReport" element={<EmpreendimentoListaDocumentosReport />} />
+                    <Route path="/EmpreendimentoListaDocumentosReport" element={<EmpreendimentoListaDocumentosReport />} />
 
-                <Route path="/EditarListaDocumentosReport" element={<EditarListaDocumentosReport />} />
-                {/* Catch-all: exige login para qualquer rota */}
-                <Route path="*" element={hasToken() ? <Empreendimentos /> : <Login />} />
-            </Routes>
+                    <Route path="/EditarListaDocumentosReport" element={<EditarListaDocumentosReport />} />
+                    {/* Catch-all: exige login para qualquer rota */}
+                    <Route path="*" element={hasToken() ? <Empreendimentos /> : <Login />} />
+                </Routes>
+            </Suspense>
         </Layout>
     );
 }

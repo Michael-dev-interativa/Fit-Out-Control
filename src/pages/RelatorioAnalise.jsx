@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, FileText, Filter, Download, Eye } from "lucide-react";
 import { format } from "date-fns";
-import _ from 'lodash';
+import { groupBy } from '@/lib/utils';
 import { useUnidadeData } from '@/components/hooks/useUnidadeData';
 
 const statusOptions = ["Todos", "Pendente", "Em Andamento", "Concluído"];
@@ -46,7 +46,7 @@ export default function RelatorioAnalise({ language = 'pt', theme = 'light' }) {
   const urlParams = new URLSearchParams(window.location.search);
   const unidadeId = urlParams.get('unidadeId');
   const empreendimentoId = urlParams.get('empreendimentoId');
-  
+
   const { unidade, empreendimento, loading, error } = useUnidadeData(unidadeId, empreendimentoId);
 
   const [registrosAP, setRegistrosAP] = useState([]);
@@ -74,34 +74,34 @@ export default function RelatorioAnalise({ language = 'pt', theme = 'light' }) {
     }
 
     const loadAnalysesAndDisciplines = async () => {
-        try {
-            const [analisesData, disciplinasData] = await Promise.all([
-                AP_unidade.filter({ id_unidade: unidadeId }, "-created_date"),
-                DisciplinaGeral.list("prefixo_disciplina")
-            ]);
-            
-            // Filtrar apenas registros ativos (não editados nem excluídos)
-            const analisesAtivas = analisesData.filter(a => 
-                a.status !== 'Editado' && a.status !== 'Excluído'
-            );
-            setRegistrosAP(analisesAtivas);
-            
-            setDisciplinas(disciplinasData);
-            
-            // Criar mapa de prefixos das disciplinas
-            const prefixMap = disciplinasData.reduce((acc, disc) => {
-                acc[disc.descricao_disciplina] = disc.prefixo_disciplina;
-                return acc;
-            }, {});
-            setDisciplinaPrefixMap(prefixMap);
+      try {
+        const [analisesData, disciplinasData] = await Promise.all([
+          AP_unidade.filter({ id_unidade: unidadeId }, "-created_date"),
+          DisciplinaGeral.list("prefixo_disciplina")
+        ]);
 
-        } catch (error) {
-            console.error("Erro ao carregar dados de análises ou disciplinas:", error);
-        }
+        // Filtrar apenas registros ativos (não editados nem excluídos)
+        const analisesAtivas = analisesData.filter(a =>
+          a.status !== 'Editado' && a.status !== 'Excluído'
+        );
+        setRegistrosAP(analisesAtivas);
+
+        setDisciplinas(disciplinasData);
+
+        // Criar mapa de prefixos das disciplinas
+        const prefixMap = disciplinasData.reduce((acc, disc) => {
+          acc[disc.descricao_disciplina] = disc.prefixo_disciplina;
+          return acc;
+        }, {});
+        setDisciplinaPrefixMap(prefixMap);
+
+      } catch (error) {
+        console.error("Erro ao carregar dados de análises ou disciplinas:", error);
+      }
     };
 
     if (!loading && unidade && empreendimento) { // Ensure unidade and empreendimento are loaded
-        loadAnalysesAndDisciplines();
+      loadAnalysesAndDisciplines();
     }
   }, [unidadeId, empreendimentoId, loading, unidade, empreendimento]);
 
@@ -282,7 +282,7 @@ export default function RelatorioAnalise({ language = 'pt', theme = 'light' }) {
               <strong>{analisesFiltradas.length}</strong> {t.recordsFound}
             </p>
             <div className="flex gap-2">
-              <Button 
+              <Button
                 onClick={gerarRelatorioPDF}
                 disabled={analisesFiltradas.length === 0}
                 className="bg-blue-600 hover:bg-blue-700"
@@ -311,91 +311,91 @@ export default function RelatorioAnalise({ language = 'pt', theme = 'light' }) {
             </div>
           ) : (
             <div className="space-y-6 max-h-[600px] overflow-y-auto">
-              {Object.entries(_.groupBy(analisesFiltradas, 'emissao_ap')).map(([emissao, analisesGrupo]) => (
+              {Object.entries(groupBy(analisesFiltradas, 'emissao_ap')).map(([emissao, analisesGrupo]) => (
                 <div key={emissao}>
                   <h3 className={`font-bold text-lg mb-4 pb-2 border-b ${isDark ? 'text-blue-400 border-gray-700' : 'text-blue-600 border-gray-200'}`}>
                     {t.emission}: {emissao}
                   </h3>
-                  {Object.entries(_.groupBy(analisesGrupo, 'disciplina_ap'))
+                  {Object.entries(groupBy(analisesGrupo, 'disciplina_ap'))
                     .sort(([disciplinaA], [disciplinaB]) => {
                       const prefixA = disciplinaPrefixMap[disciplinaA] || 0;
                       const prefixB = disciplinaPrefixMap[disciplinaB] || 0;
                       return prefixA - prefixB;
                     })
                     .map(([disciplina, itemsDaDisciplina]) => (
-                    <div key={disciplina} className="pl-2 mt-4">
-                      <h4 className={`font-semibold text-md mb-3 flex items-center gap-2 ${isDark ? 'text-green-400' : 'text-green-700'}`}>
-                        <Badge className={getDisciplinaColor(disciplina)}>{disciplina}</Badge>
-                      </h4>
-                      <div className="space-y-3 pl-4 border-l-2 border-dashed border-gray-300">
-                        {itemsDaDisciplina
-                          .sort((a, b) => {
-                            const itemA = a.item_ap || "";
-                            const itemB = b.item_ap || "";
-                            return itemA.localeCompare(itemB, undefined, { numeric: true });
-                          })
-                          .map((analise) => (
-                          <div 
-                            key={analise.id}
-                            className={`p-4 rounded-lg border ${isDark ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-50 border-gray-200'}`}
-                          >
-                            <div className="space-y-2">
-                              <div className="flex items-start justify-between gap-4">
-                                <h5 className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                                  <span className="font-bold">{analise.item_ap}</span> - {analise.descricao_ap}
-                                </h5>
-                                <Badge className={getStatusColor(analise.status)}>
-                                  {analise.status}
-                                </Badge>
-                              </div>
-                              
-                              {analise.comentario_ap && (
-                                <div>
-                                  <p className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{t.comment}:</p>
-                                  <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{analise.comentario_ap}</p>
-                                </div>
-                              )}
+                      <div key={disciplina} className="pl-2 mt-4">
+                        <h4 className={`font-semibold text-md mb-3 flex items-center gap-2 ${isDark ? 'text-green-400' : 'text-green-700'}`}>
+                          <Badge className={getDisciplinaColor(disciplina)}>{disciplina}</Badge>
+                        </h4>
+                        <div className="space-y-3 pl-4 border-l-2 border-dashed border-gray-300">
+                          {itemsDaDisciplina
+                            .sort((a, b) => {
+                              const itemA = a.item_ap || "";
+                              const itemB = b.item_ap || "";
+                              return itemA.localeCompare(itemB, undefined, { numeric: true });
+                            })
+                            .map((analise) => (
+                              <div
+                                key={analise.id}
+                                className={`p-4 rounded-lg border ${isDark ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-50 border-gray-200'}`}
+                              >
+                                <div className="space-y-2">
+                                  <div className="flex items-start justify-between gap-4">
+                                    <h5 className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                      <span className="font-bold">{analise.item_ap}</span> - {analise.descricao_ap}
+                                    </h5>
+                                    <Badge className={getStatusColor(analise.status)}>
+                                      {analise.status}
+                                    </Badge>
+                                  </div>
 
-                              {analise.replica_ap && (
-                                <div>
-                                  <p className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Réplica:</p>
-                                  <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{analise.replica_ap}</p>
-                                </div>
-                              )}
+                                  {analise.comentario_ap && (
+                                    <div>
+                                      <p className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{t.comment}:</p>
+                                      <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{analise.comentario_ap}</p>
+                                    </div>
+                                  )}
 
-                              {analise.treplica_ap && (
-                                <div>
-                                  <p className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Tréplica:</p>
-                                  <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{analise.treplica_ap}</p>
-                                </div>
-                              )}
+                                  {analise.replica_ap && (
+                                    <div>
+                                      <p className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Réplica:</p>
+                                      <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{analise.replica_ap}</p>
+                                    </div>
+                                  )}
 
-                              {analise.imagem_ap && (
-                                <div>
-                                  <img 
-                                    src={analise.imagem_ap} 
-                                    alt="Imagem da análise" 
-                                    className="max-w-full h-auto max-h-48 rounded-lg border"
-                                  />
-                                  {analise.comentario_im_ap && (
-                                    <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                                      {analise.comentario_im_ap}
+                                  {analise.treplica_ap && (
+                                    <div>
+                                      <p className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Tréplica:</p>
+                                      <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{analise.treplica_ap}</p>
+                                    </div>
+                                  )}
+
+                                  {analise.imagem_ap && (
+                                    <div>
+                                      <img
+                                        src={analise.imagem_ap}
+                                        alt="Imagem da análise"
+                                        className="max-w-full h-auto max-h-48 rounded-lg border"
+                                      />
+                                      {analise.comentario_im_ap && (
+                                        <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                          {analise.comentario_im_ap}
+                                        </p>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {analise.data_inclusao_ap && (
+                                    <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                      {t.includedOn}: {format(new Date(analise.data_inclusao_ap), 'dd/MM/yyyy HH:mm')}
                                     </p>
                                   )}
                                 </div>
-                              )}
-
-                              {analise.data_inclusao_ap && (
-                                <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                  {t.includedOn}: {format(new Date(analise.data_inclusao_ap), 'dd/MM/yyyy HH:mm')}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        ))}
+                              </div>
+                            ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               ))}
             </div>
