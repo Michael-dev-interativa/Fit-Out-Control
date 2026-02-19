@@ -21,19 +21,23 @@ app.use(helmet());
 
 // Rate limiting for API endpoints
 const RATE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
+// Key generator extracted so we can reuse for auth-specific limiter as well
+const keyGeneratorFn = (req /*, res */) => {
+  try {
+    return req.user && req.user.sub ? `user:${req.user.sub}` : req.ip;
+  } catch {
+    return req.ip;
+  }
+};
+
 const apiLimiter = rateLimit({
   windowMs: RATE_WINDOW_MS,
   max: process.env.RATE_LIMIT_MAX ? parseInt(process.env.RATE_LIMIT_MAX, 10) : 200,
   standardHeaders: true,
   legacyHeaders: false,
   // Use authenticated user id as key if available, else use IP
-  keyGenerator: (req /*, res */) => {
-    try {
-      return req.user && req.user.sub ? `user:${req.user.sub}` : req.ip;
-    } catch {
-      return req.ip;
-    }
-  },
+  keyGenerator: keyGeneratorFn,
   // Custom handler so we can log and return JSON with Retry-After
   handler: (req, res /*, next */) => {
     try {
@@ -92,7 +96,7 @@ const authLimiter = rateLimit({
   max: process.env.RATE_LIMIT_AUTH_MAX ? parseInt(process.env.RATE_LIMIT_AUTH_MAX, 10) : 1000,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: apiLimiter.options.keyGenerator,
+  keyGenerator: keyGeneratorFn,
   handler: (req, res) => {
     try {
       console.warn(`[RATE LIMIT][AUTH] ip=${req.ip} user=${req.user ? req.user.sub : 'anon'} method=${req.method} url=${req.originalUrl}`);
