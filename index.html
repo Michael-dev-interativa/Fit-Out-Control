@@ -230,12 +230,33 @@
           };
         })();
 
-        // Log imagens que emitirem erro (404 etc.)
+        // Log imagens que emitirem erro (404 etc.) e tentar fetch para capturar status/cabeçalhos
         window.addEventListener('error', function (ev) {
           try {
             const tgt = ev.target || ev.srcElement;
             if (tgt && tgt.tagName === 'IMG') {
-              console.warn('❌ [DIAG] IMG error:', tgt.src || tgt.getAttribute && tgt.getAttribute('src'));
+              const src = tgt.src || (tgt.getAttribute && tgt.getAttribute('src'));
+              console.warn('❌ [DIAG] IMG error:', src);
+              if (src) {
+                // try to fetch to get status/headers
+                try {
+                  fetch(src, { method: 'GET', cache: 'no-store', mode: 'cors' }).then(async function (r) {
+                    try {
+                      const headers = {};
+                      r.headers && r.headers.forEach && r.headers.forEach((v, k) => headers[k] = v);
+                      let bodyText = '';
+                      try {
+                        // try to read small text body for debugging
+                        bodyText = await r.text();
+                        if (bodyText && bodyText.length > 2000) bodyText = bodyText.slice(0, 2000) + '...';
+                      } catch (e) { bodyText = '(no body / binary)'; }
+                      console.log('🔍 [DIAG] fetch image result:', src, 'status=', r.status, 'ok=', r.ok, 'headers=', headers, 'bodyPreview=', bodyText);
+                    } catch (e) { console.warn('❌ [DIAG] erro lendo resposta fetch', e); }
+                  }).catch(function (err) {
+                    console.warn('❌ [DIAG] fetch image failed:', src, err);
+                  });
+                } catch (e) { console.warn('❌ [DIAG] falha ao executar fetch diagnostico', e); }
+              }
             }
           } catch (e) { }
         }, true);
