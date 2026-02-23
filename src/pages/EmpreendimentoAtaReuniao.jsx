@@ -34,6 +34,7 @@ export default function NovaAtaReuniao() {
     edificio: '',
     nome_arquivo: '',
     locatario: '',
+    local_reuniao: '',
     data_reuniao: new Date().toISOString().split('T')[0],
     titulo_reuniao: '',
     subtitulo_reuniao: '',
@@ -319,6 +320,7 @@ export default function NovaAtaReuniao() {
               />
             </div>
             <div className="space-y-2"><Label>Locatário</Label><Input value={formData.locatario} onChange={e => handleInputChange('locatario', e.target.value)} /></div>
+            <div className="space-y-2"><Label>Local da Reunião</Label><Input value={formData.local_reuniao} onChange={e => handleInputChange('local_reuniao', e.target.value)} placeholder="Ex: Sala de Reuniões - Bloco A" required /></div>
             <div className="space-y-2"><Label>Data da Reunião</Label><Input type="date" value={formData.data_reuniao} onChange={e => handleInputChange('data_reuniao', e.target.value)} required /></div>
           </CardContent>
         </Card>
