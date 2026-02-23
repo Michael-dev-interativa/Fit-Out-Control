@@ -44,16 +44,11 @@ app.get('/api/files/:id', async (req, res) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
 
-  const { DATABASE_URL } = process.env;
-  if (!DATABASE_URL) {
-    return res.status(503).json({ error: 'database_not_configured' });
-  }
-
-  let pool;
   try {
-    pool = new Pool({ connectionString: DATABASE_URL });
+    // Use shared pool via requirePool() to respect global SSL/config
+    const p = requirePool();
 
-    const { rows } = await pool.query(
+    const { rows } = await p.query(
       'SELECT nome_original, mime_type, dados FROM arquivos WHERE id = $1',
       [req.params.id]
     );
@@ -63,6 +58,12 @@ app.get('/api/files/:id', async (req, res) => {
     }
 
     const file = rows[0];
+    // Defensive: ensure dados exists
+    if (!file.dados) {
+      console.error('Arquivo sem dados encontrado id=', req.params.id);
+      return res.status(404).json({ error: 'file_no_data' });
+    }
+
     const safeName = String(path.basename(file.nome_original || 'file')).replace(/\"/g, '').slice(0, 255);
 
     res.setHeader('Content-Type', file.mime_type || 'application/octet-stream');
@@ -70,10 +71,8 @@ app.get('/api/files/:id', async (req, res) => {
     res.setHeader('Cache-Control', 'public, max-age=31536000');
     return res.send(file.dados);
   } catch (err) {
-    console.error('Erro ao buscar arquivo:', err);
+    console.error('Erro ao buscar arquivo:', err && (err.stack || err.message || String(err)));
     return res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
-  } finally {
-    if (pool) await pool.end();
   }
 });
 
