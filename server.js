@@ -41,7 +41,7 @@ app.get('/api/files/:id', async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', '*');
-  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');  
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
 
   const { DATABASE_URL } = process.env;
@@ -52,7 +52,7 @@ app.get('/api/files/:id', async (req, res) => {
   let pool;
   try {
     pool = new Pool({ connectionString: DATABASE_URL });
-    
+
     const { rows } = await pool.query(
       'SELECT nome_original, mime_type, dados FROM arquivos WHERE id = $1',
       [req.params.id]
@@ -74,6 +74,13 @@ app.get('/api/files/:id', async (req, res) => {
     return res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
   } finally {
     if (pool) await pool.end();
+  }
+});
+
+// OPTIONS handler para /api/files/*
+app.options('/api/files/*', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', '*');
   res.sendStatus(200);
 });
