@@ -245,12 +245,18 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
       console.log('📸 Resultados do upload:', results);
 
       const newFotos = results.map(result => {
-        console.log('🔗 URL retornada:', result.file_url);
-        if (result.file_url && result.file_url.startsWith('blob:')) {
-          console.error('❌ ERRO: URL de blob detectada! Upload pode ter falhado.');
+        console.log('🔗 Resultado do upload:', result);
+        // Prefer file_url, mas se estiver ausente use file_path e converta com getUploadUrl
+        const candidate = result.file_url || result.file_path || null;
+        let finalUrl = null;
+        if (candidate) {
+          finalUrl = getUploadUrl(candidate) || candidate;
+        }
+        if (finalUrl && finalUrl.startsWith('blob:')) {
+          console.error('❌ ERRO: URL de blob detectada! Upload pode ter falhado.', result);
         }
         return {
-          url: result.file_url,
+          url: finalUrl,
           legenda: ''
         };
       });
@@ -295,7 +301,11 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
       );
       const results = await Promise.all(uploadPromises);
 
-      const newAssinaturas = results.map(result => ({ url: result.file_url, nome: '' }));
+      const newAssinaturas = results.map(result => {
+        const candidate = result.file_url || result.file_path || null;
+        const url = candidate ? (getUploadUrl(candidate) || candidate) : null;
+        return { url, nome: '' };
+      });
       setFormData(prev => ({
         ...prev,
         assinaturas: [...(prev.assinaturas || []), ...newAssinaturas]
