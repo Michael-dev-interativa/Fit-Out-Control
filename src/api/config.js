@@ -60,20 +60,19 @@ export function getUploadUrl(filePath) {
   // Recalcula API_BASE para pegar hostname atual
   const currentApiBase = getApiBase();
 
-  // Debug em desenvolvimento
-  if (typeof window !== "undefined" && window.location.hostname === "localhost") {
-    console.log('[getUploadUrl] filePath:', filePath, '→ base:', currentApiBase);
-  }
+  // Log SEMPRE para debug em produção
+  console.log('[getUploadUrl] Input:', filePath, '| API Base:', currentApiBase);
 
   // Se já é URL completa, retorna como está
   if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+    console.log('[getUploadUrl] → Already full URL, returning as-is');
     return filePath;
   }
 
   // Se é um caminho de API (/api/files/123), usa diretamente
   if (filePath.startsWith('/api/')) {
     const fullUrl = `${currentApiBase}${filePath}`;
-    console.log('[getUploadUrl] API path:', filePath, '→', fullUrl);
+    console.log('[getUploadUrl] → API path converted to:', fullUrl);
     return fullUrl;
   }
 
@@ -82,9 +81,13 @@ export function getUploadUrl(filePath) {
 
   // Se é um caminho antigo de uploads (uploads/xxxxx.jpg)
   if (cleanPath.startsWith('uploads/')) {
-    return `${currentApiBase}/${cleanPath}`;
+    const fullUrl = `${currentApiBase}/${cleanPath}`;
+    console.log('[getUploadUrl] → Uploads path converted to:', fullUrl);
+    return fullUrl;
   }
 
   // Senão, adiciona 'uploads/' (fallback para compatibilidade)
-  return `${currentApiBase}/uploads/${cleanPath}`;
+  const fullUrl = `${currentApiBase}/uploads/${cleanPath}`;
+  console.log('[getUploadUrl] → Fallback path converted to:', fullUrl);
+  return fullUrl;
 }
