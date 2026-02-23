@@ -595,6 +595,13 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 
 // Rota para servir arquivos do banco de dados
 app.get('/api/files/:id', async (req, res) => {
+  // Headers CORS DEVEM vir PRIMEIRO, antes de qualquer lógica
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Content-Type');
+
   try {
     const p = requirePool();
     const { rows } = await p.query(
@@ -609,11 +616,6 @@ app.get('/api/files/:id', async (req, res) => {
 
     const file = rows[0];
     const safeName = String(path.basename(file.nome_original || 'file')).replace(/\"/g, '').slice(0, 255);
-
-    // Headers CORS explícitos para permitir carregamento de imagens
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
     res.setHeader('Content-Type', file.mime_type || 'application/octet-stream');
     res.setHeader('Content-Disposition', `inline; filename="${safeName}"`);
