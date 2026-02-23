@@ -678,8 +678,31 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {formData.fotos?.map((foto, index) => {
-                const imageUrl = getUploadUrl(foto.url) || foto.url;
-                console.log(`[NovoRDO] Foto ${index}:`, { original: foto.url, converted: imageUrl });
+                // Função inline para garantir conversão de URL
+                const convertImageUrl = (url) => {
+                  if (!url) return null;
+                  console.log('[NovoRDO-INLINE] URL Original:', url);
+
+                  // Se já é URL completa
+                  if (url.startsWith('http://') || url.startsWith('https://')) {
+                    console.log('[NovoRDO-INLINE] → Já é URL completa');
+                    return url;
+                  }
+
+                  // Se é path relativo da API
+                  if (url.startsWith('/api/')) {
+                    const backendBase = 'https://fit-out-backend.onrender.com';
+                    const fullUrl = `${backendBase}${url}`;
+                    console.log('[NovoRDO-INLINE] → Convertido para:', fullUrl);
+                    return fullUrl;
+                  }
+
+                  console.log('[NovoRDO-INLINE] → Usando getUploadUrl');
+                  return getUploadUrl(url);
+                };
+
+                const imageUrl = convertImageUrl(foto.url) || foto.url;
+                console.log(`[NovoRDO] Foto ${index}:`, { original: foto.url, final: imageUrl });
 
                 return (
                   <div key={index} className={`border rounded-lg p-3 ${isDark ? 'border-gray-600' : 'border-gray-300'}`}>
