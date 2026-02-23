@@ -17,6 +17,17 @@ const app = express();
 
 console.log('🚀 Iniciando servidor (segurança básica: CORS restrito, helmet, rate-limit)');
 
+// Helper para construir URLs completas
+function getServerBaseUrl() {
+  // Em produção no Render, usar URL do backend
+  if (process.env.NODE_ENV === 'production' || process.env.RENDER) {
+    return 'https://fit-out-backend.onrender.com';
+  }
+  // Em desenvolvimento, usar localhost
+  const port = process.env.PORT || 5000;
+  return `http://localhost:${port}`;
+}
+
 // Silence verbose logs in production to reduce noise and bundle size
 if (process.env.NODE_ENV === 'production') {
   console.log = () => { };
@@ -562,10 +573,14 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     );
 
     const fileId = rows[0].id;
-    const file_url = `/api/files/${fileId}`;
+    const file_path = `/api/files/${fileId}`;
+    const file_url = `${getServerBaseUrl()}${file_path}`;
+
+    console.log(`✅ Arquivo salvo: ID ${fileId} → ${file_url}`);
 
     res.status(201).json({
       file_url,
+      file_path, // path relativo para compatibilidade
       id: fileId,
       name: req.file.originalname,
       size: req.file.size,
@@ -622,6 +637,18 @@ app.get('/uploads/:filename', (req, res) => {
 
 // Map DB row to API payload
 function mapRelatorioRow(row) {
+  // Converte URLs relativas em absolutas para fotos
+  let fotos = row.fotos;
+  if (fotos && Array.isArray(fotos)) {
+    const baseUrl = getServerBaseUrl();
+    fotos = fotos.map(foto => {
+      if (foto.url && foto.url.startsWith('/api/')) {
+        return { ...foto, url: `${baseUrl}${foto.url}` };
+      }
+      return foto;
+    });
+  }
+
   return {
     id: row.id,
     id_empreendimento: row.id_empreendimento,
@@ -637,7 +664,7 @@ function mapRelatorioRow(row) {
     atividades_proxima_semana_tabela: row.atividades_proxima_semana_tabela,
     caminho_critico: row.caminho_critico,
     impedimentos: row.impedimentos,
-    fotos: row.fotos,
+    fotos: fotos,
     vistos: row.vistos,
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -2931,6 +2958,27 @@ app.delete('/api/rdos/:id', async (req, res) => {
 
 // ---- Lista de Documentos Report ----
 function mapListaDocumentosReport(row) {
+  // Converte URLs relativas em absolutas para documentos/fotos
+  let documentos = row.documentos;
+  if (documentos && Array.isArray(documentos)) {
+    const baseUrl = getServerBaseUrl();
+    documentos = documentos.map(doc => {
+      // Se o documento tem fotos, converter URLs
+      if (doc.fotos && Array.isArray(doc.fotos)) {
+        doc = {
+          ...doc,
+          fotos: doc.fotos.map(foto => {
+            if (foto.url && foto.url.startsWith('/api/')) {
+              return { ...foto, url: `${baseUrl}${foto.url}` };
+            }
+            return foto;
+          })
+        };
+      }
+      return doc;
+    });
+  }
+
   return {
     id: row.id,
     id_empreendimento: row.id_empreendimento,
@@ -2940,7 +2988,7 @@ function mapListaDocumentosReport(row) {
     numero_documento: row.numero_documento,
     revisao: row.revisao,
     data_aviso: row.data_aviso,
-    documentos: row.documentos,
+    documentos: documentos,
     assinaturas: row.assinaturas,
     observacoes_gerais: row.observacoes_gerais,
     status_documento: row.status_documento,
