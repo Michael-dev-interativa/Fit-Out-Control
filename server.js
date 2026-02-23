@@ -4514,6 +4514,71 @@ app.get('/api/disciplinas-gerais', (_req, res) => {
   res.json([]);
 });
 
+// Endpoint administrativo para corrigir URLs antigas de imagens
+app.post('/api/admin/fix-image-urls', async (req, res) => {
+  try {
+    const p = requirePool();
+    const baseUrl = getServerBaseUrl();
+    let totalUpdated = 0;
+
+    console.log('🔧 Iniciando correção de URLs de imagens...');
+
+    // 1. Atualizar relatorios_semanais
+    const { rows: relatorios } = await p.query('SELECT id, fotos FROM relatorios_semanais WHERE fotos IS NOT NULL');
+
+    for (const relatorio of relatorios) {
+      if (!relatorio.fotos || !Array.isArray(relatorio.fotos)) continue;
+
+      let needsUpdate = false;
+      const updatedFotos = relatorio.fotos.map(foto => {
+        if (foto.url && foto.url.startsWith('/api/')) {
+          needsUpdate = true;
+          return { ...foto, url: `${baseUrl}${foto.url}` };
+        }
+        return foto;
+      });
+
+      if (needsUpdate) {
+        await p.query('UPDATE relatorios_semanais SET fotos = $1 WHERE id = $2', [updatedFotos, relatorio.id]);
+        totalUpdated++;
+      }
+    }
+
+    // 2. Atualizar lista_documentos_report
+    const { rows: documentos } = await p.query('SELECT id, documentos FROM lista_documentos_report WHERE documentos IS NOT NULL');
+
+    for (const doc of documentos) {
+      if (!doc.documentos || !Array.isArray(doc.documentos)) continue;
+
+      let needsUpdate = false;
+      const updatedDocs = doc.documentos.map(item => {
+        if (item.fotos && Array.isArray(item.fotos)) {
+          const updatedFotos = item.fotos.map(foto => {
+            if (foto.url && foto.url.startsWith('/api/')) {
+              needsUpdate = true;
+              return { ...foto, url: `${baseUrl}${foto.url}` };
+            }
+            return foto;
+          });
+          return { ...item, fotos: updatedFotos };
+        }
+        return item;
+      });
+
+      if (needsUpdate) {
+        await p.query('UPDATE lista_documentos_report SET documentos = $1 WHERE id = $2', [updatedDocs, doc.id]);
+        totalUpdated++;
+      }
+    }
+
+    console.log(`✅ ${totalUpdated} registros atualizados`);
+    res.json({ success: true, updated: totalUpdated });
+  } catch (err) {
+    console.error('❌ Erro ao corrigir URLs:', err);
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
 // ---- Iniciar servidor ----
 // IMPORTANTE: app.listen() deve estar DEPOIS de todas as definições de rotas
 const DEFAULT_PORT = 5001;
