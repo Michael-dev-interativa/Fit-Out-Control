@@ -6,6 +6,77 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Fitout APP</title>
+
+  <!-- HOTFIX: Correção automática de URLs de imagens -->
+  <script>
+    (function () {
+      console.log('🔧 [HOTFIX] Interceptor de URLs de imagens ativado');
+
+      // Função para corrigir URL
+      function fixImageUrl(url) {
+        if (!url) return url;
+
+        // Se a URL aponta para o frontend mas deveria apontar para o backend
+        if (url.includes('fit-out-control-frontend1.onrender.com/api/files/')) {
+          const fixed = url.replace(
+            'fit-out-control-frontend1.onrender.com',
+            'fit-out-backend.onrender.com'
+          );
+          console.log('🔧 [HOTFIX] URL corrigida:', url, '→', fixed);
+          return fixed;
+        }
+
+        // Se é um path relativo /api/files/X
+        if (url.startsWith('/api/files/')) {
+          const fixed = 'https://fit-out-backend.onrender.com' + url;
+          console.log('🔧 [HOTFIX] Path relativo convertido:', url, '→', fixed);
+          return fixed;
+        }
+
+        return url;
+      }
+
+      // Intercepta setAttribute para tags img
+      const originalSetAttribute = Element.prototype.setAttribute;
+      Element.prototype.setAttribute = function (name, value) {
+        if (this.tagName === 'IMG' && name === 'src') {
+          value = fixImageUrl(value);
+        }
+        return originalSetAttribute.call(this, name, value);
+      };
+
+      // Observa mudanças no DOM
+      const observer = new MutationObserver(function (mutations) {
+        mutations.forEach(function (mutation) {
+          mutation.addedNodes.forEach(function (node) {
+            if (node.tagName === 'IMG' && node.src) {
+              const fixed = fixImageUrl(node.src);
+              if (fixed !== node.src) {
+                node.src = fixed;
+              }
+            }
+            if (node.querySelectorAll) {
+              node.querySelectorAll('img').forEach(function (img) {
+                const fixed = fixImageUrl(img.src);
+                if (fixed !== img.src) {
+                  img.src = fixed;
+                }
+              });
+            }
+          });
+        });
+      });
+
+      // Inicia observação quando DOM estiver pronto
+      if (document.body) {
+        observer.observe(document.body, { childList: true, subtree: true });
+      } else {
+        document.addEventListener('DOMContentLoaded', function () {
+          observer.observe(document.body, { childList: true, subtree: true });
+        });
+      }
+    })();
+  </script>
 </head>
 
 <body>
