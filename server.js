@@ -34,6 +34,50 @@ if (process.env.NODE_ENV === 'production') {
   console.debug = () => { };
 }
 
+// ⚠️ IMPORTANTE: Endpoint de arquivos ANTES dos middlewares de segurança
+// para evitar bloqueios de CORS/CSP do helmet
+app.get('/api/files/:id', async (req, res) => {
+  // Headers CORS totalmente abertos para imagens
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');  
+  res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
+
+  const { DATABASE_URL } = process.env;
+  if (!DATABASE_URL) {
+    return res.status(503).json({ error: 'database_not_configured' });
+  }
+
+  let pool;
+  try {
+    pool = new Pool({ connectionString: DATABASE_URL });
+    
+    const { rows } = await pool.query(
+      'SELECT nome_original, mime_type, dados FROM arquivos WHERE id = $1',
+      [req.params.id]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ error: 'file_not_found' });
+    }
+
+    const file = rows[0];
+    const safeName = String(path.basename(file.nome_original || 'file')).replace(/\"/g, '').slice(0, 255);
+
+    res.setHeader('Content-Type', file.mime_type || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `inline; filename="${safeName}"`);
+    res.setHeader('Cache-Control', 'public, max-age=31536000');
+    return res.send(file.dados);
+  } catch (err) {
+    console.error('Erro ao buscar arquivo:', err);
+    return res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  } finally {
+    if (pool) await pool.end();
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.sendStatus(200);
+});
+
 // Security middleware
 app.use(helmet());
 
@@ -588,41 +632,6 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     });
   } catch (err) {
     console.error('Erro ao fazer upload:', err);
-    const msg = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ error: msg });
-  }
-});
-
-// Rota para servir arquivos do banco de dados
-app.get('/api/files/:id', async (req, res) => {
-  // Headers CORS DEVEM vir PRIMEIRO, antes de qualquer lógica
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range');
-  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-  res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Content-Type');
-
-  try {
-    const p = requirePool();
-    const { rows } = await p.query(
-      'SELECT nome_original, mime_type, dados FROM arquivos WHERE id = $1',
-      [req.params.id]
-    );
-
-    if (!rows.length) {
-      console.warn(`⚠️ Arquivo não encontrado: ${req.params.id}`);
-      return res.status(404).json({ error: 'file_not_found' });
-    }
-
-    const file = rows[0];
-    const safeName = String(path.basename(file.nome_original || 'file')).replace(/\"/g, '').slice(0, 255);
-
-    res.setHeader('Content-Type', file.mime_type || 'application/octet-stream');
-    res.setHeader('Content-Disposition', `inline; filename="${safeName}"`);
-    res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache de 1 ano
-    res.send(file.dados);
-  } catch (err) {
-    console.error('Erro ao buscar arquivo:', err);
     const msg = err instanceof Error ? err.message : String(err);
     res.status(500).json({ error: msg });
   }
