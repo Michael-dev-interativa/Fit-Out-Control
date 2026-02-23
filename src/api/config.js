@@ -60,6 +60,11 @@ export function getUploadUrl(filePath) {
   // Recalcula API_BASE para pegar hostname atual
   const currentApiBase = getApiBase();
 
+  // Debug em desenvolvimento
+  if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+    console.log('[getUploadUrl] filePath:', filePath, '→ base:', currentApiBase);
+  }
+
   // Se já é URL completa, retorna como está
   if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
     return filePath;
@@ -67,7 +72,9 @@ export function getUploadUrl(filePath) {
 
   // Se é um caminho de API (/api/files/123), usa diretamente
   if (filePath.startsWith('/api/')) {
-    return `${currentApiBase}${filePath}`;
+    const fullUrl = `${currentApiBase}${filePath}`;
+    console.log('[getUploadUrl] API path:', filePath, '→', fullUrl);
+    return fullUrl;
   }
 
   // Remove barra inicial
