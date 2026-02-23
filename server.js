@@ -594,6 +594,12 @@ app.get('/api/files/:id', async (req, res) => {
 
     const file = rows[0];
     const safeName = String(path.basename(file.nome_original || 'file')).replace(/\"/g, '').slice(0, 255);
+
+    // Headers CORS explícitos para permitir carregamento de imagens
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
     res.setHeader('Content-Type', file.mime_type || 'application/octet-stream');
     res.setHeader('Content-Disposition', `inline; filename="${safeName}"`);
     res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache de 1 ano
