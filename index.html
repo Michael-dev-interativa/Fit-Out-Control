@@ -173,6 +173,75 @@
         });
       } catch (e) { }
 
+      // DIAGNÓSTICO: interceptar fetch/XHR para logar POST /api/upload e registrar erros de imagem
+      try {
+        console.log('🔍 [DIAG] Monitor de uploads e erros de imagem ativado');
+
+        // Intercept fetch
+        const _origFetch = window.fetch;
+        window.fetch = async function (input, init) {
+          try {
+            const url = (typeof input === 'string') ? input : (input && input.url);
+            if (url && url.indexOf('/api/upload') !== -1) {
+              console.log('📤 [DIAG] fetch ->', url, init && init.method ? init.method : 'GET', init && init.body ? '(body present)' : '');
+            }
+          } catch (e) { }
+          const resp = await _origFetch.apply(this, arguments);
+          try {
+            const rurl = resp && resp.url;
+            if (rurl && rurl.indexOf('/api/upload') !== -1) {
+              // clone to read body
+              const clone = resp.clone();
+              clone.json().then(j => console.log('📥 [DIAG] resposta /api/upload:', j)).catch(() => console.log('📥 [DIAG] resposta /api/upload: (not json)'));
+            }
+          } catch (e) { }
+          return resp;
+        };
+
+        // Intercept XHR
+        (function () {
+          const XHR = window.XMLHttpRequest;
+          const origOpen = XHR.prototype.open;
+          const origSend = XHR.prototype.send;
+          XHR.prototype.open = function (method, url) {
+            this.__diag_method = method;
+            this.__diag_url = url;
+            return origOpen.apply(this, arguments);
+          };
+          XHR.prototype.send = function (body) {
+            try {
+              if (this.__diag_url && this.__diag_url.indexOf('/api/upload') !== -1) {
+                console.log('📤 [DIAG] XHR ->', this.__diag_method, this.__diag_url, body ? '(body present)' : '');
+                this.addEventListener('readystatechange', function () {
+                  if (this.readyState === 4) {
+                    try {
+                      const ct = this.getResponseHeader && this.getResponseHeader('content-type');
+                      if (ct && ct.indexOf('application/json') !== -1) {
+                        console.log('📥 [DIAG] XHR resposta /api/upload:', this.responseText);
+                      } else {
+                        console.log('📥 [DIAG] XHR resposta /api/upload: status', this.status);
+                      }
+                    } catch (e) { }
+                  }
+                });
+              }
+            } catch (e) { }
+            return origSend.apply(this, arguments);
+          };
+        })();
+
+        // Log imagens que emitirem erro (404 etc.)
+        window.addEventListener('error', function (ev) {
+          try {
+            const tgt = ev.target || ev.srcElement;
+            if (tgt && tgt.tagName === 'IMG') {
+              console.warn('❌ [DIAG] IMG error:', tgt.src || tgt.getAttribute && tgt.getAttribute('src'));
+            }
+          } catch (e) { }
+        }, true);
+
+      } catch (e) { console.warn('❌ [DIAG] falha ao instalar diagnósticos', e); }
+
     })();
   </script>
 </head>
