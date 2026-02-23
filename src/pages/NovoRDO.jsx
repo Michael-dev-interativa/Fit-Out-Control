@@ -677,30 +677,35 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {formData.fotos?.map((foto, index) => (
-                <div key={index} className={`border rounded-lg p-3 ${isDark ? 'border-gray-600' : 'border-gray-300'}`}>
-                  <img
-                    src={getUploadUrl(foto.url) || foto.url}
-                    alt={`Foto ${index + 1}`}
-                    className="w-full h-48 object-cover rounded mb-2"
-                  />
-                  <Input
-                    value={foto.legenda}
-                    onChange={(e) => updateFotoLegenda(index, e.target.value)}
-                    placeholder="Legenda da Foto"
-                    className={`mb-2 ${isDark ? 'bg-gray-700 text-white' : ''}`}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeFoto(index)}
-                    className="w-full"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2 text-red-600" />
-                    Remover
-                  </Button>
-                </div>
-              ))}
+              {formData.fotos?.map((foto, index) => {
+                const imageUrl = getUploadUrl(foto.url) || foto.url;
+                console.log(`[NovoRDO] Foto ${index}:`, { original: foto.url, converted: imageUrl });
+
+                return (
+                  <div key={index} className={`border rounded-lg p-3 ${isDark ? 'border-gray-600' : 'border-gray-300'}`}>
+                    <img
+                      src={imageUrl}
+                      alt={`Foto ${index + 1}`}
+                      className="w-full h-48 object-cover rounded mb-2"
+                    />
+                    <Input
+                      value={foto.legenda}
+                      onChange={(e) => updateFotoLegenda(index, e.target.value)}
+                      placeholder="Legenda da Foto"
+                      className={`mb-2 ${isDark ? 'bg-gray-700 text-white' : ''}`}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeFoto(index)}
+                      className="w-full"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2 text-red-600" />
+                      Remover
+                    </Button>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
