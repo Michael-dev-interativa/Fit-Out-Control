@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Empreendimento, RDO } from '@/api/entities';
+import { Empreendimento, ListaDocumentosReport } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -103,7 +103,7 @@ export default function EmpreendimentoListaDocumentos({ language: initialLanguag
     try {
       const [empData, docsData] = await Promise.all([
         Empreendimento.get(empreendimentoId),
-        RDO.filter({ id_empreendimento: empreendimentoId }, '-created_date')
+        ListaDocumentosReport.filter({ id_empreendimento: empreendimentoId }, '-created_date')
       ]);
 
       setEmpreendimento(empData);
@@ -119,7 +119,7 @@ export default function EmpreendimentoListaDocumentos({ language: initialLanguag
     if (!documentoToDelete) return;
 
     try {
-      await RDO.delete(documentoToDelete.id);
+      await ListaDocumentosReport.delete(documentoToDelete.id);
       setDeleteDialogOpen(false);
       setDocumentoToDelete(null);
       loadData();
@@ -150,7 +150,7 @@ export default function EmpreendimentoListaDocumentos({ language: initialLanguag
         </Button>
 
         <Button
-          onClick={() => navigate(createPageUrl(`NovoRDO?empreendimentoId=${empreendimentoId}`))}
+          onClick={() => navigate(createPageUrl(`NovoListaDocumentosReport?empreendimentoId=${empreendimentoId}`))}
           className="bg-blue-600 hover:bg-blue-700 text-white"
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -182,10 +182,10 @@ export default function EmpreendimentoListaDocumentos({ language: initialLanguag
                         <FileText className="w-5 h-5 text-blue-600" />
                         <div>
                           <p className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                            {doc.numero_relatorio || 'S/N'}
+                            {doc.numero_documento || doc.numero_relatorio || 'S/N'}
                           </p>
                           <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                            {doc.tipo_documento}
+                            {doc.titulo || doc.tipo_documento}
                           </p>
                         </div>
                       </div>
@@ -196,7 +196,7 @@ export default function EmpreendimentoListaDocumentos({ language: initialLanguag
                     <div className="flex items-center gap-2 text-sm">
                       <Calendar className="w-4 h-4 text-gray-400" />
                       <span className={isDark ? 'text-gray-300' : 'text-gray-600'}>
-                        {doc.data_relatorio ? new Date(doc.data_relatorio + 'T00:00:00').toLocaleDateString('pt-BR') : 'Data não definida'}
+                        {(doc.data_aviso || doc.data_relatorio) ? new Date((doc.data_aviso || doc.data_relatorio) + 'T00:00:00').toLocaleDateString('pt-BR') : 'Data não definida'}
                       </span>
                     </div>
 
@@ -205,7 +205,7 @@ export default function EmpreendimentoListaDocumentos({ language: initialLanguag
                         variant="outline"
                         size="sm"
                         className="flex-1"
-                        onClick={() => navigate(createPageUrl(`VisualizarDiarioObra?diarioId=${doc.id}`))}
+                        onClick={() => navigate(createPageUrl(`VisualizarListaDocumentosReport?documentoId=${doc.id}`))}
                       >
                         <Eye className="w-4 h-4 mr-1" />
                         {t.view}
@@ -214,7 +214,7 @@ export default function EmpreendimentoListaDocumentos({ language: initialLanguag
                         variant="outline"
                         size="sm"
                         className="flex-1"
-                        onClick={() => navigate(createPageUrl(`EditarDiarioObra?diarioId=${doc.id}&empreendimentoId=${empreendimentoId}`))}
+                        onClick={() => navigate(createPageUrl(`EditarListaDocumentosReport?documentoId=${doc.id}&empreendimentoId=${empreendimentoId}`))}
                       >
                         <Edit className="w-4 h-4 mr-1" />
                         {t.edit}
