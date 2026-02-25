@@ -700,11 +700,25 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
   };
 
   const handlePrint = () => {
-    // compress images before print to reduce PDF size
+    // compress server-side uploads first, then compress in-browser, then print
     (async () => {
       if (isPrinting) return;
       setIsPrinting(true);
       try {
+        // call server endpoint to compress stored uploads (if server has sharp installed)
+        try {
+          const resp = await fetch('/api/compress-uploads', { method: 'POST' });
+          if (resp.ok) {
+            const j = await resp.json();
+            console.log('Server-side compress result', j);
+          } else {
+            console.warn('Server-side compress endpoint returned', resp.status);
+          }
+        } catch (e) {
+          console.warn('Server-side compress call failed', e);
+        }
+
+        // still compress in-browser for images referenced by this document
         await compressAllImagesForPrint();
         await waitForReportImagesToLoad();
         window.print();

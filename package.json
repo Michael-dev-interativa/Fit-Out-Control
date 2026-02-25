@@ -15,7 +15,8 @@
     "migrate:base44": "node scripts/migrate-from-base44.js",
     "sync:render": "node scripts/sync-local-to-render.js",
     "sync:local": "node scripts/sync-render-to-local.js",
-    "import:rdos": "node scripts/import-rdos.js"
+    "import:rdos": "node scripts/import-rdos.js",
+    "compress-uploads": "node scripts/compress-uploads.js"
   },
   "dependencies": {
     "@base44/sdk": "^0.1.2",
@@ -49,13 +50,13 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
+    "compression": "^1.7.4",
     "cors": "^2.8.5",
     "csv-parse": "^6.1.0",
     "date-fns": "^3.6.0",
     "dotenv": "^16.4.5",
     "embla-carousel-react": "^8.5.2",
     "express": "^4.18.2",
-    "compression": "^1.7.4",
     "express-rate-limit": "^7.0.1",
     "framer-motion": "^12.4.7",
     "helmet": "^7.0.0",
@@ -91,6 +92,7 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "globals": "^15.14.0",
     "postcss": "^8.5.3",
+    "sharp": "^0.34.5",
     "tailwindcss": "^3.4.17",
     "vite": "^6.1.0"
   },

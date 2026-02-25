@@ -9,6 +9,7 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import compression from 'compression';
+// sharp will be imported dynamically when needed to avoid startup failure if not installed
 
 
 dotenv.config();
@@ -226,6 +227,58 @@ const storage = multer.memoryStorage();
 const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+});
+
+// Endpoint administrativo para comprimir imagens em uploads/
+app.post('/api/compress-uploads', async (req, res) => {
+  // Only allow in non-public contexts or protect with auth in production
+  try {
+    const uploadsPath = uploadRoot;
+    if (!fs.existsSync(uploadsPath)) return res.status(404).json({ error: 'uploads_not_found' });
+
+    const files = fs.readdirSync(uploadsPath).filter(f => {
+      const ext = path.extname(f).toLowerCase();
+      return ['.jpg', '.jpeg', '.png', '.webp', '.jfif'].includes(ext);
+    });
+
+    if (files.length === 0) return res.json({ ok: true, processed: 0 });
+
+    // dynamic import to avoid crash if sharp not installed
+    let sharp;
+    try {
+      sharp = (await import('sharp')).default;
+    } catch (err) {
+      console.error('sharp not available:', err && err.message);
+      return res.status(500).json({ error: 'sharp_not_installed' });
+    }
+
+    const results = [];
+    for (const file of files) {
+      const full = path.join(uploadsPath, file);
+      try {
+        const stat = fs.statSync(full);
+        const bak = full + '.bak';
+        if (!fs.existsSync(bak)) fs.copyFileSync(full, bak);
+
+        const image = sharp(full);
+        const metadata = await image.metadata();
+        let pipeline = image;
+        if (metadata.width && metadata.width > 1600) pipeline = pipeline.resize({ width: 1600 });
+        pipeline = pipeline.jpeg({ quality: 78, mozjpeg: true });
+        await pipeline.toFile(full + '.tmp');
+        const statAfter = fs.statSync(full + '.tmp');
+        fs.renameSync(full + '.tmp', full);
+        results.push({ file, before: stat.size, after: statAfter.size });
+      } catch (err) {
+        console.error('compress upload failed', file, err && err.message);
+      }
+    }
+
+    return res.json({ ok: true, processed: results.length, details: results });
+  } catch (err) {
+    console.error('compress-uploads error', err && (err.stack || err.message || String(err)));
+    return res.status(500).json({ error: 'internal_error' });
+  }
 });
 
 // Fallback de desenvolvimento quando o banco não está acessível
