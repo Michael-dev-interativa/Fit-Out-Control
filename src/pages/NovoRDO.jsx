@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { RDO, Empreendimento } from '@/api/entities';
+import { Empreendimento } from '@/entities/Empreendimento';
+import { RDO } from '@/entities/RDO';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,9 +11,61 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Save, Loader2, Plus, Trash2, Upload } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-import { getUploadUrl } from '@/api/config';
 import SignatureField from '@/components/signature/SignatureField';
 import SignatureDialog from '@/components/signature/SignatureDialog';
+
+// Função para compressão de imagem
+const compressImage = async (file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let { width, height } = img;
+        if (width > height) {
+          if (width > maxWidth) {
+            height *= maxWidth / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width *= maxHeight / height;
+            height = maxHeight;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => resolve(blob),
+          'image/jpeg',
+          quality
+        );
+      };
+    };
+  });
+};
+
+// Hook customizado para usar imagens comprimidas
+const useCompressedImage = (imageUrl) => {
+  const [compressedUrl, setCompressedUrl] = React.useState(imageUrl);
+  React.useEffect(() => {
+    if (imageUrl && !imageUrl.startsWith('data:')) {
+      fetch(imageUrl)
+        .then(r => r.blob())
+        .then(blob => compressImage(blob))
+        .then(compressedBlob => setCompressedUrl(URL.createObjectURL(compressedBlob)))
+        .catch(() => setCompressedUrl(imageUrl));
+    } else {
+      setCompressedUrl(imageUrl);
+    }
+  }, [imageUrl]);
+  return compressedUrl;
+};
 
 const translations = {
   pt: {
@@ -21,6 +74,7 @@ const translations = {
     generalInfo: "Informações Gerais",
     documentType: "Tipo de Documento",
     reportNumber: "Número do Relatório",
+    fileName: "Nome do Arquivo",
     reportDate: "Data do Relatório",
     dayOfWeek: "Dia da Semana",
     workInfo: "Informações da Obra",
@@ -128,6 +182,7 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
   const [formData, setFormData] = useState({
     tipo_documento: 'Lista de Documentos',
     numero_relatorio: '',
+    nome_arquivo: '',
     data_relatorio: new Date().toISOString().split('T')[0],
     dia_semana: '',
     obra_nome: '',
@@ -180,7 +235,17 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
 
   useEffect(() => {
     if (empreendimentoId) {
-      Empreendimento.get(empreendimentoId).then(setEmpreendimento);
+      Empreendimento.get(empreendimentoId).then(emp => {
+        setEmpreendimento(emp);
+        // Auto-preencher campos do empreendimento (mantém numero_relatorio do usuário se já preenchido)
+        setFormData(prev => ({
+          ...prev,
+          obra_nome: emp.nome_empreendimento || '',
+          obra_local: emp.endereco_empreendimento || '',
+          contrato: emp.os_number || '',
+          prazo_contratual: emp.prazo_contratual_dias || ''
+        }));
+      });
     }
   }, [empreendimentoId]);
 
@@ -194,15 +259,40 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
     }
   }, [formData.data_relatorio]);
 
+  // Calcular prazos automaticamente quando a data muda
+  useEffect(() => {
+    if (empreendimento && formData.data_relatorio) {
+      // Calcular prazo decorrido
+      if (empreendimento.data_inicio_contrato) {
+        const dataInicio = new Date(empreendimento.data_inicio_contrato + 'T00:00:00');
+        const dataRelatorio = new Date(formData.data_relatorio + 'T00:00:00');
+        const prazoDecorrido = Math.floor((dataRelatorio - dataInicio) / (1000 * 60 * 60 * 24));
+        setFormData(prev => ({ ...prev, prazo_decorrido: prazoDecorrido > 0 ? prazoDecorrido : 0 }));
+      }
+
+      // Calcular prazo a vencer
+      if (empreendimento.data_termino_contrato) {
+        const dataTermino = new Date(empreendimento.data_termino_contrato + 'T00:00:00');
+        const dataRelatorio = new Date(formData.data_relatorio + 'T00:00:00');
+        const prazoVencer = Math.floor((dataTermino - dataRelatorio) / (1000 * 60 * 60 * 24));
+        setFormData(prev => ({ ...prev, prazo_vencer: prazoVencer > 0 ? prazoVencer : 0 }));
+      }
+    }
+  }, [formData.data_relatorio, empreendimento]);
+
   const handleSave = async () => {
     setSaving(true);
     try {
       const dataToSave = {
-        id_empreendimento: empreendimentoId,
-        ...formData
+        ...formData,
+        prazo_contratual: String(formData.prazo_contratual || ''),
+        prazo_decorrido: String(formData.prazo_decorrido || ''),
+        prazo_vencer: String(formData.prazo_vencer || '')
       };
-
-      await RDO.create(dataToSave);
+      await RDO.create({
+        id_empreendimento: empreendimentoId,
+        ...dataToSave
+      });
       navigate(createPageUrl(`EmpreendimentoListaDocumentos?empreendimentoId=${empreendimentoId}`));
     } catch (error) {
       console.error("Erro ao salvar documento:", error);
@@ -237,37 +327,28 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
 
     setUploadingPhoto(true);
     try {
-      const uploadPromises = files.map(file =>
-        base44.integrations.Core.UploadFile({ file })
-      );
+      const uploadPromises = files.map(async (file) => {
+        try {
+          // Comprimir imagem antes do upload
+          const compressedBlob = await compressImage(file, 1200, 1200, 0.8);
+          const compressedFile = new File([compressedBlob], file.name, { type: 'image/jpeg' });
+          console.log(`Imagem comprimida: ${file.name}, Tamanho original: ${(file.size / 1024).toFixed(2)}KB, Comprimido: ${(compressedFile.size / 1024).toFixed(2)}KB`);
+          return base44.integrations.Core.UploadFile({ file: compressedFile });
+        } catch (err) {
+          console.error(`Erro ao comprimir ${file.name}:`, err);
+          // Se falhar a compressão, envia o arquivo original
+          return base44.integrations.Core.UploadFile({ file });
+        }
+      });
       const results = await Promise.all(uploadPromises);
 
-      console.log('📸 Resultados do upload:', results);
-
-      const newFotos = results.map(result => {
-        console.log('🔗 Resultado do upload:', result);
-        // Prefer file_url, mas se estiver ausente use file_path e converta com getUploadUrl
-        const candidate = result.file_url || result.file_path || null;
-        let finalUrl = null;
-        if (candidate) {
-          finalUrl = getUploadUrl(candidate) || candidate;
-        }
-        if (finalUrl && finalUrl.startsWith('blob:')) {
-          console.error('❌ ERRO: URL de blob detectada! Upload pode ter falhado.', result);
-        }
-        return {
-          url: finalUrl,
-          legenda: ''
-        };
-      });
-
+      const newFotos = results.map(result => ({ url: result.file_url, legenda: '' }));
       setFormData(prev => ({
         ...prev,
         fotos: [...(prev.fotos || []), ...newFotos]
       }));
     } catch (error) {
       console.error("Erro ao fazer upload das fotos:", error);
-      alert('Erro ao fazer upload das fotos. Verifique o console para mais detalhes.');
     } finally {
       setUploadingPhoto(false);
       e.target.value = '';
@@ -301,11 +382,7 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
       );
       const results = await Promise.all(uploadPromises);
 
-      const newAssinaturas = results.map(result => {
-        const candidate = result.file_url || result.file_path || null;
-        const url = candidate ? (getUploadUrl(candidate) || candidate) : null;
-        return { url, nome: '' };
-      });
+      const newAssinaturas = results.map(result => ({ url: result.file_url, nome: '' }));
       setFormData(prev => ({
         ...prev,
         assinaturas: [...(prev.assinaturas || []), ...newAssinaturas]
@@ -409,6 +486,10 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
                 <Input value={formData.numero_relatorio} onChange={(e) => setFormData({ ...formData, numero_relatorio: e.target.value })} />
               </div>
               <div>
+                <Label>{t.fileName}</Label>
+                <Input value={formData.nome_arquivo} onChange={(e) => setFormData({ ...formData, nome_arquivo: e.target.value })} placeholder="Ex: RDO-001" />
+              </div>
+              <div>
                 <Label>{t.reportDate}</Label>
                 <Input type="date" value={formData.data_relatorio} onChange={(e) => setFormData({ ...formData, data_relatorio: e.target.value })} />
               </div>
@@ -425,11 +506,11 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>{t.workName}</Label>
-                <Input value={formData.obra_nome} onChange={(e) => setFormData({ ...formData, obra_nome: e.target.value })} />
+                <Input value={formData.obra_nome} onChange={(e) => setFormData({ ...formData, obra_nome: e.target.value })} disabled className={isDark ? 'bg-gray-700' : 'bg-gray-100'} />
               </div>
               <div>
                 <Label>{t.workLocation}</Label>
-                <Input value={formData.obra_local} onChange={(e) => setFormData({ ...formData, obra_local: e.target.value })} />
+                <Input value={formData.obra_local} onChange={(e) => setFormData({ ...formData, obra_local: e.target.value })} disabled className={isDark ? 'bg-gray-700' : 'bg-gray-100'} />
               </div>
               <div>
                 <Label>{t.contractor}</Label>
@@ -448,19 +529,19 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <Label>{t.contract}</Label>
-                <Input value={formData.contrato} onChange={(e) => setFormData({ ...formData, contrato: e.target.value })} />
+                <Input value={formData.contrato} onChange={(e) => setFormData({ ...formData, contrato: e.target.value })} disabled className={isDark ? 'bg-gray-700' : 'bg-gray-100'} />
               </div>
               <div>
                 <Label>{t.contractualDeadline}</Label>
-                <Input type="number" value={formData.prazo_contratual} onChange={(e) => setFormData({ ...formData, prazo_contratual: e.target.value })} />
+                <Input type="number" value={formData.prazo_contratual} onChange={(e) => setFormData({ ...formData, prazo_contratual: e.target.value })} disabled className={isDark ? 'bg-gray-700' : 'bg-gray-100'} />
               </div>
               <div>
                 <Label>{t.elapsedTime}</Label>
-                <Input type="number" value={formData.prazo_decorrido} onChange={(e) => setFormData({ ...formData, prazo_decorrido: e.target.value })} />
+                <Input type="number" value={formData.prazo_decorrido} onChange={(e) => setFormData({ ...formData, prazo_decorrido: e.target.value })} disabled className={isDark ? 'bg-gray-700' : 'bg-gray-100'} />
               </div>
               <div>
                 <Label>{t.remainingTime}</Label>
-                <Input type="number" value={formData.prazo_vencer} onChange={(e) => setFormData({ ...formData, prazo_vencer: e.target.value })} />
+                <Input type="number" value={formData.prazo_vencer} onChange={(e) => setFormData({ ...formData, prazo_vencer: e.target.value })} disabled className={isDark ? 'bg-gray-700' : 'bg-gray-100'} />
               </div>
             </div>
           </div>
@@ -597,11 +678,12 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
                 <Label>{t.thirdParty}</Label>
                 <Input
                   type="number"
-                  value={formData.equipes_campo.terceiros}
+                  value={formData.equipes_campo.terceiros || 0}
                   onChange={(e) => setFormData({
                     ...formData,
                     equipes_campo: { ...formData.equipes_campo, terceiros: parseInt(e.target.value) || 0 }
                   })}
+                  className={isDark ? 'bg-gray-700 text-white' : ''}
                 />
               </div>
             </div>
@@ -687,58 +769,30 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {formData.fotos?.map((foto, index) => {
-                // Função inline para garantir conversão de URL
-                const convertImageUrl = (url) => {
-                  if (!url) return null;
-                  console.log('[NovoRDO-INLINE] URL Original:', url);
-
-                  // Se já é URL completa
-                  if (url.startsWith('http://') || url.startsWith('https://')) {
-                    console.log('[NovoRDO-INLINE] → Já é URL completa');
-                    return url;
-                  }
-
-                  // Se é path relativo da API
-                  if (url.startsWith('/api/')) {
-                    const backendBase = 'https://fit-out-backend.onrender.com';
-                    const fullUrl = `${backendBase}${url}`;
-                    console.log('[NovoRDO-INLINE] → Convertido para:', fullUrl);
-                    return fullUrl;
-                  }
-
-                  console.log('[NovoRDO-INLINE] → Usando getUploadUrl');
-                  return getUploadUrl(url);
-                };
-
-                const imageUrl = convertImageUrl(foto.url) || foto.url;
-                console.log(`[NovoRDO] Foto ${index}:`, { original: foto.url, final: imageUrl });
-
-                return (
-                  <div key={index} className={`border rounded-lg p-3 ${isDark ? 'border-gray-600' : 'border-gray-300'}`}>
-                    <img
-                      src={imageUrl}
-                      alt={`Foto ${index + 1}`}
-                      className="w-full h-48 object-cover rounded mb-2"
-                    />
-                    <Input
-                      value={foto.legenda}
-                      onChange={(e) => updateFotoLegenda(index, e.target.value)}
-                      placeholder="Legenda da Foto"
-                      className={`mb-2 ${isDark ? 'bg-gray-700 text-white' : ''}`}
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => removeFoto(index)}
-                      className="w-full"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2 text-red-600" />
-                      Remover
-                    </Button>
-                  </div>
-                );
-              })}
+              {formData.fotos?.map((foto, index) => (
+                <div key={index} className={`border rounded-lg p-3 ${isDark ? 'border-gray-600' : 'border-gray-300'}`}>
+                  <img
+                    src={foto.url}
+                    alt={`Foto ${index + 1}`}
+                    className="w-full h-48 object-cover rounded mb-2"
+                  />
+                  <Input
+                    value={foto.legenda}
+                    onChange={(e) => updateFotoLegenda(index, e.target.value)}
+                    placeholder="Legenda da Foto"
+                    className={`mb-2 ${isDark ? 'bg-gray-700 text-white' : ''}`}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => removeFoto(index)}
+                    className="w-full"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2 text-red-600" />
+                    Remover
+                  </Button>
+                </div>
+              ))}
             </div>
           </div>
 
