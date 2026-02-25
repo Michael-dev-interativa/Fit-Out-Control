@@ -766,42 +766,49 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
   };
 
   const handlePrint = () => {
-    // compress server-side uploads first, then compress in-browser, then print
-    (async () => {
-      if (isPrinting) return;
-      setIsPrinting(true);
-      try {
-        // call server endpoint to compress stored uploads (if server has sharp installed)
-        try {
-          const resp = await fetch('/api/compress-uploads', { method: 'POST' });
-          if (resp.ok) {
-            // handle empty or non-json responses gracefully
-            const text = await resp.text();
-            if (text) {
-              try {
-                const j = JSON.parse(text);
-                console.log('Server-side compress result', j);
-              } catch (e) {
-                console.warn('Server-side compress returned non-JSON:', text);
-              }
-            } else {
-              console.log('Server-side compress returned empty body');
-            }
-          } else {
-            console.warn('Server-side compress endpoint returned', resp.status);
-          }
-        } catch (e) {
-          console.warn('Server-side compress call failed', e && (e.message || e));
-        }
+    // Start compression tasks but don't block printing indefinitely.
+    if (isPrinting) return;
+    setIsPrinting(true);
 
-        // still compress in-browser for images referenced by this document
-        await compressAllImagesForPrint();
-        await waitForReportImagesToLoad();
-        window.print();
+    const serverCompress = (async () => {
+      try {
+        const resp = await fetch('/api/compress-uploads', { method: 'POST' });
+        if (resp.ok) {
+          const text = await resp.text();
+          if (text) {
+            try { console.log('Server-side compress result', JSON.parse(text)); } catch { console.log('Server-side compress returned non-JSON'); }
+          } else {
+            console.log('Server-side compress returned empty body');
+          }
+        } else {
+          console.warn('Server-side compress endpoint returned', resp.status);
+        }
       } catch (e) {
-        console.error('Erro ao preparar impressão:', e);
-        window.print();
+        console.warn('Server-side compress call failed', e && (e.message || e));
+      }
+    })();
+
+    const clientCompress = (async () => {
+      try {
+        await compressAllImagesForPrint();
+      } catch (e) {
+        console.warn('client compress failed', e && (e.message || e));
+      }
+    })();
+
+    // Wait up to N ms for image compression, otherwise proceed to print.
+    const MAX_WAIT_MS = 3500;
+    (async () => {
+      try {
+        await Promise.race([
+          (async () => { await Promise.all([serverCompress, clientCompress]); })(),
+          new Promise((r) => setTimeout(r, MAX_WAIT_MS))
+        ]);
+
+        // try to ensure images are loaded but don't block too long
+        try { await waitForReportImagesToLoad(); } catch { /* ignore */ }
       } finally {
+        try { window.print(); } catch (e) { console.error('window.print failed', e); }
         setIsPrinting(false);
       }
     })();
