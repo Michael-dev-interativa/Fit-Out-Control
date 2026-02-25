@@ -69,7 +69,7 @@ const useCompressedImage = (imageUrl) => {
 const translations = {
     pt: {
         backToList: "Voltar à Lista",
-        newDocument: "Novo Documento",
+        newDocument: "Novo Diário de Obra",
         generalInfo: "Informações Gerais",
         documentType: "Tipo de Documento",
         reportNumber: "Número do Relatório",
@@ -167,7 +167,7 @@ const translations = {
     }
 };
 
-export default function NovoListaDocumentos({ language: initialLanguage, theme: initialTheme }) {
+export default function NovoDiarioObra({ language: initialLanguage, theme: initialTheme }) {
     const navigate = useNavigate();
     const location = useLocation();
     const urlParams = new URLSearchParams(location.search);
@@ -179,7 +179,7 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
     const [theme, setTheme] = useState(initialTheme || 'light');
 
     const [formData, setFormData] = useState({
-        tipo_documento: 'Lista de Documentos',
+        tipo_documento: 'Diário de Obra',
         numero_relatorio: '',
         nome_arquivo: '',
         data_relatorio: new Date().toISOString().split('T')[0],

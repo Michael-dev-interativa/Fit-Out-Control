@@ -15,7 +15,6 @@ const translations = {
   pt: {
     backToProject: "Voltar ao Empreendimento",
     newDocument: "Novo Relatório - Lista de Documentos",
-    newDocument: "Novo Relatório - Diário de Obra",
     client: "Cliente",
     project: "Empreendimento",
     title: "Título",
@@ -81,12 +80,11 @@ export default function NovoListaDocumentosReport({ language: initialLanguage, t
   const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
 
   const [formData, setFormData] = useState({
-    tipo_documento: 'Diário de Obra',
+    tipo_documento: 'Lista de Documentos',
     id_empreendimento: empreendimentoId,
     cliente: '',
     empreendimento: '',
     titulo: 'LISTA DE DOCUMENTOS',
-    titulo: 'DIÁRIO DE OBRA',
     numero_documento: '',
     revisao: '',
     data_aviso: new Date().toISOString().split('T')[0],

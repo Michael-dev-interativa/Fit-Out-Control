@@ -11,12 +11,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 const translations = {
   pt: {
     backToProject: "Voltar ao Empreendimento",
-    documentList: "Diários de Obra",
-    newDocument: "Novo Diário de Obra",
-    loading: "Carregando diários...",
-    noDocuments: "Nenhum Diário de Obra encontrado",
-    addFirstDocument: "Adicione o primeiro diário para este empreendimento.",
-    documentNumber: "Diário",
+    documentList: "Lista de Documentos",
+    newDocument: "Novo Documento",
+    loading: "Carregando documentos...",
+    noDocuments: "Nenhum documento encontrado",
+    addFirstDocument: "Adicione o primeiro documento para este empreendimento.",
+    documentNumber: "Documento",
     date: "Data",
     type: "Tipo",
     status: "Status",
@@ -25,9 +25,9 @@ const translations = {
     edit: "Editar",
     delete: "Excluir",
     confirmDelete: "Confirmar Exclusão",
-    confirmDeleteMessage: "Tem certeza que deseja excluir este diário de obra?",
+    confirmDeleteMessage: "Tem certeza que deseja excluir este documento?",
     cancel: "Cancelar",
-    deleteSuccess: "Diário excluído com sucesso"
+    deleteSuccess: "Documento excluído com sucesso"
   },
   en: {
     backToProject: "Back to Project",
