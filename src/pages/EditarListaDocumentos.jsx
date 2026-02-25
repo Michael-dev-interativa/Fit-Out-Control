@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { RDO, Empreendimento } from '@/api/entities';
+import { RDO } from '@/entities/RDO';
+import { Empreendimento } from '@/entities/Empreendimento';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,6 +14,42 @@ import { base44 } from '@/api/base44Client';
 import SignatureField from '@/components/signature/SignatureField';
 import SignatureDialog from '@/components/signature/SignatureDialog';
 
+// Função para compressão de imagem
+const compressImage = async (file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let { width, height } = img;
+        if (width > height) {
+          if (width > maxWidth) {
+            height *= maxWidth / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width *= maxHeight / height;
+            height = maxHeight;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => resolve(blob),
+          'image/jpeg',
+          quality
+        );
+      };
+    };
+  });
+};
+
 const translations = {
   pt: {
     backToList: "Voltar à Lista",
@@ -22,6 +59,7 @@ const translations = {
     generalInfo: "Informações Gerais",
     documentType: "Tipo de Documento",
     reportNumber: "Número do Relatório",
+    fileName: "Nome do Arquivo",
     reportDate: "Data do Relatório",
     dayOfWeek: "Dia da Semana",
     workDetails: "Detalhes da Obra",
@@ -117,6 +155,7 @@ export default function EditarListaDocumentos({ language: initialLanguage, theme
   const [formData, setFormData] = useState({
     tipo_documento: 'Lista de Documentos',
     numero_relatorio: '',
+    nome_arquivo: '',
     data_relatorio: '',
     dia_semana: '',
     obra_nome: '',
@@ -177,12 +216,34 @@ export default function EditarListaDocumentos({ language: initialLanguage, theme
     setLoading(true);
     try {
       const docData = await RDO.get(documentoId);
-      setFormData(docData);
-      
+
       if (docData.id_empreendimento) {
         const empData = await Empreendimento.get(docData.id_empreendimento);
         setEmpreendimento(empData);
+
+        // Auto-preencher campos do empreendimento (mantém numero_relatorio do usuário)
+        docData.obra_nome = empData.nome_empreendimento || docData.obra_nome;
+        docData.obra_local = empData.endereco_empreendimento || docData.obra_local;
+        docData.contrato = empData.os_number || docData.contrato;
+        docData.prazo_contratual = empData.prazo_contratual_dias || docData.prazo_contratual;
+
+        // Calcular prazos automaticamente
+        if (empData.data_inicio_contrato && docData.data_relatorio) {
+          const dataInicio = new Date(empData.data_inicio_contrato + 'T00:00:00');
+          const dataRelatorio = new Date(docData.data_relatorio + 'T00:00:00');
+          const prazoDecorrido = Math.floor((dataRelatorio - dataInicio) / (1000 * 60 * 60 * 24));
+          docData.prazo_decorrido = prazoDecorrido > 0 ? prazoDecorrido : 0;
+        }
+
+        if (empData.data_termino_contrato && docData.data_relatorio) {
+          const dataTermino = new Date(empData.data_termino_contrato + 'T00:00:00');
+          const dataRelatorio = new Date(docData.data_relatorio + 'T00:00:00');
+          const prazoVencer = Math.floor((dataTermino - dataRelatorio) / (1000 * 60 * 60 * 24));
+          docData.prazo_vencer = prazoVencer > 0 ? prazoVencer : 0;
+        }
       }
+
+      setFormData(docData);
     } catch (error) {
       console.error("Erro ao carregar documento:", error);
     } finally {
@@ -196,14 +257,41 @@ export default function EditarListaDocumentos({ language: initialLanguage, theme
       const date = new Date(formData.data_relatorio + 'T00:00:00');
       const days = ['Domingo', 'Segunda-Feira', 'Terça-Feira', 'Quarta-Feira', 'Quinta-Feira', 'Sexta-Feira', 'Sábado'];
       const dayName = days[date.getDay()];
-      setFormData(prev => ({...prev, dia_semana: dayName}));
+      setFormData(prev => ({ ...prev, dia_semana: dayName }));
     }
   }, [formData.data_relatorio]);
+
+  // Calcular prazos automaticamente quando a data muda
+  useEffect(() => {
+    if (empreendimento && formData.data_relatorio) {
+      // Calcular prazo decorrido
+      if (empreendimento.data_inicio_contrato) {
+        const dataInicio = new Date(empreendimento.data_inicio_contrato + 'T00:00:00');
+        const dataRelatorio = new Date(formData.data_relatorio + 'T00:00:00');
+        const prazoDecorrido = Math.floor((dataRelatorio - dataInicio) / (1000 * 60 * 60 * 24));
+        setFormData(prev => ({ ...prev, prazo_decorrido: prazoDecorrido > 0 ? prazoDecorrido : 0 }));
+      }
+
+      // Calcular prazo a vencer
+      if (empreendimento.data_termino_contrato) {
+        const dataTermino = new Date(empreendimento.data_termino_contrato + 'T00:00:00');
+        const dataRelatorio = new Date(formData.data_relatorio + 'T00:00:00');
+        const prazoVencer = Math.floor((dataTermino - dataRelatorio) / (1000 * 60 * 60 * 24));
+        setFormData(prev => ({ ...prev, prazo_vencer: prazoVencer > 0 ? prazoVencer : 0 }));
+      }
+    }
+  }, [formData.data_relatorio, empreendimento]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await RDO.update(documentoId, formData);
+      const dataToSave = {
+        ...formData,
+        prazo_contratual: String(formData.prazo_contratual || ''),
+        prazo_decorrido: String(formData.prazo_decorrido || ''),
+        prazo_vencer: String(formData.prazo_vencer || '')
+      };
+      await RDO.update(documentoId, dataToSave);
       navigate(createPageUrl(`EmpreendimentoListaDocumentos?empreendimentoId=${formData.id_empreendimento}`));
     } catch (error) {
       console.error("Erro ao salvar documento:", error);
@@ -232,7 +320,7 @@ export default function EditarListaDocumentos({ language: initialLanguage, theme
   const updateAtividade = (index, descricao) => {
     setFormData(prev => ({
       ...prev,
-      atividades_realizadas: prev.atividades_realizadas.map((ativ, i) => 
+      atividades_realizadas: prev.atividades_realizadas.map((ativ, i) =>
         i === index ? { ...ativ, descricao } : ativ
       )
     }));
@@ -258,7 +346,7 @@ export default function EditarListaDocumentos({ language: initialLanguage, theme
   const updateOcorrencia = (index, descricao) => {
     setFormData(prev => ({
       ...prev,
-      ocorrencias: prev.ocorrencias.map((ocor, i) => 
+      ocorrencias: prev.ocorrencias.map((ocor, i) =>
         i === index ? { ...ocor, descricao } : ocor
       )
     }));
@@ -270,11 +358,21 @@ export default function EditarListaDocumentos({ language: initialLanguage, theme
 
     setUploadingPhoto(true);
     try {
-      const uploadPromises = files.map(file => 
-        base44.integrations.Core.UploadFile({ file })
-      );
+      const uploadPromises = files.map(async (file) => {
+        try {
+          // Comprimir imagem antes do upload
+          const compressedBlob = await compressImage(file, 1200, 1200, 0.8);
+          const compressedFile = new File([compressedBlob], file.name, { type: 'image/jpeg' });
+          console.log(`Imagem comprimida: ${file.name}, Tamanho original: ${(file.size / 1024).toFixed(2)}KB, Comprimido: ${(compressedFile.size / 1024).toFixed(2)}KB`);
+          return base44.integrations.Core.UploadFile({ file: compressedFile });
+        } catch (err) {
+          console.error(`Erro ao comprimir ${file.name}:`, err);
+          // Se falhar a compressão, envia o arquivo original
+          return base44.integrations.Core.UploadFile({ file });
+        }
+      });
       const results = await Promise.all(uploadPromises);
-      
+
       const newFotos = results.map(result => ({ url: result.file_url, legenda: '' }));
       setFormData(prev => ({
         ...prev,
@@ -298,7 +396,7 @@ export default function EditarListaDocumentos({ language: initialLanguage, theme
   const updateFotoLegenda = (index, legenda) => {
     setFormData(prev => ({
       ...prev,
-      fotos: prev.fotos.map((foto, i) => 
+      fotos: prev.fotos.map((foto, i) =>
         i === index ? { ...foto, legenda } : foto
       )
     }));
@@ -310,11 +408,11 @@ export default function EditarListaDocumentos({ language: initialLanguage, theme
 
     setUploadingPhoto(true);
     try {
-      const uploadPromises = files.map(file => 
+      const uploadPromises = files.map(file =>
         base44.integrations.Core.UploadFile({ file })
       );
       const results = await Promise.all(uploadPromises);
-      
+
       const newAssinaturas = results.map(result => ({ url: result.file_url, nome: '' }));
       setFormData(prev => ({
         ...prev,
@@ -338,7 +436,7 @@ export default function EditarListaDocumentos({ language: initialLanguage, theme
   const updateAssinaturaNome = (index, nome) => {
     setFormData(prev => ({
       ...prev,
-      assinaturas: prev.assinaturas.map((ass, i) => 
+      assinaturas: prev.assinaturas.map((ass, i) =>
         i === index ? { ...ass, nome } : ass
       )
     }));
@@ -354,7 +452,7 @@ export default function EditarListaDocumentos({ language: initialLanguage, theme
   const updateAssinatura = (index, field, value) => {
     setFormData(prev => ({
       ...prev,
-      assinaturas: prev.assinaturas.map((ass, i) => 
+      assinaturas: prev.assinaturas.map((ass, i) =>
         i === index ? { ...ass, [field]: value } : ass
       )
     }));
@@ -431,6 +529,15 @@ export default function EditarListaDocumentos({ language: initialLanguage, theme
                 />
               </div>
               <div>
+                <Label className={isDark ? 'text-gray-300' : ''}>{t.fileName}</Label>
+                <Input
+                  value={formData.nome_arquivo}
+                  onChange={(e) => setFormData({ ...formData, nome_arquivo: e.target.value })}
+                  placeholder="Ex: RDO-001"
+                  className={isDark ? 'bg-gray-700 text-white' : ''}
+                />
+              </div>
+              <div>
                 <Label className={isDark ? 'text-gray-300' : ''}>{t.reportDate}</Label>
                 <Input
                   type="date"
@@ -460,7 +567,8 @@ export default function EditarListaDocumentos({ language: initialLanguage, theme
                 <Input
                   value={formData.obra_nome}
                   onChange={(e) => setFormData({ ...formData, obra_nome: e.target.value })}
-                  className={isDark ? 'bg-gray-700 text-white' : ''}
+                  disabled
+                  className={isDark ? 'bg-gray-700 text-white' : 'bg-gray-100'}
                 />
               </div>
               <div>
@@ -468,7 +576,8 @@ export default function EditarListaDocumentos({ language: initialLanguage, theme
                 <Input
                   value={formData.obra_local}
                   onChange={(e) => setFormData({ ...formData, obra_local: e.target.value })}
-                  className={isDark ? 'bg-gray-700 text-white' : ''}
+                  disabled
+                  className={isDark ? 'bg-gray-700 text-white' : 'bg-gray-100'}
                 />
               </div>
               <div>
@@ -499,7 +608,8 @@ export default function EditarListaDocumentos({ language: initialLanguage, theme
                 <Input
                   value={formData.contrato}
                   onChange={(e) => setFormData({ ...formData, contrato: e.target.value })}
-                  className={isDark ? 'bg-gray-700 text-white' : ''}
+                  disabled
+                  className={isDark ? 'bg-gray-700 text-white' : 'bg-gray-100'}
                 />
               </div>
               <div>
@@ -508,7 +618,8 @@ export default function EditarListaDocumentos({ language: initialLanguage, theme
                   type="number"
                   value={formData.prazo_contratual}
                   onChange={(e) => setFormData({ ...formData, prazo_contratual: e.target.value })}
-                  className={isDark ? 'bg-gray-700 text-white' : ''}
+                  disabled
+                  className={isDark ? 'bg-gray-700 text-white' : 'bg-gray-100'}
                 />
               </div>
               <div>
@@ -517,7 +628,8 @@ export default function EditarListaDocumentos({ language: initialLanguage, theme
                   type="number"
                   value={formData.prazo_decorrido}
                   onChange={(e) => setFormData({ ...formData, prazo_decorrido: e.target.value })}
-                  className={isDark ? 'bg-gray-700 text-white' : ''}
+                  disabled
+                  className={isDark ? 'bg-gray-700 text-white' : 'bg-gray-100'}
                 />
               </div>
               <div>
@@ -526,7 +638,8 @@ export default function EditarListaDocumentos({ language: initialLanguage, theme
                   type="number"
                   value={formData.prazo_vencer}
                   onChange={(e) => setFormData({ ...formData, prazo_vencer: e.target.value })}
-                  className={isDark ? 'bg-gray-700 text-white' : ''}
+                  disabled
+                  className={isDark ? 'bg-gray-700 text-white' : 'bg-gray-100'}
                 />
               </div>
             </div>
@@ -676,8 +789,11 @@ export default function EditarListaDocumentos({ language: initialLanguage, theme
                 <Input
                   type="number"
                   min="0"
-                  value={(formData.equipes_campo?.engenheiro_pleno || 0) + (formData.equipes_campo?.engenheiro_senior || 0) + (formData.equipes_campo?.administrativo || 0)}
-                  disabled
+                  value={formData.equipes_campo?.terceiros || 0}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    equipes_campo: { ...formData.equipes_campo, terceiros: parseInt(e.target.value) || 0 }
+                  })}
                   className={isDark ? 'bg-gray-700 text-white' : ''}
                 />
               </div>
@@ -758,9 +874,9 @@ export default function EditarListaDocumentos({ language: initialLanguage, theme
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : ''}`}>{t.photographicRecords}</h3>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => document.getElementById('photo-upload').click()}
                 disabled={uploadingPhoto}
               >
@@ -788,8 +904,8 @@ export default function EditarListaDocumentos({ language: initialLanguage, theme
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {formData.fotos?.map((foto, index) => (
                 <div key={index} className={`border rounded-lg p-3 ${isDark ? 'border-gray-600' : 'border-gray-300'}`}>
-                  <img 
-                    src={foto.url} 
+                  <img
+                    src={foto.url}
                     alt={`Foto ${index + 1}`}
                     className="w-full h-48 object-cover rounded mb-2"
                   />
@@ -828,10 +944,10 @@ export default function EditarListaDocumentos({ language: initialLanguage, theme
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : ''}`}>{t.signatures}</h3>
-              <Button 
+              <Button
                 type="button"
-                variant="outline" 
-                size="sm" 
+                variant="outline"
+                size="sm"
                 onClick={addAssinatura}
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -850,7 +966,7 @@ export default function EditarListaDocumentos({ language: initialLanguage, theme
                 />
               ))}
             </div>
-            <SignatureDialog 
+            <SignatureDialog
               open={signatureDialogOpen}
               onOpenChange={setSignatureDialogOpen}
               onSave={handleSignatureSave}
