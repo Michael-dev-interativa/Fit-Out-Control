@@ -683,11 +683,29 @@ export default function VisualizarDiarioObra() {
                     return;
                 }
 
-                const diarioData = await DiarioDeObra.get(diarioId);
-                if (!diarioData) {
-                    throw new Error("Diário de obra não encontrado.");
+                let diarioData = null;
+                try {
+                    diarioData = await DiarioDeObra.get(diarioId);
+                    if (!diarioData) throw new Error("Diário de obra não encontrado.");
+                    setDiario(diarioData);
+                } catch (diarioErr) {
+                    console.warn('DiarioDeObra.get falhou, tentando RDO como fallback:', diarioErr);
+                    // Se não for Diário, talvez seja um RDO armazenado em 'rdos' — tentar recuperar
+                    try {
+                        const { RDO } = await import('@/api/entities');
+                        const rdo = await RDO.get(diarioId);
+                        if (rdo && rdo.id) {
+                            // Redirecionar para o visualizador de RDOs (VisualizarListaDocumentos)
+                            navigate(createPageUrl(`VisualizarListaDocumentos?documentoId=${diarioId}`));
+                            return;
+                        }
+                    } catch (rdoErr) {
+                        console.debug('RDO fallback falhou ou não existe:', rdoErr);
+                    }
+
+                    // Se chegou aqui, manter o erro original
+                    throw diarioErr;
                 }
-                setDiario(diarioData);
 
                 const [unidadeResult, empreendimentoResult] = await Promise.allSettled([
                     diarioData.id_unidade ? UnidadeEmpreendimento.get(diarioData.id_unidade) : Promise.resolve(null),
