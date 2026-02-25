@@ -525,7 +525,12 @@ const ReportContent = ({ diario, unidade, empreendimento, t, navigate, user, loa
     };
 
     const handleBackClick = () => {
-        navigate(-1);
+        const empId = (diario && diario.id_empreendimento) || new URLSearchParams(location.search).get('empreendimentoId') || (empreendimento && empreendimento.id);
+        if (empId) {
+            navigate(createPageUrl(`EmpreendimentoDiariosObra?empreendimentoId=${empId}`));
+        } else {
+            navigate(-1);
+        }
     };
 
     const totalPages = "Múltiplas";
@@ -730,7 +735,10 @@ export default function VisualizarDiarioObra() {
                     <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
                     <h2 className="text-xl font-bold text-red-600 mb-4">Erro ao Carregar Relatório</h2>
                     <p className="text-gray-700 mb-6">{error}</p>
-                    <Button onClick={() => navigate(-1)} variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Voltar</Button>
+                    <Button onClick={() => {
+                        const empId = new URLSearchParams(location.search).get('empreendimentoId') || (diario && diario.id_empreendimento) || (empreendimento && empreendimento.id);
+                        if (empId) navigate(createPageUrl(`EmpreendimentoDiariosObra?empreendimentoId=${empId}`)); else navigate(-1);
+                    }} variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Voltar</Button>
                 </div>
             </div>
         );
@@ -743,7 +751,10 @@ export default function VisualizarDiarioObra() {
                     <AlertTriangle className="w-16 h-16 text-orange-500 mx-auto mb-4" />
                     <h2 className="text-xl font-bold text-orange-600 mb-4">Dados Incompletos</h2>
                     <p className="text-gray-700 mb-6">Não foi possível carregar as informações essenciais para gerar o diário de obra.</p>
-                    <Button onClick={() => navigate(-1)} variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Voltar</Button>
+                    <Button onClick={() => {
+                        const empId = new URLSearchParams(location.search).get('empreendimentoId') || (diario && diario.id_empreendimento) || (empreendimento && empreendimento.id);
+                        if (empId) navigate(createPageUrl(`EmpreendimentoDiariosObra?empreendimentoId=${empId}`)); else navigate(-1);
+                    }} variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Voltar</Button>
                 </div>
             </div>
         );

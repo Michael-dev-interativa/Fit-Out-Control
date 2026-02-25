@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Empreendimento, ListaDocumentosReport } from '@/api/entities';
+import { Empreendimento } from '@/entities/Empreendimento';
+import { RDO } from '@/entities/RDO';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -31,12 +32,12 @@ const translations = {
   },
   en: {
     backToProject: "Back to Project",
-    documentList: "Daily Work Reports",
-    newDocument: "New Daily Report",
-    loading: "Loading reports...",
-    noDocuments: "No daily reports found",
-    addFirstDocument: "Add the first report for this project.",
-    documentNumber: "Report",
+    documentList: "Document List",
+    newDocument: "New Document",
+    loading: "Loading documents...",
+    noDocuments: "No documents found",
+    addFirstDocument: "Add the first document for this project.",
+    documentNumber: "Document",
     date: "Date",
     type: "Type",
     status: "Status",
@@ -45,9 +46,9 @@ const translations = {
     edit: "Edit",
     delete: "Delete",
     confirmDelete: "Confirm Deletion",
-    confirmDeleteMessage: "Are you sure you want to delete this daily report?",
+    confirmDeleteMessage: "Are you sure you want to delete this document?",
     cancel: "Cancel",
-    deleteSuccess: "Report deleted successfully"
+    deleteSuccess: "Document deleted successfully"
   }
 };
 
@@ -103,18 +104,11 @@ export default function EmpreendimentoListaDocumentos({ language: initialLanguag
     try {
       const [empData, docsData] = await Promise.all([
         Empreendimento.get(empreendimentoId),
-        ListaDocumentosReport.filter({ id_empreendimento: empreendimentoId }, '-created_date')
+        RDO.filter({ id_empreendimento: empreendimentoId }, '-created_date')
       ]);
 
       setEmpreendimento(empData);
-      // Filtrar entradas que parecem ser RDO/Diário de Obra (foram inseridas por engano)
-      const filtered = (docsData || []).filter(d => {
-        const t = (d.titulo || d.tipo_documento || '').toString().toLowerCase();
-        if (!t) return true;
-        if (t.includes('diário') || t.includes('diario') || t.includes('rdo') || t.includes('relatório diário')) return false;
-        return true;
-      });
-      setDocumentos(filtered);
+      setDocumentos(docsData || []);
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
     } finally {
@@ -126,7 +120,7 @@ export default function EmpreendimentoListaDocumentos({ language: initialLanguag
     if (!documentoToDelete) return;
 
     try {
-      await ListaDocumentosReport.delete(documentoToDelete.id);
+      await RDO.delete(documentoToDelete.id);
       setDeleteDialogOpen(false);
       setDocumentoToDelete(null);
       loadData();
@@ -157,8 +151,8 @@ export default function EmpreendimentoListaDocumentos({ language: initialLanguag
         </Button>
 
         <Button
-          onClick={() => navigate(createPageUrl(`NovoListaDocumentosReport?empreendimentoId=${empreendimentoId}`))}
-          className="bg-blue-600 hover:bg-blue-700 text-white"
+          onClick={() => navigate(createPageUrl(`NovoListaDocumentos?empreendimentoId=${empreendimentoId}`))}
+          className="bg-blue-600 hover:bg-blue-700"
         >
           <Plus className="w-4 h-4 mr-2" />
           {t.newDocument}
@@ -189,10 +183,10 @@ export default function EmpreendimentoListaDocumentos({ language: initialLanguag
                         <FileText className="w-5 h-5 text-blue-600" />
                         <div>
                           <p className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                            {doc.numero_documento || doc.numero_relatorio || 'S/N'}
+                            {doc.numero_relatorio || 'S/N'}
                           </p>
                           <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                            {doc.titulo || doc.tipo_documento}
+                            {doc.tipo_documento}
                           </p>
                         </div>
                       </div>
@@ -203,7 +197,7 @@ export default function EmpreendimentoListaDocumentos({ language: initialLanguag
                     <div className="flex items-center gap-2 text-sm">
                       <Calendar className="w-4 h-4 text-gray-400" />
                       <span className={isDark ? 'text-gray-300' : 'text-gray-600'}>
-                        {(doc.data_aviso || doc.data_relatorio) ? new Date((doc.data_aviso || doc.data_relatorio) + 'T00:00:00').toLocaleDateString('pt-BR') : 'Data não definida'}
+                        {doc.data_relatorio ? new Date(doc.data_relatorio + 'T00:00:00').toLocaleDateString('pt-BR') : 'Data não definida'}
                       </span>
                     </div>
 
@@ -212,7 +206,7 @@ export default function EmpreendimentoListaDocumentos({ language: initialLanguag
                         variant="outline"
                         size="sm"
                         className="flex-1"
-                        onClick={() => navigate(createPageUrl(`VisualizarListaDocumentosReport?documentoId=${doc.id}`))}
+                        onClick={() => navigate(createPageUrl(`VisualizarListaDocumentos?documentoId=${doc.id}`))}
                       >
                         <Eye className="w-4 h-4 mr-1" />
                         {t.view}
@@ -221,7 +215,7 @@ export default function EmpreendimentoListaDocumentos({ language: initialLanguag
                         variant="outline"
                         size="sm"
                         className="flex-1"
-                        onClick={() => navigate(createPageUrl(`EditarListaDocumentosReport?documentoId=${doc.id}&empreendimentoId=${empreendimentoId}`))}
+                        onClick={() => navigate(createPageUrl(`EditarListaDocumentos?documentoId=${doc.id}`))}
                       >
                         <Edit className="w-4 h-4 mr-1" />
                         {t.edit}

@@ -69,6 +69,8 @@ const useCompressedImage = (imageUrl) => {
 const translations = {
   pt: {
     backToList: "Voltar à Lista",
+    backToDiary: "Voltar ao Diário",
+    newRDO: "Novo Diário de Obra",
     newDocument: "Novo Documento",
     generalInfo: "Informações Gerais",
     documentType: "Tipo de Documento",
@@ -121,6 +123,8 @@ const translations = {
   },
   en: {
     backToList: "Back to List",
+    backToDiary: "Back to Diary",
+    newRDO: "New Daily Report",
     newDocument: "New Document",
     generalInfo: "General Information",
     documentType: "Document Type",
@@ -444,11 +448,11 @@ export default function NovoRDO({ language: initialLanguage, theme: initialTheme
       <div className="flex items-center justify-between">
         <Button
           variant="outline"
-          onClick={() => navigate(createPageUrl(`EmpreendimentoListaDocumentos?empreendimentoId=${empreendimentoId}`))}
+          onClick={() => navigate(createPageUrl(`EmpreendimentoDiariosObra?empreendimentoId=${empreendimentoId}`))}
           className={isDark ? 'text-white border-gray-600 hover:bg-gray-800' : ''}
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          {t.backToList}
+          {t.backToDiary}
         </Button>
 
         <Button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
@@ -459,7 +463,7 @@ export default function NovoRDO({ language: initialLanguage, theme: initialTheme
 
       <Card className={isDark ? 'bg-gray-800' : ''}>
         <CardHeader>
-          <CardTitle className={isDark ? 'text-white' : ''}>{t.newDocument}</CardTitle>
+          <CardTitle className={isDark ? 'text-white' : ''}>{t.newRDO}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Informações Gerais */}
