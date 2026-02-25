@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { RDO } from '@/entities/RDO';
+import { Empreendimento } from '@/entities/Empreendimento';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Printer } from 'lucide-react';
-import { RDO, Empreendimento } from '@/api/entities';
 
 // Função para formatar dia da semana
 const formatarDiaSemana = (data) => {
@@ -111,7 +112,7 @@ const translations = {
   pt: {
     backToList: "Voltar à Lista",
     print: "Imprimir",
-    documentList: "LISTA DE DOCUMENTOS",
+    documentList: "RELATÓRIO DIÁRIO DE OBRA (RDO)",
     reportInfo: "RELATÓRIO",
     number: "Nº",
     date: "DATA",
@@ -187,10 +188,10 @@ const ReportPage = ({ children, pageNumber, totalPages, documento, empreendiment
           className="flex justify-between items-center p-4 border-b border-gray-200"
           style={{ position: 'absolute', top: 0, left: 0, right: 0, height: HEADER_HEIGHT }}
         >
-          <img src={logoHorizontalUrl} alt="Logo Interativa Engenharia" className="h-12" loading="lazy" decoding="async" width={150} height={48} />
+          <img src={logoHorizontalUrl} alt="Logo Interativa Engenharia" className="h-12" />
           <div className="text-right">
             <h2 className="text-sm font-bold text-gray-800 uppercase">
-              LISTA DE DOCUMENTOS
+              RELATÓRIO DIÁRIO DE OBRA (RDO)
             </h2>
             <p className="text-xs text-gray-600">
               {empreendimento?.nome_empreendimento}
@@ -650,7 +651,6 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
   const [empreendimento, setEmpreendimento] = useState(null);
   const [loading, setLoading] = useState(true);
   const [language, setLanguage] = useState(initialLanguage || 'pt');
-  const [isPrinting, setIsPrinting] = useState(false);
 
   const t = translations[language];
 
@@ -700,175 +700,8 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
   };
 
   const handlePrint = () => {
-    // compress server-side uploads first, then compress in-browser, then print
-    (async () => {
-      if (isPrinting) return;
-      setIsPrinting(true);
-      try {
-        // call server endpoint to compress stored uploads (if server has sharp installed)
-        try {
-          const resp = await fetch('/api/compress-uploads', { method: 'POST' });
-          if (resp.ok) {
-            // handle empty or non-json responses gracefully
-            const text = await resp.text();
-            if (text) {
-              try {
-                const j = JSON.parse(text);
-                console.log('Server-side compress result', j);
-              } catch (e) {
-                console.warn('Server-side compress returned non-JSON:', text);
-              }
-            } else {
-              console.log('Server-side compress returned empty body');
-            }
-          } else {
-            console.warn('Server-side compress endpoint returned', resp.status);
-          }
-        } catch (e) {
-          console.warn('Server-side compress call failed', e && (e.message || e));
-        }
-
-        // still compress in-browser for images referenced by this document
-        await compressAllImagesForPrint();
-        await waitForReportImagesToLoad();
-        window.print();
-      } catch (e) {
-        console.error('Erro ao preparar impressão:', e);
-        window.print();
-      } finally {
-        setIsPrinting(false);
-      }
-    })();
+    window.print();
   };
-
-  // Helper: compress a single image URL to an object URL via canvas
-  const compressImageUrl = async (imageUrl, maxWidth = 1200, quality = 0.7) => {
-    if (!imageUrl) return imageUrl;
-    if (imageUrl.startsWith('data:')) return imageUrl;
-    try {
-      const resp = await fetch(imageUrl);
-      if (!resp.ok) throw new Error(`fetch failed ${resp.status}`);
-      const blob = await resp.blob();
-      const img = new Image();
-      const objectUrl = URL.createObjectURL(blob);
-
-      // wait for image load with timeout and proper error object
-      await new Promise((resolve, reject) => {
-        const to = setTimeout(() => {
-          img.onload = null;
-          img.onerror = null;
-          try { URL.revokeObjectURL(objectUrl); } catch { };
-          reject(new Error('image load timeout'));
-        }, 10000);
-        img.onload = () => { clearTimeout(to); resolve(); };
-        img.onerror = (ev) => {
-          clearTimeout(to); try { URL.revokeObjectURL(objectUrl); } catch { };
-          reject(new Error('image load error'));
-        };
-        img.src = objectUrl;
-      });
-
-      let { width, height } = img;
-      if (!width || !height) {
-        // fallback to default dimensions
-        width = Math.min(maxWidth, 800);
-        height = Math.round((width * 3) / 4);
-      }
-      if (width > maxWidth) {
-        height = Math.round((height * maxWidth) / width);
-        width = maxWidth;
-      }
-
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('canvas context unavailable');
-
-      try {
-        ctx.drawImage(img, 0, 0, width, height);
-      } catch (errDraw) {
-        // drawing may fail due to CORS/tainted canvas; return original
-        try { URL.revokeObjectURL(objectUrl); } catch { }
-        console.warn('compressImageUrl drawImage failed, returning original', errDraw && errDraw.message);
-        return imageUrl;
-      }
-
-      // Prefer data URL to avoid blob/origin issues when printing across origins
-      try {
-        const dataUrl = canvas.toDataURL('image/jpeg', quality);
-        try { URL.revokeObjectURL(objectUrl); } catch { }
-        return dataUrl;
-      } catch (errData) {
-        // toDataURL may fail if canvas is tainted; fall back to blob/objectURL
-      }
-
-      let compressedBlob = null;
-      try {
-        compressedBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
-      } catch (errBlob) {
-        try { URL.revokeObjectURL(objectUrl); } catch { }
-        console.warn('compressImageUrl toBlob failed, returning original', errBlob && errBlob.message);
-        return imageUrl;
-      }
-
-      if (!compressedBlob) {
-        try { URL.revokeObjectURL(objectUrl); } catch { }
-        return imageUrl;
-      }
-
-      try { URL.revokeObjectURL(objectUrl); } catch { }
-      return URL.createObjectURL(compressedBlob);
-    } catch (err) {
-      // don't flood console with raw Event objects — log a concise message
-      console.error('compressImageUrl error', err && (err.message || err));
-      return imageUrl;
-    }
-  };
-
-  // Compress all images present on documento (fotos + assinaturas) and update documento state
-  const compressAllImagesForPrint = async () => {
-    if (!documento) return;
-    const updated = JSON.parse(JSON.stringify(documento));
-    const tasks = [];
-
-    if (Array.isArray(updated.fotos)) {
-      updated.fotos.forEach((f, i) => {
-        if (f && f.url) {
-          const p = compressImageUrl(f.url, 1200, 0.7).then((cUrl) => {
-            updated.fotos[i].url = cUrl || f.url;
-          }).catch(() => { updated.fotos[i].url = f.url; });
-          tasks.push(p);
-        }
-      });
-    }
-
-    if (Array.isArray(updated.assinaturas)) {
-      updated.assinaturas.forEach((a, i) => {
-        if (a && a.assinatura_imagem) {
-          const p = compressImageUrl(a.assinatura_imagem, 800, 0.8).then((cUrl) => {
-            updated.assinaturas[i].assinatura_imagem = cUrl || a.assinatura_imagem;
-          }).catch(() => { updated.assinaturas[i].assinatura_imagem = a.assinatura_imagem; });
-          tasks.push(p);
-        }
-      });
-    }
-
-    await Promise.all(tasks);
-    setDocumento(updated);
-  };
-
-  const waitForReportImagesToLoad = () => new Promise((resolve) => {
-    const imgs = Array.from(document.querySelectorAll('.report-page img'));
-    if (imgs.length === 0) return resolve();
-    let count = 0;
-    const check = () => { count++; if (count === imgs.length) resolve(); };
-    imgs.forEach((img) => {
-      if (img.complete) return check();
-      img.addEventListener('load', function onLoad() { img.removeEventListener('load', onLoad); check(); });
-      img.addEventListener('error', function onErr() { img.removeEventListener('error', onErr); check(); });
-    });
-  });
 
   if (loading || !documento) {
     return (
@@ -913,19 +746,17 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
       </div>
 
       {/* Capa */}
-      <div className="report-page relative w-[210mm] h-[297mm] mx-auto bg-white shadow-lg my-8 print:my-0 print:shadow-none overflow-hidden" style={{ margin: '20px auto', padding: 0 }}>
-        <img
-          src={empreendimentoImageUrl}
-          alt={empreendimento?.nome_empreendimento || ''}
-          loading="lazy"
-          decoding="async"
-          className="absolute w-full h-full object-cover z-10 cover-background-image"
+      <div className="report-page relative w-[210mm] h-[297mm] mx-auto bg-white shadow-lg my-8 print:my-0 print:shadow-none overflow-hidden" style={{ margin: '20px auto', padding: 5 }}>
+        <div
+          className="absolute w-full h-full bg-center bg-no-repeat z-10"
           style={{
+            backgroundImage: `url(${empreendimentoImageUrl})`,
+            backgroundSize: 'cover',
             opacity: 0.2,
-            top: '0',
-            left: '0',
-            width: '100%',
-            height: '100%',
+            top: '-10px',
+            left: '-10px',
+            width: 'calc(100% + 20px)',
+            height: 'calc(100% + 20px)',
           }}
         />
 
@@ -949,10 +780,6 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
           <img
             src={logoInterativaUrl}
             alt="Logo Interativa"
-            loading="eager"
-            decoding="async"
-            width={350}
-            height={170}
             style={{
               width: '100%',
               height: '100%',
@@ -979,7 +806,7 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
             RELATÓRIO
           </h1>
           <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '29.5px', color: redColor, letterSpacing: '4px' }}>
-            LISTA DE DOCUMENTOS
+            DIÁRIO DE OBRA (RDO)
           </h2>
         </div>
 
@@ -1012,8 +839,6 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
           <img
             src={logoInterativaBrancoUrl}
             alt="Logo Interativa"
-            loading="lazy"
-            decoding="async"
             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
           />
         </div>
@@ -1038,8 +863,6 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
           <img
             src={empreendimentoImageUrl}
             alt={empreendimento?.nome_empreendimento || 'Foto do empreendimento'}
-            loading="lazy"
-            decoding="async"
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
         </div>
