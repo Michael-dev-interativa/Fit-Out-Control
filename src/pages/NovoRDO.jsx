@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Empreendimento, RDO } from '@/api/entities';
+import { Empreendimento } from '@/entities/Empreendimento';
+import { RDO } from '@/entities/RDO';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -468,7 +469,17 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label>{t.documentType}</Label>
-                <Input value={formData.tipo_documento} disabled className={isDark ? 'bg-gray-700' : ''} />
+                <Select value={formData.tipo_documento} onValueChange={(val) => setFormData({ ...formData, tipo_documento: val })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Relatório Diário de Obra (RDO)">Relatório Diário de Obra (RDO)</SelectItem>
+                    <SelectItem value="Lista de Documentos">Lista de Documentos</SelectItem>
+                    <SelectItem value="Relatório de Atividades">Relatório de Atividades</SelectItem>
+                    <SelectItem value="Outro">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label>{t.reportNumber}</Label>

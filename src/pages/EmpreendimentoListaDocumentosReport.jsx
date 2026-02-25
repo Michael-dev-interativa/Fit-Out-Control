@@ -200,36 +200,46 @@ export default function EmpreendimentoListaDocumentosReport({ language: initialL
                       </span>
                     </div>
 
-                    <div className="flex gap-2 mt-4">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => navigate(createPageUrl(`VisualizarListaDocumentosReport?documentoId=${doc.id}`))}
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        {t.view}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => navigate(createPageUrl(`EditarListaDocumentosReport?documentoId=${doc.id}`))}
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        {t.edit}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setDocumentoToDelete(doc);
-                          setDeleteDialogOpen(true);
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4 text-red-600" />
-                      </Button>
-                    </div>
+                    {(() => {
+                      // Detectar se o documento é na verdade um RDO/Diário de Obra
+                      const summary = ((doc.titulo || doc.tipo_documento || '') + ' ' + (doc.numero_documento || '')).toString().toLowerCase();
+                      const isRdo = /diar|diário|diario|rdo|relat[oó]rio diário/.test(summary);
+                      const viewRoute = isRdo ? `VisualizarDiarioObra?diarioId=${doc.id}` : `VisualizarListaDocumentosReport?documentoId=${doc.id}`;
+                      const editRoute = isRdo ? `EditarDiarioObra?diarioId=${doc.id}&empreendimentoId=${empreendimentoId}` : `EditarListaDocumentosReport?documentoId=${doc.id}`;
+
+                      return (
+                        <div className="flex gap-2 mt-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => navigate(createPageUrl(viewRoute))}
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            {t.view}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => navigate(createPageUrl(editRoute))}
+                          >
+                            <Edit className="w-4 h-4 mr-1" />
+                            {t.edit}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setDocumentoToDelete(doc);
+                              setDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          </Button>
+                        </div>
+                      );
+                    })()}
                   </CardContent>
                 </Card>
               ))}
