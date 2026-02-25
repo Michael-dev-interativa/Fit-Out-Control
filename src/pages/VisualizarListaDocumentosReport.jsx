@@ -365,7 +365,19 @@ export default function VisualizarListaDocumentosReport() {
         setEmpreendimento(empData);
       }
     } catch (err) {
-      console.error("Erro ao carregar documento:", err);
+      console.error("Erro ao carregar documento (lista-documentos-report):", err);
+      // Se não existir em lista-documentos-report, pode ser um RDO — tentar recuperar
+      try {
+        const rdo = await RDO.get(documentoId);
+        if (rdo && rdo.id) {
+          // redirecionar para o visualizador de Diário de Obra adequado
+          navigate(createPageUrl(`VisualizarDiarioObra?diarioId=${documentoId}`));
+          return;
+        }
+      } catch (rdoErr) {
+        console.debug('Não é RDO ou falha ao buscar RDO:', rdoErr);
+      }
+
       setError("Erro ao carregar o relatório");
     } finally {
       setLoading(false);
