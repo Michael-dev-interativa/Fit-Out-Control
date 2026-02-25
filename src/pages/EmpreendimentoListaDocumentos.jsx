@@ -11,12 +11,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 const translations = {
   pt: {
     backToProject: "Voltar ao Empreendimento",
-    documentList: "Lista de Documentos",
-    newDocument: "Novo Documento",
-    loading: "Carregando documentos...",
-    noDocuments: "Nenhum documento encontrado",
-    addFirstDocument: "Adicione o primeiro documento para este empreendimento.",
-    documentNumber: "Documento",
+    documentList: "Diários de Obra",
+    newDocument: "Novo Diário de Obra",
+    loading: "Carregando diários...",
+    noDocuments: "Nenhum Diário de Obra encontrado",
+    addFirstDocument: "Adicione o primeiro diário para este empreendimento.",
+    documentNumber: "Diário",
     date: "Data",
     type: "Tipo",
     status: "Status",
@@ -25,18 +25,18 @@ const translations = {
     edit: "Editar",
     delete: "Excluir",
     confirmDelete: "Confirmar Exclusão",
-    confirmDeleteMessage: "Tem certeza que deseja excluir este documento?",
+    confirmDeleteMessage: "Tem certeza que deseja excluir este diário de obra?",
     cancel: "Cancelar",
-    deleteSuccess: "Documento excluído com sucesso"
+    deleteSuccess: "Diário excluído com sucesso"
   },
   en: {
     backToProject: "Back to Project",
-    documentList: "Document List",
-    newDocument: "New Document",
-    loading: "Loading documents...",
-    noDocuments: "No documents found",
-    addFirstDocument: "Add the first document for this project.",
-    documentNumber: "Document",
+    documentList: "Daily Work Reports",
+    newDocument: "New Daily Report",
+    loading: "Loading reports...",
+    noDocuments: "No daily reports found",
+    addFirstDocument: "Add the first report for this project.",
+    documentNumber: "Report",
     date: "Date",
     type: "Type",
     status: "Status",
@@ -45,9 +45,9 @@ const translations = {
     edit: "Edit",
     delete: "Delete",
     confirmDelete: "Confirm Deletion",
-    confirmDeleteMessage: "Are you sure you want to delete this document?",
+    confirmDeleteMessage: "Are you sure you want to delete this daily report?",
     cancel: "Cancel",
-    deleteSuccess: "Document deleted successfully"
+    deleteSuccess: "Report deleted successfully"
   }
 };
 
@@ -205,7 +205,7 @@ export default function EmpreendimentoListaDocumentos({ language: initialLanguag
                         variant="outline"
                         size="sm"
                         className="flex-1"
-                        onClick={() => navigate(createPageUrl(`VisualizarListaDocumentos?documentoId=${doc.id}`))}
+                        onClick={() => navigate(createPageUrl(`VisualizarDiarioObra?diarioId=${doc.id}`))}
                       >
                         <Eye className="w-4 h-4 mr-1" />
                         {t.view}
@@ -214,7 +214,7 @@ export default function EmpreendimentoListaDocumentos({ language: initialLanguag
                         variant="outline"
                         size="sm"
                         className="flex-1"
-                        onClick={() => navigate(createPageUrl(`EditarListaDocumentos?documentoId=${doc.id}`))}
+                        onClick={() => navigate(createPageUrl(`EditarDiarioObra?diarioId=${doc.id}&empreendimentoId=${empreendimentoId}`))}
                       >
                         <Edit className="w-4 h-4 mr-1" />
                         {t.edit}
