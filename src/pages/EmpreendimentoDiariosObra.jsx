@@ -140,10 +140,10 @@ export default function EmpreendimentoDiariosObra({ language: initialLanguage, t
                             <CardContent className="space-y-4">
                                 <p className="text-sm text-gray-500">{diario._date ? format(new Date(diario._date), "PPP", { locale: ptBR }) : 'Sem data'}</p>
                                 <div className="flex justify-between items-center gap-2">
-                                    <Link to={createPageUrl(`VisualizarDiarioObra?diarioId=${diario.id}`)} className="flex-1">
+                                    <Link to={createPageUrl(`${diario._entity === 'rdo' ? 'VisualizarListaDocumentosReport' : 'VisualizarDiarioObra'}?${diario._entity === 'rdo' ? 'documentoId' : 'diarioId'}=${diario.id}`)} className="flex-1">
                                         <Button variant="outline" className="w-full">{t.view}</Button>
                                     </Link>
-                                    <Link to={createPageUrl(`EditarDiarioObra?diarioId=${diario.id}&empreendimentoId=${empreendimentoId}`)}>
+                                    <Link to={createPageUrl(`${diario._entity === 'rdo' ? 'EditarListaDocumentosReport' : 'EditarDiarioObra'}?${diario._entity === 'rdo' ? 'documentoId' : 'diarioId'}=${diario.id}&empreendimentoId=${empreendimentoId}`)}>
                                         <Button variant="outline" size="icon"><Edit className="w-4 h-4" /></Button>
                                     </Link>
                                     <AlertDialog>
