@@ -890,8 +890,21 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
         return imageUrl;
       }
 
-      try { URL.revokeObjectURL(objectUrl); } catch { }
-      return URL.createObjectURL(compressedBlob);
+      // Convert blob to data URL to avoid blob: local-resource issues in print previews
+      try {
+        const dataUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onerror = () => { try { reader.abort(); } catch { }; reject(new Error('fileReader_error')); };
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(compressedBlob);
+        });
+        try { URL.revokeObjectURL(objectUrl); } catch { }
+        return dataUrl;
+      } catch (errConv) {
+        // fallback to object URL if conversion fails
+        try { URL.revokeObjectURL(objectUrl); } catch { }
+        try { return URL.createObjectURL(compressedBlob); } catch { return imageUrl; }
+      }
     } catch (err) {
       // don't flood console with raw Event objects — log a concise message
       console.error('compressImageUrl error', err && (err.message || err));
