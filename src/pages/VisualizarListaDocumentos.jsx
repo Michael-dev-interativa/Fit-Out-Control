@@ -650,6 +650,7 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
   const [empreendimento, setEmpreendimento] = useState(null);
   const [loading, setLoading] = useState(true);
   const [language, setLanguage] = useState(initialLanguage || 'pt');
+  const [isPrinting, setIsPrinting] = useState(false);
 
   const t = translations[language];
 
@@ -699,8 +700,103 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
   };
 
   const handlePrint = () => {
-    window.print();
+    // compress images before print to reduce PDF size
+    (async () => {
+      if (isPrinting) return;
+      setIsPrinting(true);
+      try {
+        await compressAllImagesForPrint();
+        await waitForReportImagesToLoad();
+        window.print();
+      } catch (e) {
+        console.error('Erro ao preparar impressão:', e);
+        window.print();
+      } finally {
+        setIsPrinting(false);
+      }
+    })();
   };
+
+  // Helper: compress a single image URL to an object URL via canvas
+  const compressImageUrl = async (imageUrl, maxWidth = 1200, quality = 0.7) => {
+    if (!imageUrl) return imageUrl;
+    if (imageUrl.startsWith('data:')) return imageUrl;
+    try {
+      const resp = await fetch(imageUrl);
+      const blob = await resp.blob();
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(blob);
+
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = objectUrl;
+      });
+
+      let { width, height } = img;
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width;
+        width = maxWidth;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const compressedBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+      URL.revokeObjectURL(objectUrl);
+      return URL.createObjectURL(compressedBlob);
+    } catch (err) {
+      console.error('compressImageUrl error', err);
+      return imageUrl;
+    }
+  };
+
+  // Compress all images present on documento (fotos + assinaturas) and update documento state
+  const compressAllImagesForPrint = async () => {
+    if (!documento) return;
+    const updated = JSON.parse(JSON.stringify(documento));
+    const tasks = [];
+
+    if (Array.isArray(updated.fotos)) {
+      updated.fotos.forEach((f, i) => {
+        if (f && f.url) {
+          const p = compressImageUrl(f.url, 1200, 0.7).then((cUrl) => {
+            updated.fotos[i].url = cUrl || f.url;
+          }).catch(() => { updated.fotos[i].url = f.url; });
+          tasks.push(p);
+        }
+      });
+    }
+
+    if (Array.isArray(updated.assinaturas)) {
+      updated.assinaturas.forEach((a, i) => {
+        if (a && a.assinatura_imagem) {
+          const p = compressImageUrl(a.assinatura_imagem, 800, 0.8).then((cUrl) => {
+            updated.assinaturas[i].assinatura_imagem = cUrl || a.assinatura_imagem;
+          }).catch(() => { updated.assinaturas[i].assinatura_imagem = a.assinatura_imagem; });
+          tasks.push(p);
+        }
+      });
+    }
+
+    await Promise.all(tasks);
+    setDocumento(updated);
+  };
+
+  const waitForReportImagesToLoad = () => new Promise((resolve) => {
+    const imgs = Array.from(document.querySelectorAll('.report-page img'));
+    if (imgs.length === 0) return resolve();
+    let count = 0;
+    const check = () => { count++; if (count === imgs.length) resolve(); };
+    imgs.forEach((img) => {
+      if (img.complete) return check();
+      img.addEventListener('load', function onLoad() { img.removeEventListener('load', onLoad); check(); });
+      img.addEventListener('error', function onErr() { img.removeEventListener('error', onErr); check(); });
+    });
+  });
 
   if (loading || !documento) {
     return (
