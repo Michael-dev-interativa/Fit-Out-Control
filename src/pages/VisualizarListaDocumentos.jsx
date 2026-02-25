@@ -745,7 +745,7 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
       </div>
 
       {/* Capa */}
-      <div className="report-page relative w-[210mm] h-[297mm] mx-auto bg-white shadow-lg my-8 print:my-0 print:shadow-none overflow-hidden" style={{ margin: 0, padding: 0 }}>
+      <div className="report-page relative w-[210mm] h-[297mm] mx-auto bg-white shadow-lg my-8 print:my-0 print:shadow-none overflow-hidden" style={{ margin: '20px auto', padding: 0 }}>
         <img
           src={empreendimentoImageUrl}
           alt={empreendimento?.nome_empreendimento || ''}
