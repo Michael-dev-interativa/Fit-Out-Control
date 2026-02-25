@@ -745,7 +745,7 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
       </div>
 
       {/* Capa */}
-      <div className="report-page relative w-[210mm] h-[297mm] mx-auto bg-white shadow-lg my-8 print:my-0 print:shadow-none overflow-hidden" style={{ margin: '20px auto', padding: 5 }}>
+      <div className="report-page relative w-[210mm] h-[297mm] mx-auto bg-white shadow-lg my-8 print:my-0 print:shadow-none overflow-hidden" style={{ margin: 0, padding: 0 }}>
         <img
           src={empreendimentoImageUrl}
           alt={empreendimento?.nome_empreendimento || ''}
@@ -754,10 +754,10 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
           className="absolute w-full h-full object-cover z-10 cover-background-image"
           style={{
             opacity: 0.2,
-            top: '-10px',
-            left: '-10px',
-            width: 'calc(100% + 20px)',
-            height: 'calc(100% + 20px)',
+            top: '0',
+            left: '0',
+            width: '100%',
+            height: '100%',
           }}
         />
 
