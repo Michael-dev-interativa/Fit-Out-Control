@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { ListaDocumentosReport, RDO, Empreendimento } from '@/api/entities';
+import { ListaDocumentosReport } from '@/entities/ListaDocumentosReport';
+import { Empreendimento } from '@/entities/Empreendimento';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,7 +16,7 @@ import SignatureDialog from '@/components/signature/SignatureDialog';
 const translations = {
   pt: {
     backToList: "Voltar à Lista",
-    editDocument: "Editar Diário de Obra",
+    editDocument: "Editar Lista de Documentos",
     save: "Salvar",
     saving: "Salvando...",
     generalInfo: "Informações Gerais",
@@ -83,7 +84,7 @@ export default function EditarListaDocumentosReport({ language: initialLanguage,
     id_empreendimento: '',
     cliente: '',
     empreendimento: '',
-    titulo: 'DIÁRIO DE OBRA',
+    titulo: 'LISTA DE DOCUMENTOS',
     numero_documento: '',
     revisao: '',
     data_aviso: '',
@@ -138,9 +139,6 @@ export default function EditarListaDocumentosReport({ language: initialLanguage,
   const handleSave = async () => {
     setSaving(true);
     try {
-      console.log('📝 Atualizando documento com dados:', formData);
-      console.log('📄 Documentos:', formData.documentos);
-      console.log('✍️ Assinaturas:', formData.assinaturas);
       await ListaDocumentosReport.update(documentoId, formData);
       navigate(createPageUrl(`EmpreendimentoListaDocumentosReport?empreendimentoId=${formData.id_empreendimento}`));
     } catch (error) {
