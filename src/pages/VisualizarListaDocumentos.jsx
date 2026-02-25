@@ -766,49 +766,42 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
   };
 
   const handlePrint = () => {
-    // Start compression tasks but don't block printing indefinitely.
-    if (isPrinting) return;
-    setIsPrinting(true);
-
-    const serverCompress = (async () => {
-      try {
-        const resp = await fetch('/api/compress-uploads', { method: 'POST' });
-        if (resp.ok) {
-          const text = await resp.text();
-          if (text) {
-            try { console.log('Server-side compress result', JSON.parse(text)); } catch { console.log('Server-side compress returned non-JSON'); }
-          } else {
-            console.log('Server-side compress returned empty body');
-          }
-        } else {
-          console.warn('Server-side compress endpoint returned', resp.status);
-        }
-      } catch (e) {
-        console.warn('Server-side compress call failed', e && (e.message || e));
-      }
-    })();
-
-    const clientCompress = (async () => {
-      try {
-        await compressAllImagesForPrint();
-      } catch (e) {
-        console.warn('client compress failed', e && (e.message || e));
-      }
-    })();
-
-    // Wait up to N ms for image compression, otherwise proceed to print.
-    const MAX_WAIT_MS = 3500;
+    // compress server-side uploads first, then compress in-browser, then print
     (async () => {
+      if (isPrinting) return;
+      setIsPrinting(true);
       try {
-        await Promise.race([
-          (async () => { await Promise.all([serverCompress, clientCompress]); })(),
-          new Promise((r) => setTimeout(r, MAX_WAIT_MS))
-        ]);
+        // call server endpoint to compress stored uploads (if server has sharp installed)
+        try {
+          const resp = await fetch('/api/compress-uploads', { method: 'POST' });
+          if (resp.ok) {
+            // handle empty or non-json responses gracefully
+            const text = await resp.text();
+            if (text) {
+              try {
+                const j = JSON.parse(text);
+                console.log('Server-side compress result', j);
+              } catch (e) {
+                console.warn('Server-side compress returned non-JSON:', text);
+              }
+            } else {
+              console.log('Server-side compress returned empty body');
+            }
+          } else {
+            console.warn('Server-side compress endpoint returned', resp.status);
+          }
+        } catch (e) {
+          console.warn('Server-side compress call failed', e && (e.message || e));
+        }
 
-        // try to ensure images are loaded but don't block too long
-        try { await waitForReportImagesToLoad(); } catch { /* ignore */ }
+        // still compress in-browser for images referenced by this document
+        await compressAllImagesForPrint();
+        await waitForReportImagesToLoad();
+        window.print();
+      } catch (e) {
+        console.error('Erro ao preparar impressão:', e);
+        window.print();
       } finally {
-        try { window.print(); } catch (e) { console.error('window.print failed', e); }
         setIsPrinting(false);
       }
     })();
@@ -890,21 +883,8 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
         return imageUrl;
       }
 
-      // Convert blob to data URL to avoid blob: local-resource issues in print previews
-      try {
-        const dataUrl = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onerror = () => { try { reader.abort(); } catch { }; reject(new Error('fileReader_error')); };
-          reader.onload = () => resolve(reader.result);
-          reader.readAsDataURL(compressedBlob);
-        });
-        try { URL.revokeObjectURL(objectUrl); } catch { }
-        return dataUrl;
-      } catch (errConv) {
-        // fallback to object URL if conversion fails
-        try { URL.revokeObjectURL(objectUrl); } catch { }
-        try { return URL.createObjectURL(compressedBlob); } catch { return imageUrl; }
-      }
+      try { URL.revokeObjectURL(objectUrl); } catch { }
+      return URL.createObjectURL(compressedBlob);
     } catch (err) {
       // don't flood console with raw Event objects — log a concise message
       console.error('compressImageUrl error', err && (err.message || err));
@@ -1000,7 +980,7 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
 
       {/* Capa */}
       <div className="report-page relative w-[210mm] h-[297mm] mx-auto bg-white shadow-lg my-8 print:my-0 print:shadow-none overflow-hidden" style={{ margin: '20px auto', padding: 0 }}>
-        <CompressedImg
+        <img
           src={empreendimentoImageUrl}
           alt={empreendimento?.nome_empreendimento || ''}
           loading="lazy"
@@ -1013,8 +993,6 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
             width: '100%',
             height: '100%',
           }}
-          maxWidth={1600}
-          quality={0.6}
         />
 
         <div
@@ -1123,14 +1101,12 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
             clipPath: 'polygon(0 0%, 100% 23%, 100% 100%, 0% 100%)'
           }}
         >
-          <CompressedImg
+          <img
             src={empreendimentoImageUrl}
             alt={empreendimento?.nome_empreendimento || 'Foto do empreendimento'}
             loading="lazy"
             decoding="async"
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            maxWidth={800}
-            quality={0.6}
           />
         </div>
 
