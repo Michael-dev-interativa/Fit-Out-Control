@@ -80,6 +80,7 @@ export default function NovoListaDocumentosReport({ language: initialLanguage, t
   const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
 
   const [formData, setFormData] = useState({
+    tipo_documento: 'Lista de Documentos',
     id_empreendimento: empreendimentoId,
     cliente: '',
     empreendimento: '',
