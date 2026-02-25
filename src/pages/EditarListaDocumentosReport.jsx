@@ -157,6 +157,11 @@ export default function EditarListaDocumentosReport({ language: initialLanguage,
         return null;
       };
 
+      // se estiver vazio, preencher com data de hoje
+      if (!payload.data_aviso) {
+        const today = new Date();
+        payload.data_aviso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      }
       payload.data_aviso = normalizeClientDate(payload.data_aviso);
       await ListaDocumentosReport.update(documentoId, payload);
       navigate(createPageUrl(`EmpreendimentoListaDocumentosReport?empreendimentoId=${payload.id_empreendimento}`));

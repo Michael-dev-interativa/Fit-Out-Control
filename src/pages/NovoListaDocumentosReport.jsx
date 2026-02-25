@@ -209,6 +209,11 @@ export default function NovoListaDocumentosReport({ language: initialLanguage, t
     setSaving(true);
     try {
       const payload = { ...formData };
+      // se estiver vazio, usar data de hoje
+      if (!payload.data_aviso) {
+        const today = new Date();
+        payload.data_aviso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      }
       const nd = normalizeClientDate(payload.data_aviso);
       if (nd) payload.data_aviso = nd;
       else payload.data_aviso = null;
