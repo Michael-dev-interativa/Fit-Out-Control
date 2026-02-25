@@ -687,10 +687,43 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
   const loadData = async () => {
     setLoading(true);
     try {
-      // Primeiro tentar obter como ListaDocumentosReport (se existir)
+      // Priorizar RDO porque a maior parte dos documentos nesta lista são RDOs.
+      try {
+        const docData = await RDO.get(documentoId);
+        if (docData && docData.id) {
+          console.log('VisualizarListaDocumentos: carregado via RDO:', documentoId);
+          setDocumento(docData);
+          if (docData.id_empreendimento) {
+            const empData = await Empreendimento.get(docData.id_empreendimento);
+            setEmpreendimento(empData);
+
+            // Calcular prazos automaticamente
+            if (empData.data_inicio_contrato && docData.data_relatorio) {
+              const dataInicio = new Date(empData.data_inicio_contrato + 'T00:00:00');
+              const dataRelatorio = new Date(docData.data_relatorio + 'T00:00:00');
+              const prazoDecorrido = Math.floor((dataRelatorio - dataInicio) / (1000 * 60 * 60 * 24));
+              docData.prazo_decorrido_calculado = prazoDecorrido > 0 ? prazoDecorrido : 0;
+            }
+
+            if (empData.data_termino_contrato && docData.data_relatorio) {
+              const dataTermino = new Date(empData.data_termino_contrato + 'T00:00:00');
+              const dataRelatorio = new Date(docData.data_relatorio + 'T00:00:00');
+              const prazoVencer = Math.floor((dataTermino - dataRelatorio) / (1000 * 60 * 60 * 24));
+              docData.prazo_vencer_calculado = prazoVencer > 0 ? prazoVencer : 0;
+            }
+          }
+          setLoading(false);
+          return;
+        }
+      } catch (rdoErr) {
+        console.debug('RDO.get falhou, tentando ListaDocumentosReport:', rdoErr);
+      }
+
+      // Se não for RDO, tentar como ListaDocumentosReport
       try {
         const report = await ListaDocumentosReport.get(documentoId);
         if (report && report.id) {
+          console.log('VisualizarListaDocumentos: carregado via ListaDocumentosReport:', documentoId);
           setDocumento(report);
           if (report.id_empreendimento) {
             const empData = await Empreendimento.get(report.id_empreendimento);
@@ -700,34 +733,13 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
           return;
         }
       } catch (listErr) {
-        console.debug('ListaDocumentosReport.get falhou, tentando RDO:', listErr);
+        console.debug('ListaDocumentosReport.get também falhou:', listErr);
       }
 
-      // Se não for ListaDocumentosReport, tentar RDO
-      const docData = await RDO.get(documentoId);
-      setDocumento(docData);
-
-      if (docData && docData.id_empreendimento) {
-        const empData = await Empreendimento.get(docData.id_empreendimento);
-        setEmpreendimento(empData);
-
-        // Calcular prazos automaticamente
-        if (empData.data_inicio_contrato && docData.data_relatorio) {
-          const dataInicio = new Date(empData.data_inicio_contrato + 'T00:00:00');
-          const dataRelatorio = new Date(docData.data_relatorio + 'T00:00:00');
-          const prazoDecorrido = Math.floor((dataRelatorio - dataInicio) / (1000 * 60 * 60 * 24));
-          docData.prazo_decorrido_calculado = prazoDecorrido > 0 ? prazoDecorrido : 0;
-        }
-
-        if (empData.data_termino_contrato && docData.data_relatorio) {
-          const dataTermino = new Date(empData.data_termino_contrato + 'T00:00:00');
-          const dataRelatorio = new Date(docData.data_relatorio + 'T00:00:00');
-          const prazoVencer = Math.floor((dataTermino - dataRelatorio) / (1000 * 60 * 60 * 24));
-          docData.prazo_vencer_calculado = prazoVencer > 0 ? prazoVencer : 0;
-        }
-      }
+      // Se nenhum dos dois funcionou, lançar para o catch externo para log
+      throw new Error(`Documento ${documentoId} não encontrado em RDO nem em ListaDocumentosReport`);
     } catch (error) {
-      console.error("Erro ao carregar documento:", error);
+      console.error('Erro ao carregar documento:', error);
     } finally {
       setLoading(false);
     }
