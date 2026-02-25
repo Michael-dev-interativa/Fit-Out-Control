@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { RDO, Empreendimento } from '@/api/entities';
-import { getUploadUrl } from '@/api/config';
+import { RDO } from '@/entities/RDO';
+import { Empreendimento } from '@/entities/Empreendimento';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Printer } from 'lucide-react';
 
@@ -13,6 +13,81 @@ const formatarDiaSemana = (data) => {
   const days = ['Domingo', 'Segunda-Feira', 'Terça-Feira', 'Quarta-Feira', 'Quinta-Feira', 'Sexta-Feira', 'Sábado'];
   return days[date.getDay()];
 };
+
+// Hook para comprimir imagens
+const useCompressedImage = (imageUrl, maxWidth = 800, quality = 0.7) => {
+  const [compressedUrl, setCompressedUrl] = React.useState(imageUrl);
+
+  React.useEffect(() => {
+    if (!imageUrl || imageUrl.startsWith('data:')) {
+      setCompressedUrl(imageUrl);
+      return;
+    }
+
+    const compressImage = async () => {
+      try {
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+
+        const img = new Image();
+        const objectUrl = URL.createObjectURL(blob);
+
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let { width, height } = img;
+
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(
+            (compressedBlob) => {
+              const compressed = URL.createObjectURL(compressedBlob);
+              setCompressedUrl(compressed);
+              console.log(`Imagem comprimida para impressão: ${(blob.size / 1024).toFixed(2)}KB -> ${(compressedBlob.size / 1024).toFixed(2)}KB`);
+            },
+            'image/jpeg',
+            quality
+          );
+
+          URL.revokeObjectURL(objectUrl);
+        };
+
+        img.src = objectUrl;
+      } catch (error) {
+        console.error('Erro ao comprimir imagem:', error);
+        setCompressedUrl(imageUrl);
+      }
+    };
+
+    compressImage();
+  }, [imageUrl, maxWidth, quality]);
+
+  return compressedUrl;
+};
+
+const CompressedPhoto = ({ url, legenda }) => {
+  const compressedUrl = useCompressedImage(url, 800, 0.7);
+  return (
+    <>
+      <img
+        src={compressedUrl}
+        alt={legenda || `Foto`}
+        className="w-full h-48 object-cover rounded mb-2"
+      />
+      {legenda && (
+        <p className="text-xs text-gray-700 text-center">{legenda}</p>
+      )}
+    </>
+  );
+};
+
 
 // Função para normalizar dia da semana (converte curto para completo)
 const normalizarDiaSemana = (dia) => {
@@ -206,7 +281,7 @@ const paginateContent = (documento, empreendimento, t) => {
           <div className="grid grid-cols-3 gap-4 mb-4">
             <div className="border border-gray-300 p-2">
               <p className="text-xs font-semibold text-gray-600">{t.reportInfo} {t.number}</p>
-              <p className="text-sm font-bold">{documento.numero_relatorio || '-'}</p>
+              <p className="text-sm font-bold">{documento.numero_relatorio || empreendimento?.os_number || '-'}</p>
             </div>
             <div className="border border-gray-300 p-2">
               <p className="text-xs font-semibold text-gray-600">{t.date}</p>
@@ -231,11 +306,11 @@ const paginateContent = (documento, empreendimento, t) => {
           <div className="grid grid-cols-2 gap-4 mb-2">
             <div className="border border-gray-300 p-2">
               <p className="text-xs font-semibold text-gray-600">{t.work}</p>
-              <p className="text-sm">{documento.obra_nome || '-'}</p>
+              <p className="text-sm">{documento.obra_nome || empreendimento?.nome_empreendimento || '-'}</p>
             </div>
             <div className="border border-gray-300 p-2">
               <p className="text-xs font-semibold text-gray-600">{t.location}</p>
-              <p className="text-sm">{documento.obra_local || '-'}</p>
+              <p className="text-sm">{documento.obra_local || empreendimento?.endereco_empreendimento || '-'}</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -264,19 +339,19 @@ const paginateContent = (documento, empreendimento, t) => {
           <div className="grid grid-cols-4 gap-4">
             <div className="border border-gray-300 p-2">
               <p className="text-xs font-semibold text-gray-600">{t.contract}</p>
-              <p className="text-sm">{documento.contrato || '-'}</p>
+              <p className="text-sm">{documento.contrato || empreendimento?.os_number || '-'}</p>
             </div>
             <div className="border border-gray-300 p-2">
               <p className="text-xs font-semibold text-gray-600">{t.contractualDeadline}</p>
-              <p className="text-sm">{documento.prazo_contratual ? `${documento.prazo_contratual} ${t.days}` : '-'}</p>
+              <p className="text-sm">{empreendimento?.prazo_contratual_dias ? `${empreendimento.prazo_contratual_dias} ${t.days}` : (documento.prazo_contratual ? `${documento.prazo_contratual} ${t.days}` : '-')}</p>
             </div>
             <div className="border border-gray-300 p-2">
               <p className="text-xs font-semibold text-gray-600">{t.elapsedTime}</p>
-              <p className="text-sm">{documento.prazo_decorrido ? `${documento.prazo_decorrido} ${t.days}` : '-'}</p>
+              <p className="text-sm">{documento.prazo_decorrido_calculado !== undefined ? `${documento.prazo_decorrido_calculado} ${t.days}` : (documento.prazo_decorrido ? `${documento.prazo_decorrido} ${t.days}` : '-')}</p>
             </div>
             <div className="border border-gray-300 p-2">
               <p className="text-xs font-semibold text-gray-600">{t.remainingTime}</p>
-              <p className="text-sm">{documento.prazo_vencer ? `${documento.prazo_vencer} ${t.days}` : '-'}</p>
+              <p className="text-sm">{documento.prazo_vencer_calculado !== undefined ? `${documento.prazo_vencer_calculado} ${t.days}` : (documento.prazo_vencer ? `${documento.prazo_vencer} ${t.days}` : '-')}</p>
             </div>
           </div>
         </div>
@@ -351,109 +426,95 @@ const paginateContent = (documento, empreendimento, t) => {
     });
   }
 
-  // Adicionar atividades em grupos
-  if (documento.atividades_realizadas && documento.atividades_realizadas.length > 0) {
-    const itemsPerGroup = 10;
-    const atividadeGroups = [];
-    for (let i = 0; i < documento.atividades_realizadas.length; i += itemsPerGroup) {
-      atividadeGroups.push(documento.atividades_realizadas.slice(i, i + itemsPerGroup));
-    }
+  // Adicionar atividades e ocorrências juntas na mesma seção
+  const hasActivities = documento.atividades_realizadas && documento.atividades_realizadas.length > 0;
+  const hasOccurrences = documento.ocorrencias && documento.ocorrencias.length > 0;
 
-    atividadeGroups.forEach((group, groupIdx) => {
-      sections.push({
-        id: `activities-${groupIdx}`,
-        type: 'activities',
-        items: group,
-        weight: 7,
-        render: () => (
-          <div className="mb-6">
-            <h3 className="text-sm font-bold text-gray-900 mb-2 bg-gray-100 p-2">{t.activitiesPerformed}</h3>
-            <table className="w-full border-collapse border border-gray-300">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="border border-gray-300 p-2 text-xs font-semibold text-center w-16">Nº</th>
-                  <th className="border border-gray-300 p-2 text-xs font-semibold text-left">Descrição</th>
-                </tr>
-              </thead>
-              <tbody>
-                {group.map((ativ, idx) => (
-                  <tr key={idx}>
-                    <td className="border border-gray-300 p-2 text-sm text-center">{ativ.numero}</td>
-                    <td className="border border-gray-300 p-2 text-sm" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>{ativ.descricao}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )
-      });
-    });
-  }
-
-  // Adicionar ocorrências
-  if (documento.ocorrencias && documento.ocorrencias.length > 0) {
+  if (hasActivities || hasOccurrences) {
     sections.push({
-      id: 'occurrences',
-      type: 'occurrences',
-      items: documento.ocorrencias,
-      weight: 8,
+      id: 'activities-occurrences',
+      type: 'activities-occurrences',
+      weight: 15,
       render: () => (
         <div className="mb-6">
-          <h3 className="text-sm font-bold text-gray-900 mb-2 bg-gray-100 p-2">{t.occurrences}</h3>
-          <table className="w-full border-collapse border border-gray-300">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="border border-gray-300 p-2 text-xs font-semibold text-center w-16">Nº</th>
-                <th className="border border-gray-300 p-2 text-xs font-semibold text-left">Descrição</th>
-              </tr>
-            </thead>
-            <tbody>
-              {documento.ocorrencias.map((ocor, idx) => (
-                <tr key={idx}>
-                  <td className="border border-gray-300 p-2 text-sm text-center">{ocor.numero}</td>
-                  <td className="border border-gray-300 p-2 text-sm" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>{ocor.descricao}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {hasActivities && (
+            <div className="mb-4">
+              <h3 className="text-sm font-bold text-gray-900 mb-2 bg-gray-100 p-2">{t.activitiesPerformed}</h3>
+              <table className="w-full border-collapse border border-gray-300">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="border border-gray-300 p-2 text-xs font-semibold text-center w-16">Nº</th>
+                    <th className="border border-gray-300 p-2 text-xs font-semibold text-left">Descrição</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {documento.atividades_realizadas.map((ativ, idx) => (
+                    <tr key={idx}>
+                      <td className="border border-gray-300 p-2 text-sm text-center">{ativ.numero}</td>
+                      <td className="border border-gray-300 p-2 text-sm" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>{ativ.descricao}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {hasOccurrences && (
+            <div>
+              <h3 className="text-sm font-bold text-gray-900 mb-2 bg-gray-100 p-2">{t.occurrences}</h3>
+              <table className="w-full border-collapse border border-gray-300">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="border border-gray-300 p-2 text-xs font-semibold text-center w-16">Nº</th>
+                    <th className="border border-gray-300 p-2 text-xs font-semibold text-left">Descrição</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {documento.ocorrencias.map((ocor, idx) => (
+                    <tr key={idx}>
+                      <td className="border border-gray-300 p-2 text-sm text-center">{ocor.numero}</td>
+                      <td className="border border-gray-300 p-2 text-sm" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>{ocor.descricao}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )
     });
   }
 
-  // Adicionar registros fotográficos em grupos de 4 por página
-  if (documento.fotos && documento.fotos.length > 0) {
+  // Adicionar registros fotográficos em grupos de 6 por página
+  const hasFotos = documento.fotos && documento.fotos.length > 0;
+  let lastPhotoGroupSize = 0;
+
+  if (hasFotos) {
     const fotoGroups = [];
     for (let i = 0; i < documento.fotos.length; i += 6) {
       fotoGroups.push(documento.fotos.slice(i, i + 6));
     }
+    lastPhotoGroupSize = fotoGroups[fotoGroups.length - 1].length;
 
     fotoGroups.forEach((fotos, groupIdx) => {
       const isLastGroup = groupIdx === fotoGroups.length - 1;
+      const includeSignatures = isLastGroup && lastPhotoGroupSize < 5;
+
       sections.push({
         id: `photos-${groupIdx}`,
         type: 'photos',
         items: fotos,
-        weight: isLastGroup ? 23 : 20,
+        weight: includeSignatures ? 23 : 20,
         render: () => (
           <div className="mb-6">
             {groupIdx === 0 && <h3 className="text-sm font-bold text-gray-900 mb-2 bg-gray-100 p-2">{t.photographicRecords}</h3>}
             <div className="grid grid-cols-2 gap-4 mb-6">
               {fotos.map((foto, idx) => (
                 <div key={idx} className="border border-gray-300 p-2">
-                  <img
-                    src={getUploadUrl(foto.url) || foto.url}
-                    alt={foto.legenda || `Foto`}
-                    className="w-full h-48 object-cover rounded mb-2"
-                    loading="eager"
-                  />
-                  {foto.legenda && (
-                    <p className="text-xs text-gray-700 text-center">{foto.legenda}</p>
-                  )}
+                  <CompressedPhoto url={foto.url} legenda={foto.legenda} />
                 </div>
               ))}
             </div>
-            {isLastGroup && (
+            {includeSignatures && (
               <div>
                 <h3 className="text-sm font-bold text-gray-900 mb-4 bg-gray-100 p-2">Assinaturas</h3>
                 <div className="grid grid-cols-2 gap-8">
@@ -492,12 +553,14 @@ const paginateContent = (documento, empreendimento, t) => {
         )
       });
     });
-  } else {
-    // Se não houver fotos, adicionar assinaturas como seção separada
+  }
+
+  // Adicionar assinaturas em página separada se não houver fotos OU se a última página de fotos tiver 5 ou mais imagens
+  if (!hasFotos || lastPhotoGroupSize >= 5) {
     sections.push({
       id: 'signatures',
       type: 'signatures',
-      weight: 3,
+      weight: 20,
       render: () => (
         <div className="mb-6">
           <h3 className="text-sm font-bold text-gray-900 mb-4 bg-gray-100 p-2">Assinaturas</h3>
@@ -613,6 +676,21 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
       if (docData.id_empreendimento) {
         const empData = await Empreendimento.get(docData.id_empreendimento);
         setEmpreendimento(empData);
+
+        // Calcular prazos automaticamente
+        if (empData.data_inicio_contrato && docData.data_relatorio) {
+          const dataInicio = new Date(empData.data_inicio_contrato + 'T00:00:00');
+          const dataRelatorio = new Date(docData.data_relatorio + 'T00:00:00');
+          const prazoDecorrido = Math.floor((dataRelatorio - dataInicio) / (1000 * 60 * 60 * 24));
+          docData.prazo_decorrido_calculado = prazoDecorrido > 0 ? prazoDecorrido : 0;
+        }
+
+        if (empData.data_termino_contrato && docData.data_relatorio) {
+          const dataTermino = new Date(empData.data_termino_contrato + 'T00:00:00');
+          const dataRelatorio = new Date(docData.data_relatorio + 'T00:00:00');
+          const prazoVencer = Math.floor((dataTermino - dataRelatorio) / (1000 * 60 * 60 * 24));
+          docData.prazo_vencer_calculado = prazoVencer > 0 ? prazoVencer : 0;
+        }
       }
     } catch (error) {
       console.error("Erro ao carregar documento:", error);
@@ -621,30 +699,7 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
     }
   };
 
-  const handlePrint = async () => {
-    // Aguardar todas as imagens carregarem antes de imprimir
-    const images = document.querySelectorAll('img');
-    const imagePromises = Array.from(images).map(img => {
-      if (img.complete) return Promise.resolve();
-      return new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = () => {
-          console.warn('Erro ao carregar imagem:', img.src);
-          resolve(); // Continua mesmo com erro
-        };
-        // Timeout de 5 segundos por imagem
-        setTimeout(resolve, 5000);
-      });
-    });
-
-    try {
-      await Promise.all(imagePromises);
-      // Pequeno delay adicional para garantir renderização
-      await new Promise(resolve => setTimeout(resolve, 500));
-    } catch (error) {
-      console.error('Erro ao aguardar carregamento de imagens:', error);
-    }
-
+  const handlePrint = () => {
     window.print();
   };
 
@@ -663,7 +718,7 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
   const logoInterativaUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png";
   const logoInterativaBrancoUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/22086ec44_LOGOPNG-branco.png";
   const redColor = '#CE2D2D';
-  const empreendimentoImageUrl = getUploadUrl(empreendimento?.foto_empreendimento) || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
+  const empreendimentoImageUrl = empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
 
   // Paginar conteúdo
   const contentPages = paginateContent(documento, empreendimento, t);
