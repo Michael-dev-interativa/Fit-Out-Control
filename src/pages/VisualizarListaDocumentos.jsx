@@ -87,23 +87,6 @@ const CompressedPhoto = ({ url, legenda }) => {
   );
 };
 
-// Componente genérico para imagens comprimidas (assíncronas)
-const CompressedImage = ({ url, alt, className, width, height, style }) => {
-  const compressedUrl = useCompressedImage(url, 1200, 0.75);
-  return (
-    <img
-      src={compressedUrl}
-      alt={alt || ''}
-      className={className}
-      loading="lazy"
-      decoding="async"
-      width={width}
-      height={height}
-      style={style}
-    />
-  );
-};
-
 
 // Função para normalizar dia da semana (converte curto para completo)
 const normalizarDiaSemana = (dia) => {
@@ -538,12 +521,10 @@ const paginateContent = (documento, empreendimento, t) => {
                     documento.assinaturas.map((ass, idx) => (
                       <div key={idx} className="text-center">
                         {ass.assinatura_imagem ? (
-                          <CompressedImage
-                            url={ass.assinatura_imagem}
+                          <img
+                            src={ass.assinatura_imagem}
                             alt={`Assinatura ${ass.parte || ass.nome}`}
                             className="w-full h-24 object-contain mb-2"
-                            width={200}
-                            height={96}
                           />
                         ) : (
                           <div className="border-b border-gray-400 h-6 mb-2"></div>
@@ -587,12 +568,10 @@ const paginateContent = (documento, empreendimento, t) => {
               documento.assinaturas.map((ass, idx) => (
                 <div key={idx} className="text-center">
                   {ass.assinatura_imagem ? (
-                    <CompressedImage
-                      url={ass.assinatura_imagem}
+                    <img
+                      src={ass.assinatura_imagem}
                       alt={`Assinatura ${ass.parte || ass.nome}`}
                       className="w-full h-24 object-contain mb-2"
-                      width={200}
-                      height={96}
                     />
                   ) : (
                     <div className="border-b border-gray-400 h-6 mb-2"></div>
