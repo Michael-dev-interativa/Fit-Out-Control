@@ -1,12 +1,71 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { getUploadUrl } from '@/api/config';
-import { ListaDocumentosReport, RDO, Empreendimento } from '@/api/entities';
+import { ListaDocumentosReport } from '@/entities/ListaDocumentosReport';
+import { Empreendimento } from '@/entities/Empreendimento';
 import { ArrowLeft, Loader2, AlertTriangle, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const redColor = '#CE2D2D';
+
+// Hook para comprimir imagens ao carregar
+const useCompressedImage = (imageUrl, maxSize = 1200, quality = 0.8) => {
+  const [compressedUrl, setCompressedUrl] = React.useState(imageUrl);
+
+  React.useEffect(() => {
+    if (!imageUrl || imageUrl.startsWith('data:')) {
+      setCompressedUrl(imageUrl);
+      return;
+    }
+
+    const compressImage = async (blob) => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onload = (event) => {
+          const img = new Image();
+          img.src = event.target.result;
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let { width, height } = img;
+            const maxWidth = maxSize;
+            const maxHeight = maxSize;
+
+            if (width > height) {
+              if (width > maxWidth) {
+                height *= maxWidth / width;
+                width = maxWidth;
+              }
+            } else {
+              if (height > maxHeight) {
+                width *= maxHeight / height;
+                height = maxHeight;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob(
+              (blob) => resolve(URL.createObjectURL(blob)),
+              'image/jpeg',
+              quality
+            );
+          };
+        };
+      });
+    };
+
+    fetch(imageUrl)
+      .then(r => r.blob())
+      .then(blob => compressImage(blob))
+      .then(url => setCompressedUrl(url))
+      .catch(() => setCompressedUrl(imageUrl));
+  }, [imageUrl, maxSize, quality]);
+
+  return compressedUrl;
+};
 
 const translations = {
   pt: {
@@ -31,18 +90,15 @@ const CoverPage = ({ documento, empreendimento }) => {
   const logoInterativaUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png";
   const logoInterativaBrancoUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/22086ec44_LOGOPNG-branco.png";
 
-  const empreendimentoImageUrl = getUploadUrl(empreendimento?.foto_empreendimento) || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
+  const empreendimentoImageUrl = empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
 
   return (
     <div className="report-page relative w-full h-full bg-white font-sans overflow-hidden" style={{ margin: 0, padding: 5 }}>
-      {/* Usar <img> com lazy loading para permitir otimização pelo navegador */}
-      <img
-        src={empreendimentoImageUrl}
-        alt={empreendimento?.nome_empreendimento || ''}
-        loading="lazy"
-        decoding="async"
-        className="absolute w-full h-full object-cover z-10 cover-background-image"
+      <div
+        className="absolute w-full h-full bg-center bg-no-repeat z-10 cover-background-image"
         style={{
+          backgroundImage: `url(${empreendimentoImageUrl})`,
+          backgroundSize: 'cover',
           opacity: 0.2,
           top: '-10px',
           left: '-10px',
@@ -71,10 +127,6 @@ const CoverPage = ({ documento, empreendimento }) => {
         <img
           src={logoInterativaUrl}
           alt="Logo Interativa"
-          loading="eager"
-          decoding="async"
-          width={350}
-          height={170}
           style={{
             width: '100%',
             height: '100%',
@@ -101,7 +153,7 @@ const CoverPage = ({ documento, empreendimento }) => {
           RELATÓRIO
         </h1>
         <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '29.5px', color: redColor, letterSpacing: '4px' }}>
-          DIÁRIO DE OBRA
+          LISTA DE DOCUMENTOS
         </h2>
       </div>
 
@@ -134,8 +186,6 @@ const CoverPage = ({ documento, empreendimento }) => {
         <img
           src={logoInterativaBrancoUrl}
           alt="Logo Interativa"
-          loading="lazy"
-          decoding="async"
           style={{ width: '100%', height: '100%', objectFit: 'contain' }}
         />
       </div>
@@ -160,8 +210,6 @@ const CoverPage = ({ documento, empreendimento }) => {
         <img
           src={empreendimentoImageUrl}
           alt={empreendimento?.nome_empreendimento || 'Foto do empreendimento'}
-          loading="lazy"
-          decoding="async"
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
       </div>
@@ -187,10 +235,10 @@ const ReportPage = ({ children, pageNumber, totalPages, documento, empreendiment
           className="flex justify-between items-center p-4 border-b border-gray-200"
           style={{ position: 'absolute', top: 0, left: 0, right: 0, height: HEADER_HEIGHT }}
         >
-          <img src={logoHorizontalUrl} alt="Logo Interativa Engenharia" className="h-12" loading="lazy" decoding="async" width={150} height={48} />
+          <img src={logoHorizontalUrl} alt="Logo Interativa Engenharia" className="h-12" />
           <div className="text-right">
             <h2 className="text-sm font-bold text-gray-800 uppercase">
-              DIÁRIO DE OBRA
+              LISTA DE DOCUMENTOS
             </h2>
             <p className="text-xs text-gray-600">
               {empreendimento?.nome_empreendimento}
@@ -240,7 +288,7 @@ const ContentPage = ({ documento, documentosPagina, isFirstPage, isLastPage }) =
     <div className="px-12 py-6">
       {isFirstPage && (
         <>
-          <h2 className="text-2xl font-bold mb-6 text-gray-900">{documento.titulo || 'DIÁRIO DE OBRA'}</h2>
+          <h2 className="text-2xl font-bold mb-6 text-gray-900">{documento.titulo || 'LISTA DE DOCUMENTOS'}</h2>
 
           {documento.cliente && (
             <div className="mb-4">
@@ -309,10 +357,6 @@ const ContentPage = ({ documento, documentosPagina, isFirstPage, isLastPage }) =
                     src={ass.assinatura_imagem}
                     alt={`Assinatura ${ass.parte || ass.nome}`}
                     className="w-full h-24 object-contain mb-2"
-                    loading="lazy"
-                    decoding="async"
-                    width={200}
-                    height={96}
                   />
                 ) : (
                   <div className="border-b border-gray-400 h-6 mb-2"></div>
@@ -365,19 +409,7 @@ export default function VisualizarListaDocumentosReport() {
         setEmpreendimento(empData);
       }
     } catch (err) {
-      console.error("Erro ao carregar documento (lista-documentos-report):", err);
-      // Se não existir em lista-documentos-report, pode ser um RDO — tentar recuperar
-      try {
-        const rdo = await RDO.get(documentoId);
-        if (rdo && rdo.id) {
-          // Este id existe como RDO — abrir o visualizador de RDOs (VisualizarListaDocumentos)
-          navigate(createPageUrl(`VisualizarListaDocumentos?documentoId=${documentoId}`));
-          return;
-        }
-      } catch (rdoErr) {
-        console.debug('Não é RDO ou falha ao buscar RDO:', rdoErr);
-      }
-
+      console.error("Erro ao carregar documento:", err);
       setError("Erro ao carregar o relatório");
     } finally {
       setLoading(false);

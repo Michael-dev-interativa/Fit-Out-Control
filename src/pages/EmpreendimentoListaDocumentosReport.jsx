@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { ListaDocumentosReport, RDO, Empreendimento } from '@/api/entities';
+import { Empreendimento } from '@/entities/Empreendimento';
+import { ListaDocumentosReport } from '@/entities/ListaDocumentosReport';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 const translations = {
   pt: {
     backToProject: "Voltar ao Empreendimento",
-    documentList: "Diário de Obra",
+    documentList: "Lista de Documentos",
     newDocument: "Novo Documento",
     loading: "Carregando documentos...",
     noDocuments: "Nenhum documento encontrado",
@@ -185,7 +186,7 @@ export default function EmpreendimentoListaDocumentosReport({ language: initialL
                             {doc.numero_documento || 'S/N'}
                           </p>
                           <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                            {doc.titulo || 'Diário de Obra'}
+                            {doc.titulo || 'Lista de Documentos'}
                           </p>
                         </div>
                       </div>
@@ -200,46 +201,36 @@ export default function EmpreendimentoListaDocumentosReport({ language: initialL
                       </span>
                     </div>
 
-                    {(() => {
-                      // Detectar se o documento é na verdade um RDO/Diário de Obra
-                      const summary = ((doc.titulo || doc.tipo_documento || '') + ' ' + (doc.numero_documento || '')).toString().toLowerCase();
-                      const isRdo = /diar|diário|diario|rdo|relat[oó]rio diário/.test(summary);
-                      const viewRoute = isRdo ? `VisualizarDiarioObra?diarioId=${doc.id}` : `VisualizarListaDocumentosReport?documentoId=${doc.id}`;
-                      const editRoute = isRdo ? `EditarDiarioObra?diarioId=${doc.id}&empreendimentoId=${empreendimentoId}` : `EditarListaDocumentosReport?documentoId=${doc.id}`;
-
-                      return (
-                        <div className="flex gap-2 mt-4">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                            onClick={() => navigate(createPageUrl(viewRoute))}
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            {t.view}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                            onClick={() => navigate(createPageUrl(editRoute))}
-                          >
-                            <Edit className="w-4 h-4 mr-1" />
-                            {t.edit}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setDocumentoToDelete(doc);
-                              setDeleteDialogOpen(true);
-                            }}
-                          >
-                            <Trash2 className="w-4 h-4 text-red-600" />
-                          </Button>
-                        </div>
-                      );
-                    })()}
+                    <div className="flex gap-2 mt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => navigate(createPageUrl(`VisualizarListaDocumentosReport?documentoId=${doc.id}`))}
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        {t.view}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => navigate(createPageUrl(`EditarListaDocumentosReport?documentoId=${doc.id}`))}
+                      >
+                        <Edit className="w-4 h-4 mr-1" />
+                        {t.edit}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setDocumentoToDelete(doc);
+                          setDeleteDialogOpen(true);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { ListaDocumentosReport, RDO, Empreendimento } from '@/api/entities';
+import { ListaDocumentosReport } from '@/entities/ListaDocumentosReport';
+import { Empreendimento } from '@/entities/Empreendimento';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -80,7 +81,6 @@ export default function NovoListaDocumentosReport({ language: initialLanguage, t
   const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
 
   const [formData, setFormData] = useState({
-    tipo_documento: 'Lista de Documentos',
     id_empreendimento: empreendimentoId,
     cliente: '',
     empreendimento: '',
@@ -190,9 +190,6 @@ export default function NovoListaDocumentosReport({ language: initialLanguage, t
   const handleSave = async () => {
     setSaving(true);
     try {
-      console.log('📝 Salvando documento com dados:', formData);
-      console.log('📄 Documentos:', formData.documentos);
-      console.log('✍️ Assinaturas:', formData.assinaturas);
       await ListaDocumentosReport.create(formData);
       navigate(createPageUrl(`EmpreendimentoListaDocumentosReport?empreendimentoId=${empreendimentoId}`));
     } catch (error) {
