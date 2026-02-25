@@ -87,14 +87,6 @@ const CompressedPhoto = ({ url, legenda }) => {
   );
 };
 
-// Generic compressed image element used across the report to avoid blob/origin issues
-const CompressedImg = ({ src, alt, className, maxWidth = 1200, quality = 0.75, ...rest }) => {
-  const compressed = useCompressedImage(src, maxWidth, quality);
-  return (
-    <img src={compressed} alt={alt} className={className} {...rest} />
-  );
-};
-
 
 // Função para normalizar dia da semana (converte curto para completo)
 const normalizarDiaSemana = (dia) => {
@@ -529,13 +521,10 @@ const paginateContent = (documento, empreendimento, t) => {
                     documento.assinaturas.map((ass, idx) => (
                       <div key={idx} className="text-center">
                         {ass.assinatura_imagem ? (
-                          <CompressedImg
+                          <img
                             src={ass.assinatura_imagem}
                             alt={`Assinatura ${ass.parte || ass.nome}`}
                             className="w-full h-24 object-contain mb-2"
-                            maxWidth={800}
-                            quality={0.8}
-                            loading="lazy"
                           />
                         ) : (
                           <div className="border-b border-gray-400 h-6 mb-2"></div>
@@ -579,13 +568,10 @@ const paginateContent = (documento, empreendimento, t) => {
               documento.assinaturas.map((ass, idx) => (
                 <div key={idx} className="text-center">
                   {ass.assinatura_imagem ? (
-                    <CompressedImg
+                    <img
                       src={ass.assinatura_imagem}
                       alt={`Assinatura ${ass.parte || ass.nome}`}
                       className="w-full h-24 object-contain mb-2"
-                      maxWidth={800}
-                      quality={0.8}
-                      loading="lazy"
                     />
                   ) : (
                     <div className="border-b border-gray-400 h-6 mb-2"></div>
@@ -706,58 +692,6 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
           docData.prazo_vencer_calculado = prazoVencer > 0 ? prazoVencer : 0;
         }
       }
-      // compress images for quicker viewing (run async, don't block render)
-      (async function compressOnView(d) {
-        try {
-          if (!d) return;
-          const updated = JSON.parse(JSON.stringify(d));
-          const queue = [];
-          if (Array.isArray(updated.fotos)) {
-            updated.fotos.forEach((f, i) => {
-              if (f && f.url && !f.url.startsWith('data:')) {
-                queue.push(async () => {
-                  try {
-                    const c = await compressImageUrl(f.url, 1200, 0.75);
-                    updated.fotos[i].url = c || f.url;
-                  } catch {
-                    updated.fotos[i].url = f.url;
-                  }
-                });
-              }
-            });
-          }
-          if (Array.isArray(updated.assinaturas)) {
-            updated.assinaturas.forEach((a, i) => {
-              const src = a && (a.assinatura_imagem || a.url);
-              if (src && !src.startsWith('data:')) {
-                queue.push(async () => {
-                  try {
-                    const c = await compressImageUrl(src, 800, 0.8);
-                    updated.assinaturas[i].assinatura_imagem = c || src;
-                  } catch {
-                    updated.assinaturas[i].assinatura_imagem = src;
-                  }
-                });
-              }
-            });
-          }
-
-          // run with limited concurrency
-          const maxConcurrent = 4;
-          let idx = 0;
-          const runners = Array.from({ length: Math.min(maxConcurrent, queue.length) }, async () => {
-            while (idx < queue.length) {
-              const job = queue[idx++];
-              await job();
-            }
-          });
-          await Promise.all(runners);
-          setDocumento(updated);
-        } catch (e) {
-          // ignore background compression errors
-          console.warn('compressOnView failed', e && (e.message || e));
-        }
-      })(docData);
     } catch (error) {
       console.error("Erro ao carregar documento:", error);
     } finally {
