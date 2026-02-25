@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Empreendimento } from '@/entities/Empreendimento';
-import { RDO } from '@/entities/RDO';
+import { Empreendimento, RDO } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -168,7 +167,7 @@ const translations = {
   }
 };
 
-export default function NovoListaDocumentos({ language: initialLanguage, theme: initialTheme }) {
+export default function NovoRDO({ language: initialLanguage, theme: initialTheme }) {
   const navigate = useNavigate();
   const location = useLocation();
   const urlParams = new URLSearchParams(location.search);
@@ -180,7 +179,7 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
   const [theme, setTheme] = useState(initialTheme || 'light');
 
   const [formData, setFormData] = useState({
-    tipo_documento: 'Lista de Documentos',
+    tipo_documento: 'Relatório Diário de Obra (RDO)',
     numero_relatorio: '',
     nome_arquivo: '',
     data_relatorio: new Date().toISOString().split('T')[0],
@@ -293,7 +292,7 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
         id_empreendimento: empreendimentoId,
         ...dataToSave
       });
-      navigate(createPageUrl(`EmpreendimentoListaDocumentos?empreendimentoId=${empreendimentoId}`));
+      navigate(createPageUrl(`EmpreendimentoDiariosObra?empreendimentoId=${empreendimentoId}`));
     } catch (error) {
       console.error("Erro ao salvar documento:", error);
     } finally {
