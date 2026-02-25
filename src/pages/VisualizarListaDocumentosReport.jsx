@@ -7,6 +7,34 @@ import { Button } from '@/components/ui/button';
 
 const redColor = '#CE2D2D';
 
+// Formata datas aceitando vários formatos e evitando "Invalid Date"
+const formatDate = (value) => {
+  if (!value) return '';
+  try {
+    let d;
+    if (typeof value === 'number') {
+      d = new Date(value);
+    } else if (typeof value === 'string') {
+      // ISO date (YYYY-MM-DD) -> normalizar adicionando horário
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) d = new Date(value + 'T00:00:00');
+      // dd/mm/yyyy
+      else if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+        const [dd, mm, yyyy] = value.split('/');
+        d = new Date(`${yyyy}-${mm}-${dd}T00:00:00`);
+      } else {
+        d = new Date(value);
+      }
+    } else {
+      d = new Date(value);
+    }
+
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('pt-BR');
+  } catch (e) {
+    return '';
+  }
+};
+
 // Hook para comprimir imagens ao carregar
 const useCompressedImage = (imageUrl, maxSize = 1200, quality = 0.8) => {
   const [compressedUrl, setCompressedUrl] = React.useState(imageUrl);
@@ -243,7 +271,7 @@ const ReportPage = ({ children, pageNumber, totalPages, documento, empreendiment
               {empreendimento?.nome_empreendimento}
             </p>
             <p className="text-xs font-medium text-gray-800 mt-1">
-              {documento?.data_aviso ? new Date(documento.data_aviso + 'T00:00:00').toLocaleDateString('pt-BR') : ''}
+              {formatDate(documento?.data_aviso)}
             </p>
           </div>
         </div>
@@ -309,7 +337,7 @@ const ContentPage = ({ documento, documentosPagina, isFirstPage, isLastPage }) =
 
           {documento.data_aviso && (
             <div className="mb-6">
-              <p className="text-sm"><strong>Data:</strong> {new Date(documento.data_aviso + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
+              <p className="text-sm"><strong>Data:</strong> {formatDate(documento.data_aviso) || '-'}</p>
             </div>
           )}
         </>
