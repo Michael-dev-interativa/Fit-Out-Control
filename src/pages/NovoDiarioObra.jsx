@@ -1,846 +1,406 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Empreendimento, RDO } from '@/api/entities';
+import { DiarioDeObra } from '@/api/entities';
+import { Empreendimento } from '@/api/entities';
+import { UnidadeEmpreendimento } from '@/api/entities';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Save, Loader2, Plus, Trash2, Upload } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
-import SignatureField from '@/components/signature/SignatureField';
-import SignatureDialog from '@/components/signature/SignatureDialog';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Plus, Trash2, Upload, ArrowLeft } from 'lucide-react';
+import { UploadFile } from '@/api/integrations';
+import { toast } from 'sonner';
+import { Checkbox } from "@/components/ui/checkbox"
 
-// Função para compressão de imagem
-const compressImage = async (file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) => {
-    return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target.result;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                let { width, height } = img;
-                if (width > height) {
-                    if (width > maxWidth) {
-                        height *= maxWidth / width;
-                        width = maxWidth;
-                    }
-                } else {
-                    if (height > maxHeight) {
-                        width *= maxHeight / height;
-                        height = maxHeight;
-                    }
-                }
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-                canvas.toBlob(
-                    (blob) => resolve(blob),
-                    'image/jpeg',
-                    quality
-                );
-            };
-        };
-    });
-};
-
-// Hook customizado para usar imagens comprimidas
-const useCompressedImage = (imageUrl) => {
-    const [compressedUrl, setCompressedUrl] = React.useState(imageUrl);
-    React.useEffect(() => {
-        if (imageUrl && !imageUrl.startsWith('data:')) {
-            fetch(imageUrl)
-                .then(r => r.blob())
-                .then(blob => compressImage(blob))
-                .then(compressedBlob => setCompressedUrl(URL.createObjectURL(compressedBlob)))
-                .catch(() => setCompressedUrl(imageUrl));
-        } else {
-            setCompressedUrl(imageUrl);
-        }
-    }, [imageUrl]);
-    return compressedUrl;
-};
 
 const translations = {
     pt: {
-        backToList: "Voltar à Lista",
-        newDocument: "Novo Diário de Obra",
+        title: "Novo Diário de Obra",
+        save: "Salvar Diário",
+        saving: "Salvando...",
+        back: "Voltar",
         generalInfo: "Informações Gerais",
-        documentType: "Tipo de Documento",
-        reportNumber: "Número do Relatório",
-        fileName: "Nome do Arquivo",
-        reportDate: "Data do Relatório",
-        dayOfWeek: "Dia da Semana",
-        workInfo: "Informações da Obra",
-        workName: "Nome da Obra",
-        workLocation: "Local da Obra",
-        contractor: "Contratada",
-        responsible: "Responsável",
-        contractInfo: "Informações do Contrato",
-        contract: "Contrato",
-        contractualDeadline: "Prazo Contratual (dias)",
-        elapsedTime: "Prazo Decorrido (dias)",
-        remainingTime: "Prazo a Vencer (dias)",
-        weatherCondition: "Condição Climática",
+        date: "Data do Diário",
+        unit: "Unidade/Pavimento (Opcional)",
+        noUnit: "Geral / Sem unidade específica",
+        weatherConditions: "Condições Climáticas",
+        workPeriod: "Período Trabalhado",
         morning: "Manhã",
         afternoon: "Tarde",
-        weather: "Tempo",
-        workCondition: "Condição",
-        clear: "Claro",
-        cloudy: "Nublado",
-        rainy: "Chuvoso",
-        workable: "Praticável",
-        unworkable: "Impraticável",
-        fieldTeams: "Equipes de Campo",
-        juniorEngineer: "Engenheiro Pleno",
-        seniorEngineer: "Engenheiro Sênior",
-        administrative: "Administrativo",
-        thirdParty: "Terceiros",
-        activitiesPerformed: "Atividades Realizadas",
+        night: "Noite",
+        stoppedHours: "Horas Paralisadas",
+        workforce: "Efetivo (Mão de Obra)",
+        category: "Categoria",
+        present: "Pres.",
+        absentWithJustification: "Aus. c/ Just.",
+        absentWithoutJustification: "Aus. s/ Just.",
+        total: "Total",
+        mainActivities: "Principais Atividades em Execução",
         addActivity: "Adicionar Atividade",
-        occurrences: "Ocorrências",
-        addOccurrence: "Adicionar Ocorrência",
-        observations: "Observações",
-        signatures: "Assinaturas",
-        addSignature: "Adicionar Assinatura",
-        signatureName: "Nome do Signatário",
-        uploadSignature: "Enviar Assinatura",
-        removeSignature: "Remover",
-        status: "Status",
-        save: "Salvar",
-        saving: "Salvando...",
-        draft: "Rascunho",
-        underReview: "Em Análise",
-        approved: "Aprovado",
-        archived: "Arquivado"
+        activityPlaceholder: "Descreva a atividade",
+        occurrences: "Ocorrências e Observações",
+        occurrencesPlaceholder: "Descreva ocorrências, visitas, paralisações, etc.",
+        photos: "Registro Fotográfico",
+        addPhotos: "Adicionar Fotos",
+        uploading: "Enviando...",
+        approvals: "Vistos",
+        addApproval: "Adicionar Visto",
+        responsible: "Responsável",
+        approverName: "Nome do Aprovador",
+        addCategory: "Adicionar Categoria",
+        categoryPlaceholder: "Nome da Categoria",
+        fileName: "Nome do Arquivo",
+        fileNamePlaceholder: "Ex: DO-001.pdf",
+        customUnitText: "Unidade/Pavimento (Texto)",
+        customUnitPlaceholder: "Ex: Térreo - Área Comum",
     },
-    en: {
-        backToList: "Back to List",
-        newDocument: "New Document",
-        generalInfo: "General Information",
-        documentType: "Document Type",
-        reportNumber: "Report Number",
-        reportDate: "Report Date",
-        dayOfWeek: "Day of Week",
-        workInfo: "Work Information",
-        workName: "Work Name",
-        workLocation: "Work Location",
-        contractor: "Contractor",
-        responsible: "Responsible",
-        contractInfo: "Contract Information",
-        contract: "Contract",
-        contractualDeadline: "Contractual Deadline (days)",
-        elapsedTime: "Elapsed Time (days)",
-        remainingTime: "Remaining Time (days)",
-        weatherCondition: "Weather Condition",
-        morning: "Morning",
-        afternoon: "Afternoon",
-        weather: "Weather",
-        workCondition: "Condition",
-        clear: "Clear",
-        cloudy: "Cloudy",
-        rainy: "Rainy",
-        workable: "Workable",
-        unworkable: "Unworkable",
-        fieldTeams: "Field Teams",
-        juniorEngineer: "Junior Engineer",
-        seniorEngineer: "Senior Engineer",
-        administrative: "Administrative",
-        thirdParty: "Third Party",
-        activitiesPerformed: "Activities Performed",
-        addActivity: "Add Activity",
-        occurrences: "Occurrences",
-        addOccurrence: "Add Occurrence",
-        observations: "Observations",
-        status: "Status",
-        save: "Save",
-        saving: "Saving...",
-        draft: "Draft",
-        underReview: "Under Review",
-        approved: "Approved",
-        archived: "Archived"
-    }
 };
 
-export default function NovoDiarioObra({ language: initialLanguage, theme: initialTheme }) {
+const categoriasEfetivoPredefinidas = [
+    "Diretor/ Gestor de Contrato",
+    "Engº Planejamento",
+    "Gerente de Obra",
+    "Engº de Produção",
+    "Engº Seg. Trab.",
+    "Téc. Enfermagem",
+    "Assistente Técnico",
+    "Supervisor Administrativo",
+    "Assistente Administrativo",
+    "Arquiteto",
+    "Eletricista",
+    "Mestre de Obra",
+    "Almoxarife",
+    "Feitor",
+    "Carpinteiro",
+    "Servente",
+    "Assist. de Projetos",
+    "Aux. Serviços Gerais",
+    "Comprador(a)",
+];
+
+export default function NovoDiarioObra() {
     const navigate = useNavigate();
     const location = useLocation();
+
     const urlParams = new URLSearchParams(location.search);
     const empreendimentoId = urlParams.get('empreendimentoId');
 
     const [empreendimento, setEmpreendimento] = useState(null);
-    const [saving, setSaving] = useState(false);
-    const [language, setLanguage] = useState(initialLanguage || 'pt');
-    const [theme, setTheme] = useState(initialTheme || 'light');
-
+    const [unidades, setUnidades] = useState([]);
     const [formData, setFormData] = useState({
-        tipo_documento: 'Diário de Obra',
-        numero_relatorio: '',
-        nome_arquivo: '',
-        data_relatorio: new Date().toISOString().split('T')[0],
-        dia_semana: '',
-        obra_nome: '',
-        obra_local: '',
-        contratada: 'INTERATIVA ENGENHARIA',
-        responsavel: '',
-        contrato: '',
-        prazo_contratual: '',
-        prazo_decorrido: '',
-        prazo_vencer: '',
-        condicao_climatica: {
-            manha_tempo: 'Claro',
-            manha_condicao: 'Praticável',
-            tarde_tempo: 'Claro',
-            tarde_condicao: 'Praticável'
-        },
-        equipes_campo: {
-            engenheiro_pleno: 0,
-            engenheiro_senior: 0,
-            administrativo: 0,
-            terceiros: 0
-        },
-        atividades_realizadas: [],
-        ocorrencias: [],
+        id_empreendimento: empreendimentoId,
+        id_unidade: '',
+        unidade_texto: '',
+        nome_arquivo: '', // Added new field for file name
+        data_diario: new Date().toISOString().split('T')[0],
+        condicao_climatica: "Dias produtivos",
+        efetivo: categoriasEfetivoPredefinidas.map(cat => ({ categoria: cat, presente: 0, ausente_com_justificativa: 0, ausente_sem_justificativa: 0 })),
+        principais_atividades: [''],
+        ocorrencias_observacoes: '',
         fotos: [],
-        assinaturas: [],
-        observacoes: '',
-        status_documento: 'Rascunho'
+        periodo_trabalhado: { manha: true, tarde: true, noite: false },
+        horas_paralisadas: 0,
+        vistos: [],
     });
-
+    const [saving, setSaving] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
-    const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
-    const [signatureEditIndex, setSignatureEditIndex] = useState(null);
 
-    const t = translations[language];
-    const isDark = theme === 'dark';
+    const t = translations.pt;
 
     useEffect(() => {
-        const handleLanguageChange = () => setLanguage(localStorage.getItem('language') || 'pt');
-        const handleThemeChange = () => setTheme(localStorage.getItem('theme') || 'light');
-        window.addEventListener('language-change', handleLanguageChange);
-        window.addEventListener('theme-change', handleThemeChange);
-        handleLanguageChange();
-        handleThemeChange();
-        return () => {
-            window.removeEventListener('language-change', handleLanguageChange);
-            window.removeEventListener('theme-change', handleThemeChange);
+        const loadInitialData = async () => {
+            if (!empreendimentoId) {
+                toast.error("ID do empreendimento não encontrado.");
+                navigate(-1);
+                return;
+            }
+            try {
+                const [empData, unidadesData] = await Promise.all([
+                    Empreendimento.get(empreendimentoId),
+                    UnidadeEmpreendimento.filter({ id_empreendimento: empreendimentoId })
+                ]);
+                setEmpreendimento(empData);
+                setUnidades(unidadesData);
+            } catch (err) {
+                console.error("Erro ao carregar dados:", err);
+                toast.error("Falha ao carregar dados do empreendimento.");
+            } finally {
+                setLoading(false);
+            }
         };
-    }, []);
+        loadInitialData();
+    }, [empreendimentoId, navigate]);
 
-    useEffect(() => {
-        if (empreendimentoId) {
-            Empreendimento.get(empreendimentoId).then(emp => {
-                setEmpreendimento(emp);
-                // Auto-preencher campos do empreendimento (mantém numero_relatorio do usuário se já preenchido)
-                setFormData(prev => ({
-                    ...prev,
-                    obra_nome: emp.nome_empreendimento || '',
-                    obra_local: emp.endereco_empreendimento || '',
-                    contrato: emp.os_number || '',
-                    prazo_contratual: emp.prazo_contratual_dias || ''
-                }));
-            });
+    const handleInputChange = (field, value) => setFormData(p => ({ ...p, [field]: value }));
+
+    const handleEfetivoChange = (index, field, value) => {
+        const newEfetivo = [...formData.efetivo];
+        if (field === 'categoria') {
+            newEfetivo[index][field] = value;
+        } else {
+            newEfetivo[index][field] = parseInt(value, 10) || 0;
         }
-    }, [empreendimentoId]);
-
-    // Auto-fill day of week when date changes
-    useEffect(() => {
-        if (formData.data_relatorio) {
-            const date = new Date(formData.data_relatorio + 'T00:00:00');
-            const days = ['Domingo', 'Segunda-Feira', 'Terça-Feira', 'Quarta-Feira', 'Quinta-Feira', 'Sexta-Feira', 'Sábado'];
-            const dayName = days[date.getDay()];
-            setFormData(prev => ({ ...prev, dia_semana: dayName }));
-        }
-    }, [formData.data_relatorio]);
-
-    // Calcular prazos automaticamente quando a data muda
-    useEffect(() => {
-        if (empreendimento && formData.data_relatorio) {
-            // Calcular prazo decorrido
-            if (empreendimento.data_inicio_contrato) {
-                const dataInicio = new Date(empreendimento.data_inicio_contrato + 'T00:00:00');
-                const dataRelatorio = new Date(formData.data_relatorio + 'T00:00:00');
-                const prazoDecorrido = Math.floor((dataRelatorio - dataInicio) / (1000 * 60 * 60 * 24));
-                setFormData(prev => ({ ...prev, prazo_decorrido: prazoDecorrido > 0 ? prazoDecorrido : 0 }));
-            }
-
-            // Calcular prazo a vencer
-            if (empreendimento.data_termino_contrato) {
-                const dataTermino = new Date(empreendimento.data_termino_contrato + 'T00:00:00');
-                const dataRelatorio = new Date(formData.data_relatorio + 'T00:00:00');
-                const prazoVencer = Math.floor((dataTermino - dataRelatorio) / (1000 * 60 * 60 * 24));
-                setFormData(prev => ({ ...prev, prazo_vencer: prazoVencer > 0 ? prazoVencer : 0 }));
-            }
-        }
-    }, [formData.data_relatorio, empreendimento]);
-
-    const handleSave = async () => {
-        setSaving(true);
-        try {
-            const dataToSave = {
-                ...formData,
-                prazo_contratual: String(formData.prazo_contratual || ''),
-                prazo_decorrido: String(formData.prazo_decorrido || ''),
-                prazo_vencer: String(formData.prazo_vencer || '')
-            };
-            await RDO.create({
-                id_empreendimento: empreendimentoId,
-                ...dataToSave
-            });
-            navigate(createPageUrl(`EmpreendimentoListaDocumentos?empreendimentoId=${empreendimentoId}`));
-        } catch (error) {
-            console.error("Erro ao salvar documento:", error);
-        } finally {
-            setSaving(false);
-        }
+        handleInputChange('efetivo', newEfetivo);
     };
 
-    const addActivity = () => {
-        setFormData({
-            ...formData,
-            atividades_realizadas: [
-                ...formData.atividades_realizadas,
-                { numero: formData.atividades_realizadas.length + 1, descricao: '' }
-            ]
-        });
+    const addEfetivoCategoria = () => {
+        handleInputChange('efetivo', [...formData.efetivo, { categoria: '', presente: 0, ausente_com_justificativa: 0, ausente_sem_justificativa: 0 }]);
     };
 
-    const addOccurrence = () => {
-        setFormData({
-            ...formData,
-            ocorrencias: [
-                ...formData.ocorrencias,
-                { numero: formData.ocorrencias.length + 1, descricao: '' }
-            ]
-        });
+    const removeEfetivoCategoria = (index) => {
+        const newEfetivo = formData.efetivo.filter((_, i) => i !== index);
+        handleInputChange('efetivo', newEfetivo);
+    };
+
+    const handleAtividadeChange = (index, value) => {
+        const newAtividades = [...formData.principais_atividades];
+        newAtividades[index] = value;
+        handleInputChange('principais_atividades', newAtividades);
+    };
+
+    const addAtividade = () => {
+        handleInputChange('principais_atividades', [...formData.principais_atividades, '']);
+    };
+
+    const removeAtividade = (index) => {
+        const newAtividades = formData.principais_atividades.filter((_, i) => i !== index);
+        handleInputChange('principais_atividades', newAtividades);
     };
 
     const handlePhotoUpload = async (e) => {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
-
         setUploadingPhoto(true);
         try {
-            const uploadPromises = files.map(async (file) => {
-                try {
-                    // Comprimir imagem antes do upload
-                    const compressedBlob = await compressImage(file, 1200, 1200, 0.8);
-                    const compressedFile = new File([compressedBlob], file.name, { type: 'image/jpeg' });
-                    console.log(`Imagem comprimida: ${file.name}, Tamanho original: ${(file.size / 1024).toFixed(2)}KB, Comprimido: ${(compressedFile.size / 1024).toFixed(2)}KB`);
-                    return base44.integrations.Core.UploadFile({ file: compressedFile });
-                } catch (err) {
-                    console.error(`Erro ao comprimir ${file.name}:`, err);
-                    // Se falhar a compressão, envia o arquivo original
-                    return base44.integrations.Core.UploadFile({ file });
-                }
-            });
-            const results = await Promise.all(uploadPromises);
-
-            const newFotos = results.map(result => ({ url: result.file_url, legenda: '' }));
-            setFormData(prev => ({
-                ...prev,
-                fotos: [...(prev.fotos || []), ...newFotos]
+            const uploadedPhotos = await Promise.all(files.map(async file => {
+                const { file_url } = await UploadFile({ file });
+                return { url: file_url, legenda: '' };
             }));
-        } catch (error) {
-            console.error("Erro ao fazer upload das fotos:", error);
+            handleInputChange('fotos', [...formData.fotos, ...uploadedPhotos]);
+        } catch (err) {
+            toast.error("Falha no upload da foto.");
+            console.error(err);
         } finally {
             setUploadingPhoto(false);
-            e.target.value = '';
         }
     };
 
-    const removeFoto = (index) => {
-        setFormData(prev => ({
-            ...prev,
-            fotos: prev.fotos.filter((_, i) => i !== index)
-        }));
+    const handlePhotoLegendChange = (index, value) => {
+        const newFotos = [...formData.fotos];
+        newFotos[index].legenda = value;
+        handleInputChange('fotos', newFotos);
     };
 
-    const updateFotoLegenda = (index, legenda) => {
-        setFormData(prev => ({
-            ...prev,
-            fotos: prev.fotos.map((foto, i) =>
-                i === index ? { ...foto, legenda } : foto
-            )
-        }));
+    const removePhoto = (index) => {
+        const newFotos = formData.fotos.filter((_, i) => i !== index);
+        handleInputChange('fotos', newFotos);
     };
 
-    const handleSignatureUpload = async (e) => {
-        const files = Array.from(e.target.files);
-        if (files.length === 0) return;
+    const handleVistoChange = (index, field, value) => {
+        const newVistos = [...formData.vistos];
+        newVistos[index][field] = value;
+        handleInputChange('vistos', newVistos);
+    };
 
-        setUploadingPhoto(true);
+    const addVisto = () => {
+        handleInputChange('vistos', [...formData.vistos, { responsavel: '', data_visto: new Date().toISOString().split('T')[0], nome_visto: '' }]);
+    };
+
+    const removeVisto = (index) => {
+        const newVistos = formData.vistos.filter((_, i) => i !== index);
+        handleInputChange('vistos', newVistos);
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setSaving(true);
         try {
-            const uploadPromises = files.map(file =>
-                base44.integrations.Core.UploadFile({ file })
-            );
-            const results = await Promise.all(uploadPromises);
-
-            const newAssinaturas = results.map(result => ({ url: result.file_url, nome: '' }));
-            setFormData(prev => ({
-                ...prev,
-                assinaturas: [...(prev.assinaturas || []), ...newAssinaturas]
-            }));
+            const finalData = {
+                ...formData,
+                principais_atividades: formData.principais_atividades.filter(a => a.trim() !== ''),
+            };
+            await DiarioDeObra.create(finalData);
+            toast.success("Diário de Obra criado com sucesso!");
+            navigate(createPageUrl(`EmpreendimentoDiariosObra?empreendimentoId=${empreendimentoId}`));
         } catch (error) {
-            console.error("Erro ao fazer upload das assinaturas:", error);
+            console.error("Erro ao criar diário:", error);
+            toast.error("Falha ao criar o diário de obra.");
         } finally {
-            setUploadingPhoto(false);
-            e.target.value = '';
+            setSaving(false);
         }
     };
 
-    const removeAssinatura = (index) => {
-        setFormData(prev => ({
-            ...prev,
-            assinaturas: prev.assinaturas.filter((_, i) => i !== index)
-        }));
-    };
-
-    const updateAssinaturaNome = (index, nome) => {
-        setFormData(prev => ({
-            ...prev,
-            assinaturas: prev.assinaturas.map((ass, i) =>
-                i === index ? { ...ass, nome } : ass
-            )
-        }));
-    };
-
-    const addAssinatura = () => {
-        setFormData(prev => ({
-            ...prev,
-            assinaturas: [...(prev.assinaturas || []), { parte: '', nome: '', assinatura_imagem: '' }]
-        }));
-    };
-
-    const updateAssinatura = (index, field, value) => {
-        setFormData(prev => ({
-            ...prev,
-            assinaturas: prev.assinaturas.map((ass, i) =>
-                i === index ? { ...ass, [field]: value } : ass
-            )
-        }));
-    };
-
-    const handleSignatureEdit = (index) => {
-        setSignatureEditIndex(index);
-        setSignatureDialogOpen(true);
-    };
-
-    const handleSignatureSave = (signatureImage) => {
-        if (signatureEditIndex !== null) {
-            updateAssinatura(signatureEditIndex, 'assinatura_imagem', signatureImage);
-        }
-        setSignatureDialogOpen(false);
-        setSignatureEditIndex(null);
-    };
+    if (loading) {
+        return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    }
 
     return (
-        <div className={`min-h-screen ${isDark ? 'bg-gray-900' : 'bg-gray-50'} p-6 space-y-6`}>
-            <div className="flex items-center justify-between">
-                <Button
-                    variant="outline"
-                    onClick={() => navigate(createPageUrl(`EmpreendimentoListaDocumentos?empreendimentoId=${empreendimentoId}`))}
-                    className={isDark ? 'text-white border-gray-600 hover:bg-gray-800' : ''}
-                >
+        <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold">{t.title}</h1>
+                <Button variant="outline" onClick={() => navigate(-1)}>
                     <ArrowLeft className="w-4 h-4 mr-2" />
-                    {t.backToList}
-                </Button>
-
-                <Button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
-                    {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                    {saving ? t.saving : t.save}
+                    {t.back}
                 </Button>
             </div>
 
-            <Card className={isDark ? 'bg-gray-800' : ''}>
-                <CardHeader>
-                    <CardTitle className={isDark ? 'text-white' : ''}>{t.newDocument}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    {/* Informações Gerais */}
-                    <div className="space-y-4">
-                        <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : ''}`}>{t.generalInfo}</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <Label>{t.documentType}</Label>
-                                <Input value={formData.tipo_documento} disabled className={isDark ? 'bg-gray-700' : ''} />
-                            </div>
-                            <div>
-                                <Label>{t.reportNumber}</Label>
-                                <Input value={formData.numero_relatorio} onChange={(e) => setFormData({ ...formData, numero_relatorio: e.target.value })} />
-                            </div>
-                            <div>
-                                <Label>{t.fileName}</Label>
-                                <Input value={formData.nome_arquivo} onChange={(e) => setFormData({ ...formData, nome_arquivo: e.target.value })} placeholder="Ex: RDO-001" />
-                            </div>
-                            <div>
-                                <Label>{t.reportDate}</Label>
-                                <Input type="date" value={formData.data_relatorio} onChange={(e) => setFormData({ ...formData, data_relatorio: e.target.value })} />
-                            </div>
-                            <div>
-                                <Label>{t.dayOfWeek}</Label>
-                                <Input type="text" value={formData.dia_semana} disabled className={isDark ? 'bg-gray-700' : ''} />
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <Card>
+                    <CardHeader><CardTitle>{t.generalInfo}</CardTitle></CardHeader>
+                    <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="data_diario">{t.date}</Label>
+                            <Input id="data_diario" type="date" value={formData.data_diario} onChange={(e) => handleInputChange('data_diario', e.target.value)} required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="id_unidade">{t.unit}</Label>
+                            <Select value={formData.id_unidade || ''} onValueChange={(value) => handleInputChange('id_unidade', value)}>
+                                <SelectTrigger><SelectValue placeholder={t.noUnit} /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={null}>{t.noUnit}</SelectItem>
+                                    {unidades.map(u => (<SelectItem key={u.id} value={u.id}>{u.unidade_empreendimento}</SelectItem>))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="unidade_texto">{t.customUnitText}</Label>
+                            <Input id="unidade_texto" type="text" value={formData.unidade_texto} onChange={(e) => handleInputChange('unidade_texto', e.target.value)} placeholder={t.customUnitPlaceholder} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="condicao_climatica">{t.weatherConditions}</Label>
+                            <Select value={formData.condicao_climatica} onValueChange={(value) => handleInputChange('condicao_climatica', value)}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Dias produtivos">Dias produtivos</SelectItem>
+                                    <SelectItem value="Dias sem atividades">Dias sem atividades</SelectItem>
+                                    <SelectItem value="Dias com trabalhos prejudicados por chuva">Dias com trabalhos prejudicados por chuva</SelectItem>
+                                    <SelectItem value="Dias com trabalhos prejudicados por chuva do dia anterior">Dias com trabalhos prejudicados por chuva do dia anterior</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="nome_arquivo">{t.fileName}</Label>
+                            <Input id="nome_arquivo" type="text" value={formData.nome_arquivo} onChange={(e) => handleInputChange('nome_arquivo', e.target.value)} placeholder={t.fileNamePlaceholder} />
+                        </div>
+                        <div className="space-y-2 col-span-1">
+                            <Label>{t.workPeriod}</Label>
+                            <div className="flex items-center space-x-4 pt-2">
+                                <div className="flex items-center space-x-2"><Checkbox id="manha" checked={formData.periodo_trabalhado.manha} onCheckedChange={(checked) => handleInputChange('periodo_trabalhado', { ...formData.periodo_trabalhado, manha: checked })} /><label htmlFor="manha">{t.morning}</label></div>
+                                <div className="flex items-center space-x-2"><Checkbox id="tarde" checked={formData.periodo_trabalhado.tarde} onCheckedChange={(checked) => handleInputChange('periodo_trabalhado', { ...formData.periodo_trabalhado, tarde: checked })} /><label htmlFor="tarde">{t.afternoon}</label></div>
+                                <div className="flex items-center space-x-2"><Checkbox id="noite" checked={formData.periodo_trabalhado.noite} onCheckedChange={(checked) => handleInputChange('periodo_trabalhado', { ...formData.periodo_trabalhado, noite: checked })} /><label htmlFor="noite">{t.night}</label></div>
                             </div>
                         </div>
-                    </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="horas_paralisadas">{t.stoppedHours}</Label>
+                            <Input id="horas_paralisadas" type="number" value={formData.horas_paralisadas} onChange={(e) => handleInputChange('horas_paralisadas', e.target.value)} />
+                        </div>
+                    </CardContent>
+                </Card>
 
-                    {/* Informações da Obra */}
-                    <div className="space-y-4">
-                        <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : ''}`}>{t.workInfo}</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <Label>{t.workName}</Label>
-                                <Input value={formData.obra_nome} onChange={(e) => setFormData({ ...formData, obra_nome: e.target.value })} disabled className={isDark ? 'bg-gray-700' : 'bg-gray-100'} />
-                            </div>
-                            <div>
-                                <Label>{t.workLocation}</Label>
-                                <Input value={formData.obra_local} onChange={(e) => setFormData({ ...formData, obra_local: e.target.value })} disabled className={isDark ? 'bg-gray-700' : 'bg-gray-100'} />
-                            </div>
-                            <div>
-                                <Label>{t.contractor}</Label>
-                                <Input value={formData.contratada} onChange={(e) => setFormData({ ...formData, contratada: e.target.value })} />
-                            </div>
-                            <div>
-                                <Label>{t.responsible}</Label>
-                                <Input value={formData.responsavel} onChange={(e) => setFormData({ ...formData, responsavel: e.target.value })} />
-                            </div>
-                        </div>
-                    </div>
+                <Card>
+                    <CardHeader><CardTitle>{t.workforce}</CardTitle></CardHeader>
+                    <CardContent className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="text-left">
+                                    <th className="p-2 min-w-[200px]">{t.category}</th>
+                                    <th className="p-2 text-center">{t.present}</th>
+                                    <th className="p-2 text-center">{t.absentWithJustification}</th>
+                                    <th className="p-2 text-center">{t.absentWithoutJustification}</th>
+                                    <th className="p-2 text-center">{t.total}</th>
+                                    <th className="p-2 text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {formData.efetivo.map((item, index) => (
+                                    <tr key={index} className="border-t">
+                                        <td className="p-2">
+                                            <Input
+                                                type="text"
+                                                value={item.categoria}
+                                                onChange={(e) => handleEfetivoChange(index, 'categoria', e.target.value)}
+                                                placeholder={t.categoryPlaceholder}
+                                            />
+                                        </td>
+                                        <td><Input type="number" min="0" value={item.presente} onChange={(e) => handleEfetivoChange(index, 'presente', e.target.value)} className="text-center" /></td>
+                                        <td><Input type="number" min="0" value={item.ausente_com_justificativa} onChange={(e) => handleEfetivoChange(index, 'ausente_com_justificativa', e.target.value)} className="text-center" /></td>
+                                        <td><Input type="number" min="0" value={item.ausente_sem_justificativa} onChange={(e) => handleEfetivoChange(index, 'ausente_sem_justificativa', e.target.value)} className="text-center" /></td>
+                                        <td className="p-2 text-center font-bold">{item.presente + item.ausente_com_justificativa + item.ausente_sem_justificativa}</td>
+                                        <td className="text-center">
+                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeEfetivoCategoria(index)}>
+                                                <Trash2 className="w-4 h-4 text-red-500" />
+                                            </Button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        <Button type="button" variant="outline" onClick={addEfetivoCategoria} className="mt-4"><Plus className="w-4 h-4 mr-2" />{t.addCategory}</Button>
+                    </CardContent>
+                </Card>
 
-                    {/* Informações do Contrato */}
-                    <div className="space-y-4">
-                        <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : ''}`}>{t.contractInfo}</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div>
-                                <Label>{t.contract}</Label>
-                                <Input value={formData.contrato} onChange={(e) => setFormData({ ...formData, contrato: e.target.value })} disabled className={isDark ? 'bg-gray-700' : 'bg-gray-100'} />
-                            </div>
-                            <div>
-                                <Label>{t.contractualDeadline}</Label>
-                                <Input type="number" value={formData.prazo_contratual} onChange={(e) => setFormData({ ...formData, prazo_contratual: e.target.value })} disabled className={isDark ? 'bg-gray-700' : 'bg-gray-100'} />
-                            </div>
-                            <div>
-                                <Label>{t.elapsedTime}</Label>
-                                <Input type="number" value={formData.prazo_decorrido} onChange={(e) => setFormData({ ...formData, prazo_decorrido: e.target.value })} disabled className={isDark ? 'bg-gray-700' : 'bg-gray-100'} />
-                            </div>
-                            <div>
-                                <Label>{t.remainingTime}</Label>
-                                <Input type="number" value={formData.prazo_vencer} onChange={(e) => setFormData({ ...formData, prazo_vencer: e.target.value })} disabled className={isDark ? 'bg-gray-700' : 'bg-gray-100'} />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Condição Climática */}
-                    <div className="space-y-4">
-                        <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : ''}`}>{t.weatherCondition}</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-3">
-                                <Label className="font-semibold">{t.morning}</Label>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <Label className="text-sm">{t.weather}</Label>
-                                        <Select
-                                            value={formData.condicao_climatica.manha_tempo}
-                                            onValueChange={(val) => setFormData({
-                                                ...formData,
-                                                condicao_climatica: { ...formData.condicao_climatica, manha_tempo: val }
-                                            })}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="Claro">{t.clear}</SelectItem>
-                                                <SelectItem value="Nublado">{t.cloudy}</SelectItem>
-                                                <SelectItem value="Chuvoso">{t.rainy}</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div>
-                                        <Label className="text-sm">{t.workCondition}</Label>
-                                        <Select
-                                            value={formData.condicao_climatica.manha_condicao}
-                                            onValueChange={(val) => setFormData({
-                                                ...formData,
-                                                condicao_climatica: { ...formData.condicao_climatica, manha_condicao: val }
-                                            })}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="Praticável">{t.workable}</SelectItem>
-                                                <SelectItem value="Impraticável">{t.unworkable}</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="space-y-3">
-                                <Label className="font-semibold">{t.afternoon}</Label>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <Label className="text-sm">{t.weather}</Label>
-                                        <Select
-                                            value={formData.condicao_climatica.tarde_tempo}
-                                            onValueChange={(val) => setFormData({
-                                                ...formData,
-                                                condicao_climatica: { ...formData.condicao_climatica, tarde_tempo: val }
-                                            })}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="Claro">{t.clear}</SelectItem>
-                                                <SelectItem value="Nublado">{t.cloudy}</SelectItem>
-                                                <SelectItem value="Chuvoso">{t.rainy}</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div>
-                                        <Label className="text-sm">{t.workCondition}</Label>
-                                        <Select
-                                            value={formData.condicao_climatica.tarde_condicao}
-                                            onValueChange={(val) => setFormData({
-                                                ...formData,
-                                                condicao_climatica: { ...formData.condicao_climatica, tarde_condicao: val }
-                                            })}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="Praticável">{t.workable}</SelectItem>
-                                                <SelectItem value="Impraticável">{t.unworkable}</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Equipe de Campo / Mão de Obra */}
-                    <div className="space-y-4">
-                        <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : ''}`}>{t.fieldTeams}</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div>
-                                <Label>{t.juniorEngineer}</Label>
-                                <Input
-                                    type="number"
-                                    value={formData.equipes_campo.engenheiro_pleno}
-                                    onChange={(e) => setFormData({
-                                        ...formData,
-                                        equipes_campo: { ...formData.equipes_campo, engenheiro_pleno: parseInt(e.target.value) || 0 }
-                                    })}
-                                />
-                            </div>
-                            <div>
-                                <Label>{t.seniorEngineer}</Label>
-                                <Input
-                                    type="number"
-                                    value={formData.equipes_campo.engenheiro_senior}
-                                    onChange={(e) => setFormData({
-                                        ...formData,
-                                        equipes_campo: { ...formData.equipes_campo, engenheiro_senior: parseInt(e.target.value) || 0 }
-                                    })}
-                                />
-                            </div>
-                            <div>
-                                <Label>{t.administrative}</Label>
-                                <Input
-                                    type="number"
-                                    value={formData.equipes_campo.administrativo}
-                                    onChange={(e) => setFormData({
-                                        ...formData,
-                                        equipes_campo: { ...formData.equipes_campo, administrativo: parseInt(e.target.value) || 0 }
-                                    })}
-                                />
-                            </div>
-                            <div>
-                                <Label>{t.thirdParty}</Label>
-                                <Input
-                                    type="number"
-                                    value={formData.equipes_campo.terceiros || 0}
-                                    onChange={(e) => setFormData({
-                                        ...formData,
-                                        equipes_campo: { ...formData.equipes_campo, terceiros: parseInt(e.target.value) || 0 }
-                                    })}
-                                    className={isDark ? 'bg-gray-700 text-white' : ''}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Atividades Realizadas */}
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : ''}`}>{t.activitiesPerformed}</h3>
-                            <Button variant="outline" size="sm" onClick={addActivity}>
-                                {t.addActivity}
-                            </Button>
-                        </div>
-                        {formData.atividades_realizadas.map((ativ, idx) => (
-                            <div key={idx} className="flex gap-2">
-                                <Input value={ativ.numero} disabled className="w-16" />
-                                <Textarea
-                                    value={ativ.descricao}
-                                    onChange={(e) => {
-                                        const newAtividades = [...formData.atividades_realizadas];
-                                        newAtividades[idx].descricao = e.target.value;
-                                        setFormData({ ...formData, atividades_realizadas: newAtividades });
-                                    }}
-                                    placeholder="Descrição da atividade"
-                                />
+                <Card>
+                    <CardHeader><CardTitle>{t.mainActivities}</CardTitle></CardHeader>
+                    <CardContent className="space-y-2">
+                        {formData.principais_atividades.map((atividade, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                                <Input value={atividade} onChange={(e) => handleAtividadeChange(index, e.target.value)} placeholder={t.activityPlaceholder} />
+                                <Button type="button" variant="ghost" size="icon" onClick={() => removeAtividade(index)}><Trash2 className="w-4 h-4 text-red-500" /></Button>
                             </div>
                         ))}
-                    </div>
+                        <Button type="button" variant="outline" onClick={addAtividade}><Plus className="w-4 h-4 mr-2" /> {t.addActivity}</Button>
+                    </CardContent>
+                </Card>
 
-                    {/* Ocorrências */}
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : ''}`}>{t.occurrences}</h3>
-                            <Button variant="outline" size="sm" onClick={addOccurrence}>
-                                {t.addOccurrence}
-                            </Button>
-                        </div>
-                        {formData.ocorrencias.map((ocor, idx) => (
-                            <div key={idx} className="flex gap-2">
-                                <Input value={ocor.numero} disabled className="w-16" />
-                                <Textarea
-                                    value={ocor.descricao}
-                                    onChange={(e) => {
-                                        const newOcorrencias = [...formData.ocorrencias];
-                                        newOcorrencias[idx].descricao = e.target.value;
-                                        setFormData({ ...formData, ocorrencias: newOcorrencias });
-                                    }}
-                                    placeholder="Descrição da ocorrência"
-                                />
-                            </div>
-                        ))}
-                    </div>
+                <Card>
+                    <CardHeader><CardTitle>{t.occurrences}</CardTitle></CardHeader>
+                    <CardContent><Textarea value={formData.ocorrencias_observacoes} onChange={(e) => handleInputChange('ocorrencias_observacoes', e.target.value)} placeholder={t.occurrencesPlaceholder} rows={5} /></CardContent>
+                </Card>
 
-                    {/* Registros Fotográficos */}
-                    <div>
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : ''}`}>Registros Fotográficos</h3>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => document.getElementById('photo-upload').click()}
-                                disabled={uploadingPhoto}
-                            >
-                                {uploadingPhoto ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                        Enviando...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Upload className="w-4 h-4 mr-2" />
-                                        Adicionar Foto
-                                    </>
-                                )}
-                            </Button>
-                            <input
-                                id="photo-upload"
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                onChange={handlePhotoUpload}
-                                className="hidden"
-                            />
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {formData.fotos?.map((foto, index) => (
-                                <div key={index} className={`border rounded-lg p-3 ${isDark ? 'border-gray-600' : 'border-gray-300'}`}>
-                                    <img
-                                        src={foto.url}
-                                        alt={`Foto ${index + 1}`}
-                                        className="w-full h-48 object-cover rounded mb-2"
-                                    />
-                                    <Input
-                                        value={foto.legenda}
-                                        onChange={(e) => updateFotoLegenda(index, e.target.value)}
-                                        placeholder="Legenda da Foto"
-                                        className={`mb-2 ${isDark ? 'bg-gray-700 text-white' : ''}`}
-                                    />
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => removeFoto(index)}
-                                        className="w-full"
-                                    >
-                                        <Trash2 className="w-4 h-4 mr-2 text-red-600" />
-                                        Remover
-                                    </Button>
+                <Card>
+                    <CardHeader><CardTitle>{t.photos}</CardTitle></CardHeader>
+                    <CardContent>
+                        <Label htmlFor="photo-upload" className="mb-2 block">{t.addPhotos}</Label>
+                        <Input id="photo-upload" type="file" multiple accept="image/*" onChange={handlePhotoUpload} disabled={uploadingPhoto} />
+                        {uploadingPhoto && <div className="flex items-center gap-2 mt-2"><Loader2 className="w-4 h-4 animate-spin" /> {t.uploading}</div>}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                            {formData.fotos.map((foto, index) => (
+                                <div key={index} className="space-y-2">
+                                    <img src={foto.url} alt={`Foto ${index}`} className="w-full h-32 object-cover rounded-lg" />
+                                    <Input value={foto.legenda} onChange={(e) => handlePhotoLegendChange(index, e.target.value)} placeholder="Legenda" />
+                                    <Button type="button" variant="destructive" size="sm" onClick={() => removePhoto(index)}>Remover</Button>
                                 </div>
                             ))}
                         </div>
-                    </div>
+                    </CardContent>
+                </Card>
 
-                    {/* Observações */}
-                    <div>
-                        <Label>{t.observations}</Label>
-                        <Textarea value={formData.observacoes} onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })} rows={4} />
-                    </div>
+                <Card>
+                    <CardHeader><CardTitle>{t.approvals}</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                        {formData.vistos.map((visto, index) => (
+                            <div key={index} className="grid grid-cols-1 md:grid-cols-4 items-end gap-2 p-2 border rounded-lg">
+                                <div className="space-y-1"><Label>{t.responsible}</Label><Input value={visto.responsavel} onChange={(e) => handleVistoChange(index, 'responsavel', e.target.value)} /></div>
+                                <div className="space-y-1"><Label>{t.date}</Label><Input type="date" value={visto.data_visto} onChange={(e) => handleVistoChange(index, 'data_visto', e.target.value)} /></div>
+                                <div className="space-y-1"><Label>{t.approverName}</Label><Input value={visto.nome_visto} onChange={(e) => handleVistoChange(index, 'nome_visto', e.target.value)} /></div>
+                                <Button type="button" variant="ghost" size="icon" onClick={() => removeVisto(index)}><Trash2 className="w-4 h-4 text-red-500" /></Button>
+                            </div>
+                        ))}
+                        <Button type="button" variant="outline" onClick={addVisto}><Plus className="w-4 h-4 mr-2" /> {t.addApproval}</Button>
+                    </CardContent>
+                </Card>
 
-                    {/* Assinaturas */}
-                    <div>
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : ''}`}>{t.signatures}</h3>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={addAssinatura}
-                            >
-                                <Plus className="w-4 h-4 mr-2" />
-                                {t.addSignature}
-                            </Button>
-                        </div>
-                        <div className="space-y-3">
-                            {formData.assinaturas?.map((ass, index) => (
-                                <SignatureField
-                                    key={index}
-                                    assinatura={ass}
-                                    index={index}
-                                    onEdit={handleSignatureEdit}
-                                    onRemove={(idx) => removeAssinatura(idx)}
-                                    onChange={updateAssinatura}
-                                />
-                            ))}
-                        </div>
-                        <SignatureDialog
-                            open={signatureDialogOpen}
-                            onOpenChange={setSignatureDialogOpen}
-                            onSave={handleSignatureSave}
-                        />
-                    </div>
-
-                    {/* Status */}
-                    <div>
-                        <Label>{t.status}</Label>
-                        <Select value={formData.status_documento} onValueChange={(val) => setFormData({ ...formData, status_documento: val })}>
-                            <SelectTrigger>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Rascunho">{t.draft}</SelectItem>
-                                <SelectItem value="Em Análise">{t.underReview}</SelectItem>
-                                <SelectItem value="Aprovado">{t.approved}</SelectItem>
-                                <SelectItem value="Arquivado">{t.archived}</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </CardContent>
-            </Card>
+                <div className="flex justify-end gap-4">
+                    <Button type="submit" disabled={saving}>
+                        {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t.saving}</> : t.save}
+                    </Button>
+                </div>
+            </form>
         </div>
     );
 }
