@@ -179,7 +179,7 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
     const [theme, setTheme] = useState(initialTheme || 'light');
 
     const [formData, setFormData] = useState({
-        tipo_documento: 'Relatório Diário de Obra (RDO)',
+        tipo_documento: 'Lista de Documentos',
         numero_relatorio: '',
         nome_arquivo: '',
         data_relatorio: new Date().toISOString().split('T')[0],

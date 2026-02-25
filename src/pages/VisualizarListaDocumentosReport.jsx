@@ -101,7 +101,7 @@ const CoverPage = ({ documento, empreendimento }) => {
           RELATÓRIO
         </h1>
         <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '29.5px', color: redColor, letterSpacing: '4px' }}>
-          LISTA DE DOCUMENTOS
+          DIÁRIO DE OBRA
         </h2>
       </div>
 
@@ -190,7 +190,7 @@ const ReportPage = ({ children, pageNumber, totalPages, documento, empreendiment
           <img src={logoHorizontalUrl} alt="Logo Interativa Engenharia" className="h-12" loading="lazy" decoding="async" width={150} height={48} />
           <div className="text-right">
             <h2 className="text-sm font-bold text-gray-800 uppercase">
-              LISTA DE DOCUMENTOS
+              DIÁRIO DE OBRA
             </h2>
             <p className="text-xs text-gray-600">
               {empreendimento?.nome_empreendimento}
@@ -240,7 +240,7 @@ const ContentPage = ({ documento, documentosPagina, isFirstPage, isLastPage }) =
     <div className="px-12 py-6">
       {isFirstPage && (
         <>
-          <h2 className="text-2xl font-bold mb-6 text-gray-900">{documento.titulo || 'LISTA DE DOCUMENTOS'}</h2>
+          <h2 className="text-2xl font-bold mb-6 text-gray-900">{documento.titulo || 'DIÁRIO DE OBRA'}</h2>
 
           {documento.cliente && (
             <div className="mb-4">

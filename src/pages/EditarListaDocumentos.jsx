@@ -152,7 +152,7 @@ export default function EditarListaDocumentos({ language: initialLanguage, theme
   const [theme, setTheme] = useState(initialTheme || 'light');
 
   const [formData, setFormData] = useState({
-    tipo_documento: 'Lista de Documentos',
+    tipo_documento: 'Diário de Obra',
     numero_relatorio: '',
     nome_arquivo: '',
     data_relatorio: '',

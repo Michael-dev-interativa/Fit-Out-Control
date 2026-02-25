@@ -82,7 +82,7 @@ const ReportPage = ({ children, pageNumber, totalPages, diario, unidade, empreen
                 <div className="flex justify-between items-center p-4 border-b border-gray-200" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: HEADER_HEIGHT }}>
                     <img src={logoHorizontalCompressed} alt="Logo Interativa Engenharia" className="h-12" />
                     <div className="text-right">
-                        <h2 className="text-sm font-bold text-gray-800 uppercase">DIÁRIO DE OBRA</h2>
+                        <h2 className="text-sm font-bold text-gray-800 uppercase">LISTA DE DOCUMENTOS</h2>
                         <p className="text-xs text-gray-600">{empreendimento?.nome_empreendimento} - {unidade?.unidade_empreendimento || diario?.unidade_texto}</p>
                         <p className="text-xs font-medium text-gray-800 mt-1">{diario?.data_diario ? format(new Date(diario.data_diario), 'dd/MM/yyyy', { locale: ptBR }) : ''}</p>
                     </div>
@@ -133,7 +133,7 @@ const CoverPage = ({ diario, unidade, empreendimento, t, pdfMode }) => {
             </div>
             <div className="absolute z-30" style={{ top: '10%', right: '8%', width: '50%', textAlign: 'right' }}>
                 <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: '64px', fontWeight: 'bold', color: '#394557', lineHeight: '1.1', marginBottom: '4px' }}>RELATÓRIO</h1>
-                <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '29.5px', color: redColor, letterSpacing: '4px' }}>DIÁRIO DE OBRA</h2>
+                <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '29.5px', color: redColor, letterSpacing: '4px' }}>LISTA DE DOCUMENTOS</h2>
             </div>
             <div className="absolute z-30" style={{ top: '50%', right: '-3%', width: '45%', padding: '1.3% 2.5%', textAlign: 'center' }}>
                 <h1 className="font-black uppercase" style={{ fontSize: '28px', lineHeight: '1.0', fontFamily: "'Inter', sans-serif", marginBottom: '6px', color: 'black' }}>{unidade?.cliente_unidade || 'Gerenciamento'}</h1>
@@ -199,7 +199,7 @@ const DiarioContentPage = ({ diario, empreendimento, unidade, t }) => {
         <div className="p-4 text-xs bg-white">
             <div className="w-full mb-4">
                 <div className="text-lg font-bold text-white p-2 rounded-md text-center" style={{ backgroundColor: blueColor }}>
-                    <span>DIÁRIO DE OBRA</span>
+                    <span>LISTA DE DOCUMENTOS</span>
                 </div>
             </div>
 
@@ -536,7 +536,7 @@ const ReportContent = ({ diario, unidade, empreendimento, t, navigate, user, loa
                 <div className="no-print shadow-sm border-b p-4 mb-4 bg-white">
                     <div className="flex justify-between items-center max-w-4xl mx-auto">
                         <Button onClick={handleBackClick} variant="outline"><ArrowLeft className="w-4 h-4 mr-2" />Voltar</Button>
-                        <h1 className="text-xl font-semibold text-gray-800">Diário de Obra</h1>
+                        <h1 className="text-xl font-semibold text-gray-800">Lista de Documentos</h1>
                         <Button onClick={handlePrint} className="bg-green-600 hover:bg-green-700 text-white"><Printer className="w-4 h-4 mr-2" />Gerar PDF</Button>
                     </div>
                 </div>

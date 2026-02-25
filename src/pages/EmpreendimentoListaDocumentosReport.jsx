@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 const translations = {
   pt: {
     backToProject: "Voltar ao Empreendimento",
-    documentList: "Lista de Documentos",
+    documentList: "Diário de Obra",
     newDocument: "Novo Documento",
     loading: "Carregando documentos...",
     noDocuments: "Nenhum documento encontrado",
@@ -98,14 +98,14 @@ export default function EmpreendimentoListaDocumentosReport({ language: initialL
 
   const loadData = async () => {
     if (!empreendimentoId) return;
-    
+
     setLoading(true);
     try {
       const [empData, docsData] = await Promise.all([
         Empreendimento.get(empreendimentoId),
         ListaDocumentosReport.filter({ id_empreendimento: empreendimentoId }, '-created_date')
       ]);
-      
+
       setEmpreendimento(empData);
       setDocumentos(docsData || []);
     } catch (error) {
@@ -117,7 +117,7 @@ export default function EmpreendimentoListaDocumentosReport({ language: initialL
 
   const handleDelete = async () => {
     if (!documentoToDelete) return;
-    
+
     try {
       await ListaDocumentosReport.delete(documentoToDelete.id);
       setDeleteDialogOpen(false);
@@ -148,7 +148,7 @@ export default function EmpreendimentoListaDocumentosReport({ language: initialL
           <ArrowLeft className="w-4 h-4 mr-2" />
           {t.backToProject}
         </Button>
-        
+
         <Button
           onClick={() => navigate(createPageUrl(`NovoListaDocumentosReport?empreendimentoId=${empreendimentoId}`))}
           className="bg-blue-600 hover:bg-blue-700"
@@ -185,7 +185,7 @@ export default function EmpreendimentoListaDocumentosReport({ language: initialL
                             {doc.numero_documento || 'S/N'}
                           </p>
                           <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                            {doc.titulo || 'Lista de Documentos'}
+                            {doc.titulo || 'Diário de Obra'}
                           </p>
                         </div>
                       </div>
@@ -199,7 +199,7 @@ export default function EmpreendimentoListaDocumentosReport({ language: initialL
                         {doc.data_aviso ? new Date(doc.data_aviso + 'T00:00:00').toLocaleDateString('pt-BR') : 'Data não definida'}
                       </span>
                     </div>
-                    
+
                     <div className="flex gap-2 mt-4">
                       <Button
                         variant="outline"

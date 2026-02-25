@@ -111,7 +111,7 @@ const translations = {
   pt: {
     backToList: "Voltar à Lista",
     print: "Imprimir",
-    documentList: "RELATÓRIO DIÁRIO DE OBRA (RDO)",
+    documentList: "LISTA DE DOCUMENTOS",
     reportInfo: "RELATÓRIO",
     number: "Nº",
     date: "DATA",
@@ -190,7 +190,7 @@ const ReportPage = ({ children, pageNumber, totalPages, documento, empreendiment
           <img src={logoHorizontalUrl} alt="Logo Interativa Engenharia" className="h-12" loading="lazy" decoding="async" width={150} height={48} />
           <div className="text-right">
             <h2 className="text-sm font-bold text-gray-800 uppercase">
-              RELATÓRIO DIÁRIO DE OBRA (RDO)
+              LISTA DE DOCUMENTOS
             </h2>
             <p className="text-xs text-gray-600">
               {empreendimento?.nome_empreendimento}
@@ -979,7 +979,7 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
             RELATÓRIO
           </h1>
           <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '29.5px', color: redColor, letterSpacing: '4px' }}>
-            DIÁRIO DE OBRA (RDO)
+            LISTA DE DOCUMENTOS
           </h2>
         </div>
 

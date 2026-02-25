@@ -15,7 +15,7 @@ import SignatureDialog from '@/components/signature/SignatureDialog';
 const translations = {
   pt: {
     backToList: "Voltar à Lista",
-    editDocument: "Editar Lista de Documentos",
+    editDocument: "Editar Diário de Obra",
     save: "Salvar",
     saving: "Salvando...",
     generalInfo: "Informações Gerais",
@@ -83,7 +83,7 @@ export default function EditarListaDocumentosReport({ language: initialLanguage,
     id_empreendimento: '',
     cliente: '',
     empreendimento: '',
-    titulo: 'LISTA DE DOCUMENTOS',
+    titulo: 'DIÁRIO DE OBRA',
     numero_documento: '',
     revisao: '',
     data_aviso: '',
@@ -123,7 +123,7 @@ export default function EditarListaDocumentosReport({ language: initialLanguage,
     try {
       const docData = await ListaDocumentosReport.get(documentoId);
       setFormData(docData);
-      
+
       if (docData.id_empreendimento) {
         const empData = await Empreendimento.get(docData.id_empreendimento);
         setEmpreendimento(empData);
@@ -170,7 +170,7 @@ export default function EditarListaDocumentosReport({ language: initialLanguage,
   const updateDocumento = (index, field, value) => {
     setFormData(prev => ({
       ...prev,
-      documentos: prev.documentos.map((doc, i) => 
+      documentos: prev.documentos.map((doc, i) =>
         i === index ? { ...doc, [field]: value } : doc
       )
     }));
@@ -186,7 +186,7 @@ export default function EditarListaDocumentosReport({ language: initialLanguage,
   const updateAssinatura = (index, field, value) => {
     setFormData(prev => ({
       ...prev,
-      assinaturas: prev.assinaturas.map((ass, i) => 
+      assinaturas: prev.assinaturas.map((ass, i) =>
         i === index ? { ...ass, [field]: value } : ass
       )
     }));
@@ -378,10 +378,10 @@ export default function EditarListaDocumentosReport({ language: initialLanguage,
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : ''}`}>{t.signatures}</h3>
-              <Button 
+              <Button
                 type="button"
-                variant="outline" 
-                size="sm" 
+                variant="outline"
+                size="sm"
                 onClick={addAssinatura}
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -400,7 +400,7 @@ export default function EditarListaDocumentosReport({ language: initialLanguage,
                 />
               ))}
             </div>
-            <SignatureDialog 
+            <SignatureDialog
               open={signatureDialogOpen}
               onOpenChange={setSignatureDialogOpen}
               onSave={handleSignatureSave}
