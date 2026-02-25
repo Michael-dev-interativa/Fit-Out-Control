@@ -122,7 +122,40 @@ export default function EditarListaDocumentosReport({ language: initialLanguage,
     setLoading(true);
     try {
       const docData = await ListaDocumentosReport.get(documentoId);
-      setFormData(docData);
+
+      // normalizar data_aviso para formato YYYY-MM-DD utilizável por <input type="date">
+      const toDateInput = (v) => {
+        if (!v) return '';
+        try {
+          if (typeof v === 'string') {
+            const m = v.match(/^(\d{4}-\d{2}-\d{2})/);
+            if (m) return m[1];
+            // ISO with time
+            const iso = new Date(v);
+            if (!isNaN(iso.getTime())) {
+              const y = iso.getFullYear();
+              const mth = String(iso.getMonth() + 1).padStart(2, '0');
+              const d = String(iso.getDate()).padStart(2, '0');
+              return `${y}-${mth}-${d}`;
+            }
+            return '';
+          }
+          if (v instanceof Date) {
+            const y = v.getFullYear();
+            const mth = String(v.getMonth() + 1).padStart(2, '0');
+            const d = String(v.getDate()).padStart(2, '0');
+            return `${y}-${mth}-${d}`;
+          }
+          const s = String(v);
+          const m2 = s.match(/^(\d{4}-\d{2}-\d{2})/);
+          return m2 ? m2[1] : '';
+        } catch {
+          return '';
+        }
+      };
+
+      const normalized = { ...docData, data_aviso: toDateInput(docData.data_aviso) };
+      setFormData(normalized);
 
       if (docData.id_empreendimento) {
         const empData = await Empreendimento.get(docData.id_empreendimento);
