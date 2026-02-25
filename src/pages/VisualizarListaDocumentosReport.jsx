@@ -23,25 +23,6 @@ const translations = {
   }
 };
 
-const getOptimizedImage = (url, width = 800, quality = 70) => {
-  if (!url) return url;
-  try {
-    const u = new URL(url);
-    const host = u.hostname || '';
-    // Unsplash supports width and quality query params
-    if (host.includes('images.unsplash.com')) {
-      return `${url}?w=${width}&q=${quality}&auto=format&fit=crop`;
-    }
-    // Supabase/storage and some CDNs may accept simple width/quality params — best-effort
-    if (host.includes('supabase.co') || host.includes('qtrypzzcjebvfcihiynt.supabase.co')) {
-      return `${url}?w=${width}&q=${quality}`;
-    }
-    return url;
-  } catch (e) {
-    return url;
-  }
-};
-
 const CoverPage = ({ documento, empreendimento }) => {
   const year = new Date().getFullYear();
   const coverFrameUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png";
@@ -51,15 +32,17 @@ const CoverPage = ({ documento, empreendimento }) => {
   const logoInterativaBrancoUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/22086ec44_LOGOPNG-branco.png";
 
   const empreendimentoImageUrl = getUploadUrl(empreendimento?.foto_empreendimento) || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
-  const otimizedEmpreendimentoImage = getOptimizedImage(empreendimentoImageUrl, 1200, 75);
 
   return (
     <div className="report-page relative w-full h-full bg-white font-sans overflow-hidden" style={{ margin: 0, padding: 5 }}>
-      <div
-        className="absolute w-full h-full bg-center bg-no-repeat z-10 cover-background-image"
+      {/* Usar <img> com lazy loading para permitir otimização pelo navegador */}
+      <img
+        src={empreendimentoImageUrl}
+        alt={empreendimento?.nome_empreendimento || ''}
+        loading="lazy"
+        decoding="async"
+        className="absolute w-full h-full object-cover z-10 cover-background-image"
         style={{
-          backgroundImage: `url(${otimizedEmpreendimentoImage})`,
-          backgroundSize: 'cover',
           opacity: 0.2,
           top: '-10px',
           left: '-10px',
@@ -86,10 +69,12 @@ const CoverPage = ({ documento, empreendimento }) => {
         }}
       >
         <img
-          src={getOptimizedImage(logoInterativaUrl, 400, 75)}
+          src={logoInterativaUrl}
           alt="Logo Interativa"
-          loading="lazy"
+          loading="eager"
           decoding="async"
+          width={350}
+          height={170}
           style={{
             width: '100%',
             height: '100%',
@@ -147,7 +132,7 @@ const CoverPage = ({ documento, empreendimento }) => {
         }}
       >
         <img
-          src={getOptimizedImage(logoInterativaBrancoUrl, 1400, 70)}
+          src={logoInterativaBrancoUrl}
           alt="Logo Interativa"
           loading="lazy"
           decoding="async"
@@ -173,7 +158,7 @@ const CoverPage = ({ documento, empreendimento }) => {
         }}
       >
         <img
-          src={getOptimizedImage(empreendimentoImageUrl, 800, 75)}
+          src={empreendimentoImageUrl}
           alt={empreendimento?.nome_empreendimento || 'Foto do empreendimento'}
           loading="lazy"
           decoding="async"
@@ -202,7 +187,7 @@ const ReportPage = ({ children, pageNumber, totalPages, documento, empreendiment
           className="flex justify-between items-center p-4 border-b border-gray-200"
           style={{ position: 'absolute', top: 0, left: 0, right: 0, height: HEADER_HEIGHT }}
         >
-          <img src={logoHorizontalUrl} alt="Logo Interativa Engenharia" className="h-12" />
+          <img src={logoHorizontalUrl} alt="Logo Interativa Engenharia" className="h-12" loading="lazy" decoding="async" width={150} height={48} />
           <div className="text-right">
             <h2 className="text-sm font-bold text-gray-800 uppercase">
               LISTA DE DOCUMENTOS
@@ -324,6 +309,10 @@ const ContentPage = ({ documento, documentosPagina, isFirstPage, isLastPage }) =
                     src={ass.assinatura_imagem}
                     alt={`Assinatura ${ass.parte || ass.nome}`}
                     className="w-full h-24 object-contain mb-2"
+                    loading="lazy"
+                    decoding="async"
+                    width={200}
+                    height={96}
                   />
                 ) : (
                   <div className="border-b border-gray-400 h-6 mb-2"></div>

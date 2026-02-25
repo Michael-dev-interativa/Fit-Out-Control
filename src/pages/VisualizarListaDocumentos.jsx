@@ -79,6 +79,8 @@ const CompressedPhoto = ({ url, legenda }) => {
         src={compressedUrl}
         alt={legenda || `Foto`}
         className="w-full h-48 object-cover rounded mb-2"
+        loading="lazy"
+        decoding="async"
       />
       {legenda && (
         <p className="text-xs text-gray-700 text-center">{legenda}</p>
@@ -187,7 +189,7 @@ const ReportPage = ({ children, pageNumber, totalPages, documento, empreendiment
           className="flex justify-between items-center p-4 border-b border-gray-200"
           style={{ position: 'absolute', top: 0, left: 0, right: 0, height: HEADER_HEIGHT }}
         >
-          <img src={logoHorizontalUrl} alt="Logo Interativa Engenharia" className="h-12" />
+          <img src={logoHorizontalUrl} alt="Logo Interativa Engenharia" className="h-12" loading="lazy" decoding="async" width={150} height={48} />
           <div className="text-right">
             <h2 className="text-sm font-bold text-gray-800 uppercase">
               RELATÓRIO DIÁRIO DE OBRA (RDO)
@@ -525,6 +527,10 @@ const paginateContent = (documento, empreendimento, t) => {
                             src={ass.assinatura_imagem}
                             alt={`Assinatura ${ass.parte || ass.nome}`}
                             className="w-full h-24 object-contain mb-2"
+                            loading="lazy"
+                            decoding="async"
+                            width={200}
+                            height={96}
                           />
                         ) : (
                           <div className="border-b border-gray-400 h-6 mb-2"></div>
@@ -572,6 +578,10 @@ const paginateContent = (documento, empreendimento, t) => {
                       src={ass.assinatura_imagem}
                       alt={`Assinatura ${ass.parte || ass.nome}`}
                       className="w-full h-24 object-contain mb-2"
+                      loading="lazy"
+                      decoding="async"
+                      width={200}
+                      height={96}
                     />
                   ) : (
                     <div className="border-b border-gray-400 h-6 mb-2"></div>
@@ -746,11 +756,13 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
 
       {/* Capa */}
       <div className="report-page relative w-[210mm] h-[297mm] mx-auto bg-white shadow-lg my-8 print:my-0 print:shadow-none overflow-hidden" style={{ margin: '20px auto', padding: 5 }}>
-        <div
-          className="absolute w-full h-full bg-center bg-no-repeat z-10"
+        <img
+          src={empreendimentoImageUrl}
+          alt={empreendimento?.nome_empreendimento || ''}
+          loading="lazy"
+          decoding="async"
+          className="absolute w-full h-full object-cover z-10 cover-background-image"
           style={{
-            backgroundImage: `url(${empreendimentoImageUrl})`,
-            backgroundSize: 'cover',
             opacity: 0.2,
             top: '-10px',
             left: '-10px',
@@ -779,6 +791,10 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
           <img
             src={logoInterativaUrl}
             alt="Logo Interativa"
+            loading="eager"
+            decoding="async"
+            width={350}
+            height={170}
             style={{
               width: '100%',
               height: '100%',
@@ -838,6 +854,8 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
           <img
             src={logoInterativaBrancoUrl}
             alt="Logo Interativa"
+            loading="lazy"
+            decoding="async"
             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
           />
         </div>
@@ -862,6 +880,8 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
           <img
             src={empreendimentoImageUrl}
             alt={empreendimento?.nome_empreendimento || 'Foto do empreendimento'}
+            loading="lazy"
+            decoding="async"
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
         </div>
