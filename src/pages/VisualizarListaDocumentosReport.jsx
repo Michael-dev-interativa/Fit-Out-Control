@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { ListaDocumentosReport } from '@/entities/ListaDocumentosReport';
-import { Empreendimento } from '@/entities/Empreendimento';
+import { ListaDocumentosReport, Empreendimento } from '@/api/entities';
 import { ArrowLeft, Loader2, AlertTriangle, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 

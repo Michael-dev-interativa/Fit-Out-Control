@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Empreendimento } from '@/entities/Empreendimento';
-import { ListaDocumentosReport } from '@/entities/ListaDocumentosReport';
+import { Empreendimento, ListaDocumentosReport } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
