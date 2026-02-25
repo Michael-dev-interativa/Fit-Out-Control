@@ -13,14 +13,23 @@ const formatDate = (value) => {
   if (!value) return '';
   try {
     let d;
-    if (value instanceof Date) d = value;
-    else if (typeof value === 'string') {
-      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) d = new Date(value + 'T00:00:00');
-      else if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
-        const [dd, mm, yyyy] = value.split('/');
-        d = new Date(`${yyyy}-${mm}-${dd}T00:00:00`);
-      } else d = new Date(value);
-    } else d = new Date(value);
+    if (value instanceof Date) {
+      d = value;
+    } else if (typeof value === 'string') {
+      // YYYY-MM-DD -> criar Date no horário local para evitar shift de fuso
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        const [yyyy, mm, dd] = value.split('-').map(Number);
+        d = new Date(yyyy, mm - 1, dd);
+        // DD/MM/YYYY -> criar Date no horário local
+      } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+        const [dd, mm, yyyy] = value.split('/').map(Number);
+        d = new Date(yyyy, mm - 1, dd);
+      } else {
+        d = new Date(value);
+      }
+    } else {
+      d = new Date(value);
+    }
 
     if (isNaN(d.getTime())) return '';
     return d.toLocaleDateString('pt-BR');
