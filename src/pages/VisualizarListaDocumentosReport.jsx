@@ -370,8 +370,8 @@ export default function VisualizarListaDocumentosReport() {
       try {
         const rdo = await RDO.get(documentoId);
         if (rdo && rdo.id) {
-          // redirecionar para o visualizador de Diário de Obra adequado
-          navigate(createPageUrl(`VisualizarDiarioObra?diarioId=${documentoId}`));
+          // Este id existe como RDO — abrir o visualizador de RDOs (VisualizarListaDocumentos)
+          navigate(createPageUrl(`VisualizarListaDocumentos?documentoId=${documentoId}`));
           return;
         }
       } catch (rdoErr) {
