@@ -79,13 +79,28 @@ const CompressedPhoto = ({ url, legenda }) => {
         src={compressedUrl}
         alt={legenda || `Foto`}
         className="w-full h-48 object-cover rounded mb-2"
-        loading="lazy"
-        decoding="async"
       />
       {legenda && (
         <p className="text-xs text-gray-700 text-center">{legenda}</p>
       )}
     </>
+  );
+};
+
+// Componente genérico para imagens comprimidas (assíncronas)
+const CompressedImage = ({ url, alt, className, width, height, style }) => {
+  const compressedUrl = useCompressedImage(url, 1200, 0.75);
+  return (
+    <img
+      src={compressedUrl}
+      alt={alt || ''}
+      className={className}
+      loading="lazy"
+      decoding="async"
+      width={width}
+      height={height}
+      style={style}
+    />
   );
 };
 
@@ -523,12 +538,10 @@ const paginateContent = (documento, empreendimento, t) => {
                     documento.assinaturas.map((ass, idx) => (
                       <div key={idx} className="text-center">
                         {ass.assinatura_imagem ? (
-                          <img
-                            src={ass.assinatura_imagem}
+                          <CompressedImage
+                            url={ass.assinatura_imagem}
                             alt={`Assinatura ${ass.parte || ass.nome}`}
                             className="w-full h-24 object-contain mb-2"
-                            loading="lazy"
-                            decoding="async"
                             width={200}
                             height={96}
                           />
@@ -574,12 +587,10 @@ const paginateContent = (documento, empreendimento, t) => {
               documento.assinaturas.map((ass, idx) => (
                 <div key={idx} className="text-center">
                   {ass.assinatura_imagem ? (
-                    <img
-                      src={ass.assinatura_imagem}
+                    <CompressedImage
+                      url={ass.assinatura_imagem}
                       alt={`Assinatura ${ass.parte || ass.nome}`}
                       className="w-full h-24 object-contain mb-2"
-                      loading="lazy"
-                      decoding="async"
                       width={200}
                       height={96}
                     />
