@@ -357,27 +357,30 @@ export default function VisualizarListaDocumentosReport() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const docData = await ListaDocumentosReport.get(documentoId);
-      setDocumento(docData);
-
-      if (docData.id_empreendimento) {
-        const empData = await Empreendimento.get(docData.id_empreendimento);
-        setEmpreendimento(empData);
+      // Usar filter para evitar 404 quando o recurso não existir — filter retorna lista vazia
+      const list = await ListaDocumentosReport.filter({ id: documentoId });
+      const docData = Array.isArray(list) && list.length > 0 ? list[0] : null;
+      if (docData) {
+        setDocumento(docData);
+        if (docData.id_empreendimento) {
+          const empData = await Empreendimento.get(docData.id_empreendimento);
+          setEmpreendimento(empData);
+        }
+        setLoading(false);
+        return;
       }
+
+      // Se não encontrado em lista-documentos-report, tentar RDO sem imprimir o erro 404
+      const rdo = await RDO.get(documentoId).catch(() => null);
+      if (rdo && rdo.id) {
+        navigate(createPageUrl(`VisualizarListaDocumentos?documentoId=${documentoId}`));
+        return;
+      }
+
+      console.error("Erro ao carregar documento (lista-documentos-report): não encontrado e fallback falhou");
+      setError("Erro ao carregar o relatório");
     } catch (err) {
       console.error("Erro ao carregar documento (lista-documentos-report):", err);
-      // Se não existir em lista-documentos-report, pode ser um RDO — tentar recuperar
-      try {
-        const rdo = await RDO.get(documentoId);
-        if (rdo && rdo.id) {
-          // Este id existe como RDO — abrir o visualizador de RDOs (VisualizarListaDocumentos)
-          navigate(createPageUrl(`VisualizarListaDocumentos?documentoId=${documentoId}`));
-          return;
-        }
-      } catch (rdoErr) {
-        console.debug('Não é RDO ou falha ao buscar RDO:', rdoErr);
-      }
-
       setError("Erro ao carregar o relatório");
     } finally {
       setLoading(false);

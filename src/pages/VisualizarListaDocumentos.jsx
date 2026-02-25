@@ -23,6 +23,15 @@ const useCompressedImage = (imageUrl, maxWidth = 800, quality = 0.7) => {
       return;
     }
 
+    // URLs do tipo "blob:*" vindas do backend são inválidas no cliente
+    // (blob URLs só são válidas no contexto que as criou). Evitar
+    // tentar carregá-las para prevenir erros "Not allowed to load local resource".
+    if (imageUrl.startsWith('blob:')) {
+      console.warn('useCompressedImage: ignoring blob URL from server:', imageUrl);
+      setCompressedUrl(null);
+      return;
+    }
+
     const compressImage = async () => {
       try {
         const response = await fetch(imageUrl);
@@ -61,7 +70,8 @@ const useCompressedImage = (imageUrl, maxWidth = 800, quality = 0.7) => {
         img.src = objectUrl;
       } catch (error) {
         console.error('Erro ao comprimir imagem:', error);
-        setCompressedUrl(imageUrl);
+        // Não reatribuir a URL original quando ela falhar (pode ser blob: ou causar erro de CORS).
+        setCompressedUrl(null);
       }
     };
 
@@ -73,6 +83,14 @@ const useCompressedImage = (imageUrl, maxWidth = 800, quality = 0.7) => {
 
 const CompressedPhoto = ({ url, legenda }) => {
   const compressedUrl = useCompressedImage(url, 800, 0.7);
+  if (!compressedUrl) {
+    return (
+      <div className="w-full h-48 flex items-center justify-center bg-gray-100 rounded mb-2">
+        <span className="text-xs text-gray-500">Imagem indisponível</span>
+      </div>
+    );
+  }
+
   return (
     <>
       <img
