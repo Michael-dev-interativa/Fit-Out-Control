@@ -23,6 +23,25 @@ const translations = {
   }
 };
 
+const getOptimizedImage = (url, width = 800, quality = 70) => {
+  if (!url) return url;
+  try {
+    const u = new URL(url);
+    const host = u.hostname || '';
+    // Unsplash supports width and quality query params
+    if (host.includes('images.unsplash.com')) {
+      return `${url}?w=${width}&q=${quality}&auto=format&fit=crop`;
+    }
+    // Supabase/storage and some CDNs may accept simple width/quality params — best-effort
+    if (host.includes('supabase.co') || host.includes('qtrypzzcjebvfcihiynt.supabase.co')) {
+      return `${url}?w=${width}&q=${quality}`;
+    }
+    return url;
+  } catch (e) {
+    return url;
+  }
+};
+
 const CoverPage = ({ documento, empreendimento }) => {
   const year = new Date().getFullYear();
   const coverFrameUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png";
@@ -30,15 +49,16 @@ const CoverPage = ({ documento, empreendimento }) => {
   const bottomRightFrameUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/10e9b2570_erasebg-transformed.png';
   const logoInterativaUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png";
   const logoInterativaBrancoUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/22086ec44_LOGOPNG-branco.png";
-  
+
   const empreendimentoImageUrl = getUploadUrl(empreendimento?.foto_empreendimento) || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
+  const otimizedEmpreendimentoImage = getOptimizedImage(empreendimentoImageUrl, 1200, 75);
 
   return (
     <div className="report-page relative w-full h-full bg-white font-sans overflow-hidden" style={{ margin: 0, padding: 5 }}>
       <div
         className="absolute w-full h-full bg-center bg-no-repeat z-10 cover-background-image"
         style={{
-          backgroundImage: `url(${empreendimentoImageUrl})`,
+          backgroundImage: `url(${otimizedEmpreendimentoImage})`,
           backgroundSize: 'cover',
           opacity: 0.2,
           top: '-10px',
@@ -55,7 +75,7 @@ const CoverPage = ({ documento, empreendimento }) => {
           height: '150%',
         }}
       />
-      
+
       <div
         className="absolute z-50"
         style={{
@@ -66,11 +86,13 @@ const CoverPage = ({ documento, empreendimento }) => {
         }}
       >
         <img
-          src={logoInterativaUrl}
+          src={getOptimizedImage(logoInterativaUrl, 400, 75)}
           alt="Logo Interativa"
-          style={{ 
-            width: '100%', 
-            height: '100%', 
+          loading="lazy"
+          decoding="async"
+          style={{
+            width: '100%',
+            height: '100%',
             objectFit: 'contain',
             filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
           }}
@@ -116,7 +138,7 @@ const CoverPage = ({ documento, empreendimento }) => {
           WebkitMaskPosition: 'center', maskPosition: 'center',
         }}
       />
-      
+
       <div
         className="absolute z-50"
         style={{
@@ -125,8 +147,10 @@ const CoverPage = ({ documento, empreendimento }) => {
         }}
       >
         <img
-          src={logoInterativaBrancoUrl}
+          src={getOptimizedImage(logoInterativaBrancoUrl, 1400, 70)}
           alt="Logo Interativa"
+          loading="lazy"
+          decoding="async"
           style={{ width: '100%', height: '100%', objectFit: 'contain' }}
         />
       </div>
@@ -149,8 +173,10 @@ const CoverPage = ({ documento, empreendimento }) => {
         }}
       >
         <img
-          src={empreendimentoImageUrl}
+          src={getOptimizedImage(empreendimentoImageUrl, 800, 75)}
           alt={empreendimento?.nome_empreendimento || 'Foto do empreendimento'}
+          loading="lazy"
+          decoding="async"
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
       </div>
@@ -208,7 +234,7 @@ const ReportPage = ({ children, pageNumber, totalPages, documento, empreendiment
         >
           <div className="flex-1 text-left">
             <span className="font-medium">Arquivo:</span>
-            <br/>
+            <br />
             <span>{documento?.numero_documento || 'N/A'}</span>
           </div>
           <div className="flex-1 flex flex-col items-center">
@@ -294,8 +320,8 @@ const ContentPage = ({ documento, documentosPagina, isFirstPage, isLastPage }) =
             {documento.assinaturas.map((ass, idx) => (
               <div key={idx} className="text-center">
                 {ass.assinatura_imagem ? (
-                  <img 
-                    src={ass.assinatura_imagem} 
+                  <img
+                    src={ass.assinatura_imagem}
                     alt={`Assinatura ${ass.parte || ass.nome}`}
                     className="w-full h-24 object-contain mb-2"
                   />
@@ -344,7 +370,7 @@ export default function VisualizarListaDocumentosReport() {
     try {
       const docData = await ListaDocumentosReport.get(documentoId);
       setDocumento(docData);
-      
+
       if (docData.id_empreendimento) {
         const empData = await Empreendimento.get(docData.id_empreendimento);
         setEmpreendimento(empData);
@@ -407,32 +433,32 @@ export default function VisualizarListaDocumentosReport() {
         </div>
 
         {/* Conteúdo - Paginado a cada 10 documentos */}
-         {documento?.documentos && documento.documentos.length > 0 && (
-           (() => {
-             const paginasConteudo = [];
-             const totalPages = 1 + Math.ceil(documento.documentos.length / 10);
-             for (let i = 0; i < documento.documentos.length; i += 10) {
-               const documentosPagina = documento.documentos.slice(i, i + 10);
-               const isFirstPage = i === 0;
-               const isLastPage = (i + 10) >= documento.documentos.length;
-               const pageNumber = 2 + Math.floor(i / 10);
+        {documento?.documentos && documento.documentos.length > 0 && (
+          (() => {
+            const paginasConteudo = [];
+            const totalPages = 1 + Math.ceil(documento.documentos.length / 10);
+            for (let i = 0; i < documento.documentos.length; i += 10) {
+              const documentosPagina = documento.documentos.slice(i, i + 10);
+              const isFirstPage = i === 0;
+              const isLastPage = (i + 10) >= documento.documentos.length;
+              const pageNumber = 2 + Math.floor(i / 10);
 
-               paginasConteudo.push(
-                   <ReportPage 
-                     key={`page-${pageNumber}`}
-                     pageNumber={pageNumber} 
-                     totalPages={totalPages} 
-                     documento={documento} 
-                     empreendimento={empreendimento}
-                     isLastPage={isLastPage}
-                   >
-                     <ContentPage documento={documento} documentosPagina={documentosPagina} isFirstPage={isFirstPage} isLastPage={isLastPage} />
-                   </ReportPage>
-                 );
-             }
-             return paginasConteudo;
-           })()
-         )}
+              paginasConteudo.push(
+                <ReportPage
+                  key={`page-${pageNumber}`}
+                  pageNumber={pageNumber}
+                  totalPages={totalPages}
+                  documento={documento}
+                  empreendimento={empreendimento}
+                  isLastPage={isLastPage}
+                >
+                  <ContentPage documento={documento} documentosPagina={documentosPagina} isFirstPage={isFirstPage} isLastPage={isLastPage} />
+                </ReportPage>
+              );
+            }
+            return paginasConteudo;
+          })()
+        )}
       </div>
 
       <style>{`
