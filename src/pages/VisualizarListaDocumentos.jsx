@@ -709,13 +709,23 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
         try {
           const resp = await fetch('/api/compress-uploads', { method: 'POST' });
           if (resp.ok) {
-            const j = await resp.json();
-            console.log('Server-side compress result', j);
+            // handle empty or non-json responses gracefully
+            const text = await resp.text();
+            if (text) {
+              try {
+                const j = JSON.parse(text);
+                console.log('Server-side compress result', j);
+              } catch (e) {
+                console.warn('Server-side compress returned non-JSON:', text);
+              }
+            } else {
+              console.log('Server-side compress returned empty body');
+            }
           } else {
             console.warn('Server-side compress endpoint returned', resp.status);
           }
         } catch (e) {
-          console.warn('Server-side compress call failed', e);
+          console.warn('Server-side compress call failed', e && (e.message || e));
         }
 
         // still compress in-browser for images referenced by this document
@@ -782,6 +792,15 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
         try { URL.revokeObjectURL(objectUrl); } catch { }
         console.warn('compressImageUrl drawImage failed, returning original', errDraw && errDraw.message);
         return imageUrl;
+      }
+
+      // Prefer data URL to avoid blob/origin issues when printing across origins
+      try {
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        try { URL.revokeObjectURL(objectUrl); } catch { }
+        return dataUrl;
+      } catch (errData) {
+        // toDataURL may fail if canvas is tainted; fall back to blob/objectURL
       }
 
       let compressedBlob = null;
