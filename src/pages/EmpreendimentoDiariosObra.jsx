@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Empreendimento } from '@/api/entities';
-import { DiarioDeObra } from '@/api/entities';
+import { Empreendimento, DiarioDeObra, RDO } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Loader2, Plus, FileText, ArrowLeft, Trash2, Edit, Building } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -60,12 +59,27 @@ export default function EmpreendimentoDiariosObra({ language: initialLanguage, t
         if (!empreendimentoId) return;
         setLoadingData(true);
         try {
-            const [empreendimentoData, diariosData] = await Promise.all([
+            const [empreendimentoData, diariosData, rdosData] = await Promise.all([
                 Empreendimento.get(empreendimentoId),
-                DiarioDeObra.filter({ id_empreendimento: empreendimentoId }, "-data_diario")
+                DiarioDeObra.filter({ id_empreendimento: empreendimentoId }, "-data_diario"),
+                RDO.filter({ id_empreendimento: empreendimentoId }, '-data_relatorio')
             ]);
             setEmpreendimento(empreendimentoData);
-            setDiarios(diariosData);
+            // Normalizar e combinar RDOs e Diários de Obra para exibição conjunta
+            const mappedDiarios = (diariosData || []).map(d => ({ ...d, _entity: 'diario' }));
+            const mappedRdos = (rdosData || []).map(r => ({ ...r, _entity: 'rdo' }));
+            const combined = [...mappedDiarios, ...mappedRdos]
+                .map(item => ({
+                    ...item,
+                    _date: item.data_diario || item.data_relatorio || item.data_aviso || null
+                }))
+                .sort((a, b) => {
+                    if (!a._date && !b._date) return 0;
+                    if (!a._date) return 1;
+                    if (!b._date) return -1;
+                    return new Date(b._date) - new Date(a._date);
+                });
+            setDiarios(combined);
         } catch (error) {
             console.error("Failed to fetch data:", error);
         } finally {
@@ -77,9 +91,13 @@ export default function EmpreendimentoDiariosObra({ language: initialLanguage, t
         loadData();
     }, [empreendimentoId]);
 
-    const handleDelete = async (id) => {
+    const handleDelete = async (id, entity = 'diario') => {
         try {
-            await DiarioDeObra.delete(id);
+            if (entity === 'rdo') {
+                await RDO.delete(id);
+            } else {
+                await DiarioDeObra.delete(id);
+            }
             loadData(); // Reload all data
         } catch (error) {
             console.error("Failed to delete report:", error);
@@ -117,10 +135,10 @@ export default function EmpreendimentoDiariosObra({ language: initialLanguage, t
                     {diarios.map(diario => (
                         <Card key={diario.id} className={`shadow-md ${isDark ? 'bg-gray-800' : ''}`}>
                             <CardHeader>
-                                <CardTitle className="text-lg">Diário #{diario.numero_diario || String(diario.id ?? '').slice(-4)}</CardTitle>
+                                <CardTitle className="text-lg">{diario._entity === 'rdo' ? `Relatório #${diario.numero_relatorio || String(diario.id ?? '').slice(-4)}` : `Diário #${diario.numero_diario || String(diario.id ?? '').slice(-4)}`}</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <p className="text-sm text-gray-500">{diario.data_diario ? format(new Date(diario.data_diario), "PPP", { locale: ptBR }) : 'Sem data'}</p>
+                                <p className="text-sm text-gray-500">{diario._date ? format(new Date(diario._date), "PPP", { locale: ptBR }) : 'Sem data'}</p>
                                 <div className="flex justify-between items-center gap-2">
                                     <Link to={createPageUrl(`VisualizarDiarioObra?diarioId=${diario.id}`)} className="flex-1">
                                         <Button variant="outline" className="w-full">{t.view}</Button>
@@ -139,7 +157,7 @@ export default function EmpreendimentoDiariosObra({ language: initialLanguage, t
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>
                                                 <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleDelete(diario.id)}>{t.delete}</AlertDialogAction>
+                                                <AlertDialogAction onClick={() => handleDelete(diario.id, diario._entity)}>{t.delete}</AlertDialogAction>
                                             </AlertDialogFooter>
                                         </AlertDialogContent>
                                     </AlertDialog>
