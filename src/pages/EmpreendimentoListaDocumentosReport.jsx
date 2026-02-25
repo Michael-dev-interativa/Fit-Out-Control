@@ -8,6 +8,27 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Plus, FileText, Calendar, Loader2, Eye, Edit, Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
+// Formata datas aceitando strings 'YYYY-MM-DD', 'DD/MM/YYYY' ou Date objects
+const formatDate = (value) => {
+  if (!value) return '';
+  try {
+    let d;
+    if (value instanceof Date) d = value;
+    else if (typeof value === 'string') {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) d = new Date(value + 'T00:00:00');
+      else if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+        const [dd, mm, yyyy] = value.split('/');
+        d = new Date(`${yyyy}-${mm}-${dd}T00:00:00`);
+      } else d = new Date(value);
+    } else d = new Date(value);
+
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('pt-BR');
+  } catch {
+    return '';
+  }
+};
+
 const translations = {
   pt: {
     backToProject: "Voltar ao Empreendimento",
@@ -196,7 +217,7 @@ export default function EmpreendimentoListaDocumentosReport({ language: initialL
                     <div className="flex items-center gap-2 text-sm">
                       <Calendar className="w-4 h-4 text-gray-400" />
                       <span className={isDark ? 'text-gray-300' : 'text-gray-600'}>
-                        {doc.data_aviso ? new Date(doc.data_aviso + 'T00:00:00').toLocaleDateString('pt-BR') : 'Data não definida'}
+                        {formatDate(doc.data_aviso) || 'Data não definida'}
                       </span>
                     </div>
 
