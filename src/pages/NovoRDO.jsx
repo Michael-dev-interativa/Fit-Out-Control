@@ -179,7 +179,7 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
   const [theme, setTheme] = useState(initialTheme || 'light');
 
   const [formData, setFormData] = useState({
-    tipo_documento: 'Lista de Documentos',
+    tipo_documento: 'Relatório Diário de Obra (RDO)',
     numero_relatorio: '',
     nome_arquivo: '',
     data_relatorio: new Date().toISOString().split('T')[0],
@@ -468,17 +468,7 @@ export default function NovoListaDocumentos({ language: initialLanguage, theme: 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label>{t.documentType}</Label>
-                <Select value={formData.tipo_documento} onValueChange={(val) => setFormData({ ...formData, tipo_documento: val })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Relatório Diário de Obra (RDO)">Relatório Diário de Obra (RDO)</SelectItem>
-                    <SelectItem value="Lista de Documentos">Lista de Documentos</SelectItem>
-                    <SelectItem value="Relatório de Atividades">Relatório de Atividades</SelectItem>
-                    <SelectItem value="Outro">Outro</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input value={formData.tipo_documento} disabled className={isDark ? 'bg-gray-700' : ''} />
               </div>
               <div>
                 <Label>{t.reportNumber}</Label>
