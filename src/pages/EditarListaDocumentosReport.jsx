@@ -138,8 +138,28 @@ export default function EditarListaDocumentosReport({ language: initialLanguage,
   const handleSave = async () => {
     setSaving(true);
     try {
-      await ListaDocumentosReport.update(documentoId, formData);
-      navigate(createPageUrl(`EmpreendimentoListaDocumentosReport?empreendimentoId=${formData.id_empreendimento}`));
+      // Normalizar data antes de enviar
+      const payload = { ...formData };
+      const normalizeClientDate = (v) => {
+        if (!v) return null;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(v)) {
+          const [dd, mm, yyyy] = v.split('/');
+          return `${yyyy}-${mm}-${dd}`;
+        }
+        const d = new Date(v);
+        if (!isNaN(d.getTime())) {
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          return `${y}-${m}-${day}`;
+        }
+        return null;
+      };
+
+      payload.data_aviso = normalizeClientDate(payload.data_aviso);
+      await ListaDocumentosReport.update(documentoId, payload);
+      navigate(createPageUrl(`EmpreendimentoListaDocumentosReport?empreendimentoId=${payload.id_empreendimento}`));
     } catch (error) {
       console.error("Erro ao salvar documento:", error);
     } finally {

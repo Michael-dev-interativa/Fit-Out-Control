@@ -186,10 +186,33 @@ export default function NovoListaDocumentosReport({ language: initialLanguage, t
     }));
   };
 
+  // Normaliza data do cliente para YYYY-MM-DD (aceita dd/mm/YYYY e YYYY-MM-DD)
+  const normalizeClientDate = (v) => {
+    if (!v) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(v)) {
+      const [dd, mm, yyyy] = v.split('/');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+    // try to parse and format
+    const d = new Date(v);
+    if (!isNaN(d.getTime())) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+    return null;
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      await ListaDocumentosReport.create(formData);
+      const payload = { ...formData };
+      const nd = normalizeClientDate(payload.data_aviso);
+      if (nd) payload.data_aviso = nd;
+      else payload.data_aviso = null;
+      await ListaDocumentosReport.create(payload);
       navigate(createPageUrl(`EmpreendimentoListaDocumentosReport?empreendimentoId=${empreendimentoId}`));
     } catch (error) {
       console.error("Erro ao salvar documento:", error);
