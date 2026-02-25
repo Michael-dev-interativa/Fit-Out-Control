@@ -424,8 +424,8 @@ const paginateContent = (documento, empreendimento, t) => {
   // Adicionar registros fotográficos em grupos de 4 por página
   if (documento.fotos && documento.fotos.length > 0) {
     const fotoGroups = [];
-    for (let i = 0; i < documento.fotos.length; i += 4) {
-      fotoGroups.push(documento.fotos.slice(i, i + 4));
+    for (let i = 0; i < documento.fotos.length; i += 6) {
+      fotoGroups.push(documento.fotos.slice(i, i + 6));
     }
 
     fotoGroups.forEach((fotos, groupIdx) => {
