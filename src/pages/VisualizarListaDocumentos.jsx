@@ -737,19 +737,35 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
     if (imageUrl.startsWith('data:')) return imageUrl;
     try {
       const resp = await fetch(imageUrl);
+      if (!resp.ok) throw new Error(`fetch failed ${resp.status}`);
       const blob = await resp.blob();
       const img = new Image();
       const objectUrl = URL.createObjectURL(blob);
 
+      // wait for image load with timeout and proper error object
       await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
+        const to = setTimeout(() => {
+          img.onload = null;
+          img.onerror = null;
+          try { URL.revokeObjectURL(objectUrl); } catch { };
+          reject(new Error('image load timeout'));
+        }, 10000);
+        img.onload = () => { clearTimeout(to); resolve(); };
+        img.onerror = (ev) => {
+          clearTimeout(to); try { URL.revokeObjectURL(objectUrl); } catch { };
+          reject(new Error('image load error'));
+        };
         img.src = objectUrl;
       });
 
       let { width, height } = img;
+      if (!width || !height) {
+        // fallback to default dimensions
+        width = Math.min(maxWidth, 800);
+        height = Math.round((width * 3) / 4);
+      }
       if (width > maxWidth) {
-        height = (height * maxWidth) / width;
+        height = Math.round((height * maxWidth) / width);
         width = maxWidth;
       }
 
@@ -757,13 +773,36 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
+      if (!ctx) throw new Error('canvas context unavailable');
 
-      const compressedBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
-      URL.revokeObjectURL(objectUrl);
+      try {
+        ctx.drawImage(img, 0, 0, width, height);
+      } catch (errDraw) {
+        // drawing may fail due to CORS/tainted canvas; return original
+        try { URL.revokeObjectURL(objectUrl); } catch { }
+        console.warn('compressImageUrl drawImage failed, returning original', errDraw && errDraw.message);
+        return imageUrl;
+      }
+
+      let compressedBlob = null;
+      try {
+        compressedBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+      } catch (errBlob) {
+        try { URL.revokeObjectURL(objectUrl); } catch { }
+        console.warn('compressImageUrl toBlob failed, returning original', errBlob && errBlob.message);
+        return imageUrl;
+      }
+
+      if (!compressedBlob) {
+        try { URL.revokeObjectURL(objectUrl); } catch { }
+        return imageUrl;
+      }
+
+      try { URL.revokeObjectURL(objectUrl); } catch { }
       return URL.createObjectURL(compressedBlob);
     } catch (err) {
-      console.error('compressImageUrl error', err);
+      // don't flood console with raw Event objects — log a concise message
+      console.error('compressImageUrl error', err && (err.message || err));
       return imageUrl;
     }
   };
