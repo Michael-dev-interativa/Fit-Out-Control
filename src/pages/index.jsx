@@ -35,7 +35,8 @@ const RelatorioVistoriaObras = lazy(() => import("./RelatorioVistoriaObras"));
 const GaleriaRelatorio = lazy(() => import("./GaleriaRelatorio"));
 const Planejamento = lazy(() => import("./Planejamento"));
 const AtividadesPadrao = lazy(() => import("./AtividadesPadrao"));
-const NovoDiarioObra = lazy(() => import("./NovoDiarioObra"));
+// NovoDiarioObra was renamed/moved to NovoRDO — import the existing file
+const NovoDiarioObra = lazy(() => import("./NovoRDO"));
 const VisualizarDiarioObra = lazy(() => import("./VisualizarDiarioObra"));
 const EditarDiarioObra = lazy(() => import("./EditarDiarioObra"));
 const EmpreendimentoDiariosObra = lazy(() => import("./EmpreendimentoDiariosObra"));
