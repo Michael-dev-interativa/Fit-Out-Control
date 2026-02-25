@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { RDO, Empreendimento } from '@/api/entities';
+import { RDO, Empreendimento, ListaDocumentosReport } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Printer } from 'lucide-react';
 
@@ -687,10 +687,27 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
   const loadData = async () => {
     setLoading(true);
     try {
+      // Primeiro tentar obter como ListaDocumentosReport (se existir)
+      try {
+        const report = await ListaDocumentosReport.get(documentoId);
+        if (report && report.id) {
+          setDocumento(report);
+          if (report.id_empreendimento) {
+            const empData = await Empreendimento.get(report.id_empreendimento);
+            setEmpreendimento(empData);
+          }
+          setLoading(false);
+          return;
+        }
+      } catch (listErr) {
+        console.debug('ListaDocumentosReport.get falhou, tentando RDO:', listErr);
+      }
+
+      // Se não for ListaDocumentosReport, tentar RDO
       const docData = await RDO.get(documentoId);
       setDocumento(docData);
 
-      if (docData.id_empreendimento) {
+      if (docData && docData.id_empreendimento) {
         const empData = await Empreendimento.get(docData.id_empreendimento);
         setEmpreendimento(empData);
 
