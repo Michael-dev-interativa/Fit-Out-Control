@@ -107,7 +107,14 @@ export default function EmpreendimentoListaDocumentos({ language: initialLanguag
       ]);
 
       setEmpreendimento(empData);
-      setDocumentos(docsData || []);
+      // Filtrar entradas que parecem ser RDO/Diário de Obra (foram inseridas por engano)
+      const filtered = (docsData || []).filter(d => {
+        const t = (d.titulo || d.tipo_documento || '').toString().toLowerCase();
+        if (!t) return true;
+        if (t.includes('diário') || t.includes('diario') || t.includes('rdo') || t.includes('relatório diário')) return false;
+        return true;
+      });
+      setDocumentos(filtered);
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
     } finally {
