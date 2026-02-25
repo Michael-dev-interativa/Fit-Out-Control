@@ -287,7 +287,7 @@ const EmpreendimentoPage = () => {
                     onClick={() => navigate(createPageUrl(`EmpreendimentoDiariosObra?empreendimentoId=${empreendimentoId}`))}
                   >
                     <ClipboardCheck className="w-5 h-5" />
-                    <span className="text-center leading-tight">{t['Diários de Obra']}</span>
+                    <span className="text-center leading-tight">{t['Lista de Documentos']}</span>
                   </Button>
 
                   <Button
@@ -296,7 +296,7 @@ const EmpreendimentoPage = () => {
                     onClick={() => navigate(createPageUrl(`EmpreendimentoListaDocumentos?empreendimentoId=${empreendimentoId}`))}
                   >
                     <ClipboardList className="w-5 h-5" />
-                    <span className="text-center leading-tight">{t['Lista de Documentos']}</span>
+                    <span className="text-center leading-tight">{t['Diário de Obra']}</span>
                   </Button>
 
                   <Button
