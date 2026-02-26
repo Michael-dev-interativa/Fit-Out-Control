@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Empreendimento } from '@/api/entities';
-import { InspecaoHidrantes } from '@/api/entities';
+import { Empreendimento } from '@/entities/Empreendimento';
+import { InspecaoHidrantes } from '@/entities/InspecaoHidrantes';
 import { Button } from '@/components/ui/button';
 import { Loader2, Plus, ArrowLeft, Trash2, Pencil, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -32,12 +32,12 @@ export default function EmpreendimentoInspecaoHidrantes({ language: initialLangu
     const location = useLocation();
     const urlParams = new URLSearchParams(location.search);
     const empreendimentoId = urlParams.get('empreendimentoId');
-    
+
     const [empreendimento, setEmpreendimento] = useState(null);
     const [inspecoes, setInspecoes] = useState([]);
     const [loadingData, setLoadingData] = useState(true);
     const [theme, setTheme] = useState(initialTheme || 'light');
-    
+
     const isDark = theme === 'dark';
 
     const loadData = async () => {
@@ -60,7 +60,7 @@ export default function EmpreendimentoInspecaoHidrantes({ language: initialLangu
     useEffect(() => {
         loadData();
     }, [empreendimentoId]);
-    
+
     const handleDelete = async (id) => {
         try {
             await InspecaoHidrantes.delete(id);
@@ -92,7 +92,7 @@ export default function EmpreendimentoInspecaoHidrantes({ language: initialLangu
                     </Button>
                 </div>
             </div>
-            
+
             {loadingData ? (
                 <div className="flex justify-center items-center h-48"><Loader2 className="h-8 w-8 animate-spin" /></div>
             ) : inspecoes.length === 0 ? (
@@ -103,7 +103,7 @@ export default function EmpreendimentoInspecaoHidrantes({ language: initialLangu
                         <Card key={inspecao.id} className={isDark ? 'bg-gray-800' : ''}>
                             <CardHeader>
                                 <CardTitle className={`flex justify-between items-center ${isDark ? 'text-white' : ''}`}>
-                                  {inspecao.titulo_relatorio || 'Inspeção sem título'}
+                                    {inspecao.titulo_relatorio || 'Inspeção sem título'}
                                 </CardTitle>
                                 <p className="text-sm text-gray-500">{t.date}: {format(new Date(inspecao.data_inspecao), "PPP", { locale: ptBR })}</p>
                             </CardHeader>
@@ -123,7 +123,7 @@ export default function EmpreendimentoInspecaoHidrantes({ language: initialLangu
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
                                         <Button variant="destructive" size="icon">
-                                          <Trash2 className="w-4 h-4" />
+                                            <Trash2 className="w-4 h-4" />
                                         </Button>
                                     </AlertDialogTrigger>
                                     <AlertDialogContent className={isDark ? 'bg-gray-800 text-white' : ''}>

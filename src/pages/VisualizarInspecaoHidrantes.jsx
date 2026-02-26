@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { InspecaoHidrantes } from '@/api/entities';
-import { Empreendimento } from '@/api/entities';
-import { getUploadUrl } from '@/api/config';
+import { InspecaoHidrantes } from '@/entities/InspecaoHidrantes';
+import { Empreendimento } from '@/entities/Empreendimento';
 import { Button } from '@/components/ui/button';
 import { Loader2, Printer, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -58,8 +57,7 @@ const useCompressedImage = (url, maxWidth = 800, quality = 0.7) => {
 const CoverPage = ({ relatorio, empreendimento }) => {
     const year = new Date(relatorio?.data_inspecao || Date.now()).getFullYear();
     const redColor = '#CE2D2D';
-    const defaultEmpImage = 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
-    const empreendimentoImageUrl = useCompressedImage(getUploadUrl(empreendimento?.foto_empreendimento) || defaultEmpImage, 800, 0.7);
+    const empreendimentoImageUrl = useCompressedImage(empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80', 800, 0.7);
     const logoInterativaUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png";
     const coverFrameOriginalUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png";
     const redDecorativeElementUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/513d57969_Designsemnome2.png';
@@ -67,7 +65,7 @@ const CoverPage = ({ relatorio, empreendimento }) => {
     const logoInterativaBrancoUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/22086ec44_LOGOPNG-branco.png";
 
     const defaultResponsaveis = [empreendimento?.cli_empreendimento, empreendimento?.nome_empreendimento].filter(Boolean).join(' | ');
-    const responsaveis = empreendimento?.texto_capa_rodape || defaultResponsaveis;
+    const responsaveis = relatorio?.texto_rodape_capa || defaultResponsaveis;
 
     const getTextStyle = (text) => {
         const len = text ? text.length : 0;
@@ -87,12 +85,12 @@ const CoverPage = ({ relatorio, empreendimento }) => {
                 <span className="font-normal text-white" style={{ fontSize: '60px', fontFamily: "'Inter', sans-serif", textShadow: '2px 2px 4px rgba(0,0,0,0.2)' }}>{year}</span>
             </div>
             <div className="absolute z-30" style={{ top: '10%', right: '8%', width: '50%', textAlign: 'right' }}>
-                <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: '64px', fontWeight: 'bold', color: '#394557', lineHeight: '1.1', marginBottom: '4px' }}>RELATÓRIO</h1>
-                <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '26px', color: redColor, letterSpacing: '2px' }}>INSPEÇÃO DE HIDRANTES</h2>
+                <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: '64px', fontWeight: 'bold', color: '#394557', lineHeight: '1.1', marginBottom: '4px' }}>{relatorio?.titulo_capa || 'RELATÓRIO'}</h1>
+                <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '26px', color: redColor, letterSpacing: '2px' }}>{relatorio?.subtitulo_capa || 'INSPEÇÃO DE HIDRANTES'}</h2>
             </div>
             <div className="absolute z-30" style={{ top: '50%', right: '-3%', width: '45%', padding: '1.3% 2.5%', textAlign: 'center' }}>
-                <h1 className="font-black uppercase" style={{ fontSize: '28px', lineHeight: '1.0', fontFamily: "'Inter', sans-serif", marginBottom: '6px', color: 'black' }}>{relatorio?.cliente || 'Cliente'}</h1>
-                <h2 className="text-gray-600 font-medium" style={{ fontSize: '16px', fontFamily: "'Inter', sans-serif" }}>{relatorio?.subtitulo_relatorio || ''}</h2>
+                <h1 className="font-black uppercase" style={{ fontSize: '28px', lineHeight: '1.0', fontFamily: "'Inter', sans-serif", marginBottom: '6px', color: 'black' }}>{relatorio?.titulo_inspecao || 'INSPEÇÃO DAS INSTALAÇÕES DE HIDRANTES'}</h1>
+                <h2 className="text-gray-600 font-medium" style={{ fontSize: '16px', fontFamily: "'Inter', sans-serif" }}>{relatorio?.descricao_inspecao || '3º subsolo ao 23º andar'}</h2>
             </div>
             <div className="absolute z-20" style={{ top: '-350px', right: '-30%', width: '1700px', height: '1150px', backgroundColor: redColor, WebkitMaskImage: `url(${redDecorativeElementUrl})`, maskImage: `url(${redDecorativeElementUrl})`, WebkitMaskSize: '100% 100%', WebkitMaskRepeat: 'no-repeat', maskPosition: 'center' }} />
             <div className="absolute z-50" style={{ top: '-10%', right: '-20%', width: '1800px', height: '800px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -149,7 +147,10 @@ const FotoInspecao = ({ url, legenda }) => {
     );
 };
 
-const ContentPage = ({ local, itensSlice, showHeader = true, showComments = false }) => {
+const ContentPage = ({ local, itensSlice, showHeader = true, showComments = false, showTableHeader = false, showObservacoes = false, observacoes = '', assinaturas = [] }) => {
+    const hasAssinaturas = assinaturas && assinaturas.length > 0 &&
+        assinaturas.some(ass => ass.assinatura_imagem && ass.assinatura_imagem.trim() !== '');
+
     return (
         <div className={showHeader ? "p-4" : "px-4 pt-6 pb-4"}>
             {/* Inspeção Física */}
@@ -167,16 +168,15 @@ const ContentPage = ({ local, itensSlice, showHeader = true, showComments = fals
                         </>
                     )}
                     <table className="w-full border-collapse text-xs table-fixed">
-                        {showHeader && (
-                            <thead>
-                                <tr className="bg-gray-100">
-                                    <th className="border border-black p-2 text-left" style={{ width: '40%' }}>Descrição</th>
-                                    <th className="border border-black p-2 text-center" style={{ width: '8%' }}>OK</th>
-                                    <th className="border border-black p-2 text-center" style={{ width: '8%' }}>NA</th>
-                                    <th className="border border-black p-2 text-left" style={{ width: '44%' }}>Comentários</th>
-                                </tr>
-                            </thead>
-                        )}
+                        <thead>
+                            <tr className="bg-gray-100">
+                                <th className="border border-black p-2 text-left" style={{ width: '40%' }}>Descrição</th>
+                                <th className="border border-black p-2 text-center" style={{ width: '6%' }}>OK</th>
+                                <th className="border border-black p-2 text-center" style={{ width: '6%' }}>N/OK</th>
+                                <th className="border border-black p-2 text-center" style={{ width: '6%' }}>NA</th>
+                                <th className="border border-black p-2 text-left" style={{ width: '42%' }}>Comentários</th>
+                            </tr>
+                        </thead>
                         <tbody>
                             {itensSlice.map((item, idx) => {
                                 // Detectar comentário apenas pelo campo tipo
@@ -184,9 +184,9 @@ const ContentPage = ({ local, itensSlice, showHeader = true, showComments = fals
 
                                 if (isComentario) {
                                     return (
-                                        <tr key={idx} className="bg-gray-50">
-                                            <td className="border border-black p-2 font-bold">Comentários:</td>
-                                            <td className="border border-black p-2" colSpan="3">{item.texto || ''}</td>
+                                        <tr key={idx} className="bg-gray-50" style={{ height: '36px' }}>
+                                            <td className="border border-black p-2 font-bold align-middle" style={{ verticalAlign: 'middle' }}>Comentários:</td>
+                                            <td className="border border-black p-2 align-middle" colSpan="4" style={{ verticalAlign: 'middle' }}>{item.texto || ''}</td>
                                         </tr>
                                     );
                                 }
@@ -195,7 +195,7 @@ const ContentPage = ({ local, itensSlice, showHeader = true, showComments = fals
                                 if (item.showOnlyPhotos) {
                                     return (
                                         <tr key={idx}>
-                                            <td colSpan="4" className="border border-black p-2 pt-4">
+                                            <td colSpan="5" className="border border-black p-2 pt-4">
                                                 <div className="text-xs text-gray-600 italic mb-2">{item.descricao}</div>
                                                 <div className="grid grid-cols-3 gap-2">
                                                     {item.fotos.map((foto, fotoIdx) => (
@@ -209,15 +209,16 @@ const ContentPage = ({ local, itensSlice, showHeader = true, showComments = fals
 
                                 return (
                                     <>
-                                        <tr key={idx}>
-                                            <td className="border border-black p-2" style={{ width: '40%' }}>{item.descricao}</td>
-                                            <td className="border border-black p-2 text-center" style={{ width: '8%' }}>{item.resultado === 'OK' ? '☑' : '☐'}</td>
-                                            <td className="border border-black p-2 text-center" style={{ width: '8%' }}>{item.resultado === 'Não' ? '☑' : '☐'}</td>
-                                            <td className="border border-black p-2" style={{ width: '44%' }}>{item.observacoes || ''}</td>
+                                        <tr key={idx} style={{ height: '36px' }}>
+                                            <td className="border border-black p-2 align-middle" style={{ width: '40%', verticalAlign: 'middle' }}>{item.descricao}</td>
+                                            <td className="border border-black p-2 text-center align-middle" style={{ width: '6%', verticalAlign: 'middle' }}>{item.resultado === 'OK' ? '☑' : '☐'}</td>
+                                            <td className="border border-black p-2 text-center align-middle" style={{ width: '6%', verticalAlign: 'middle' }}>{item.resultado === 'N/OK' ? '☑' : '☐'}</td>
+                                            <td className="border border-black p-2 text-center align-middle" style={{ width: '6%', verticalAlign: 'middle' }}>{item.resultado === 'Não' ? '☑' : '☐'}</td>
+                                            <td className="border border-black p-2 align-middle" style={{ width: '42%', verticalAlign: 'middle' }}>{item.observacoes || ''}</td>
                                         </tr>
                                         {item.fotos && item.fotos.length > 0 && (
                                             <tr key={`${idx}-fotos`}>
-                                                <td colSpan="4" className="border border-black p-2">
+                                                <td colSpan="5" className="border border-black p-2">
                                                     <div className="grid grid-cols-3 gap-2">
                                                         {item.fotos.map((foto, fotoIdx) => (
                                                             <FotoInspecao key={fotoIdx} url={foto.url} legenda={foto.legenda} />
@@ -229,15 +230,49 @@ const ContentPage = ({ local, itensSlice, showHeader = true, showComments = fals
                                     </>
                                 );
                             })}
-                            {/* Linha de Comentários Geral do Local */}
-                            {showComments && (
+                            {/* Linha de Comentários Geral do Local - apenas na última página */}
+                            {showComments && local.comentarios && (
                                 <tr className="bg-gray-50">
-                                    <td className="border border-black p-2 font-bold">Comentários:</td>
-                                    <td className="border border-black p-2" colSpan="3" style={{ wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{local.comentarios || ''}</td>
+                                    <td className="border border-black p-2 font-bold align-top" style={{ verticalAlign: 'top' }}>Comentários:</td>
+                                    <td className="border border-black p-2 align-top" colSpan="4" style={{ verticalAlign: 'top', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{local.comentarios}</td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {showObservacoes && (
+                <div className="mt-4">
+                    <h2 className="text-xl font-bold text-center mb-4 bg-blue-900 text-white p-2">Observações Gerais</h2>
+                    <div className="border border-black p-4 text-sm whitespace-pre-wrap min-h-[80px]">{observacoes || ''}</div>
+
+                    {hasAssinaturas && (
+                        <div className="mt-4">
+                            <h2 className="text-xl font-bold text-center mb-4 bg-blue-900 text-white p-2">Assinaturas</h2>
+                            <div className="grid grid-cols-2 gap-8 px-4">
+                                {assinaturas.map((assinatura, idx) => (
+                                    <div key={idx} className="text-center">
+                                        {assinatura.assinatura_imagem ? (
+                                            <div className="h-24 flex items-center justify-center mb-2">
+                                                <img
+                                                    src={assinatura.assinatura_imagem}
+                                                    alt={`Assinatura ${assinatura.parte || assinatura.nome}`}
+                                                    className="max-h-full max-w-full object-contain"
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className="border-b-2 border-gray-400 h-24 mb-2"></div>
+                                        )}
+                                        <div className="border-t border-gray-400 pt-2">
+                                            <p className="text-xs font-bold">{assinatura.parte || 'Signatário'}</p>
+                                            {assinatura.nome && <p className="text-xs text-gray-600">{assinatura.nome}</p>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
@@ -266,7 +301,7 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
                 {children}
             </div>
             <div className="border-t border-gray-200 bg-gray-50 flex justify-between items-center text-[9px] text-gray-500" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: FOOTER_HEIGHT, padding: '4px 8px', maxWidth: '210mm', boxSizing: 'border-box' }}>
-                <div className="flex-1 text-left leading-tight truncate" style={{ paddingRight: '8px' }}><span className="font-medium">Arquivo: </span><span>{`IH-${relatorio.id?.slice(-4)}.pdf`}</span></div>
+                <div className="flex-1 text-left leading-tight truncate" style={{ paddingRight: '8px' }}><span className="font-medium">Arquivo: </span><span>{relatorio.nome_arquivo ? `${relatorio.nome_arquivo}.pdf` : `IH-${relatorio.id?.slice(-4)}.pdf`}</span></div>
                 <div className="flex-1 flex flex-col items-center leading-tight text-[8px]"><span>INTERATIVA ENGENHARIA</span><span>www.interativaengenharia.com.br</span></div>
                 <div className="flex-1 text-right leading-tight" style={{ paddingLeft: '8px' }}><span>Página {pageNumber} de {totalPages}</span></div>
             </div>
@@ -274,11 +309,41 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
     );
 };
 
-const ObservacoesGeraisPage = ({ observacoes }) => {
+const ObservacoesGeraisPage = ({ observacoes, assinaturas }) => {
+    const hasAssinaturas = assinaturas && assinaturas.length > 0 &&
+        assinaturas.some(ass => ass.assinatura_imagem && ass.assinatura_imagem.trim() !== '');
+
     return (
         <div className="p-4">
             <h2 className="text-xl font-bold text-center mb-4 bg-blue-900 text-white p-2">Observações Gerais</h2>
             <div className="border border-black p-4 text-sm whitespace-pre-wrap min-h-[100px]">{observacoes || ''}</div>
+
+            {hasAssinaturas && (
+                <div className="mt-6">
+                    <h2 className="text-xl font-bold text-center mb-4 bg-blue-900 text-white p-2">Assinaturas</h2>
+                    <div className="grid grid-cols-2 gap-8 px-4">
+                        {assinaturas.map((assinatura, idx) => (
+                            <div key={idx} className="text-center">
+                                {assinatura.assinatura_imagem ? (
+                                    <div className="h-24 flex items-center justify-center mb-2">
+                                        <img
+                                            src={assinatura.assinatura_imagem}
+                                            alt={`Assinatura ${assinatura.parte || assinatura.nome}`}
+                                            className="max-h-full max-w-full object-contain"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="border-b-2 border-gray-400 h-24 mb-2"></div>
+                                )}
+                                <div className="border-t border-gray-400 pt-2">
+                                    <p className="text-xs font-bold">{assinatura.parte || 'Signatário'}</p>
+                                    {assinatura.nome && <p className="text-xs text-gray-600">{assinatura.nome}</p>}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -298,10 +363,6 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
 
     relatorio.locais.forEach((local) => {
         const allItems = [...(local.itens_inspecao || [])];
-
-        if (local.comentarios) {
-            allItems.push({ tipo: 'comentario', texto: local.comentarios });
-        }
 
         let currentSlice = [];
         let slices = [];
@@ -385,7 +446,21 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
         });
     });
 
-    const totalPages = 1 + (hasDocumentacao ? 1 : 0) + localPages.length + 1 + (hasAssinaturas ? 1 : 0);
+    // Contar fotos na última página de inspeção
+    let lastPagePhotoCount = 0;
+    if (localPages.length > 0) {
+        const lastPage = localPages[localPages.length - 1];
+        lastPage.items.forEach(item => {
+            if (item.fotos && item.fotos.length > 0) {
+                lastPagePhotoCount += item.fotos.length;
+            }
+        });
+    }
+
+    // Se última página tem menos de 4 fotos, incluir observações nela
+    const includeObservacoesWithLastPage = lastPagePhotoCount < 4 && localPages.length > 0;
+
+    const totalPages = 1 + (hasDocumentacao ? 1 : 0) + localPages.length + (includeObservacoesWithLastPage ? 0 : 1);
     let currentPage = 1;
 
     const handlePrint = async () => {
@@ -415,24 +490,27 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     </ReportPageLayout>
                 )}
 
-                {localPages.map((page, index) => (
-                    <ReportPageLayout key={index} pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                        <ContentPage
-                            local={page.local}
-                            itensSlice={page.items}
-                            showHeader={page.isFirst}
-                            showComments={page.isLast}
-                        />
-                    </ReportPageLayout>
-                ))}
+                {localPages.map((page, index) => {
+                    const isLastInspectionPage = index === localPages.length - 1;
+                    return (
+                        <ReportPageLayout key={index} pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+                            <ContentPage
+                                local={page.local}
+                                itensSlice={page.items}
+                                showHeader={page.isFirst}
+                                showComments={page.isLast}
+                                showTableHeader={true}
+                                showObservacoes={isLastInspectionPage && includeObservacoesWithLastPage}
+                                observacoes={relatorio.observacoes_gerais}
+                                assinaturas={relatorio.assinaturas}
+                            />
+                        </ReportPageLayout>
+                    );
+                })}
 
-                <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                    <ObservacoesGeraisPage observacoes={relatorio.observacoes_gerais} />
-                </ReportPageLayout>
-
-                {hasAssinaturas && (
+                {!includeObservacoesWithLastPage && (
                     <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                        <AssinaturasPage assinaturas={relatorio.assinaturas} />
+                        <ObservacoesGeraisPage observacoes={relatorio.observacoes_gerais} assinaturas={relatorio.assinaturas} />
                     </ReportPageLayout>
                 )}
             </div>

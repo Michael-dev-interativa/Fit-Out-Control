@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { InspecaoHidrantes } from '@/api/entities';
+import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,7 +9,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Plus, Trash2, ArrowLeft, Edit2 } from 'lucide-react';
-import { UploadFile } from '@/api/integrations';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { SimpleSignaturePad } from '@/components/signature/SignaturePadComponent';
@@ -47,17 +46,20 @@ export default function EditarInspecaoHidrantes() {
     const navigate = useNavigate();
     const location = useLocation();
     const [inspecaoId] = useState(() => new URLSearchParams(location.search).get('inspecaoId'));
-    
+
     const [formData, setFormData] = useState(null);
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
-    
+
     const [showSignatureDialog, setShowSignatureDialog] = useState(false);
     const [activeSignatureIndex, setActiveSignatureIndex] = useState(null);
     const [signatureMode, setSignatureMode] = useState('draw');
     const [typedSignature, setTypedSignature] = useState('');
     const signaturePadRef = React.useRef(null);
+
+    const [showEditCoverDialog, setShowEditCoverDialog] = useState(false);
+    const [coverData, setCoverData] = useState({ titulo_capa: '', subtitulo_capa: '', texto_rodape_capa: '', titulo_inspecao: '', descricao_inspecao: '' });
 
     useEffect(() => {
         if (!inspecaoId) {
@@ -67,11 +69,11 @@ export default function EditarInspecaoHidrantes() {
         }
         const loadData = async () => {
             try {
-                const data = await InspecaoHidrantes.get(inspecaoId);
+                const data = await base44.entities.InspecaoHidrantes.get(inspecaoId);
                 let dataInspecao = '';
                 if (data.data_inspecao) {
-                    dataInspecao = data.data_inspecao.includes('T') 
-                        ? data.data_inspecao.split('T')[0] 
+                    dataInspecao = data.data_inspecao.includes('T')
+                        ? data.data_inspecao.split('T')[0]
                         : data.data_inspecao;
                 }
                 // Garantir que todos os itens tenham o campo 'tipo'
@@ -84,7 +86,7 @@ export default function EditarInspecaoHidrantes() {
                 }));
 
                 console.log("[LOAD] Assinaturas carregadas do banco:", data.assinaturas);
-                setFormData({
+                const loadedData = {
                     ...data,
                     data_inspecao: dataInspecao,
                     itens_documentacao: data.itens_documentacao || [],
@@ -93,10 +95,20 @@ export default function EditarInspecaoHidrantes() {
                         ...ass,
                         assinatura_imagem: ass.assinatura_imagem || ''
                     })),
+                };
+
+                setFormData(loadedData);
+                setCoverData({
+                    titulo_capa: data.titulo_capa || 'RELATÓRIO',
+                    subtitulo_capa: data.subtitulo_capa || 'Gerenciamento de Obra',
+                    texto_rodape_capa: data.texto_rodape_capa || '',
+                    titulo_inspecao: data.titulo_inspecao || 'INSPEÇÃO DAS INSTALAÇÕES DE HIDRANTES',
+                    descricao_inspecao: data.descricao_inspecao || '3º subsolo ao 23º andar'
                 });
-                console.log("[LOAD] Assinaturas após processamento:", (data.assinaturas || []).map(ass => ({ 
-                    parte: ass.parte, 
-                    nome: ass.nome, 
+
+                console.log("[LOAD] Assinaturas após processamento:", (data.assinaturas || []).map(ass => ({
+                    parte: ass.parte,
+                    nome: ass.nome,
                     tem_imagem: !!ass.assinatura_imagem,
                     url_preview: ass.assinatura_imagem?.substring(0, 50)
                 })));
@@ -184,7 +196,7 @@ export default function EditarInspecaoHidrantes() {
         setUploadingPhoto(true);
         try {
             const uploadedPhotos = await Promise.all(files.map(async file => {
-                const { file_url } = await UploadFile({ file });
+                const { file_url } = await base44.integrations.Core.UploadFile({ file });
                 return { url: file_url, legenda: '' };
             }));
             const newLocais = [...formData.locais];
@@ -202,7 +214,7 @@ export default function EditarInspecaoHidrantes() {
 
     const removePhoto = (localIndex, itemIndex, photoIndex) => {
         const newLocais = [...formData.locais];
-        newLocais[localIndex].itens_inspecao[itemIndex].fotos = 
+        newLocais[localIndex].itens_inspecao[itemIndex].fotos =
             newLocais[localIndex].itens_inspecao[itemIndex].fotos.filter((_, i) => i !== photoIndex);
         handleInputChange('locais', newLocais);
     };
@@ -251,7 +263,7 @@ export default function EditarInspecaoHidrantes() {
                 const blob = await fetch(signatureDataUrl).then(res => res.blob());
                 const file = new File([blob], `assinatura-${Date.now()}.png`, { type: 'image/png' });
 
-                const { file_url } = await UploadFile({ file });
+                const { file_url } = await base44.integrations.Core.UploadFile({ file });
                 console.log(`[ASSINATURA] URL do upload (tipo):`, file_url);
                 handleAssinaturaChange(activeSignatureIndex, 'assinatura_imagem', file_url);
                 setShowSignatureDialog(false);
@@ -264,7 +276,7 @@ export default function EditarInspecaoHidrantes() {
                     const blob = await fetch(signatureDataUrl).then(res => res.blob());
                     const file = new File([blob], `assinatura-${Date.now()}.png`, { type: 'image/png' });
 
-                    const { file_url } = await UploadFile({ file });
+                    const { file_url } = await base44.integrations.Core.UploadFile({ file });
                     console.log(`[ASSINATURA] URL do upload (desenho):`, file_url);
                     handleAssinaturaChange(activeSignatureIndex, 'assinatura_imagem', file_url);
                     setShowSignatureDialog(false);
@@ -285,6 +297,19 @@ export default function EditarInspecaoHidrantes() {
         }
     };
 
+    const handleSaveCoverData = () => {
+        setFormData(prev => ({
+            ...prev,
+            titulo_capa: coverData.titulo_capa,
+            subtitulo_capa: coverData.subtitulo_capa,
+            texto_rodape_capa: coverData.texto_rodape_capa,
+            titulo_inspecao: coverData.titulo_inspecao,
+            descricao_inspecao: coverData.descricao_inspecao
+        }));
+        setShowEditCoverDialog(false);
+        toast.success("Informações da capa atualizadas!");
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSaving(true);
@@ -295,7 +320,7 @@ export default function EditarInspecaoHidrantes() {
             }
 
             console.log("[SUBMIT] Salvando assinaturas:", JSON.stringify(updateData.assinaturas, null, 2));
-            await InspecaoHidrantes.update(id, updateData);
+            await base44.entities.InspecaoHidrantes.update(id, updateData);
             console.log("[SUBMIT] Inspeção atualizada com sucesso!");
             toast.success("Inspeção atualizada com sucesso!");
             navigate(createPageUrl(`EmpreendimentoInspecaoHidrantes?empreendimentoId=${formData.id_empreendimento}`));
@@ -311,28 +336,32 @@ export default function EditarInspecaoHidrantes() {
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold">{t.title}</h1>
-                <Button variant="outline" onClick={() => navigate(-1)}><ArrowLeft className="w-4 h-4 mr-2"/>{t.back}</Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setShowEditCoverDialog(true)}>
+                        <Edit2 className="w-4 h-4 mr-2" />Editar Capa
+                    </Button>
+                    <Button variant="outline" onClick={() => navigate(-1)}><ArrowLeft className="w-4 h-4 mr-2" />{t.back}</Button>
+                </div>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="space-y-6">
                 <Card>
                     <CardHeader><CardTitle>{t.generalInfo}</CardTitle></CardHeader>
-                    <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2"><Label>{t.reportTitle}</Label><Input value={formData.titulo_relatorio} onChange={e => handleInputChange('titulo_relatorio', e.target.value)} /></div>
                         <div className="space-y-2"><Label>{t.reportSubtitle}</Label><Input value={formData.subtitulo_relatorio} onChange={e => handleInputChange('subtitulo_relatorio', e.target.value)} /></div>
                         <div className="space-y-2"><Label>{t.client}</Label><Input value={formData.cliente} onChange={e => handleInputChange('cliente', e.target.value)} /></div>
+                        <div className="space-y-2">
+                            <Label>Nome do Arquivo do Relatório</Label>
+                            <Input
+                                placeholder="Ex: IHID-2025-01"
+                                value={formData.nome_arquivo || ''}
+                                onChange={e => handleInputChange('nome_arquivo', e.target.value)}
+                            />
+                        </div>
                         <div className="space-y-2"><Label>{t.engineer}</Label><Input value={formData.eng_responsavel} onChange={e => handleInputChange('eng_responsavel', e.target.value)} /></div>
                         <div className="space-y-2"><Label>{t.revision}</Label><Input value={formData.revisao} onChange={e => handleInputChange('revisao', e.target.value)} /></div>
                         <div className="space-y-2"><Label>{t.inspectionDate}</Label><Input type="date" value={formData.data_inspecao} onChange={e => handleInputChange('data_inspecao', e.target.value)} /></div>
-                        <div className="space-y-2">
-                            <Label>Nome do Arquivo (opcional)</Label>
-                            <Input 
-                                placeholder="Ex: IHID-2025-01" 
-                                value={formData.nome_arquivo || ''} 
-                                onChange={e => handleInputChange('nome_arquivo', e.target.value)} 
-                            />
-                            <p className="text-xs text-gray-500">Se não preenchido, o arquivo não será exibido no rodapé</p>
-                        </div>
                     </CardContent>
                 </Card>
 
@@ -353,12 +382,12 @@ export default function EditarInspecaoHidrantes() {
                             </div>
                         ))}
                         <Button type="button" variant="outline" size="sm" onClick={addDocItem}><Plus className="w-4 h-4 mr-2" /> {t.addItem}</Button>
-                        
+
                         <div className="mt-4 space-y-2">
                             <Label className="font-medium">Observações Gerais</Label>
-                            <Textarea 
-                                placeholder="Observações gerais sobre a documentação técnica..." 
-                                value={formData.comentarios_documentacao || ''} 
+                            <Textarea
+                                placeholder="Observações gerais sobre a documentação técnica..."
+                                value={formData.comentarios_documentacao || ''}
                                 onChange={e => handleInputChange('comentarios_documentacao', e.target.value)}
                                 rows={3}
                             />
@@ -388,10 +417,10 @@ export default function EditarInspecaoHidrantes() {
                                                             <Trash2 className="w-4 h-4 text-red-500" />
                                                         </Button>
                                                     </div>
-                                                    <Textarea 
-                                                        placeholder="Digite os comentários..." 
-                                                        value={item.texto || ''} 
-                                                        onChange={e => handleInspItemChange(localIndex, itemIndex, 'texto', e.target.value)} 
+                                                    <Textarea
+                                                        placeholder="Digite os comentários..."
+                                                        value={item.texto || ''}
+                                                        onChange={e => handleInspItemChange(localIndex, itemIndex, 'texto', e.target.value)}
                                                         rows={3}
                                                     />
                                                 </div>
@@ -405,6 +434,8 @@ export default function EditarInspecaoHidrantes() {
                                                     <div className="flex items-center gap-2">
                                                         <Checkbox checked={item.resultado === 'OK'} onCheckedChange={checked => handleInspItemChange(localIndex, itemIndex, 'resultado', checked ? 'OK' : '')} />
                                                         <Label className="text-sm">OK</Label>
+                                                        <Checkbox checked={item.resultado === 'N/OK'} onCheckedChange={checked => handleInspItemChange(localIndex, itemIndex, 'resultado', checked ? 'N/OK' : '')} />
+                                                        <Label className="text-sm">N/OK</Label>
                                                         <Checkbox checked={item.resultado === 'Não'} onCheckedChange={checked => handleInspItemChange(localIndex, itemIndex, 'resultado', checked ? 'Não' : '')} />
                                                         <Label className="text-sm">NA</Label>
                                                     </div>
@@ -427,26 +458,26 @@ export default function EditarInspecaoHidrantes() {
                                             </div>
                                         );
                                     })}
-                                    </div>
+                                </div>
 
-                                    {/* Comentários do Local */}
-                                    <div className="pl-4 border-l-2 space-y-2">
-                                        <h4 className="font-medium text-purple-700">Comentários</h4>
-                                        <Textarea 
-                                            placeholder="Comentários sobre este local..." 
-                                            value={local.comentarios || ''} 
-                                            onChange={e => handleLocalChange(localIndex, 'comentarios', e.target.value)}
-                                            rows={3}
-                                            className="bg-white"
-                                        />
-                                    </div>
+                                {/* Comentários do Local */}
+                                <div className="pl-4 border-l-2 space-y-2">
+                                    <h4 className="font-medium text-purple-700">Comentários</h4>
+                                    <Textarea
+                                        placeholder="Comentários sobre este local..."
+                                        value={local.comentarios || ''}
+                                        onChange={e => handleLocalChange(localIndex, 'comentarios', e.target.value)}
+                                        rows={3}
+                                        className="bg-white"
+                                    />
+                                </div>
 
-                                    <div className="pl-4 flex gap-2">
-                                        <Button type="button" variant="outline" size="sm" onClick={() => addInspItem(localIndex)}><Plus className="w-4 h-4 mr-2" /> {t.addItem}</Button>
-                                        <Button type="button" variant="outline" size="sm" onClick={() => addComentarioItem(localIndex)} className="bg-purple-50 hover:bg-purple-100">
-                                            <Plus className="w-4 h-4 mr-2" /> Adicionar Comentários
-                                        </Button>
-                                    </div>
+                                <div className="pl-4 flex gap-2">
+                                    <Button type="button" variant="outline" size="sm" onClick={() => addInspItem(localIndex)}><Plus className="w-4 h-4 mr-2" /> {t.addItem}</Button>
+                                    <Button type="button" variant="outline" size="sm" onClick={() => addComentarioItem(localIndex)} className="bg-purple-50 hover:bg-purple-100">
+                                        <Plus className="w-4 h-4 mr-2" /> Adicionar Comentários
+                                    </Button>
+                                </div>
                             </div>
                         ))}
                         <Button type="button" variant="secondary" onClick={addLocal}><Plus className="w-4 h-4 mr-2" /> {t.addLocation}</Button>
@@ -477,9 +508,9 @@ export default function EditarInspecaoHidrantes() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Assinatura</Label>
-                                    {console.log(`[RENDER] Assinatura ${index}:`, { 
-                                        parte: assinatura.parte, 
-                                        nome: assinatura.nome, 
+                                    {console.log(`[RENDER] Assinatura ${index}:`, {
+                                        parte: assinatura.parte,
+                                        nome: assinatura.nome,
                                         tem_imagem: !!assinatura.assinatura_imagem,
                                         url: assinatura.assinatura_imagem?.substring(0, 80)
                                     })}
@@ -496,10 +527,10 @@ export default function EditarInspecaoHidrantes() {
                                             {assinatura.assinatura_imagem ? 'Editar Assinatura' : 'Adicionar Assinatura'}
                                         </Button>
                                         {assinatura.assinatura_imagem && (
-                                            <Button 
-                                                type="button" 
-                                                variant="outline" 
-                                                size="sm" 
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
                                                 onClick={() => handleAssinaturaChange(index, 'assinatura_imagem', '')}
                                             >
                                                 Limpar
@@ -521,8 +552,8 @@ export default function EditarInspecaoHidrantes() {
                     <DialogContent className="max-w-md">
                         <DialogHeader>
                             <DialogTitle>
-                                {activeSignatureIndex !== null && formData.assinaturas[activeSignatureIndex]?.assinatura_imagem 
-                                    ? 'Editar Assinatura' 
+                                {activeSignatureIndex !== null && formData.assinaturas[activeSignatureIndex]?.assinatura_imagem
+                                    ? 'Editar Assinatura'
                                     : 'Adicionar Assinatura'}
                             </DialogTitle>
                             <DialogDescription>Escolha entre desenhar ou digitar sua assinatura</DialogDescription>
@@ -532,9 +563,9 @@ export default function EditarInspecaoHidrantes() {
                             <div className="mb-4 p-3 bg-gray-50 rounded-lg border">
                                 <Label className="text-xs text-gray-600 mb-2 block">Assinatura atual:</Label>
                                 <div className="flex justify-center border-b-2 border-gray-300 pb-2">
-                                    <img 
-                                        src={formData.assinaturas[activeSignatureIndex].assinatura_imagem} 
-                                        alt="Assinatura atual" 
+                                    <img
+                                        src={formData.assinaturas[activeSignatureIndex].assinatura_imagem}
+                                        alt="Assinatura atual"
                                         className="max-h-16 object-contain"
                                     />
                                 </div>
@@ -597,9 +628,60 @@ export default function EditarInspecaoHidrantes() {
                     </DialogContent>
                 </Dialog>
 
+                <Dialog open={showEditCoverDialog} onOpenChange={setShowEditCoverDialog}>
+                    <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                            <DialogTitle>Editar Capa</DialogTitle>
+                            <DialogDescription>Configure os campos da capa do relatório</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                            <div className="border rounded-lg p-4 bg-blue-50">
+                                <h3 className="font-semibold text-sm mb-4 text-blue-900">Títulos da Capa</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <Label className="text-xs font-semibold">Título Principal</Label>
+                                        <Input value={coverData?.titulo_capa || ''} onChange={(e) => setCoverData(prev => ({ ...prev, titulo_capa: e.target.value }))} className="mt-1" />
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs font-semibold">Subtítulo (vermelho)</Label>
+                                        <Input value={coverData?.subtitulo_capa || ''} onChange={(e) => setCoverData(prev => ({ ...prev, subtitulo_capa: e.target.value }))} className="mt-1" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="border rounded-lg p-4 bg-green-50 border-green-200">
+                                <h3 className="font-semibold text-sm mb-4 text-green-900">Informações da Inspeção</h3>
+                                <div className="grid grid-cols-1 gap-4">
+                                    <div>
+                                        <Label className="text-xs font-semibold">Título da Inspeção</Label>
+                                        <Input value={coverData?.titulo_inspecao || ''} onChange={(e) => setCoverData(prev => ({ ...prev, titulo_inspecao: e.target.value }))} placeholder="Ex: INSPEÇÃO DAS INSTALAÇÕES DE HIDRANTES" className="mt-1" />
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs font-semibold">Descrição da Inspeção</Label>
+                                        <Input value={coverData?.descricao_inspecao || ''} onChange={(e) => setCoverData(prev => ({ ...prev, descricao_inspecao: e.target.value }))} placeholder="Ex: 3º subsolo ao 23º andar" className="mt-1" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="border rounded-lg p-4 bg-red-50 border-red-200">
+                                <h3 className="font-semibold text-sm mb-4 text-red-900">Rodapé da Capa</h3>
+                                <div>
+                                    <Label className="text-xs font-semibold">Texto do Rodapé</Label>
+                                    <Input value={coverData?.texto_rodape_capa || ''} onChange={(e) => setCoverData(prev => ({ ...prev, texto_rodape_capa: e.target.value }))} placeholder="Ex: Most Moema | Ed. Most Moema | MPD" className="mt-1" />
+                                    <p className="text-xs text-gray-500 mt-1">Este texto será exibido no rodapé da capa</p>
+                                </div>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setShowEditCoverDialog(false)}>Cancelar</Button>
+                            <Button type="button" onClick={handleSaveCoverData}>Salvar</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
                 <div className="flex justify-end gap-4">
                     <Button type="submit" disabled={saving}>
-                        {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin"/> {t.saving}</> : t.save}
+                        {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t.saving}</> : t.save}
                     </Button>
                 </div>
             </form>
