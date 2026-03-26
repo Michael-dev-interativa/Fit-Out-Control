@@ -9,14 +9,14 @@
 
   <script>
     (function () {
-      const BACKEND_HOST = 'https://fit-out-backend.onrender.com';
-      const FRONTEND_HOST_REGEX = /fit-out-control-frontend1\.onrender\.com/;
+      const BACKEND_HOST = 'https://backend-fitout.onrender.com';
+      const FRONTEND_HOST_REGEX = /(fit-out-control-frontend1|front-fitout)\.onrender\.com/;
       const API_FILES_SEGMENT = 'api/files/';
 
       function fixUrl(url) {
         if (!url || typeof url !== 'string') return url;
         if (FRONTEND_HOST_REGEX.test(url)) {
-          return url.replace(FRONTEND_HOST_REGEX, 'fit-out-backend.onrender.com');
+          return url.replace(FRONTEND_HOST_REGEX, 'backend-fitout.onrender.com');
         }
         const idx = url.indexOf(API_FILES_SEGMENT);
         if (idx !== -1) {

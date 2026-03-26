@@ -24,6 +24,6 @@ services:
     startCommand: npm run start:frontend
     envVars:
       - key: VITE_API_URL
-        value: https://fit-out-backend.onrender.com
+        value: https://backend-fitout.onrender.com
       - key: NODE_ENV
         value: production

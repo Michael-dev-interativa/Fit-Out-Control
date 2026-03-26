@@ -22,7 +22,7 @@ console.log('🚀 Iniciando servidor (segurança básica: CORS restrito, helmet,
 function getServerBaseUrl() {
   // Em produção no Render, usar URL do backend
   if (process.env.NODE_ENV === 'production' || process.env.RENDER) {
-    return 'https://fit-out-backend.onrender.com';
+    return 'https://backend-fitout.onrender.com';
   }
   // Em desenvolvimento, usar localhost
   const port = process.env.PORT || 5000;

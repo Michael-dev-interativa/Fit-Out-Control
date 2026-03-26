@@ -5,7 +5,7 @@ dotenv.config();
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
-const BACKEND_URL = 'https://fit-out-backend.onrender.com';
+const BACKEND_URL = 'https://backend-fitout.onrender.com';
 
 async function fixImageUrls() {
   console.log('🔧 Iniciando correção de URLs de imagens...\n');
