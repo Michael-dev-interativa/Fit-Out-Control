@@ -20,7 +20,7 @@ services:
   - type: web
     name: fitout-frontend
     runtime: node
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm run start:frontend
     envVars:
       - key: VITE_API_URL
