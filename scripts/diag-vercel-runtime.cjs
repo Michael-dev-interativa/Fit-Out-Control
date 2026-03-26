@@ -6,12 +6,24 @@ const { chromium } = require('playwright');
 
   const errors = [];
   const logs = [];
+  const failedRequests = [];
+  let pageClosed = false;
 
   page.on('pageerror', (err) => {
     errors.push(String(err && err.message ? err.message : err));
   });
   page.on('console', (msg) => {
     logs.push(`${msg.type()}: ${msg.text()}`);
+  });
+  page.on('requestfailed', (request) => {
+    failedRequests.push({
+      url: request.url(),
+      method: request.method(),
+      failure: request.failure() ? request.failure().errorText : 'unknown'
+    });
+  });
+  page.on('close', () => {
+    pageClosed = true;
   });
 
   try {
@@ -21,6 +33,10 @@ const { chromium } = require('playwright');
     });
 
     await page.waitForTimeout(5000);
+
+    if (pageClosed) {
+      throw new Error('page_closed_before_evaluate');
+    }
 
     const state = await page.evaluate(() => {
       const root = document.getElementById('root');
@@ -38,12 +54,16 @@ const { chromium } = require('playwright');
     console.log('status', response ? response.status() : 'no-response');
     console.log('state', JSON.stringify(state));
     console.log('errors', JSON.stringify(errors));
+    console.log('failedRequests', JSON.stringify(failedRequests.slice(-20)));
     console.log('logs', JSON.stringify(logs.slice(-20)));
   } catch (err) {
     console.log('fatal', err && err.message ? err.message : String(err));
     console.log('errors', JSON.stringify(errors));
+    console.log('failedRequests', JSON.stringify(failedRequests.slice(-20)));
     console.log('logs', JSON.stringify(logs.slice(-20)));
   } finally {
-    await browser.close();
+    if (browser && browser.isConnected()) {
+      await browser.close();
+    }
   }
 })();

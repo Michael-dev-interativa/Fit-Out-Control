@@ -7,262 +7,63 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Fitout APP</title>
 
-  <!-- HOTFIX: Correção automática de URLs de imagens (melhorado) -->
   <script>
     (function () {
-      console.log('🔧 [HOTFIX] Interceptor de URLs de imagens ativado (melhorado)');
-
       const BACKEND_HOST = 'https://fit-out-backend.onrender.com';
       const FRONTEND_HOST_REGEX = /fit-out-control-frontend1\.onrender\.com/;
       const API_FILES_SEGMENT = 'api/files/';
 
-      function buildFixedUrlFromMatch(url) {
-        if (!url) return url;
-        // If contains frontend host, replace it
+      function fixUrl(url) {
+        if (!url || typeof url !== 'string') return url;
         if (FRONTEND_HOST_REGEX.test(url)) {
-          const fixed = url.replace(FRONTEND_HOST_REGEX, 'fit-out-backend.onrender.com');
-          console.log('🔧 [HOTFIX] URL host substituted:', url, '→', fixed);
-          return fixed;
+          return url.replace(FRONTEND_HOST_REGEX, 'fit-out-backend.onrender.com');
         }
-
-        // If contains api/files/ anywhere (with or without leading slash), build absolute backend URL
         const idx = url.indexOf(API_FILES_SEGMENT);
         if (idx !== -1) {
-          const path = url.slice(idx - 1 >= 0 && url[idx - 1] === '/' ? idx - 1 : idx);
-          const normalized = path.startsWith('/') ? path : '/' + path;
-          const fixed = BACKEND_HOST + normalized;
-          console.log('🔧 [HOTFIX] api/files path converted:', url, '→', fixed);
-          return fixed;
+          const path = url.slice(idx > 0 && url[idx - 1] === '/' ? idx - 1 : idx);
+          return BACKEND_HOST + (path.startsWith('/') ? path : '/' + path);
         }
-
         return url;
       }
 
-      function fixSrcValue(value) {
-        if (!value) return value;
-        // If srcset, fix each URL inside
-        if (value.includes(',')) {
-          try {
-            const parts = value.split(',').map(part => {
-              const sub = part.trim().split(' ');
-              sub[0] = buildFixedUrlFromMatch(sub[0]);
-              return sub.join(' ');
-            });
-            return parts.join(', ');
-          } catch (e) {
-            return buildFixedUrlFromMatch(value);
-          }
-        }
-        return buildFixedUrlFromMatch(value);
-      }
+      function fixImage(img) {
+        try {
+          const src = img.getAttribute('src');
+          const fixedSrc = fixUrl(src || img.src);
+          if (src && fixedSrc && fixedSrc !== src) img.setAttribute('src', fixedSrc);
 
-      // Override HTMLImageElement.src setter to intercept direct assignments
-      try {
-        const imgProto = HTMLImageElement.prototype;
-        const desc = Object.getOwnPropertyDescriptor(imgProto, 'src');
-        if (desc && desc.set) {
-          const originalSetter = desc.set;
-          Object.defineProperty(imgProto, 'src', {
-            set: function (val) {
-              const fixed = fixSrcValue(val);
-              return originalSetter.call(this, fixed);
-            },
-            get: desc.get,
-            configurable: true,
-            enumerable: true
-          });
-        }
-      } catch (e) {
-        // ignore if we cannot override
-      }
-
-      // Intercept setAttribute for src, srcset and style background-image
-      const originalSetAttribute = Element.prototype.setAttribute;
-      Element.prototype.setAttribute = function (name, value) {
-        if (!value) return originalSetAttribute.call(this, name, value);
-        const n = String(name).toLowerCase();
-        if ((this.tagName === 'IMG' && (n === 'src' || n === 'srcset')) || (n === 'style' && value && value.includes('background'))) {
-          if (n === 'src' || n === 'srcset') value = fixSrcValue(value);
-          if (n === 'style') {
-            // try to replace url(...) inside style
-            value = value.replace(/url\(([^)]+)\)/g, function (_, p1) {
-              const cleaned = p1.replace(/['\"]+/g, '').trim();
-              const fixed = buildFixedUrlFromMatch(cleaned);
-              return 'url("' + fixed + '")';
-            });
-          }
-        }
-        return originalSetAttribute.call(this, name, value);
-      };
-
-      // MutationObserver to fix existing and newly added imgs and background images
-      const observer = new MutationObserver(function (mutations) {
-        mutations.forEach(function (mutation) {
-          mutation.addedNodes.forEach(function (node) {
-            if (!node) return;
-            if (node.nodeType !== 1) return;
-            // Images
-            if (node.tagName === 'IMG') {
-              try {
-                const fixed = fixSrcValue(node.getAttribute('src') || node.src);
-                if (fixed && fixed !== (node.src || node.getAttribute('src'))) node.src = fixed;
-                const srcset = node.getAttribute('srcset');
-                if (srcset) {
-                  const fixedSrcset = fixSrcValue(srcset);
-                  if (fixedSrcset !== srcset) node.setAttribute('srcset', fixedSrcset);
-                }
-              } catch (e) { }
-            }
-            // Any element with background-image
-            try {
-              if (node.style && node.style.backgroundImage) {
-                const bg = node.style.backgroundImage;
-                const m = bg.match(/url\(([^)]+)\)/);
-                if (m && m[1]) {
-                  const cleaned = m[1].replace(/['\"]+/g, '').trim();
-                  const fixed = buildFixedUrlFromMatch(cleaned);
-                  if (fixed && !bg.includes(fixed)) node.style.backgroundImage = 'url("' + fixed + '")';
-                }
-              }
-            } catch (e) { }
-
-            // Fix nested imgs
-            try {
-              node.querySelectorAll && node.querySelectorAll('img').forEach(function (img) {
-                const fixed = fixSrcValue(img.getAttribute('src') || img.src);
-                if (fixed && fixed !== (img.src || img.getAttribute('src'))) img.src = fixed;
-                const srcset = img.getAttribute('srcset');
-                if (srcset) {
-                  const fixedSrcset = fixSrcValue(srcset);
-                  if (fixedSrcset !== srcset) img.setAttribute('srcset', fixedSrcset);
-                }
-              });
-            } catch (e) { }
-          });
-          // Also fix attribute changes
-          if (mutation.type === 'attributes' && mutation.target) {
-            const tgt = mutation.target;
-            if (tgt.tagName === 'IMG') {
-              const fixed = fixSrcValue(tgt.getAttribute('src') || tgt.src);
-              if (fixed && fixed !== (tgt.src || tgt.getAttribute('src'))) tgt.src = fixed;
-            }
-          }
-        });
-      });
-
-      function startObserver() {
-        observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['src', 'srcset', 'style'] });
-      }
-
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', startObserver);
-      } else {
-        startObserver();
-      }
-
-      // Fix existing images on load
-      try {
-        document.querySelectorAll('img').forEach(function (img) {
-          const fixed = fixSrcValue(img.getAttribute('src') || img.src);
-          if (fixed && fixed !== (img.src || img.getAttribute('src'))) img.src = fixed;
           const srcset = img.getAttribute('srcset');
           if (srcset) {
-            const fixedSrcset = fixSrcValue(srcset);
+            const fixedSrcset = srcset.split(',').map(function (part) {
+              const bits = part.trim().split(' ');
+              bits[0] = fixUrl(bits[0]);
+              return bits.join(' ');
+            }).join(', ');
             if (fixedSrcset !== srcset) img.setAttribute('srcset', fixedSrcset);
           }
+        } catch (e) {
+          // no-op
+        }
+      }
+
+      function fixAll(scope) {
+        const root = scope && scope.querySelectorAll ? scope : document;
+        root.querySelectorAll('img').forEach(fixImage);
+      }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        fixAll(document);
+        const observer = new MutationObserver(function (mutations) {
+          mutations.forEach(function (mutation) {
+            mutation.addedNodes.forEach(function (node) {
+              if (!node || node.nodeType !== 1) return;
+              if (node.tagName === 'IMG') fixImage(node);
+              fixAll(node);
+            });
+          });
         });
-      } catch (e) { }
-
-      // DIAGNÓSTICO: interceptar fetch/XHR para logar POST /api/upload e registrar erros de imagem
-      try {
-        console.log('🔍 [DIAG] Monitor de uploads e erros de imagem ativado');
-
-        // Intercept fetch
-        const _origFetch = window.fetch;
-        window.fetch = async function (input, init) {
-          try {
-            const url = (typeof input === 'string') ? input : (input && input.url);
-            if (url && url.indexOf('/api/upload') !== -1) {
-              console.log('📤 [DIAG] fetch ->', url, init && init.method ? init.method : 'GET', init && init.body ? '(body present)' : '');
-            }
-          } catch (e) { }
-          const resp = await _origFetch.apply(this, arguments);
-          try {
-            const rurl = resp && resp.url;
-            if (rurl && rurl.indexOf('/api/upload') !== -1) {
-              // clone to read body
-              const clone = resp.clone();
-              clone.json().then(j => console.log('📥 [DIAG] resposta /api/upload:', j)).catch(() => console.log('📥 [DIAG] resposta /api/upload: (not json)'));
-            }
-          } catch (e) { }
-          return resp;
-        };
-
-        // Intercept XHR
-        (function () {
-          const XHR = window.XMLHttpRequest;
-          const origOpen = XHR.prototype.open;
-          const origSend = XHR.prototype.send;
-          XHR.prototype.open = function (method, url) {
-            this.__diag_method = method;
-            this.__diag_url = url;
-            return origOpen.apply(this, arguments);
-          };
-          XHR.prototype.send = function (body) {
-            try {
-              if (this.__diag_url && this.__diag_url.indexOf('/api/upload') !== -1) {
-                console.log('📤 [DIAG] XHR ->', this.__diag_method, this.__diag_url, body ? '(body present)' : '');
-                this.addEventListener('readystatechange', function () {
-                  if (this.readyState === 4) {
-                    try {
-                      const ct = this.getResponseHeader && this.getResponseHeader('content-type');
-                      if (ct && ct.indexOf('application/json') !== -1) {
-                        console.log('📥 [DIAG] XHR resposta /api/upload:', this.responseText);
-                      } else {
-                        console.log('📥 [DIAG] XHR resposta /api/upload: status', this.status);
-                      }
-                    } catch (e) { }
-                  }
-                });
-              }
-            } catch (e) { }
-            return origSend.apply(this, arguments);
-          };
-        })();
-
-        // Log imagens que emitirem erro (404 etc.) e tentar fetch para capturar status/cabeçalhos
-        window.addEventListener('error', function (ev) {
-          try {
-            const tgt = ev.target || ev.srcElement;
-            if (tgt && tgt.tagName === 'IMG') {
-              const src = tgt.src || (tgt.getAttribute && tgt.getAttribute('src'));
-              console.warn('❌ [DIAG] IMG error:', src);
-              if (src) {
-                // try to fetch to get status/headers
-                try {
-                  fetch(src, { method: 'GET', cache: 'no-store', mode: 'cors' }).then(async function (r) {
-                    try {
-                      const headers = {};
-                      r.headers && r.headers.forEach && r.headers.forEach((v, k) => headers[k] = v);
-                      let bodyText = '';
-                      try {
-                        // try to read small text body for debugging
-                        bodyText = await r.text();
-                        if (bodyText && bodyText.length > 2000) bodyText = bodyText.slice(0, 2000) + '...';
-                      } catch (e) { bodyText = '(no body / binary)'; }
-                      console.log('🔍 [DIAG] fetch image result:', src, 'status=', r.status, 'ok=', r.ok, 'headers=', headers, 'bodyPreview=', bodyText);
-                    } catch (e) { console.warn('❌ [DIAG] erro lendo resposta fetch', e); }
-                  }).catch(function (err) {
-                    console.warn('❌ [DIAG] fetch image failed:', src, err);
-                  });
-                } catch (e) { console.warn('❌ [DIAG] falha ao executar fetch diagnostico', e); }
-              }
-            }
-          } catch (e) { }
-        }, true);
-
-      } catch (e) { console.warn('❌ [DIAG] falha ao instalar diagnósticos', e); }
-
+        observer.observe(document.body, { childList: true, subtree: true });
+      });
     })();
   </script>
 </head>
