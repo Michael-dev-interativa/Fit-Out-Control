@@ -609,6 +609,11 @@ export default function NovaInspecaoEletrica() {
                                                         />
                                                         <Label className="text-sm">OK</Label>
                                                         <Checkbox
+                                                            checked={item.resultado === 'N/OK'}
+                                                            onCheckedChange={checked => handleInspItemChange(localIndex, itemIndex, 'resultado', checked ? 'N/OK' : '')}
+                                                        />
+                                                        <Label className="text-sm">N/OK</Label>
+                                                        <Checkbox
                                                             checked={item.resultado === 'Não'}
                                                             onCheckedChange={checked => handleInspItemChange(localIndex, itemIndex, 'resultado', checked ? 'Não' : '')}
                                                         />
@@ -721,10 +726,15 @@ export default function NovaInspecaoEletrica() {
                                                     />
                                                     <Label className="text-sm">Ok</Label>
                                                     <Checkbox
-                                                        checked={item.resultado === 'NA'}
+                                                        checked={item.resultado === 'N/OK'}
+                                                        onCheckedChange={checked => handleDistItemChange(distIndex, itemIndex, 'resultado', checked ? 'N/OK' : '')}
+                                                    />
+                                                    <Label className="text-sm">N/OK</Label>
+                                                    <Checkbox
+                                                        checked={item.resultado === 'NA' || item.resultado === 'Não'}
                                                         onCheckedChange={checked => handleDistItemChange(distIndex, itemIndex, 'resultado', checked ? 'NA' : '')}
                                                     />
-                                                    <Label className="text-sm">N.A.</Label>
+                                                    <Label className="text-sm">NA</Label>
                                                 </div>
                                                 <Button type="button" variant="ghost" size="icon" onClick={() => removeDistItem(distIndex, itemIndex)}>
                                                     <Trash2 className="w-4 h-4 text-red-500" />
