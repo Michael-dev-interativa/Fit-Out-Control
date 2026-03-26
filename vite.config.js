@@ -2,6 +2,8 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
+const devProxyTarget = process.env.VITE_DEV_PROXY_TARGET || 'http://localhost:5000';
+
 // Try to include rollup visualizer if available (dev-only helper)
 let visualizerPlugin = null;
 try {
@@ -20,12 +22,12 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: devProxyTarget,
         changeOrigin: true,
         // Não reescrever o caminho: o backend expõe rotas com prefixo /api
       },
       '/health': {
-        target: 'http://localhost:3000',
+        target: devProxyTarget,
         changeOrigin: true,
       },
     },
