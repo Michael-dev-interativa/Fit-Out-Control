@@ -8,9 +8,9 @@
 ## Variáveis de ambiente
 Crie um arquivo `.env` na raiz baseado em `.env.example`:
 
-```
-PORT=3000
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/fitout
+```env
+PORT=5000
+DATABASE_URL_LOCAL=postgres://postgres:postgres@localhost:5433/fitout
 ```
 
 ## Subir Postgres com Docker
@@ -45,14 +45,15 @@ npm run dev
 Pop-Location
 ```
 
-Com o proxy do Vite configurado, chamadas para `/api/...` e `/health` no frontend serão encaminhadas para o backend em `http://localhost:3000` durante o desenvolvimento.
+Com o proxy do Vite configurado, chamadas para `/api/...` e `/health` no frontend serão encaminhadas para o backend em `http://localhost:5000` durante o desenvolvimento.
 
 ## Teste rápido
-- Backend: acesse http://localhost:3000/health — deve retornar `{ status: "ok", db: { ok: true } }` se o Postgres estiver acessível e `DATABASE_URL` configurado.
+- Backend: acesse http://localhost:5000/health — deve retornar `{ status: "ok", db: { ok: true } }` se o Postgres estiver acessível e `DATABASE_URL_LOCAL` configurado.
 - Frontend: acesse http://localhost:5173 e faça uma requisição a `/health` ou `/api/health` — deve responder via proxy.
 
 ## Dicas
 - Se já possui Postgres externo, ajuste `DATABASE_URL` no `.env`.
+- Para usar o banco Docker deste projeto, mantenha `DATABASE_URL_LOCAL` na porta `5433`.
 - Para aplicar seu schema SQL dentro do container:
 ```powershell
 # Copia schema para o container
