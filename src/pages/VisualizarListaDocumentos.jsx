@@ -105,6 +105,13 @@ const CompressedPhoto = ({ url, legenda }) => {
   );
 };
 
+// Img com fallback para evitar erros quando CDN/Supabase retorna 404
+const placeholderDataUrl = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="80"><rect fill="%23f3f4f6" width="100%" height="100%"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23666" font-size="14">Imagem indisponível</text></svg>';
+const SafeImg = ({ src, alt, ...props }) => {
+  const [s, setS] = useState(src);
+  return <img src={s} alt={alt} onError={() => setS(placeholderDataUrl)} {...props} />;
+};
+
 
 // Função para normalizar dia da semana (converte curto para completo)
 const normalizarDiaSemana = (dia) => {
@@ -205,7 +212,7 @@ const ReportPage = ({ children, pageNumber, totalPages, documento, empreendiment
           className="flex justify-between items-center p-4 border-b border-gray-200"
           style={{ position: 'absolute', top: 0, left: 0, right: 0, height: HEADER_HEIGHT }}
         >
-          <img src={logoHorizontalUrl} alt="Logo Interativa Engenharia" className="h-12" />
+          <SafeImg src={logoHorizontalUrl} alt="Logo Interativa Engenharia" className="h-12" />
           <div className="text-right">
             <h2 className="text-sm font-bold text-gray-800 uppercase">
               RELATÓRIO DIÁRIO DE OBRA (RDO)
@@ -823,7 +830,7 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
             height: '170px',
           }}
         >
-          <img
+          <SafeImg
             src={logoInterativaUrl}
             alt="Logo Interativa"
             style={{
@@ -882,7 +889,7 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
             display: 'flex', alignItems: 'center', justifyContent: 'center'
           }}
         >
-          <img
+          <SafeImg
             src={logoInterativaBrancoUrl}
             alt="Logo Interativa"
             style={{ width: '100%', height: '100%', objectFit: 'contain' }}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { InspecaoSprinklers } from '@/api/entities';
 import { Empreendimento } from '@/api/entities';
+import { paginateLocalItemsForPrinting } from '@/lib/reportPagination';
 import { getUploadUrl } from '@/api/config';
 import { Button } from '@/components/ui/button';
 import { Loader2, Printer, ArrowLeft, AlertTriangle } from 'lucide-react';
@@ -233,7 +234,7 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
     const isCover = pageNumber === 1;
 
     return (
-        <div className="report-page">
+        <div className="report-page" style={isCover ? { height: '297mm', overflow: 'hidden' } : {}}>
             {!isCover && (
                 <div className="flex justify-between items-center border-b border-gray-200 bg-white" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: HEADER_HEIGHT, zIndex: 100, padding: '4px 8px', maxWidth: '210mm', boxSizing: 'border-box' }}>
                     <img src={logoHorizontalCompressed} alt="Logo Interativa Engenharia" style={{ height: '32px', maxWidth: '120px', objectFit: 'contain' }} />
@@ -244,7 +245,7 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
                     </div>
                 </div>
             )}
-            <div className="page-content" style={{ paddingTop: HEADER_HEIGHT, paddingBottom: FOOTER_HEIGHT, height: '100%', overflow: 'hidden' }}>
+            <div className="page-content" style={{ paddingTop: HEADER_HEIGHT, paddingBottom: FOOTER_HEIGHT, minHeight: '100%', overflow: 'visible' }}>
                 {children}
             </div>
             <div className="border-t border-gray-200 bg-gray-50 flex justify-between items-center text-[9px] text-gray-500" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: FOOTER_HEIGHT, padding: '4px 8px', maxWidth: '210mm', boxSizing: 'border-box' }}>
@@ -275,137 +276,26 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
     const hasDocumentacao = relatorio.itens_documentacao && relatorio.itens_documentacao.length > 0;
 
     // Função para paginar os itens de cada local de forma inteligente
-    const paginateLocalItems = (local, maxItemsForFirstPage = 4) => {
-        const pages = [];
-        const maxItemsPerPage = 4;
-        const MAX_FOTOS_PER_ITEM = 6;
-        const allItems = [...(local.itens_inspecao || [])];
 
-        // Adicionar comentários gerais do local ao final
-        if (local.comentarios) {
-            allItems.push({ tipo: 'comentario', comentarios: local.comentarios, isComentarioGeral: true });
-        }
 
-        let currentPage = [];
-        let isFirstPage = true;
 
-        allItems.forEach((item) => {
-            const isComentario = item.tipo === 'comentario' || item.isComentarioGeral;
 
-            // Se o item tem mais de 4 fotos, dividir em múltiplas partes
-            if (!isComentario && item.fotos && item.fotos.length > MAX_FOTOS_PER_ITEM) {
-                const fotosChunks = [];
-                for (let i = 0; i < item.fotos.length; i += MAX_FOTOS_PER_ITEM) {
-                    fotosChunks.push(item.fotos.slice(i, i + MAX_FOTOS_PER_ITEM));
-                }
 
-                // Primeiro chunk: item completo com primeiras 4 fotos
-                const firstItemPart = {
-                    ...item,
-                    fotos: fotosChunks[0],
-                    isPartial: fotosChunks.length > 1
-                };
 
-                // Calcular peso do primeiro chunk
-                const fotoRows = Math.ceil(fotosChunks[0].length / 3);
-                const itemWeight = 1 + (fotoRows * 2.5);
 
-                const currentWeight = currentPage.reduce((acc, p) => {
-                    const isC = p.tipo === 'comentario' || p.isComentarioGeral;
-                    if (isC) return acc + 1;
-                    if (p.fotos && p.fotos.length > 0) {
-                        const fotoRows = Math.ceil(p.fotos.length / 3);
-                        return acc + 1 + (fotoRows * 2.5);
-                    }
-                    return acc + 1;
-                }, 0);
 
-                const currentLimit = isFirstPage ? maxItemsForFirstPage : maxItemsPerPage;
 
-                // Verificar se cabe na página atual
-                if (currentPage.length > 0 && currentWeight + itemWeight > currentLimit) {
-                    pages.push({
-                        local: local,
-                        items: currentPage,
-                        isFirstPageOfLocal: isFirstPage
-                    });
-                    currentPage = [];
-                    isFirstPage = false;
-                }
 
-                currentPage.push(firstItemPart);
 
-                // Chunks restantes: apenas fotos (continuação do mesmo item)
-                for (let i = 1; i < fotosChunks.length; i++) {
-                    const continuationItem = {
-                        ...item,
-                        descricao: `(Continuação) ${item.descricao}`,
-                        fotos: fotosChunks[i],
-                        isContinuation: true,
-                        showOnlyPhotos: true
-                    };
 
-                    // Sempre iniciar nova página para continuações
-                    if (currentPage.length > 0) {
-                        pages.push({
-                            local: local,
-                            items: currentPage,
-                            isFirstPageOfLocal: isFirstPage
-                        });
-                        currentPage = [];
-                        isFirstPage = false;
-                    }
 
-                    currentPage.push(continuationItem);
-                }
-            } else {
-                // Item normal (sem fotos ou com até 4 fotos)
-                let itemWeight = 1;
-                if (isComentario) {
-                    itemWeight = 1;
-                } else if (item.fotos && item.fotos.length > 0) {
-                    const fotoRows = Math.ceil(item.fotos.length / 3);
-                    itemWeight = 1 + (fotoRows * 2.5);
-                }
 
-                const currentWeight = currentPage.reduce((acc, p) => {
-                    const isC = p.tipo === 'comentario' || p.isComentarioGeral;
-                    if (isC) return acc + 1;
-                    if (p.fotos && p.fotos.length > 0) {
-                        const fotoRows = Math.ceil(p.fotos.length / 3);
-                        return acc + 1 + (fotoRows * 2.5);
-                    }
-                    return acc + 1;
-                }, 0);
 
-                const currentLimit = isFirstPage ? maxItemsForFirstPage : maxItemsPerPage;
-                const pageHasContent = currentPage.length > 0;
 
-                if (pageHasContent && currentWeight + itemWeight > currentLimit) {
-                    pages.push({
-                        local: local,
-                        items: currentPage,
-                        isFirstPageOfLocal: isFirstPage
-                    });
-                    currentPage = [];
-                    isFirstPage = false;
-                }
 
-                currentPage.push(item);
-            }
-        });
 
-        // Adicionar última página se houver itens restantes
-        if (currentPage.length > 0) {
-            pages.push({
-                local: local,
-                items: currentPage,
-                isFirstPageOfLocal: isFirstPage
-            });
-        }
 
-        return pages;
-    };
+    const paginateLocalItems = (local, maxItemsForFirstPage) => paginateLocalItemsForPrinting(local, maxItemsForFirstPage);
 
     // Documentação sempre em página separada
     const combineDocWithContent = false;

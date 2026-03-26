@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { InspecaoAlarmeIncendio } from '@/api/entities';
 import { Empreendimento } from '@/api/entities'; import { getUploadUrl } from '@/api/config'; import { Button } from '@/components/ui/button';
+import { paginateLocalItemsForPrinting } from '@/lib/reportPagination';
 import { Loader2, Printer, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -231,7 +232,7 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
     const isCover = pageNumber === 1;
 
     return (
-        <div className="report-page">
+        <div className="report-page" style={isCover ? { height: '297mm', overflow: 'hidden' } : {}}>
             {!isCover && (
                 <div className="flex justify-between items-center border-b border-gray-200 bg-white" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: HEADER_HEIGHT, zIndex: 100, padding: '4px 8px', maxWidth: '210mm', boxSizing: 'border-box' }}>
                     <img src={logoHorizontalCompressed} alt="Logo Interativa Engenharia" style={{ height: '32px', maxWidth: '120px', objectFit: 'contain' }} />
@@ -242,7 +243,7 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
                     </div>
                 </div>
             )}
-            <div className="page-content" style={{ paddingTop: HEADER_HEIGHT, paddingBottom: FOOTER_HEIGHT, height: '100%', overflow: 'hidden' }}>
+            <div className="page-content" style={{ paddingTop: HEADER_HEIGHT, paddingBottom: FOOTER_HEIGHT, minHeight: '100%', overflow: 'visible' }}>
                 {children}
             </div>
             <div className="border-t border-gray-200 bg-gray-50 flex justify-between items-center text-[9px] text-gray-500" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: FOOTER_HEIGHT, padding: '4px 8px', maxWidth: '210mm', boxSizing: 'border-box' }}>
@@ -272,110 +273,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
 
     const hasDocumentacao = relatorio.itens_documentacao && relatorio.itens_documentacao.length > 0;
 
-    const paginateLocalItems = (local, maxItemsForFirstPage = 14) => {
-        const pages = [];
-        const maxItemsPerPage = 14;
-        const MAX_FOTOS_PER_ITEM = 6;
-        const allItems = [...(local.itens_inspecao || [])];
-
-        if (local.comentarios) {
-            allItems.push({ tipo: 'comentario', comentarios: local.comentarios, isComentarioGeral: true });
-        }
-
-        let currentPage = [];
-        let isFirstPage = true;
-
-        allItems.forEach((item) => {
-            const isComentario = item.tipo === 'comentario' || item.isComentarioGeral;
-
-            // Se o item tem mais de 6 fotos, dividir em múltiplas partes
-            if (!isComentario && item.fotos && item.fotos.length > MAX_FOTOS_PER_ITEM) {
-                const fotosChunks = [];
-                for (let i = 0; i < item.fotos.length; i += MAX_FOTOS_PER_ITEM) {
-                    fotosChunks.push(item.fotos.slice(i, i + MAX_FOTOS_PER_ITEM));
-                }
-
-                // Primeiro chunk
-                const firstItemPart = { ...item, fotos: fotosChunks[0] };
-                const weight = 1 + (Math.ceil(fotosChunks[0].length / 3) * 2);
-                const currentWeight = currentPage.reduce((acc, p) => {
-                    const isC = p.tipo === 'comentario' || p.isComentarioGeral;
-                    if (isC) {
-                        const text = p.texto || p.comentarios || '';
-                        const lines = Math.ceil(text.length / 100);
-                        return acc + Math.max(1, Math.ceil(lines / 3));
-                    }
-                    if (p.fotos && p.fotos.length > 0) {
-                        return acc + 1 + (Math.ceil(p.fotos.length / 3) * 2);
-                    }
-                    return acc + 1;
-                }, 0);
-                const currentLimit = isFirstPage ? maxItemsForFirstPage : maxItemsPerPage;
-
-                if (currentPage.length > 0 && currentWeight + weight > currentLimit) {
-                    pages.push({ local, items: currentPage, isFirstPageOfLocal: isFirstPage });
-                    currentPage = [];
-                    isFirstPage = false;
-                }
-                currentPage.push(firstItemPart);
-
-                // Chunks restantes
-                for (let i = 1; i < fotosChunks.length; i++) {
-                    if (currentPage.length > 0) {
-                        pages.push({ local, items: currentPage, isFirstPageOfLocal: isFirstPage });
-                        currentPage = [];
-                        isFirstPage = false;
-                    }
-                    currentPage.push({
-                        ...item,
-                        descricao: `(Continuação) ${item.descricao}`,
-                        fotos: fotosChunks[i],
-                        showOnlyPhotos: true
-                    });
-                }
-            } else {
-                // Item normal
-                const comentarioText = item.texto || item.comentarios || '';
-                let itemWeight = 1;
-                if (isComentario) {
-                    const estimatedLines = Math.ceil(comentarioText.length / 100);
-                    itemWeight = Math.max(1, Math.ceil(estimatedLines / 3));
-                } else if (item.fotos && item.fotos.length > 0) {
-                    const fotoRows = Math.ceil(item.fotos.length / 3);
-                    itemWeight = 1 + (fotoRows * 2);
-                }
-
-                const currentWeight = currentPage.reduce((acc, p) => {
-                    const isC = p.tipo === 'comentario' || p.isComentarioGeral;
-                    const text = p.texto || p.comentarios || '';
-                    if (isC) {
-                        const lines = Math.ceil(text.length / 100);
-                        return acc + Math.max(1, Math.ceil(lines / 3));
-                    } else if (p.fotos && p.fotos.length > 0) {
-                        const fotoRows = Math.ceil(p.fotos.length / 3);
-                        return acc + 1 + (fotoRows * 2);
-                    }
-                    return acc + 1;
-                }, 0);
-
-                const currentLimit = isFirstPage ? maxItemsForFirstPage : maxItemsPerPage;
-
-                if (currentWeight + itemWeight > currentLimit && currentPage.length > 0) {
-                    pages.push({ local, items: currentPage, isFirstPageOfLocal: isFirstPage });
-                    currentPage = [];
-                    isFirstPage = false;
-                }
-
-                currentPage.push(item);
-            }
-        });
-
-        if (currentPage.length > 0) {
-            pages.push({ local, items: currentPage, isFirstPageOfLocal: isFirstPage });
-        }
-
-        return pages;
-    };
+    const paginateLocalItems = (local, maxItemsForFirstPage) => paginateLocalItemsForPrinting(local, maxItemsForFirstPage);
 
     const docItemCount = hasDocumentacao ? (relatorio.itens_documentacao.length || 0) : 0;
     const combineDocWithContent = hasDocumentacao && docItemCount <= 6;

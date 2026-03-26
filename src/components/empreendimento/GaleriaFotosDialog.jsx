@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Empreendimento } from "@/api/entities";
 import { UploadFile } from "@/api/integrations";
 import {
@@ -10,9 +10,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { 
-  Plus, 
-  Trash2, 
+import {
+  Plus,
+  Trash2,
   Camera,
   Loader2,
   Edit3
@@ -29,7 +29,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-export default function GaleriaFotosDialog({ open, onOpenChange, empreendimento, onSuccess, language = 'pt', theme = 'light' }) {
+export default function GaleriaFotosDialog({ open, onOpenChange, empreendimento, onSuccess = () => { }, language = 'pt', theme = 'light' }) {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingLegend, setEditingLegend] = useState(null);
@@ -38,6 +38,11 @@ export default function GaleriaFotosDialog({ open, onOpenChange, empreendimento,
 
   const isDark = theme === 'dark';
   const fotos = empreendimento?.fotos_empreendimento || [];
+  const [localFotos, setLocalFotos] = useState(fotos);
+
+  useEffect(() => {
+    setLocalFotos(empreendimento?.fotos_empreendimento || []);
+  }, [empreendimento]);
 
   const handleAddPhotosClick = () => {
     if (fileInputRef.current) {
@@ -55,14 +60,16 @@ export default function GaleriaFotosDialog({ open, onOpenChange, empreendimento,
         const { file_url } = await UploadFile({ file });
         return { url: file_url, legenda: "" };
       });
-      
+
       const newPhotos = await Promise.all(uploadPromises);
-      const updatedPhotos = [...fotos, ...newPhotos];
-      
-      await Empreendimento.update(empreendimento.id, {
+      const updatedPhotos = [...localFotos, ...newPhotos];
+
+      const resp = await Empreendimento.update(empreendimento.id, {
         fotos_empreendimento: updatedPhotos
       });
-      
+      console.log('GaleriaFotos: update resp', resp);
+
+      setLocalFotos(updatedPhotos);
       onSuccess();
     } catch (error) {
       console.error("Erro ao adicionar fotos:", error);
@@ -73,12 +80,14 @@ export default function GaleriaFotosDialog({ open, onOpenChange, empreendimento,
 
   const handleRemovePhoto = async (index) => {
     try {
-      const updatedPhotos = fotos.filter((_, i) => i !== index);
-      
-      await Empreendimento.update(empreendimento.id, {
+      const updatedPhotos = localFotos.filter((_, i) => i !== index);
+
+      const resp = await Empreendimento.update(empreendimento.id, {
         fotos_empreendimento: updatedPhotos
       });
-      
+      console.log('GaleriaFotos: remove resp', resp);
+
+      setLocalFotos(updatedPhotos);
       onSuccess();
     } catch (error) {
       console.error("Erro ao remover foto:", error);
@@ -92,17 +101,19 @@ export default function GaleriaFotosDialog({ open, onOpenChange, empreendimento,
 
   const handleSaveLegend = async () => {
     if (editingLegend === null) return;
-    
+
     setSaving(true);
     try {
-      const updatedPhotos = fotos.map((foto, i) => 
+      const updatedPhotos = localFotos.map((foto, i) =>
         i === editingLegend ? { ...foto, legenda: tempLegend } : foto
       );
-      
-      await Empreendimento.update(empreendimento.id, {
+
+      const resp = await Empreendimento.update(empreendimento.id, {
         fotos_empreendimento: updatedPhotos
       });
-      
+      console.log('GaleriaFotos: save legend resp', resp);
+
+      setLocalFotos(updatedPhotos);
       setEditingLegend(null);
       setTempLegend("");
       onSuccess();
@@ -130,7 +141,7 @@ export default function GaleriaFotosDialog({ open, onOpenChange, empreendimento,
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-              Gerencie as fotos do empreendimento ({fotos.length} foto{fotos.length !== 1 ? 's' : ''})
+              Gerencie as fotos do empreendimento ({localFotos.length} foto{localFotos.length !== 1 ? 's' : ''})
             </p>
             <div className="flex gap-2">
               <input
@@ -142,7 +153,7 @@ export default function GaleriaFotosDialog({ open, onOpenChange, empreendimento,
                 disabled={uploading}
                 style={{ display: 'none' }}
               />
-              <Button 
+              <Button
                 onClick={handleAddPhotosClick}
                 disabled={uploading}
                 className="bg-blue-600 hover:bg-blue-700"
@@ -162,7 +173,7 @@ export default function GaleriaFotosDialog({ open, onOpenChange, empreendimento,
             </div>
           </div>
 
-          {fotos.length === 0 ? (
+          {localFotos.length === 0 ? (
             <div className="text-center py-12">
               <Camera className={`w-16 h-16 mx-auto mb-4 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} />
               <h3 className={`text-lg font-medium ${isDark ? 'text-white' : 'text-gray-900'} mb-2`}>
@@ -174,7 +185,7 @@ export default function GaleriaFotosDialog({ open, onOpenChange, empreendimento,
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {fotos.map((foto, index) => (
+              {localFotos.map((foto, index) => (
                 <Card key={index} className={`group hover:shadow-lg transition-shadow ${isDark ? 'bg-gray-700' : ''}`}>
                   <CardContent className="p-0">
                     <div className="relative">

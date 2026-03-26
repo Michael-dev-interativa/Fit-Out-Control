@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
+import { InspecaoHidrantes } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -47,6 +48,8 @@ export default function EditarInspecaoHidrantes() {
     const location = useLocation();
     const [inspecaoId] = useState(() => new URLSearchParams(location.search).get('inspecaoId'));
 
+    console.log('EditarInspecaoHidrantes - mount/render. inspecaoId:', inspecaoId, 'location.pathname:', location.pathname, 'location.search:', location.search);
+
     const [formData, setFormData] = useState(null);
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -69,7 +72,9 @@ export default function EditarInspecaoHidrantes() {
         }
         const loadData = async () => {
             try {
-                const data = await base44.entities.InspecaoHidrantes.get(inspecaoId);
+                console.log('[LOAD] EditarInspecaoHidrantes - iniciando fetch da inspeção id=', inspecaoId);
+                const data = await InspecaoHidrantes.get(inspecaoId);
+                console.log('[LOAD] EditarInspecaoHidrantes - dados recebidos:', data && { id: data.id, titulo: data.titulo_relatorio, data_inspecao: data.data_inspecao });
                 let dataInspecao = '';
                 if (data.data_inspecao) {
                     dataInspecao = data.data_inspecao.includes('T')
@@ -98,6 +103,7 @@ export default function EditarInspecaoHidrantes() {
                 };
 
                 setFormData(loadedData);
+                console.log('[LOAD] EditarInspecaoHidrantes - estado formData definido');
                 setCoverData({
                     titulo_capa: data.titulo_capa || 'RELATÓRIO',
                     subtitulo_capa: data.subtitulo_capa || 'Gerenciamento de Obra',
@@ -113,8 +119,9 @@ export default function EditarInspecaoHidrantes() {
                     url_preview: ass.assinatura_imagem?.substring(0, 50)
                 })));
             } catch (error) {
-                toast.error("Falha ao carregar dados da inspeção.");
-                navigate(-1);
+                console.error('EditarInspecaoHidrantes - erro ao carregar inspeção:', error);
+                toast.error("Falha ao carregar dados da inspeção. Verifique o console para detalhes.");
+                // Não navegar automaticamente para trás para permitir inspeção do erro no console
             } finally {
                 setLoading(false);
             }
@@ -320,7 +327,7 @@ export default function EditarInspecaoHidrantes() {
             }
 
             console.log("[SUBMIT] Salvando assinaturas:", JSON.stringify(updateData.assinaturas, null, 2));
-            await base44.entities.InspecaoHidrantes.update(id, updateData);
+            await InspecaoHidrantes.update(id, updateData);
             console.log("[SUBMIT] Inspeção atualizada com sucesso!");
             toast.success("Inspeção atualizada com sucesso!");
             navigate(createPageUrl(`EmpreendimentoInspecaoHidrantes?empreendimentoId=${formData.id_empreendimento}`));
@@ -488,6 +495,32 @@ export default function EditarInspecaoHidrantes() {
                     <CardHeader><CardTitle>{t.generalObservations}</CardTitle></CardHeader>
                     <CardContent>
                         <Textarea value={formData.observacoes_gerais} onChange={e => handleInputChange('observacoes_gerais', e.target.value)} rows={4} />
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader><CardTitle>Conclusão</CardTitle></CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Conclusão R01</Label>
+                                <select value={formData.conclusao_r01 || ''} onChange={e => handleInputChange('conclusao_r01', e.target.value)} className="w-full border rounded px-2 py-1">
+                                    <option value="">-- Selecionar --</option>
+                                    <option value="totalidade">Aprovado com totalidade</option>
+                                    <option value="ressalvas">Aprovado com ressalvas</option>
+                                    <option value="reprovado">Reprovado</option>
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Conclusão R02</Label>
+                                <select value={formData.conclusao_r02 || ''} onChange={e => handleInputChange('conclusao_r02', e.target.value)} className="w-full border rounded px-2 py-1">
+                                    <option value="">-- Selecionar --</option>
+                                    <option value="totalidade">Aprovado com totalidade</option>
+                                    <option value="ressalvas">Aprovado com ressalvas</option>
+                                    <option value="reprovado">Reprovado</option>
+                                </select>
+                            </div>
+                        </div>
                     </CardContent>
                 </Card>
 

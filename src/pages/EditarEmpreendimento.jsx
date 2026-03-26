@@ -1,16 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Empreendimento } from '@/api/entities';
-import { UploadFile } from '@/api/integrations';
-import { getUploadUrl } from '@/api/config';
+import { UploadFile } from '@/integrations/Core';
 import { createPageUrl } from '@/utils';
-import { addDays, format, differenceInDays } from 'date-fns';
+import { differenceInDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, ArrowLeft, Building2, Users, Calendar, Phone, HardHat, Layers, Home, X, Info, MapPin, AlertTriangle, FileText } from 'lucide-react';
+import { Loader2, ArrowLeft, Building2, Users, Phone, X, Info, AlertTriangle, FileText } from 'lucide-react';
 import TabelaContatos from '../components/empreendimento/TabelaContatos';
 
 // Translation object based on the outline and existing labels
@@ -46,15 +45,10 @@ export default function EditarEmpreendimento() {
     const [error, setError] = useState(null);
 
     const isValidId = (id) => {
-        if (id === undefined || id === null) return false;
+        if (!id) return false;
         const cleanId = String(id).trim();
-        if (cleanId === '' || cleanId === '-') return false;
-        // Aceita IDs numéricos positivos (Postgres) e strings não numéricas
-        if (/^\d+$/.test(cleanId)) {
-            return parseInt(cleanId, 10) > 0;
-        }
-        // Para IDs não numéricos, mantenha a validação básica
-        return cleanId.length >= 1;
+        // Accept numeric IDs and typical string IDs; only reject empty or dash
+        return cleanId !== '' && cleanId !== '-';
     };
 
     useEffect(() => {
@@ -400,13 +394,13 @@ export default function EditarEmpreendimento() {
                             <Label>Foto Principal</Label>
                             <Input type="file" accept="image/*" onChange={handleFileUpload} disabled={uploading} />
                             {uploading && <Loader2 className="w-4 h-4 animate-spin mt-2" />}
-                            {formData.foto_empreendimento && <img src={getUploadUrl(formData.foto_empreendimento)} alt="Preview" className="w-full h-48 object-cover rounded-lg mt-2" />}
+                            {formData.foto_empreendimento && <img src={formData.foto_empreendimento} alt="Preview" className="w-full h-48 object-cover rounded-lg mt-2" />}
                         </div>
                         <div>
                             <Label>Logo do Responsável</Label>
                             <Input type="file" accept="image/*" onChange={handleLogoUpload} disabled={uploadingLogo} />
                             {uploadingLogo && <Loader2 className="w-4 h-4 animate-spin mt-2" />}
-                            {formData.logo_responsavel && <img src={getUploadUrl(formData.logo_responsavel)} alt="Logo" className="h-20 object-contain rounded-lg mt-2 bg-gray-100 p-2" />}
+                            {formData.logo_responsavel && <img src={formData.logo_responsavel} alt="Logo" className="h-20 object-contain rounded-lg mt-2 bg-gray-100 p-2" />}
                         </div>
                         <div>
                             <Label>Galeria de Fotos</Label>
@@ -583,6 +577,7 @@ export default function EditarEmpreendimento() {
                         <TabelaContatos
                             contatos={formData.contatos_proprietario || []}
                             onContatosChange={(novosContatos) => setFormData(prev => ({ ...prev, contatos_proprietario: novosContatos }))}
+                            theme={localStorage.getItem('theme') || 'light'}
                         />
                     </CardContent>
                 </Card>

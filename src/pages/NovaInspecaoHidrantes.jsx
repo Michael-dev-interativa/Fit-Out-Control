@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { InspecaoHidrantes } from '@/entities/InspecaoHidrantes';
-import { Empreendimento } from '@/entities/Empreendimento';
+import { InspecaoHidrantes, Empreendimento } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Plus, Trash2, ArrowLeft, Edit2 } from 'lucide-react';
-import { UploadFile } from '@/integrations/Core';
+import { UploadFile } from '@/api/integrations';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { SimpleSignaturePad } from '@/components/signature/SignaturePadComponent';

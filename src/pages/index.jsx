@@ -31,6 +31,9 @@ const NovaVistoriaFormulario = lazy(() => import("./NovaVistoriaFormulario"));
 const IniciarVistoria = lazy(() => import("./IniciarVistoria"));
 const PreencherVistoria = lazy(() => import("./PreencherVistoria"));
 const UnidadeVistoria = lazy(() => import("./UnidadeVistoria"));
+
+const PreencherTermoDeAceite = lazy(() => import("./PreencherTermoDeAceite"));
+const VisualizarTermoAceite = lazy(() => import("./VisualizarTermoAceite"));
 const RelatorioVistoriaObras = lazy(() => import("./RelatorioVistoriaObras"));
 const GaleriaRelatorio = lazy(() => import("./GaleriaRelatorio"));
 const Planejamento = lazy(() => import("./Planejamento"));
@@ -56,6 +59,8 @@ const EmpreendimentoRelatoriosSemanais = lazy(() => import("./EmpreendimentoRela
 const NovoRelatorioSemanal = lazy(() => import("./NovoRelatorioSemanal"));
 const EmpreendimentoPrimeirosServicos = lazy(() => import("./EmpreendimentoPrimeirosServicos"));
 
+const EmpreendimentoTermosAceite = lazy(() => import("./EmpreendimentoTermosAceite"));
+
 const NovoRelatorioPrimeirosServicos = lazy(() => import("./NovoRelatorioPrimeirosServicos"));
 
 const EditarRelatorioPrimeirosServicos = lazy(() => import("./EditarRelatorioPrimeirosServicos"));
@@ -72,9 +77,16 @@ const EmpreendimentoInspecaoHidrantes = lazy(() => import("./EmpreendimentoInspe
 
 const NovaInspecaoHidrantes = lazy(() => import("./NovaInspecaoHidrantes"));
 
+const NovaInspecaoHidraulica = lazy(() => import("./NovaInspecaoHidraulica"));
+
 const EditarInspecaoHidrantes = lazy(() => import("./EditarInspecaoHidrantes"));
 
 const VisualizarInspecaoHidrantes = lazy(() => import("./VisualizarInspecaoHidrantes"));
+const EditarInspecaoHidraulica = lazy(() => import("./EditarInspecaoHidraulica"));
+const VisualizarInspecaoHidraulica = lazy(() => import("./VisualizarInspecaoHidraulica"));
+
+// Novo componente para Inspeção Hidráulica
+const EmpreendimentoInspecaoHidraulica = lazy(() => import("./EmpreendimentoInspecaoHidraulica"));
 
 const EmpreendimentoInspecaoSprinklers = lazy(() => import("./EmpreendimentoInspecaoSprinklers"));
 
@@ -210,6 +222,9 @@ const PAGES = {
 
     PreencherVistoria: PreencherVistoria,
 
+    PreencherTermoDeAceite: PreencherTermoDeAceite,
+    VisualizarTermoAceite: VisualizarTermoAceite,
+
     UnidadeVistoria: UnidadeVistoria,
 
     RelatorioVistoriaObras: RelatorioVistoriaObras,
@@ -255,6 +270,8 @@ const PAGES = {
 
     EmpreendimentoPrimeirosServicos: EmpreendimentoPrimeirosServicos,
 
+    EmpreendimentoTermosAceite: EmpreendimentoTermosAceite,
+
     NovoRelatorioPrimeirosServicos: NovoRelatorioPrimeirosServicos,
 
     EditarRelatorioPrimeirosServicos: EditarRelatorioPrimeirosServicos,
@@ -274,6 +291,9 @@ const PAGES = {
     EditarInspecaoHidrantes: EditarInspecaoHidrantes,
 
     VisualizarInspecaoHidrantes: VisualizarInspecaoHidrantes,
+    NovaInspecaoHidraulica: NovaInspecaoHidraulica,
+    EditarInspecaoHidraulica: EditarInspecaoHidraulica,
+    VisualizarInspecaoHidraulica: VisualizarInspecaoHidraulica,
 
     EmpreendimentoInspecaoSprinklers: EmpreendimentoInspecaoSprinklers,
 
@@ -446,6 +466,10 @@ function PagesContent() {
                     <Route path="/IniciarVistoria" element={<IniciarVistoria />} />
 
                     <Route path="/PreencherVistoria" element={<PreencherVistoria />} />
+                    <Route path="/PreencherTermoDeAceite" element={<PreencherTermoDeAceite />} />
+                    <Route path="/preenchertermodeaceite" element={<PreencherTermoDeAceite />} />
+                    <Route path="/VisualizarTermoAceite" element={<VisualizarTermoAceite />} />
+                    <Route path="/visualizartermodeaceite" element={<VisualizarTermoAceite />} />
 
                     <Route path="/UnidadeVistoria" element={<UnidadeVistoria />} />
 
@@ -479,6 +503,8 @@ function PagesContent() {
                     <Route path="/empreendimentoatareuniao" element={<EmpreendimentoAtaReuniao />} />
                     <Route path="/EmpreendimentoAtasReuniao" element={<EmpreendimentoAtasReuniao />} />
                     <Route path="/empreendimentoatasreuniao" element={<EmpreendimentoAtasReuniao />} />
+                    <Route path="/EmpreendimentoTermosAceite" element={<EmpreendimentoTermosAceite />} />
+                    <Route path="/empreendimentotermosaceite" element={<EmpreendimentoTermosAceite />} />
                     <Route path="/VisualizarAtaReuniao" element={<VisualizarAtaReuniao />} />
                     <Route path="/visualizaratareuniao" element={<VisualizarAtaReuniao />} />
 
@@ -510,11 +536,23 @@ function PagesContent() {
 
                     <Route path="/EmpreendimentoInspecaoHidrantes" element={<EmpreendimentoInspecaoHidrantes />} />
 
+                    {/* Rota para Inspeção Hidráulica (componente dedicado) */}
+                    <Route path="/EmpreendimentoInspecaoHidraulica" element={<EmpreendimentoInspecaoHidraulica />} />
+                    <Route path="/empreendimentoinspecaohidraulica" element={<EmpreendimentoInspecaoHidraulica />} />
+
                     <Route path="/NovaInspecaoHidrantes" element={<NovaInspecaoHidrantes />} />
+
+                    <Route path="/NovaInspecaoHidraulica" element={<NovaInspecaoHidraulica />} />
+                    <Route path="/novainspecaohidraulica" element={<NovaInspecaoHidraulica />} />
 
                     <Route path="/EditarInspecaoHidrantes" element={<EditarInspecaoHidrantes />} />
 
                     <Route path="/VisualizarInspecaoHidrantes" element={<VisualizarInspecaoHidrantes />} />
+
+                    <Route path="/EditarInspecaoHidraulica" element={<EditarInspecaoHidraulica />} />
+                    <Route path="/editarinspecaohidraulica" element={<EditarInspecaoHidraulica />} />
+                    <Route path="/VisualizarInspecaoHidraulica" element={<VisualizarInspecaoHidraulica />} />
+                    <Route path="/visualizarinspecaohidraulica" element={<VisualizarInspecaoHidraulica />} />
 
                     <Route path="/EmpreendimentoInspecaoSprinklers" element={<EmpreendimentoInspecaoSprinklers />} />
 

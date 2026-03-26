@@ -259,7 +259,7 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
     const isCover = pageNumber === 1;
 
     return (
-        <div className="report-page">
+        <div className="report-page" style={isCover ? { height: '297mm', overflow: 'hidden' } : {}}>
             {!isCover && (
                 <div className="flex justify-between items-center border-b border-gray-200 bg-white" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: HEADER_HEIGHT, zIndex: 100, padding: '4px 8px', maxWidth: '210mm', boxSizing: 'border-box' }}>
                     <img src={logoHorizontalCompressed} alt="Logo Interativa Engenharia" style={{ height: '32px', maxWidth: '120px', objectFit: 'contain' }} />
@@ -270,7 +270,7 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
                     </div>
                 </div>
             )}
-            <div className="page-content" style={{ paddingTop: HEADER_HEIGHT, paddingBottom: FOOTER_HEIGHT, height: '100%', overflow: 'hidden' }}>
+            <div className="page-content" style={{ paddingTop: HEADER_HEIGHT, paddingBottom: FOOTER_HEIGHT, minHeight: '100%', overflow: 'visible' }}>
                 {children}
             </div>
             <div className="border-t border-gray-200 bg-gray-50 flex justify-between items-center text-[9px] text-gray-500" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: FOOTER_HEIGHT, padding: '4px 8px', maxWidth: '210mm', boxSizing: 'border-box' }}>

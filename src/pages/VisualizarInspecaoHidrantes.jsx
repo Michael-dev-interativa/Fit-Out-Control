@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { InspecaoHidrantes } from '@/entities/InspecaoHidrantes';
-import { Empreendimento } from '@/entities/Empreendimento';
+import { InspecaoHidrantes, Empreendimento } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Loader2, Printer, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -46,7 +45,16 @@ const useCompressedImage = (url, maxWidth = 800, quality = 0.7) => {
     const [compressedUrl, setCompressedUrl] = useState(url);
     useEffect(() => {
         if (url && typeof url === 'string' && url.startsWith('http')) {
-            compressImage(url, maxWidth, quality).then(setCompressedUrl);
+            // If printing is in progress, skip client-side compression to avoid
+            // extra processing and ensure original image dimensions are used.
+            const printing = typeof document !== 'undefined' && document.body && document.body.dataset && document.body.dataset.printing === 'true';
+            if (printing) {
+                setCompressedUrl(url);
+                return;
+            }
+            let cancelled = false;
+            compressImage(url, maxWidth, quality).then((r) => { if (!cancelled) setCompressedUrl(r); });
+            return () => { cancelled = true; };
         } else {
             setCompressedUrl(url);
         }
@@ -135,11 +143,38 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
     );
 };
 
-const FotoInspecao = ({ url, legenda }) => {
+const FotoInspecao = ({ url, legenda, maxHeight = '150px' }) => {
     const compressedUrl = useCompressedImage(url, 600, 0.6);
+    const printing = typeof document !== 'undefined' && document.body && document.body.dataset && document.body.dataset.printing === 'true';
+
+    // Durante a impressão, renderizamos como background-image em um bloco fixo
+    if (printing) {
+        return (
+            <div className="text-center foto-inspecao">
+                <div
+                    className="foto-inspecao-bg"
+                    role="img"
+                    aria-label={legenda || 'Foto da inspeção'}
+                    style={{
+                        width: '100%',
+                        height: maxHeight,
+                        backgroundImage: `url(${url})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        border: '1px solid #ddd',
+                        display: 'block'
+                    }}
+                />
+                {legenda && (
+                    <p className="text-[9px] text-gray-600 mt-1">{legenda}</p>
+                )}
+            </div>
+        );
+    }
+
     return (
-        <div className="text-center">
-            <img src={compressedUrl} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: 'auto', objectFit: 'contain', border: '1px solid #ddd' }} />
+        <div className="text-center foto-inspecao">
+            <img className="foto-inspecao-img" src={compressedUrl} data-original={url} height={maxHeight} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: maxHeight, objectFit: 'cover', border: '1px solid #ddd', display: 'block' }} />
             {legenda && (
                 <p className="text-[9px] text-gray-600 mt-1">{legenda}</p>
             )}
@@ -148,8 +183,7 @@ const FotoInspecao = ({ url, legenda }) => {
 };
 
 const ContentPage = ({ local, itensSlice, showHeader = true, showComments = false, showTableHeader = false, showObservacoes = false, observacoes = '', assinaturas = [] }) => {
-    const hasAssinaturas = assinaturas && assinaturas.length > 0 &&
-        assinaturas.some(ass => ass.assinatura_imagem && ass.assinatura_imagem.trim() !== '');
+
 
     return (
         <div className={showHeader ? "p-4" : "px-4 pt-6 pb-4"}>
@@ -184,7 +218,7 @@ const ContentPage = ({ local, itensSlice, showHeader = true, showComments = fals
 
                                 if (isComentario) {
                                     return (
-                                        <tr key={idx} className="bg-gray-50" style={{ height: '36px' }}>
+                                        <tr key={idx} className="bg-gray-50" data-item-group={`item-${idx}`} style={{ height: '36px' }}>
                                             <td className="border border-black p-2 font-bold align-middle" style={{ verticalAlign: 'middle' }}>Comentários:</td>
                                             <td className="border border-black p-2 align-middle" colSpan="4" style={{ verticalAlign: 'middle' }}>{item.texto || ''}</td>
                                         </tr>
@@ -194,7 +228,7 @@ const ContentPage = ({ local, itensSlice, showHeader = true, showComments = fals
                                 // Se for apenas fotos (continuação)
                                 if (item.showOnlyPhotos) {
                                     return (
-                                        <tr key={idx}>
+                                        <tr key={idx} data-item-group={`item-${idx}`}>
                                             <td colSpan="5" className="border border-black p-2 pt-4">
                                                 <div className="text-xs text-gray-600 italic mb-2">{item.descricao}</div>
                                                 <div className="grid grid-cols-3 gap-2">
@@ -209,7 +243,7 @@ const ContentPage = ({ local, itensSlice, showHeader = true, showComments = fals
 
                                 return (
                                     <>
-                                        <tr key={idx} style={{ height: '36px' }}>
+                                        <tr key={idx} data-item-group={`item-${idx}`} style={{ height: '36px' }}>
                                             <td className="border border-black p-2 align-middle" style={{ width: '40%', verticalAlign: 'middle' }}>{item.descricao}</td>
                                             <td className="border border-black p-2 text-center align-middle" style={{ width: '6%', verticalAlign: 'middle' }}>{item.resultado === 'OK' ? '☑' : '☐'}</td>
                                             <td className="border border-black p-2 text-center align-middle" style={{ width: '6%', verticalAlign: 'middle' }}>{item.resultado === 'N/OK' ? '☑' : '☐'}</td>
@@ -217,7 +251,7 @@ const ContentPage = ({ local, itensSlice, showHeader = true, showComments = fals
                                             <td className="border border-black p-2 align-middle" style={{ width: '42%', verticalAlign: 'middle' }}>{item.observacoes || ''}</td>
                                         </tr>
                                         {item.fotos && item.fotos.length > 0 && (
-                                            <tr key={`${idx}-fotos`}>
+                                            <tr key={`${idx}-fotos`} data-item-group={`item-${idx}`}>
                                                 <td colSpan="5" className="border border-black p-2">
                                                     <div className="grid grid-cols-3 gap-2">
                                                         {item.fotos.map((foto, fotoIdx) => (
@@ -247,32 +281,7 @@ const ContentPage = ({ local, itensSlice, showHeader = true, showComments = fals
                     <h2 className="text-xl font-bold text-center mb-4 bg-blue-900 text-white p-2">Observações Gerais</h2>
                     <div className="border border-black p-4 text-sm whitespace-pre-wrap min-h-[80px]">{observacoes || ''}</div>
 
-                    {hasAssinaturas && (
-                        <div className="mt-4">
-                            <h2 className="text-xl font-bold text-center mb-4 bg-blue-900 text-white p-2">Assinaturas</h2>
-                            <div className="grid grid-cols-2 gap-8 px-4">
-                                {assinaturas.map((assinatura, idx) => (
-                                    <div key={idx} className="text-center">
-                                        {assinatura.assinatura_imagem ? (
-                                            <div className="h-24 flex items-center justify-center mb-2">
-                                                <img
-                                                    src={assinatura.assinatura_imagem}
-                                                    alt={`Assinatura ${assinatura.parte || assinatura.nome}`}
-                                                    className="max-h-full max-w-full object-contain"
-                                                />
-                                            </div>
-                                        ) : (
-                                            <div className="border-b-2 border-gray-400 h-24 mb-2"></div>
-                                        )}
-                                        <div className="border-t border-gray-400 pt-2">
-                                            <p className="text-xs font-bold">{assinatura.parte || 'Signatário'}</p>
-                                            {assinatura.nome && <p className="text-xs text-gray-600">{assinatura.nome}</p>}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                    {/* Signatures moved to final page */}
                 </div>
             )}
         </div>
@@ -309,44 +318,77 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
     );
 };
 
-const ObservacoesGeraisPage = ({ observacoes, assinaturas }) => {
-    const hasAssinaturas = assinaturas && assinaturas.length > 0 &&
-        assinaturas.some(ass => ass.assinatura_imagem && ass.assinatura_imagem.trim() !== '');
+const isConclusaoMatching = (val, key) => {
+    if (!val) return false;
+    const s = String(val).normalize('NFD').replace(/\p{Diacritic}/gu, '').trim().toLowerCase();
+    if (key === 'totalidade') return s === 'totalidade' || s.includes('totalidade');
+    if (key === 'ressalvas') return s === 'ressalvas' || s.includes('ressalva');
+    if (key === 'reprovado') return s === 'reprovado' || s.includes('reprovado');
+    return s === key;
+};
 
+const ObservacoesGeraisPage = ({ observacoes }) => {
     return (
         <div className="p-4">
             <h2 className="text-xl font-bold text-center mb-4 bg-blue-900 text-white p-2">Observações Gerais</h2>
             <div className="border border-black p-4 text-sm whitespace-pre-wrap min-h-[100px]">{observacoes || ''}</div>
-
-            {hasAssinaturas && (
-                <div className="mt-6">
-                    <h2 className="text-xl font-bold text-center mb-4 bg-blue-900 text-white p-2">Assinaturas</h2>
-                    <div className="grid grid-cols-2 gap-8 px-4">
-                        {assinaturas.map((assinatura, idx) => (
-                            <div key={idx} className="text-center">
-                                {assinatura.assinatura_imagem ? (
-                                    <div className="h-24 flex items-center justify-center mb-2">
-                                        <img
-                                            src={assinatura.assinatura_imagem}
-                                            alt={`Assinatura ${assinatura.parte || assinatura.nome}`}
-                                            className="max-h-full max-w-full object-contain"
-                                        />
-                                    </div>
-                                ) : (
-                                    <div className="border-b-2 border-gray-400 h-24 mb-2"></div>
-                                )}
-                                <div className="border-t border-gray-400 pt-2">
-                                    <p className="text-xs font-bold">{assinatura.parte || 'Signatário'}</p>
-                                    {assinatura.nome && <p className="text-xs text-gray-600">{assinatura.nome}</p>}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
+
+const ConclusaoPage = ({ conclusaoR01, conclusaoR02 }) => {
+    const opcoes = [
+        { key: 'totalidade', label: 'Aprovado com totalidade' },
+        { key: 'ressalvas', label: 'Aprovado com ressalvas' },
+        { key: 'reprovado', label: 'Reprovado' },
+    ];
+    return (
+        <div className="px-4 pb-4">
+            <h2 className="text-xl font-bold text-center mb-3 bg-blue-900 text-white p-2">Conclusão</h2>
+            <div className="flex mb-3" style={{ border: '1px solid #ccc', padding: '10px 14px', gap: '40px' }}>
+                <div style={{ flex: 1 }}>
+                    <p className="text-xs font-bold mb-2">1ª Vistoria</p>
+                    {opcoes.map(opcao => (
+                        <div key={opcao.key} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '5px' }}>
+                            <span style={{
+                                display: 'inline-block', width: '13px', height: '13px', minWidth: '13px',
+                                border: '1px solid #555', textAlign: 'center', lineHeight: '12px', fontSize: '11px',
+                                flexShrink: 0,
+                                backgroundColor: isConclusaoMatching(conclusaoR01, opcao.key) ? '#1d4ed8' : 'white',
+                                color: 'white'
+                            }}>
+                                {isConclusaoMatching(conclusaoR01, opcao.key) ? '✓' : ''}
+                            </span>
+                            <span className="text-xs">{opcao.label}</span>
+                        </div>
+                    ))}
+                </div>
+                <div style={{ flex: 1 }}>
+                    <p className="text-xs font-bold mb-2">2ª Vistoria</p>
+                    {opcoes.map(opcao => (
+                        <div key={opcao.key} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '5px' }}>
+                            <span style={{
+                                display: 'inline-block', width: '13px', height: '13px', minWidth: '13px',
+                                border: '1px solid #555', textAlign: 'center', lineHeight: '12px', fontSize: '11px',
+                                flexShrink: 0,
+                                backgroundColor: isConclusaoMatching(conclusaoR02, opcao.key) ? '#1d4ed8' : 'white',
+                                color: 'white'
+                            }}>
+                                {isConclusaoMatching(conclusaoR02, opcao.key) ? '✓' : ''}
+                            </span>
+                            <span className="text-xs">{opcao.label}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            <div className="p-3 text-xs bg-gray-50" style={{ border: '1px solid #ccc' }}>
+                <p className="font-bold mb-1">Observação:</p>
+                <p>Em caso de sistema não aprovado com totalidade na 1º vistoria, a inspeção deverá ser refeita para confirmação de correções apontadas nas Observações Gerais deste relatório.</p>
+            </div>
+        </div>
+    );
+};
+
 
 const ReportContent = ({ relatorio, empreendimento, navigate }) => {
     const [isPrintingMode, setIsPrintingMode] = useState(false);
@@ -355,29 +397,23 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
     const hasAssinaturas = relatorio.assinaturas && relatorio.assinaturas.length > 0 &&
         relatorio.assinaturas.some(ass => ass.assinatura_imagem && ass.assinatura_imagem.trim() !== '');
 
-    const MAX_FOTOS_PER_ITEM = 6;
+    const MAX_FOTOS_PER_ITEM = 12;
+    const MAX_WEIGHT_PER_PAGE = 15;
 
-    // Dividir itens de cada local em páginas
-    const MAX_WEIGHT_PER_PAGE = 10;
-    const localPages = [];
-
-    relatorio.locais.forEach((local) => {
+    const paginateLocalItems = (local) => {
         const allItems = [...(local.itens_inspecao || [])];
-
         let currentSlice = [];
         let slices = [];
 
         allItems.forEach((item) => {
             const isComentario = item.tipo === 'comentario';
 
-            // Se o item tem mais de 6 fotos, dividir em múltiplas partes
             if (!isComentario && item.fotos && item.fotos.length > MAX_FOTOS_PER_ITEM) {
                 const fotosChunks = [];
                 for (let i = 0; i < item.fotos.length; i += MAX_FOTOS_PER_ITEM) {
                     fotosChunks.push(item.fotos.slice(i, i + MAX_FOTOS_PER_ITEM));
                 }
 
-                // Primeiro chunk: item completo
                 const firstItemPart = { ...item, fotos: fotosChunks[0] };
                 const weight = 1 + (Math.ceil(fotosChunks[0].length / 3) * 3);
                 const currentWeight = currentSlice.reduce((acc, p) => {
@@ -394,7 +430,6 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 }
                 currentSlice.push(firstItemPart);
 
-                // Chunks restantes: apenas fotos
                 for (let i = 1; i < fotosChunks.length; i++) {
                     if (currentSlice.length > 0) {
                         slices.push([...currentSlice]);
@@ -408,7 +443,6 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     });
                 }
             } else {
-                // Item normal
                 let weight = 1;
                 if (isComentario) {
                     weight = 1;
@@ -436,20 +470,22 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
             slices.push(currentSlice);
         }
 
-        slices.forEach((slice, sliceIdx) => {
-            localPages.push({
-                local,
-                items: slice,
-                isFirst: sliceIdx === 0,
-                isLast: sliceIdx === slices.length - 1
-            });
-        });
-    });
+        return slices.map((slice, sliceIdx) => ({
+            local,
+            items: slice,
+            isFirstPageOfLocal: sliceIdx === 0,
+            isLastPageOfLocal: sliceIdx === slices.length - 1
+        }));
+    };
 
-    // Contar fotos na última página de inspeção
+    const contentPages = (relatorio.locais && relatorio.locais.length > 0)
+        ? relatorio.locais.flatMap((local) => paginateLocalItems(local))
+        : [];
+
+    // Contar fotos na última página de inspeção (usar contentPages paginadas)
     let lastPagePhotoCount = 0;
-    if (localPages.length > 0) {
-        const lastPage = localPages[localPages.length - 1];
+    if (contentPages.length > 0) {
+        const lastPage = contentPages[contentPages.length - 1];
         lastPage.items.forEach(item => {
             if (item.fotos && item.fotos.length > 0) {
                 lastPagePhotoCount += item.fotos.length;
@@ -457,17 +493,104 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
         });
     }
 
-    // Se última página tem menos de 4 fotos, incluir observações nela
-    const includeObservacoesWithLastPage = lastPagePhotoCount < 4 && localPages.length > 0;
-
-    const totalPages = 1 + (hasDocumentacao ? 1 : 0) + localPages.length + (includeObservacoesWithLastPage ? 0 : 1);
+    // Observações e Conclusão sempre em página dedicada
+    const totalPages = 1 + (hasDocumentacao ? 1 : 0) + contentPages.length + 1 + (hasAssinaturas ? 1 : 0);
     let currentPage = 1;
 
     const handlePrint = async () => {
         setIsPrintingMode(true);
-        await new Promise(resolve => setTimeout(resolve, 50));
+        // set a global flag so compression can be skipped by hooks
+        try { if (typeof document !== 'undefined' && document.body) document.body.dataset.printing = 'true'; } catch (e) { }
+        // small delay for state updates
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        // Antes de esperar, force imagens para usar a URL original (se disponível)
+        try {
+            const fotoImgs = Array.from(document.querySelectorAll('.report-page .foto-inspecao-img'));
+            fotoImgs.forEach(img => {
+                const original = img.getAttribute('data-original');
+                if (original && img.src !== original) {
+                    img.src = original;
+                }
+            });
+
+            // Espera que todas as imagens nas páginas do relatório terminem de carregar
+            const imgs = Array.from(document.querySelectorAll('.report-page img'));
+            const loadPromises = imgs.map(img => {
+                if (img.complete) return Promise.resolve();
+                return new Promise((res) => {
+                    const onDone = () => {
+                        img.removeEventListener('load', onDone);
+                        img.removeEventListener('error', onDone);
+                        res();
+                    };
+                    img.addEventListener('load', onDone);
+                    img.addEventListener('error', onDone);
+                });
+            });
+            // fallback timeout: se alguma imagem demorar mais que 5s, prosseguir
+            await Promise.race([
+                Promise.all(loadPromises),
+                new Promise(resolve => setTimeout(resolve, 5000))
+            ]);
+        } catch (e) {
+            // ignore and continue to print
+        }
+
+        // Antes de imprimir, tentar compactar páginas movendo grupos de itens pequenos
+        // da próxima página para a atual quando houver espaço vazio.
+        try {
+            const packPagesForPrint = () => {
+                const pages = Array.from(document.querySelectorAll('.report-page'));
+                if (!pages || pages.length === 0) return;
+
+                // margem de segurança em px
+                const MARGIN_PX = 8;
+
+                for (let i = 0; i < pages.length - 1; i++) {
+                    const current = pages[i];
+                    const next = pages[i + 1];
+                    const currentContent = current.querySelector('.page-content');
+                    const nextContent = next.querySelector('.page-content');
+                    if (!currentContent || !nextContent) continue;
+
+                    let remaining = currentContent.clientHeight - currentContent.scrollHeight - MARGIN_PX;
+                    if (remaining <= 0) continue;
+
+                    // find first item-group in next page
+                    const firstRow = nextContent.querySelector('tbody tr[data-item-group]');
+                    if (!firstRow) continue;
+                    const groupId = firstRow.getAttribute('data-item-group');
+                    if (!groupId) continue;
+
+                    const rows = Array.from(nextContent.querySelectorAll(`tr[data-item-group="${groupId}"]`));
+                    if (rows.length === 0) continue;
+
+                    // measure group height
+                    const groupHeight = rows.reduce((s, r) => s + r.offsetHeight, 0);
+                    if (groupHeight <= remaining) {
+                        // move rows into current page's tbody before its last child
+                        const currentTbody = currentContent.querySelector('tbody');
+                        const nextTbody = nextContent.querySelector('tbody');
+                        if (currentTbody && nextTbody) {
+                            rows.forEach(r => currentTbody.appendChild(r));
+                        }
+                        // after moving, adjust i to re-evaluate same page (it may accept more)
+                        i -= 1;
+                    }
+                }
+            };
+
+            packPagesForPrint();
+        } catch (e) {
+            // fail silently and proceed to print
+        }
+
         window.print();
-        setTimeout(() => setIsPrintingMode(false), 2000);
+        setTimeout(() => {
+            setIsPrintingMode(false);
+            try { if (typeof document !== 'undefined' && document.body) delete document.body.dataset.printing; } catch (e) { }
+        }, 2000);
     };
 
     return (
@@ -490,17 +613,19 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     </ReportPageLayout>
                 )}
 
-                {localPages.map((page, index) => {
-                    const isLastInspectionPage = index === localPages.length - 1;
+                {contentPages.map((page, index) => {
+                    const isLastInspectionPage = index === contentPages.length - 1;
+                    const isFirstPage = index === 0;
+                    const isLastPageOfThisLocal = isLastInspectionPage || (contentPages[index + 1] && contentPages[index + 1].local.id !== page.local.id);
                     return (
                         <ReportPageLayout key={index} pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
                             <ContentPage
                                 local={page.local}
                                 itensSlice={page.items}
-                                showHeader={page.isFirst}
-                                showComments={page.isLast}
+                                showHeader={page.isFirstPageOfLocal || isFirstPage}
+                                showComments={isLastPageOfThisLocal}
                                 showTableHeader={true}
-                                showObservacoes={isLastInspectionPage && includeObservacoesWithLastPage}
+                                showObservacoes={false}
                                 observacoes={relatorio.observacoes_gerais}
                                 assinaturas={relatorio.assinaturas}
                             />
@@ -508,9 +633,16 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     );
                 })}
 
-                {!includeObservacoesWithLastPage && (
+                {/* Conclusão will be rendered after Observações Gerais (inserted below) */}
+
+                <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+                    <ObservacoesGeraisPage observacoes={relatorio.observacoes_gerais} />
+                    <ConclusaoPage conclusaoR01={relatorio?.conclusao_r01} conclusaoR02={relatorio?.conclusao_r02} />
+                </ReportPageLayout>
+
+                {hasAssinaturas && (
                     <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                        <ObservacoesGeraisPage observacoes={relatorio.observacoes_gerais} assinaturas={relatorio.assinaturas} />
+                        <AssinaturasPage assinaturas={relatorio.assinaturas} />
                     </ReportPageLayout>
                 )}
             </div>
@@ -594,6 +726,36 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                         overflow: hidden !important;
                     }
                     
+
+                    /* Garantir tamanho fixo das fotos no PDF (mais conservador)
+                       e usar area útil da página para evitar fluxo sob o rodapé */
+                    .report-page .foto-inspecao-img {
+                        height: 100px !important;
+                        object-fit: cover !important;
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        display: block !important;
+                    }
+
+                    /* Background-image fallback for printing */
+                    .report-page .foto-inspecao-bg {
+                        height: 100px !important;
+                        width: 100% !important;
+                        background-size: cover !important;
+                        background-position: center !important;
+                        border: 1px solid #ddd !important;
+                        display: block !important;
+                    }
+
+                    /* Ajuste da área de conteúdo para corresponder à medição do paginador */
+                    .report-page .page-content {
+                        box-sizing: border-box !important;
+                        height: calc(297mm - 80px - 45px) !important;
+                        padding-top: 80px !important;
+                        padding-bottom: 45px !important;
+                        overflow: visible !important;
+                    }
+
                     .report-page:last-child { page-break-after: auto; }
                     
                     img { max-width: 100%; }
@@ -636,6 +798,48 @@ export default function VisualizarInspecaoHidrantes() {
 
                 const empreendimentoData = await Empreendimento.get(relatorioData.id_empreendimento);
                 if (!empreendimentoData) throw new Error("Empreendimento associado não encontrado.");
+
+                // Pré-comprimir imagens para tornar medições e paginação mais previsíveis
+                try {
+                    // Capa
+                    if (empreendimentoData?.foto_empreendimento) {
+                        empreendimentoData.foto_empreendimento = await compressImage(empreendimentoData.foto_empreendimento, 600, 0.15);
+                    }
+
+                    // Fotos de inspeção
+                    if (relatorioData.locais && relatorioData.locais.length > 0) {
+                        for (const local of relatorioData.locais) {
+                            if (local.itens_inspecao && local.itens_inspecao.length > 0) {
+                                for (const item of local.itens_inspecao) {
+                                    if (item.fotos && item.fotos.length > 0) {
+                                        for (const foto of item.fotos) {
+                                            if (foto && foto.url) {
+                                                try {
+                                                    foto.url = await compressImage(foto.url, 500, 0.15);
+                                                } catch (e) {
+                                                    // ignore individual photo errors
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Assinaturas
+                    if (relatorioData.assinaturas && relatorioData.assinaturas.length > 0) {
+                        for (const assinatura of relatorioData.assinaturas) {
+                            if (assinatura.assinatura_imagem) {
+                                try {
+                                    assinatura.assinatura_imagem = await compressImage(assinatura.assinatura_imagem, 300, 0.2);
+                                } catch (e) { }
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // se compressão falhar, continuamos com as URLs originais
+                }
 
                 setRelatorio(relatorioData);
                 setEmpreendimento(empreendimentoData);

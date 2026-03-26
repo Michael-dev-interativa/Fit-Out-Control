@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AprovacaoAmostra } from '@/api/entities';
 import { Empreendimento } from '@/api/entities';
-import { getUploadUrl } from '@/api/config';
+import { getUploadUrl } from '@/api/config.js';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';

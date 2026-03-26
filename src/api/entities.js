@@ -80,6 +80,7 @@ export const AP_unidade = makeEntity('aps-unidade');
 export const KO_unidade = makeEntity('kos-unidade');
 export const VO_unidade = makeEntity('vos-unidade');
 export const FormularioVistoria = makeEntity('formularios-vistoria');
+export const TermoDeAceite = makeEntity('termos-aceite');
 // Respostas de vistoria são expostas como vistorias
 export const RespostaVistoria = makeEntity('vistorias');
 export const RelatorioSemanal = makeEntity('relatorios-semanais');
@@ -87,6 +88,7 @@ export const RelatorioPrimeirosServicos = makeEntity('relatorios-primeiros-servi
 export const AprovacaoAmostra = makeEntity('aprovacoes-amostra');
 export const VistoriaTerminalidade = makeEntity('vistorias-terminalidade');
 export const InspecaoHidrantes = makeEntity('inspecoes-hidrantes');
+export const InspecaoHidraulica = makeEntity('inspecoes-hidraulica');
 export const InspecaoSprinklers = makeEntity('inspecoes-sprinklers');
 export const InspecaoAlarmeIncendio = makeEntity('inspecoes-alarme-incendio');
 export const InspecaoArCondicionado = makeEntity('inspecoes-ar-condicionado');
@@ -130,7 +132,15 @@ export const ListaDocumentosReport = makeEntity('lista-documentos-report');
 export const AtaReuniao = makeEntity('ata-reuniao');
 // Expor também no objeto runtime `base44.entities` para compatibilidade com código que
 // acessa `base44.entities.<Entity>` (ex: VisualizarAtaReuniao.jsx usa base44.entities.AtaReuniao)
-try { base44.entities = base44.entities || {}; base44.entities.AtaReuniao = AtaReuniao; } catch (e) { /* ignore in static build */ }
+try {
+  base44.entities = base44.entities || {};
+  base44.entities.AtaReuniao = AtaReuniao;
+  // Mapear entidades relacionadas a inspeções para compatibilidade com código legado
+  base44.entities.Empreendimento = Empreendimento;
+  base44.entities.InspecaoEletrica = InspecaoEletrica;
+  base44.entities.InspecaoArCondicionado = InspecaoArCondicionado;
+  base44.entities.InspecaoHidrantes = InspecaoHidrantes;
+} catch (e) { /* ignore in static build */ }
 
 // Auth local mínima
 export const User = {

@@ -72,8 +72,16 @@ app.get('/api/files/:id', async (req, res) => {
     res.setHeader('Cache-Control', 'public, max-age=31536000');
     return res.send(file.dados);
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
     console.error('Erro ao buscar arquivo:', err && (err.stack || err.message || String(err)));
-    return res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+    // If the DB is in recovery or otherwise not accepting connections, return 503 with Retry-After
+    const lower = String(msg || '').toLowerCase();
+    if (lower.includes('recovery') || lower.includes('not yet accepting') || lower.includes('in recovery mode') || lower.includes('57p03')) {
+      // advise clients to retry after a short period
+      res.setHeader('Retry-After', '30');
+      return res.status(503).json({ error: 'db_recovery', message: msg });
+    }
+    return res.status(500).json({ error: msg });
   }
 });
 
@@ -124,6 +132,10 @@ const ALLOWED_ORIGINS_ENV = process.env.ALLOWED_ORIGINS;
 const ALLOWED_ORIGINS = ALLOWED_ORIGINS_ENV
   ? ALLOWED_ORIGINS_ENV.split(',').map(s => s.trim()).filter(Boolean)
   : (process.env.NODE_ENV === 'production' ? [] : ['http://localhost:5173']);
+
+// Log allowed origins at startup to help debugging local dev CORS issues
+console.log('ALLOWED_ORIGINS (env):', ALLOWED_ORIGINS_ENV);
+console.log('ALLOWED_ORIGINS (parsed):', ALLOWED_ORIGINS);
 
 // In production require ALLOWED_ORIGINS to be explicitly set
 if (process.env.NODE_ENV === 'production' && (!ALLOWED_ORIGINS_ENV || ALLOWED_ORIGINS.length === 0)) {
@@ -197,23 +209,92 @@ if (LOG_REQUESTS) {
   });
 }
 
-const { DATABASE_URL } = process.env;
-const pool = DATABASE_URL ? new Pool({
-  connectionString: DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
+const isProductionRuntime = process.env.NODE_ENV === 'production' || Boolean(process.env.RENDER);
+const dbTarget = (process.env.DB_TARGET || '').toLowerCase(); // local | remote
+const DATABASE_URL_SELECTED = (() => {
+  if (dbTarget === 'local') return process.env.DATABASE_URL_LOCAL;
+  if (dbTarget === 'remote') return process.env.DATABASE_URL;
+  if (isProductionRuntime) return process.env.DATABASE_URL;
+  return process.env.DATABASE_URL_LOCAL || process.env.DATABASE_URL;
+})();
+const forcePgSsl = (process.env.PG_FORCE_SSL || '').toLowerCase() === 'true';
+const disablePgSsl = (process.env.PG_DISABLE_SSL || '').toLowerCase() === 'true';
+const usePgSsl = (() => {
+  if (disablePgSsl) return false;
+  if (forcePgSsl) return true;
+  try {
+    if (!DATABASE_URL_SELECTED) return false;
+    const u = new URL(DATABASE_URL_SELECTED);
+    const host = (u.hostname || '').toLowerCase();
+    const sslmode = (u.searchParams.get('sslmode') || '').toLowerCase();
+    if (sslmode) return true;
+    if (host === 'localhost' || host === '127.0.0.1') return false;
+    if (dbTarget === 'local') return false;
+    return isProductionRuntime || dbTarget === 'remote';
+  } catch {
+    return isProductionRuntime;
   }
+})();
+const pool = DATABASE_URL_SELECTED ? new Pool({
+  connectionString: DATABASE_URL_SELECTED,
+  ssl: usePgSsl ? { rejectUnauthorized: false } : false,
+  // Tunables to improve resiliency on flaky networks or DB failovers
+  max: process.env.PG_MAX_CLIENTS ? parseInt(process.env.PG_MAX_CLIENTS, 10) : 10,
+  idleTimeoutMillis: process.env.PG_IDLE_TIMEOUT_MS ? parseInt(process.env.PG_IDLE_TIMEOUT_MS, 10) : 30000,
+  connectionTimeoutMillis: process.env.PG_CONN_TIMEOUT_MS ? parseInt(process.env.PG_CONN_TIMEOUT_MS, 10) : 10000,
 }) : null;
+// Protect against unhandled pool errors (connection reset, termination, etc.)
+if (pool) {
+  pool.on('error', (err, client) => {
+    try {
+      console.error('[PG POOL ERROR] Unhandled error on idle client', err && (err.stack || err.message || String(err)));
+    } catch (e) { }
+  });
+  pool.on('connect', (client) => {
+    try { console.log('[PG POOL] client connected'); } catch (e) { }
+  });
+  pool.on('remove', (client) => {
+    try { console.log('[PG POOL] client removed'); } catch (e) { }
+  });
+}
 try {
-  if (DATABASE_URL) {
-    const u = new URL(DATABASE_URL);
+  if (DATABASE_URL_SELECTED) {
+    const u = new URL(DATABASE_URL_SELECTED);
+    const source = dbTarget || (isProductionRuntime ? 'remote' : (process.env.DATABASE_URL_LOCAL ? 'local' : 'remote'));
+    console.log('DB source selected:', source);
+    console.log('DB SSL enabled:', usePgSsl);
     console.log('DB connection target:', { user: u.username, host: u.hostname, port: u.port, database: u.pathname.replace('/', '') });
   } else {
-    console.log('DB connection target: no DATABASE_URL set');
+    console.log('DB connection target: no DATABASE_URL/DATABASE_URL_LOCAL set');
   }
 } catch {
   // ignore
 }
+
+// Ensure legacy column `fotos_empreendimento` exists so older DBs keep working
+if (pool) {
+  (async () => {
+    try {
+      await pool.query("ALTER TABLE IF EXISTS public.empreendimentos ADD COLUMN IF NOT EXISTS fotos_empreendimento JSONB DEFAULT '[]'::jsonb;");
+      console.log('[DB] ensured fotos_empreendimento column exists');
+    } catch (err) {
+      try { console.warn('[DB] could not ensure fotos_empreendimento column:', err && (err.message || String(err))); } catch (e) { }
+    }
+  })();
+}
+
+// Global safety: log unhandled rejections/exceptions to avoid process crash during transient DB issues
+process.on('unhandledRejection', (reason, promise) => {
+  try {
+    console.error('[UNHANDLED REJECTION]', reason && (reason.stack || reason.message || String(reason)));
+  } catch (e) { }
+});
+process.on('uncaughtException', (err) => {
+  try {
+    console.error('[UNCAUGHT EXCEPTION]', err && (err.stack || err.message || String(err)));
+    // don't exit — prefer to keep server running for resiliency in dev
+  } catch (e) { }
+});
 
 // ===== Arquivos estáticos de upload =====
 const uploadRoot = path.resolve(process.cwd(), 'uploads');
@@ -226,7 +307,7 @@ try {
 const storage = multer.memoryStorage();
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+  limits: { fileSize: 20 * 1024 * 1024 } // 20MB (increase to handle larger photos from devices)
 });
 
 // Endpoint administrativo para comprimir imagens em uploads/
@@ -309,6 +390,12 @@ function shouldReturnEmptyOnDbError(err) {
   if (msg.toLowerCase().includes('password authentication failed')) return true;
   if (msg.includes('DATABASE_URL not set')) return true;
   if (msg.toLowerCase().includes('connect') && msg.toLowerCase().includes('refused')) return true;
+  // Transient PG conditions (failover / terminated connection) — treat as temporary
+  if (msg.toLowerCase().includes('terminated unexpectedly')) return true;
+  if (msg.toLowerCase().includes('connection terminated')) return true;
+  if (msg.toLowerCase().includes('in recovery')) return true;
+  if (msg.toLowerCase().includes('not yet accepting') || msg.toLowerCase().includes('not accepting')) return true;
+  if (code === '57P01' || code === '57P03') return true;
   return false;
 }
 
@@ -645,52 +732,112 @@ function requirePool() {
 // Security: validate mime types, size enforced by multer limits, sanitize names
 app.post('/api/upload', upload.single('file'), async (req, res) => {
   try {
+    // Quick debug log for uploads
+    try { console.log('[UPLOAD] incoming file:', req.file && req.file.originalname, req.file && req.file.mimetype, req.file && req.file.size); } catch (e) { }
     if (!req.file) return res.status(400).json({ error: 'missing_file' });
 
-    // MIME whitelist (adjust as needed)
-    const ALLOWED_MIMES = new Set(['image/jpeg', 'image/png', 'application/pdf']);
-    if (!ALLOWED_MIMES.has(req.file.mimetype)) return res.status(400).json({ error: 'invalid_mime_type' });
+    // Allow any image/* mimetype and PDFs — be permissive to avoid rejecting valid browser types
+    if (!(req.file.mimetype && (req.file.mimetype.startsWith('image/') || req.file.mimetype === 'application/pdf'))) {
+      return res.status(400).json({ error: 'invalid_mime_type', mimetype: req.file.mimetype });
+    }
 
     // sanitize original name
     const originalName = String(req.file.originalname || '').replace(/\"/g, '').slice(0, 255);
 
-    const p = requirePool();
+    const p = pool ? pool : null;
 
-    // Cria tabela se não existir
-    await p.query(`
-      CREATE TABLE IF NOT EXISTS arquivos (
-        id SERIAL PRIMARY KEY,
-        nome_original VARCHAR(255),
-        mime_type VARCHAR(100),
-        tamanho INTEGER,
-        dados BYTEA,
-        created_at TIMESTAMP DEFAULT NOW()
-      )
-    `);
+    // Helper to persist to disk when DB unavailable
+    async function saveToDiskFallback(buffer, origName, mime) {
+      try {
+        const ext = path.extname(origName) || '';
+        const safeBase = String(Date.now()) + '-' + crypto.randomBytes(6).toString('hex');
+        const filename = safeBase + ext;
+        const full = path.join(uploadRoot, filename);
+        await fs.promises.writeFile(full, buffer);
+        console.warn(`⚠️ Saved upload to disk fallback: ${full}`);
+        const url = `${getServerBaseUrl()}/api/uploads/disk/${encodeURIComponent(filename)}`;
+        return { filename, full, url };
+      } catch (e) {
+        console.error('Failed to save to disk fallback', e && (e.stack || e.message || String(e)));
+        throw e;
+      }
+    }
 
-    // Salva arquivo no banco
-    const { rows } = await p.query(
-      `INSERT INTO arquivos (nome_original, mime_type, tamanho, dados) 
-       VALUES ($1, $2, $3, $4) RETURNING id`,
-      [originalName, req.file.mimetype, req.file.size, req.file.buffer]
-    );
+    // Try DB first if pool available
+    if (p) {
+      try {
+        // Cria tabela se não existir
+        await p.query(`
+          CREATE TABLE IF NOT EXISTS arquivos (
+            id SERIAL PRIMARY KEY,
+            nome_original VARCHAR(255),
+            mime_type VARCHAR(100),
+            tamanho INTEGER,
+            dados BYTEA,
+            created_at TIMESTAMP DEFAULT NOW()
+          )
+        `);
 
-    const fileId = rows[0].id;
-    const file_path = `/api/files/${fileId}`;
-    const file_url = `${getServerBaseUrl()}${file_path}`;
+        const { rows } = await p.query(
+          `INSERT INTO arquivos (nome_original, mime_type, tamanho, dados) 
+           VALUES ($1, $2, $3, $4) RETURNING id`,
+          [originalName, req.file.mimetype, req.file.size, req.file.buffer]
+        );
 
-    console.log(`✅ Arquivo salvo: ID ${fileId} → ${file_url}`);
+        const fileId = rows[0].id;
+        const file_path = `/api/files/${fileId}`;
+        const file_url = `${getServerBaseUrl()}${file_path}`;
 
-    res.status(201).json({
-      file_url,
-      file_path, // path relativo para compatibilidade
-      id: fileId,
+        console.log(`✅ Arquivo salvo: ID ${fileId} → ${file_url}`);
+
+        return res.status(201).json({
+          file_url,
+          file_path,
+          id: fileId,
+          name: req.file.originalname,
+          size: req.file.size,
+          mime_type: req.file.mimetype
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error('Erro ao fazer upload: ', msg);
+        // If Postgres connection terminated or DB in recovery, fall back to disk
+        const low = String(msg || '').toLowerCase();
+        if (low.includes('terminated unexpectedly') || low.includes('in recovery') || low.includes('not yet accepting') || low.includes('57p03') || low.includes('connection terminated')) {
+          try {
+            const saved = await saveToDiskFallback(req.file.buffer, originalName, req.file.mimetype);
+            return res.status(201).json({
+              fallback: 'disk',
+              file_url: saved.url,
+              filename: saved.filename,
+              name: req.file.originalname,
+              size: req.file.size,
+              mime_type: req.file.mimetype,
+              message: 'saved_to_disk_due_db_unavailable'
+            });
+          } catch (e) {
+            console.error('disk fallback failed', e && (e.stack || e.message || String(e)));
+            return res.status(500).json({ error: 'disk_fallback_failed', message: String(e && e.message ? e.message : e) });
+          }
+        }
+        // not a known transient DB condition – return error
+        return res.status(500).json({ error: msg });
+      }
+    }
+
+    // No pool configured – persist to disk
+    const saved = await saveToDiskFallback(req.file.buffer, originalName, req.file.mimetype);
+    return res.status(201).json({
+      fallback: 'disk',
+      file_url: saved.url,
+      filename: saved.filename,
       name: req.file.originalname,
       size: req.file.size,
-      mime_type: req.file.mimetype
+      mime_type: req.file.mimetype,
+      message: 'saved_to_disk_no_db'
     });
   } catch (err) {
-    console.error('Erro ao fazer upload:', err);
+    console.error('Erro ao fazer upload (outer):', err && (err.stack || err.message || String(err)));
     const msg = err instanceof Error ? err.message : String(err);
     res.status(500).json({ error: msg });
   }
@@ -703,6 +850,31 @@ app.get('/uploads/:filename', (req, res) => {
     error: 'file_migrated',
     message: 'Este arquivo foi criado antes da migração para banco de dados e não está mais disponível. Por favor, faça upload novamente.'
   });
+});
+
+// Serve disk-stored uploads created as fallback during DB outage
+app.get('/api/uploads/disk/:filename', (req, res) => {
+  try {
+    // Open CORS for images
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+
+    const filename = String(req.params.filename || '');
+    // Prevent path traversal
+    if (filename.includes('..') || path.isAbsolute(filename)) return res.status(400).json({ error: 'invalid_filename' });
+    const full = path.join(uploadRoot, filename);
+    if (!fs.existsSync(full)) return res.status(404).json({ error: 'file_not_found' });
+    const stream = fs.createReadStream(full);
+    res.setHeader('Cache-Control', 'public, max-age=31536000');
+    const lower = filename.toLowerCase();
+    const mimeType = lower.endsWith('.png') ? 'image/png' : (lower.endsWith('.jpg') || lower.endsWith('.jpeg') ? 'image/jpeg' : 'application/octet-stream');
+    res.setHeader('Content-Type', mimeType);
+    return stream.pipe(res);
+  } catch (err) {
+    console.error('Error serving disk upload', err && (err.stack || err.message || String(err)));
+    return res.status(500).json({ error: 'internal_error' });
+  }
 });
 
 // Map DB row to API payload
@@ -763,6 +935,14 @@ app.get('/api/relatorios-semanais', async (req, res) => {
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
     const sql = `SELECT * FROM public.relatorios_semanais ${whereClause} ${orderClause}`;
+    if ((process.env.DEBUG_INSPECOES || '').toLowerCase() === 'true') {
+      try {
+        console.log('[DEBUG][inspecoes-ar-condicionado] sql:', sql);
+        console.log('[DEBUG][inspecoes-ar-condicionado] params:', params);
+      } catch (e) {
+        console.log('[DEBUG][inspecoes-ar-condicionado] failed to log debug info', e && (e.stack || e.message || String(e)));
+      }
+    }
     const { rows } = await p.query(sql, params);
     res.json(rows.map(mapRelatorioRow));
   } catch (err) {
@@ -797,6 +977,196 @@ function mapVistoriaRow(row) {
     updated_at: row.updated_at,
   };
 }
+
+// Map termo de aceite row
+function mapTermoRow(row) {
+  return {
+    id: row.id,
+    id_formulario: row.id_formulario,
+    id_unidade: row.id_unidade,
+    id_empreendimento: row.id_empreendimento,
+    estrutura_formulario: row.estrutura_formulario,
+    nome_termo: row.nome_termo,
+    nome_arquivo: row.nome_arquivo,
+    data_termo: formatDateForAPI(row.data_termo),
+    data_relatorio: formatDateForAPI(row.data_relatorio),
+    consultor_responsavel: row.consultor_responsavel,
+    participantes: row.participantes,
+    texto_os_proposta: row.texto_os_proposta,
+    texto_escopo_consultoria: row.texto_escopo_consultoria,
+    revisao: row.revisao,
+    respostas: row.respostas,
+    fotos_secoes: row.fotos_secoes,
+    status_termo: row.status_termo,
+    observacoes_secoes: row.observacoes_secoes,
+    assinaturas: row.assinaturas,
+    created_at: row.created_date || row.created_at,
+    updated_at: row.updated_date || row.updated_at,
+  };
+}
+
+// CRUD routes for termos de aceite
+app.get('/api/termos-aceite', async (req, res) => {
+  try {
+    const p = requirePool();
+    const { id_unidade, id_empreendimento, order } = req.query;
+    const where = [];
+    const params = [];
+    if (id_unidade) { where.push('id_unidade = $' + (params.length + 1)); params.push(Number(id_unidade)); }
+    if (id_empreendimento) { where.push('id_empreendimento = $' + (params.length + 1)); params.push(Number(id_empreendimento)); }
+    const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+    const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
+    const sql = `SELECT * FROM public.termos_aceite ${whereClause} ${orderClause}`;
+    // Logging to aid debugging when registros existentes não aparecem
+    console.log('[/api/termos-aceite] SQL:', sql);
+    console.log('[/api/termos-aceite] params:', params);
+    const { rows } = await p.query(sql, params);
+    console.log('[/api/termos-aceite] rows returned:', rows.length);
+    res.json(rows.map(mapTermoRow));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (shouldReturnEmptyOnDbError(err)) return res.json([]);
+    res.status(500).json({ error: msg });
+  }
+});
+
+// DEBUG: endpoint temporário para inspecionar registros brutos de termos_aceite por empreendimento
+app.get('/api/debug/termos-aceite/:id_empreendimento', async (req, res) => {
+  try {
+    const p = requirePool();
+    const idEmp = Number(req.params.id_empreendimento);
+    const { rows } = await p.query('SELECT * FROM public.termos_aceite WHERE id_empreendimento = $1 ORDER BY id', [idEmp]);
+    return res.json({ ok: true, count: rows.length, rows });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return res.status(500).json({ error: msg, stack: err && err.stack ? err.stack : null });
+  }
+});
+
+app.get('/api/termos-aceite/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const { rows } = await p.query('SELECT * FROM public.termos_aceite WHERE id = $1', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapTermoRow(rows[0]));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: msg });
+  }
+});
+
+app.post('/api/termos-aceite', async (req, res) => {
+  try {
+    const p = requirePool();
+    const b = req.body || {};
+    const sql = `INSERT INTO public.termos_aceite (
+      id_formulario, id_unidade, id_empreendimento, estrutura_formulario, nome_termo, nome_arquivo,
+      data_termo, data_relatorio, consultor_responsavel, participantes, texto_os_proposta,
+      texto_escopo_consultoria, revisao, respostas, fotos_secoes, status_termo, observacoes_secoes, assinaturas, created_date, updated_date
+    ) VALUES (
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18, now(), now()
+    ) RETURNING *`;
+    const params = [
+      b.id_formulario ?? null,
+      b.id_unidade ?? null,
+      b.id_empreendimento ?? null,
+      toJson(b.estrutura_formulario ?? null),
+      b.nome_termo ?? null,
+      b.nome_arquivo ?? null,
+      normalizeDate(b.data_termo) ?? null,
+      normalizeDate(b.data_relatorio) ?? null,
+      b.consultor_responsavel ?? null,
+      toJson(b.participantes ?? null),
+      b.texto_os_proposta ?? null,
+      b.texto_escopo_consultoria ?? null,
+      b.revisao ?? null,
+      toJson(b.respostas ?? {}),
+      toJson(b.fotos_secoes ?? []),
+      b.status_termo ?? 'Em Andamento',
+      toJson(b.observacoes_secoes ?? {}),
+      toJson(b.assinaturas ?? []),
+    ];
+    const { rows } = await p.query(sql, params);
+    res.status(201).json(mapTermoRow(rows[0]));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: msg });
+  }
+});
+
+app.put('/api/termos-aceite/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const b = req.body || {};
+    const sql = `UPDATE public.termos_aceite SET
+      id_formulario = COALESCE($1, id_formulario),
+      id_unidade = COALESCE($2, id_unidade),
+      id_empreendimento = COALESCE($3, id_empreendimento),
+      estrutura_formulario = COALESCE($4, estrutura_formulario),
+      nome_termo = COALESCE($5, nome_termo),
+      nome_arquivo = COALESCE($6, nome_arquivo),
+      data_termo = $7,
+      data_relatorio = $8,
+      consultor_responsavel = COALESCE($9, consultor_responsavel),
+      participantes = COALESCE($10, participantes),
+      texto_os_proposta = COALESCE($11, texto_os_proposta),
+      texto_escopo_consultoria = COALESCE($12, texto_escopo_consultoria),
+      revisao = COALESCE($13, revisao),
+      respostas = COALESCE($14, respostas),
+      fotos_secoes = COALESCE($15, fotos_secoes),
+      status_termo = COALESCE($16, status_termo),
+      observacoes_secoes = COALESCE($17, observacoes_secoes),
+      assinaturas = COALESCE($18, assinaturas),
+      updated_date = now()
+    WHERE id = $19 RETURNING *`;
+    const params = [
+      b.id_formulario ?? null,
+      b.id_unidade ?? null,
+      b.id_empreendimento ?? null,
+      toJson(b.estrutura_formulario ?? null),
+      b.nome_termo ?? null,
+      b.nome_arquivo ?? null,
+      normalizeDate(b.data_termo) ?? null,
+      normalizeDate(b.data_relatorio) ?? null,
+      b.consultor_responsavel ?? null,
+      toJson(b.participantes ?? null),
+      b.texto_os_proposta ?? null,
+      b.texto_escopo_consultoria ?? null,
+      b.revisao ?? null,
+      toJson(b.respostas ?? null),
+      toJson(b.fotos_secoes ?? null),
+      b.status_termo ?? null,
+      toJson(b.observacoes_secoes ?? null),
+      toJson(b.assinaturas ?? null),
+      id,
+    ];
+    const { rows } = await p.query(sql, params);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapTermoRow(rows[0]));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: msg });
+  }
+});
+
+// Delete termo de aceite
+app.delete('/api/termos-aceite/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    console.log('[/api/termos-aceite DELETE] requested id:', req.params.id, 'parsed id:', id);
+    const { rows } = await p.query('DELETE FROM public.termos_aceite WHERE id = $1 RETURNING *', [id]);
+    console.log('[/api/termos-aceite DELETE] rows returned:', rows ? rows.length : 0);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    return res.status(200).json({ ok: true, deleted: mapTermoRow(rows[0]) });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: msg });
+  }
+});
+
 
 // CRUD routes for vistorias (respostas_vistoria)
 app.get('/api/vistorias', async (req, res) => {
@@ -1093,6 +1463,197 @@ app.delete('/api/inspecoes-hidrantes/:id', async (req, res) => {
     const p = requirePool();
     const id = Number(req.params.id);
     const { rowCount } = await p.query('DELETE FROM public.inspecoes_hidrantes WHERE id = $1', [id]);
+    if (!rowCount) return res.status(404).json({ error: 'not_found' });
+    res.json({ ok: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: msg });
+  }
+});
+
+// ===== Inspeções Hidráulica =====
+function mapInspecaoHidraulicaRow(row) {
+  return {
+    id: row.id,
+    id_empreendimento: row.id_empreendimento,
+    data_inspecao: formatDateForAPI(row.data_inspecao),
+    titulo_capa: row.titulo_capa,
+    subtitulo_capa: row.subtitulo_capa,
+    texto_rodape_capa: row.texto_rodape_capa,
+    titulo_relatorio: row.titulo_relatorio,
+    subtitulo_relatorio: row.subtitulo_relatorio,
+    cliente: row.cliente,
+    revisao: row.revisao,
+    eng_responsavel: row.eng_responsavel,
+    nome_arquivo: row.nome_arquivo,
+    itens_documentacao: row.itens_documentacao,
+    comentarios_documentacao: row.comentarios_documentacao,
+    locais: row.locais,
+    observacoes_gerais: row.observacoes_gerais,
+    conclusao_r01: row.conclusao_r01,
+    conclusao_r02: row.conclusao_r02,
+    assinaturas: row.assinaturas,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+// Listar/filtrar
+app.get('/api/inspecoes-hidraulica', async (req, res) => {
+  try {
+    const p = requirePool();
+    const { id_empreendimento, order } = req.query;
+    const where = [];
+    const params = [];
+    if (id_empreendimento) { where.push('id_empreendimento = $' + (params.length + 1)); params.push(Number(id_empreendimento)); }
+    const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+    const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
+    const sql = `SELECT * FROM public.inspecoes_hidraulica ${whereClause} ${orderClause}`;
+    const { rows } = await p.query(sql, params);
+    res.json(rows.map(mapInspecaoHidraulicaRow));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (shouldReturnEmptyOnDbError(err)) return res.json([]);
+    res.status(500).json({ error: msg });
+  }
+});
+
+// Obter por ID
+app.get('/api/inspecoes-hidraulica/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const { rows } = await p.query('SELECT * FROM public.inspecoes_hidraulica WHERE id = $1', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapInspecaoHidraulicaRow(rows[0]));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: msg });
+  }
+});
+
+// Criar
+app.post('/api/inspecoes-hidraulica', async (req, res) => {
+  try {
+    const p = requirePool();
+    const b = req.body || {};
+    if (!b.id_empreendimento) {
+      return res.status(400).json({ error: 'missing_id_empreendimento' });
+    }
+    console.log('[POST /api/inspecoes-hidraulica] body:', JSON.stringify(b).slice(0, 2000));
+    const empId = Number(b.id_empreendimento);
+    try {
+      const chk = await p.query('SELECT 1 FROM public.empreendimentos WHERE id = $1', [empId]);
+      if (!chk.rows.length) {
+        return res.status(400).json({ error: 'invalid_empreendimento', id: empId });
+      }
+    } catch (e) {
+      if (shouldReturnEmptyOnDbError(e)) return res.status(500).json({ error: 'db_unavailable' });
+      throw e;
+    }
+    const sql = `INSERT INTO public.inspecoes_hidraulica (
+      id_empreendimento, data_inspecao, titulo_capa, subtitulo_capa, texto_rodape_capa,
+      titulo_relatorio, subtitulo_relatorio, cliente, revisao, eng_responsavel, nome_arquivo,
+      itens_documentacao, comentarios_documentacao, locais, observacoes_gerais, conclusao_r01, conclusao_r02, assinaturas
+    ) VALUES (
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13,$14::jsonb,$15,$16,$17,$18::jsonb
+    ) RETURNING *`;
+    const params = [
+      empId,
+      normalizeDate(b.data_inspecao) ?? null,
+      b.titulo_capa ?? null,
+      b.subtitulo_capa ?? null,
+      b.texto_rodape_capa ?? null,
+      b.titulo_relatorio ?? null,
+      b.subtitulo_relatorio ?? null,
+      b.cliente ?? null,
+      b.revisao ?? null,
+      b.eng_responsavel ?? null,
+      b.nome_arquivo ?? null,
+      toJson(b.itens_documentacao ?? []),
+      b.comentarios_documentacao ?? null,
+      toJson(b.locais ?? []),
+      b.observacoes_gerais ?? null,
+      b.conclusao_r01 ?? null,
+      b.conclusao_r02 ?? null,
+      toJson(b.assinaturas ?? [])
+    ];
+    const { rows } = await p.query(sql, params);
+    res.status(201).json(mapInspecaoHidraulicaRow(rows[0]));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const code = err && typeof err === 'object' && 'code' in err ? err.code : undefined;
+    const detail = err && typeof err === 'object' && 'detail' in err ? err.detail : undefined;
+    console.error('[POST /api/inspecoes-hidraulica] error:', err);
+    res.status(500).json({ error: msg, code, detail });
+  }
+});
+
+// Atualizar
+app.put('/api/inspecoes-hidraulica/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const b = req.body || {};
+    const sql = `UPDATE public.inspecoes_hidraulica SET
+      id_empreendimento = COALESCE($1, id_empreendimento),
+      data_inspecao = $2,
+      titulo_capa = $3,
+      subtitulo_capa = $4,
+      texto_rodape_capa = $5,
+      titulo_relatorio = $6,
+      subtitulo_relatorio = $7,
+      cliente = $8,
+      revisao = $9,
+      eng_responsavel = $10,
+      nome_arquivo = $11,
+      itens_documentacao = $12::jsonb,
+      comentarios_documentacao = $13,
+      locais = $14::jsonb,
+      observacoes_gerais = $15,
+      conclusao_r01 = $16,
+      conclusao_r02 = $17,
+      assinaturas = $18::jsonb,
+      updated_at = now()
+    WHERE id = $19 RETURNING *`;
+    const params = [
+      (b.id_empreendimento !== undefined && b.id_empreendimento !== null) ? Number(b.id_empreendimento) : null,
+      normalizeDate(b.data_inspecao) ?? null,
+      b.titulo_capa ?? null,
+      b.subtitulo_capa ?? null,
+      b.texto_rodape_capa ?? null,
+      b.titulo_relatorio ?? null,
+      b.subtitulo_relatorio ?? null,
+      b.cliente ?? null,
+      b.revisao ?? null,
+      b.eng_responsavel ?? null,
+      b.nome_arquivo ?? null,
+      toJson(b.itens_documentacao ?? []),
+      b.comentarios_documentacao ?? null,
+      toJson(b.locais ?? []),
+      b.observacoes_gerais ?? null,
+      b.conclusao_r01 ?? null,
+      b.conclusao_r02 ?? null,
+      toJson(b.assinaturas ?? []),
+      id
+    ];
+    const { rows } = await p.query(sql, params);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapInspecaoHidraulicaRow(rows[0]));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const code = err && typeof err === 'object' && 'code' in err ? err.code : undefined;
+    console.error('[PUT /api/inspecoes-hidraulica/:id] error:', err);
+    res.status(500).json({ error: msg, code });
+  }
+});
+
+// Remover
+app.delete('/api/inspecoes-hidraulica/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const { rowCount } = await p.query('DELETE FROM public.inspecoes_hidraulica WHERE id = $1', [id]);
     if (!rowCount) return res.status(404).json({ error: 'not_found' });
     res.json({ ok: true });
   } catch (err) {
@@ -1509,7 +2070,7 @@ app.post('/api/inspecoes-ar-condicionado', async (req, res) => {
       inspecao_evaporadora, inspecao_valvulas, inspecao_condensadora, inspecao_eletrica, inspecao_sensores,
       locais, observacoes_gerais, assinaturas
     ) VALUES (
-      $1,$2,$3,$4,$5,$6::jsonb,$7::jsonb,$8,$9,$10,$11,$12,$13,$14::jsonb,$15,$16::jsonb,$17::jsonb,$18::jsonb,$19::jsonb,$20::jsonb,$21,$22::jsonb
+      $1,$2,$3,$4,$5,$6::jsonb,$7::jsonb,$8,$9,$10,$11,$12,$13,$14::jsonb,$15,$16::jsonb,$17::jsonb,$18::jsonb,$19::jsonb,$20::jsonb,$21::jsonb,$22,$23::jsonb
     ) RETURNING *`;
     const params = [
       empId,
@@ -1627,6 +2188,108 @@ app.delete('/api/inspecoes-ar-condicionado/:id', async (req, res) => {
     res.status(500).json({ error: msg });
   }
 });
+
+// ===== Inspeções Elétrica (wrapper sobre inspecoes_ar_condicionado.inspecao_eletrica) =====
+function mapInspecaoEletricaRow(row) {
+  const ele = row.inspecao_eletrica || {};
+  // Also consider top-level columns on the parent row if present
+  const topLevelConclusao = row.conclusao ?? row.conclusao_r02 ?? row.conclusao_r01;
+  // Normalize conclusao: prefer explicit in JSONB, then top-level r02/r01
+  const normalizedConclusao = (ele && (ele.conclusao ?? ele.conclusao_r02 ?? ele.conclusao_r01)) ?? topLevelConclusao ?? null;
+  return {
+    id: row.id,
+    id_empreendimento: row.id_empreendimento,
+    data_inspecao: row.data_inspecao,
+    titulo_relatorio: row.titulo_relatorio,
+    subtitulo_relatorio: row.subtitulo_relatorio,
+    cliente: row.cliente,
+    revisao: row.revisao,
+    eng_responsavel: row.eng_responsavel,
+    nome_arquivo: row.nome_arquivo,
+    itens_documentacao: row.itens_documentacao,
+    comentarios_documentacao: row.comentarios_documentacao,
+    // expõe o conteúdo da coluna inspecao_eletrica como campos do relatório elétrico
+    inspecao_eletrica: ele,
+    conclusao: normalizedConclusao,
+    // expose r01/r02 preferring JSONB then top-level columns
+    conclusao_r01: ele.conclusao_r01 ?? row.conclusao_r01 ?? null,
+    conclusao_r02: ele.conclusao_r02 ?? row.conclusao_r02 ?? null,
+    locais: row.locais,
+    observacoes_gerais: row.observacoes_gerais,
+    assinaturas: row.assinaturas,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+app.get('/api/inspecoes-eletrica/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const { rows } = await p.query('SELECT * FROM public.inspecoes_ar_condicionado WHERE id = $1', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    try {
+      const mapped = mapInspecaoEletricaRow(rows[0]);
+      console.log('[GET /api/inspecoes-eletrica/:id] db row inspecao_eletrica:', JSON.stringify(rows[0].inspecao_eletrica).slice(0, 2000));
+      console.log('[GET /api/inspecoes-eletrica/:id] db row conclusao_r01/r02:', rows[0].conclusao_r01, rows[0].conclusao_r02);
+      console.log('[GET /api/inspecoes-eletrica/:id] mapped result conclusao/conclusao_r02/conclusao_r01:', mapped.conclusao, mapped.conclusao_r02, mapped.conclusao_r01);
+    } catch (logErr) {
+      console.error('[GET /api/inspecoes-eletrica/:id] erro ao logar mapeamento:', logErr);
+    }
+    res.json(mapInspecaoEletricaRow(rows[0]));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: msg });
+  }
+});
+
+app.put('/api/inspecoes-eletrica/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const b = req.body || {};
+
+    // Carrega linha existente
+    const { rows: existingRows } = await p.query('SELECT * FROM public.inspecoes_ar_condicionado WHERE id = $1', [id]);
+    if (!existingRows.length) return res.status(404).json({ error: 'not_found' });
+    const row = existingRows[0];
+    const current = row.inspecao_eletrica || {};
+
+    // Monta objeto a ser mesclado no JSONB inspecao_eletrica
+    const incoming = (b.inspecao_eletrica && typeof b.inspecao_eletrica === 'object') ? b.inspecao_eletrica : {};
+    // Também aceita campos enviados no corpo como top-level (ex: conclusao, conclusao_r01, conclusao_r02)
+    if (b.conclusao !== undefined) incoming.conclusao = b.conclusao;
+    if (b.conclusao_r01 !== undefined) incoming.conclusao_r01 = b.conclusao_r01;
+    if (b.conclusao_r02 !== undefined) incoming.conclusao_r02 = b.conclusao_r02;
+
+    const merged = { ...current, ...incoming };
+    // If incoming set r01/r02 but not top-level conclusao, prefer r02 then r01
+    if ((merged.conclusao === undefined || merged.conclusao === null || merged.conclusao === '') && (merged.conclusao_r02 || merged.conclusao_r01)) {
+      merged.conclusao = merged.conclusao_r02 || merged.conclusao_r01;
+    }
+
+    // Update JSONB and also persist top-level conclusao_r01/conclusao_r02 if provided
+    const sql = `UPDATE public.inspecoes_ar_condicionado SET
+      inspecao_eletrica = $1::jsonb,
+      conclusao_r01 = $2,
+      conclusao_r02 = $3,
+      updated_at = now()
+    WHERE id = $4 RETURNING *`;
+    const params = [JSON.stringify(merged), (merged.conclusao_r01 ?? null), (merged.conclusao_r02 ?? null), id];
+    const { rows: updated } = await p.query(sql, params);
+    if (!updated.length) return res.status(404).json({ error: 'not_found' });
+    try {
+      console.log('[PUT /api/inspecoes-eletrica/:id] merged to save (inspecao_eletrica):', JSON.stringify(merged).slice(0, 2000));
+      console.log('[PUT /api/inspecoes-eletrica/:id] updated row top-level conclusao_r01/r02:', updated[0].conclusao_r01, updated[0].conclusao_r02);
+    } catch (logErr) { console.error('[PUT /api/inspecoes-eletrica/:id] erro ao logar update:', logErr); }
+    res.json(mapInspecaoEletricaRow(updated[0]));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[PUT /api/inspecoes-eletrica/:id] error:', err);
+    res.status(500).json({ error: msg });
+  }
+});
+
 
 // ===== Inspeções de Controle de Acesso =====
 function mapInspecaoCAcessoRow(row) {
@@ -2272,6 +2935,13 @@ app.get('/api/kos-unidade', async (req, res) => {
     res.json(rows.map(mapKO));
   } catch (err) {
     if (shouldReturnEmptyOnDbError(err)) return res.json([]);
+    try {
+      console.error('[/api/formularios-vistoria] SQL:', sql);
+      console.error('[/api/formularios-vistoria] params:', params);
+      console.error('[/api/formularios-vistoria] error:', err && err.stack ? err.stack : String(err));
+    } catch (logErr) {
+      console.error('Error while logging formularios-vistoria failure', logErr);
+    }
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
   }
 });
@@ -3760,6 +4430,7 @@ function mapEmpreendimentoRow(row) {
     cliente: row.cli_empreendimento ?? null,
     endereco: row.endereco_empreendimento ?? null,
     foto_empreendimento: row.foto_empreendimento ?? null,
+    fotos_empreendimento: row.fotos_empreendimento ?? [],
     os_number: row.os_number ?? null,
     sigla_obra: row.sigla_obra ?? null,
     data_inicio_contrato: row.data_inicio_contrato ?? null,
@@ -3811,13 +4482,17 @@ app.get('/api/empreendimentos', async (req, res) => {
 
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
-    const { rows } = await p.query(`SELECT * FROM public.empreendimentos ${whereClause} ${orderClause} `);
+    const { rows } = await p.query(`SELECT * FROM public.empreendimentos ${whereClause} ${orderClause} `, params);
     res.json(rows.map(mapEmpreendimentoRow));
   } catch (err) {
+    // Log detalhado para diagnóstico de 500
+    console.error('[ERROR] GET /api/empreendimentos failed:', err && err.message ? err.message : String(err));
+    if (err && err.stack) console.error(err.stack);
     if (shouldReturnEmptyOnDbError(err)) {
       return res.json(memory.empreendimentos.map(mapEmpreendimentoRow));
     }
-    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+    const msg = err instanceof Error ? err.message : String(err);
+    return res.status(500).json({ error: msg, stack: err && err.stack ? err.stack : null });
   }
 });
 
@@ -3918,21 +4593,24 @@ app.put('/api/empreendimentos/:id', async (req, res) => {
     cli_empreendimento = COALESCE($2, cli_empreendimento),
     endereco_empreendimento = COALESCE($3, endereco_empreendimento),
     foto_empreendimento = COALESCE($4, foto_empreendimento),
-    os_number = COALESCE($5, os_number),
-    sigla_obra = COALESCE($6, sigla_obra),
-    data_inicio_contrato = COALESCE($7, data_inicio_contrato),
-    termino_obra_previsto = COALESCE($8, termino_obra_previsto),
-    data_sem_entrega = COALESCE($9, data_sem_entrega),
-    data_termino_contrato = COALESCE($10, data_termino_contrato),
-    valor_contratual = COALESCE($11, valor_contratual),
-    prazo_contratual_dias = COALESCE($12, prazo_contratual_dias)
-    WHERE id = $13 RETURNING * `;
+    fotos_empreendimento = COALESCE($5, fotos_empreendimento),
+    os_number = COALESCE($6, os_number),
+    sigla_obra = COALESCE($7, sigla_obra),
+    data_inicio_contrato = COALESCE($8, data_inicio_contrato),
+    termino_obra_previsto = COALESCE($9, termino_obra_previsto),
+    data_sem_entrega = COALESCE($10, data_sem_entrega),
+    data_termino_contrato = COALESCE($11, data_termino_contrato),
+    valor_contratual = COALESCE($12, valor_contratual),
+    prazo_contratual_dias = COALESCE($13, prazo_contratual_dias),
+    contatos_proprietario = COALESCE($14, contatos_proprietario)
+    WHERE id = $15 RETURNING * `;
     const nn2 = (v) => (v === '' || v === undefined || v === null ? null : v);
     const params = [
       nn2(b.nome_empreendimento ?? b.nome),
       nn2(b.cliente ?? b.cli_empreendimento),
       nn2(b.endereco ?? b.endereco_empreendimento),
       nn2(b.foto_empreendimento),
+      nn2(b.fotos_empreendimento),
       nn2(b.os_number),
       nn2(b.sigla_obra),
       nn2(b.data_inicio_contrato),
@@ -3941,8 +4619,23 @@ app.put('/api/empreendimentos/:id', async (req, res) => {
       nn2(b.data_termino_contrato),
       nn2(b.valor_contratual),
       nn2(b.prazo_contratual_dias),
+      // contatos_proprietario (JSONB)
+      nn2(b.contatos_proprietario),
       id,
     ];
+    // Ensure JSONB params are sent as JSON strings to Postgres when needed
+    try {
+      // fotos_empreendimento is at index 4 (0-based)
+      if (params[4] !== null && params[4] !== undefined) {
+        const v = params[4];
+        if (typeof v === 'object') params[4] = JSON.stringify(v);
+      }
+      // contatos_proprietario is at index 13 (0-based)
+      if (params[13] !== null && params[13] !== undefined) {
+        const v = params[13];
+        if (typeof v === 'object') params[13] = JSON.stringify(v);
+      }
+    } catch (e) { /* ignore */ }
     const { rows } = await p.query(sql, params);
     if (!rows.length) return res.status(404).json({ error: 'not_found' });
     res.json(mapEmpreendimentoRow(rows[0]));
@@ -4185,13 +4878,15 @@ function mapFormularioRow(row) {
 app.get('/api/formularios-vistoria', async (req, res) => {
   try {
     const p = requirePool();
-    const { status_formulario, order } = req.query;
+    const { status_formulario, order, nome_formulario } = req.query;
     const where = [];
     const params = [];
     if (status_formulario) { where.push('status_formulario = $' + (params.length + 1)); params.push(String(status_formulario)); }
+    if (nome_formulario) { where.push('nome_formulario ILIKE $' + (params.length + 1)); params.push(`%${String(nome_formulario)}%`); }
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
-    const { rows } = await p.query(`SELECT * FROM public.formularios_vistoria ${whereClause} ${orderClause} `);
+    const sql = `SELECT * FROM public.formularios_vistoria ${whereClause} ${orderClause}`;
+    const { rows } = await p.query(sql, params);
     res.json(rows.map(mapFormularioRow));
   } catch (err) {
     if (shouldReturnEmptyOnDbError(err)) return res.json([]);
@@ -4651,7 +5346,7 @@ app.post('/api/admin/fix-image-urls', async (req, res) => {
 
 // ---- Iniciar servidor ----
 // IMPORTANTE: app.listen() deve estar DEPOIS de todas as definições de rotas
-const DEFAULT_PORT = 5001;
+const DEFAULT_PORT = 5000;
 const PORT = Number(process.env.PORT ?? DEFAULT_PORT);
 try {
   app.listen(PORT, () => {
@@ -4661,3 +5356,21 @@ try {
   console.error('Erro ao iniciar servidor:', err && err.message ? err.message : String(err));
   process.exit(1);
 }
+
+// Global error handler: ensure all errors return JSON (including multer errors)
+app.use((err, req, res, next) => {
+  try {
+    if (res.headersSent) return next(err);
+    console.error('[GLOBAL ERROR]', err && (err.stack || err.message || String(err)));
+    // Multer file size limit
+    if (err && err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: 'file_too_large', message: 'File exceeds size limit' });
+    }
+    const status = err && err.status ? err.status : 500;
+    const msg = err && err.message ? err.message : String(err || 'internal_error');
+    res.status(status).json({ error: 'internal_error', message: msg });
+  } catch (e) {
+    try { console.error('[GLOBAL ERROR][secondary]', e && (e.stack || e.message || String(e))); } catch { }
+    next(err);
+  }
+});

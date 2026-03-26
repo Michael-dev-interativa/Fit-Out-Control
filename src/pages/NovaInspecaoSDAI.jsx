@@ -8,8 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Plus, Trash2, ArrowLeft } from 'lucide-react';
+import { Loader2, Plus, Trash2, ArrowLeft, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { SimpleSignaturePad } from '@/components/signature/SignaturePadComponent';
+import { UploadFile } from '@/api/integrations';
 
 const t = {
     title: "Nova Inspeção de Central SDAI",
@@ -36,6 +39,8 @@ const t = {
     party: "Parte (Ex: Cliente)",
     name: "Nome",
     documentation: "Documentação Cadastral",
+    photos: "Fotos",
+    uploading: "Enviando...",
 };
 
 const defaultDocumentacaoItems = [
@@ -67,6 +72,11 @@ export default function NovaInspecaoSDAI() {
     const [formData, setFormData] = useState({
         id_empreendimento: empreendimentoId,
         data_inspecao: new Date().toISOString().split('T')[0],
+        titulo_capa: 'RELATÓRIO',
+        subtitulo_capa: 'Gerenciamento de Obra',
+        titulo_inspecao: 'INSPEÇÃO DE CENTRAL SDAI',
+        descricao_inspecao: '',
+        texto_rodape_capa: '',
         titulo_relatorio: 'Checklist de Inspeção Física de Central do Sistema de Detecção e Alarme de Incêndio (SDAI)',
         subtitulo_relatorio: '',
         cliente: '',
@@ -77,13 +87,18 @@ export default function NovaInspecaoSDAI() {
             resultado: 'OK',
             observacoes: ''
         })),
+        comentarios_documentacao: '',
         itens_instalacao: defaultItensInstalacao.map(item => ({
             item_verificacao: item,
             resultado: 'OK',
-            comentario: ''
+            comentario: '',
+            fotos: []
         })),
         comentarios_instalacao: '',
         observacoes_gerais: '',
+        conclusao: '',
+        conclusao_r01: '',
+        conclusao_r02: '',
         assinaturas: [],
         centrais: [
             {
@@ -98,6 +113,16 @@ export default function NovaInspecaoSDAI() {
     });
 
     const [saving, setSaving] = useState(false);
+    const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+    const [showSignatureDialog, setShowSignatureDialog] = useState(false);
+    const [activeSignatureIndex, setActiveSignatureIndex] = useState(null);
+    const [signatureMode, setSignatureMode] = useState('draw');
+    const [typedSignature, setTypedSignature] = useState('');
+    const signaturePadRef = React.useRef(null);
+
+    const [editCoverOpen, setEditCoverOpen] = useState(false);
+    const [editedFormData, setEditedFormData] = useState({});
 
     useEffect(() => {
         if (!empreendimentoId) {
@@ -112,7 +137,8 @@ export default function NovaInspecaoSDAI() {
                 setFormData(prev => ({
                     ...prev,
                     subtitulo_relatorio: data.nome_empreendimento || '',
-                    cliente: data.cli_empreendimento || ''
+                    cliente: data.cli_empreendimento || '',
+                    texto_rodape_capa: data.texto_capa_rodape || ''
                 }));
             } catch (error) {
                 toast.error("Falha ao carregar dados do empreendimento.");
@@ -130,11 +156,42 @@ export default function NovaInspecaoSDAI() {
     };
 
     const addInstalacaoItem = () => {
-        handleInputChange('itens_instalacao', [...formData.itens_instalacao, { item_verificacao: '', resultado: 'OK', comentario: '' }]);
+        handleInputChange('itens_instalacao', [...formData.itens_instalacao, { item_verificacao: '', resultado: 'OK', comentario: '', fotos: [] }]);
     };
 
     const removeInstalacaoItem = (itemIndex) => {
         handleInputChange('itens_instalacao', formData.itens_instalacao.filter((_, i) => i !== itemIndex));
+    };
+
+    const handlePhotoUpload = async (e, itemIndex) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        setUploadingPhoto(true);
+        try {
+            const uploadedPhotos = await Promise.all(files.map(async (file) => {
+                const { file_url } = await UploadFile({ file });
+                return { url: file_url, legenda: '' };
+            }));
+
+            const newItems = [...formData.itens_instalacao];
+            if (!newItems[itemIndex].fotos) {
+                newItems[itemIndex].fotos = [];
+            }
+            newItems[itemIndex].fotos.push(...uploadedPhotos);
+            handleInputChange('itens_instalacao', newItems);
+        } catch (error) {
+            toast.error("Falha no upload da foto.");
+        } finally {
+            setUploadingPhoto(false);
+            e.target.value = '';
+        }
+    };
+
+    const removePhoto = (itemIndex, photoIndex) => {
+        const newItems = [...formData.itens_instalacao];
+        newItems[itemIndex].fotos = (newItems[itemIndex].fotos || []).filter((_, i) => i !== photoIndex);
+        handleInputChange('itens_instalacao', newItems);
     };
 
     const handleDocItemChange = (itemIndex, field, value) => {
@@ -157,14 +214,115 @@ export default function NovaInspecaoSDAI() {
         handleInputChange('assinaturas', newAssinaturas);
     };
 
-    const addAssinatura = () => handleInputChange('assinaturas', [...formData.assinaturas, { parte: '', nome: '' }]);
+    const addAssinatura = () => handleInputChange('assinaturas', [...formData.assinaturas, { parte: '', nome: '', assinatura_imagem: '' }]);
     const removeAssinatura = (index) => handleInputChange('assinaturas', formData.assinaturas.filter((_, i) => i !== index));
+
+    const openSignatureDialog = (index) => {
+        setActiveSignatureIndex(index);
+        setSignatureMode('draw');
+        setTypedSignature('');
+        setShowSignatureDialog(true);
+    };
+
+    const handleSaveSignature = async () => {
+        if (activeSignatureIndex === null) return;
+
+        try {
+            if (signatureMode === 'type') {
+                if (!typedSignature.trim()) {
+                    toast.error("Por favor, digite sua assinatura.");
+                    return;
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = 850;
+                canvas.height = 215;
+                const ctx = canvas.getContext('2d');
+
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#000000';
+                ctx.font = '48px Calibri';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(typedSignature, canvas.width / 2, canvas.height - 20);
+
+                const signatureDataUrl = canvas.toDataURL('image/png', 0.92);
+                const blob = await fetch(signatureDataUrl).then((res) => res.blob());
+                const file = new File([blob], `assinatura-${Date.now()}.png`, { type: 'image/png' });
+
+                const { file_url } = await UploadFile({ file });
+                handleAssinaturaChange(activeSignatureIndex, 'assinatura_imagem', file_url);
+                setShowSignatureDialog(false);
+                setActiveSignatureIndex(null);
+                setTypedSignature('');
+                toast.success("Assinatura salva!");
+                return;
+            }
+
+            if (signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
+                const signatureDataUrl = signaturePadRef.current.toDataURL();
+                const blob = await fetch(signatureDataUrl).then((res) => res.blob());
+                const file = new File([blob], `assinatura-${Date.now()}.png`, { type: 'image/png' });
+
+                const { file_url } = await UploadFile({ file });
+                handleAssinaturaChange(activeSignatureIndex, 'assinatura_imagem', file_url);
+                setShowSignatureDialog(false);
+                setActiveSignatureIndex(null);
+                toast.success("Assinatura salva!");
+            } else {
+                toast.error("Por favor, desenhe uma assinatura antes de salvar.");
+            }
+        } catch (error) {
+            toast.error("Erro ao salvar assinatura");
+        }
+    };
+
+    const handleClearSignature = () => {
+        if (signaturePadRef.current) {
+            signaturePadRef.current.clear();
+        }
+    };
+
+    const handleOpenEditCover = () => {
+        setEditedFormData({
+            titulo_capa: formData.titulo_capa || 'RELATÓRIO',
+            subtitulo_capa: formData.subtitulo_capa || 'Gerenciamento de Obra',
+            titulo_inspecao: formData.titulo_inspecao || 'INSPEÇÃO DE CENTRAL SDAI',
+            descricao_inspecao: formData.descricao_inspecao || '',
+            texto_rodape_capa: formData.texto_rodape_capa || ''
+        });
+        setEditCoverOpen(true);
+    };
+
+    const handleSaveCover = () => {
+        setFormData((prev) => ({
+            ...prev,
+            titulo_capa: editedFormData.titulo_capa,
+            subtitulo_capa: editedFormData.subtitulo_capa,
+            titulo_inspecao: editedFormData.titulo_inspecao,
+            descricao_inspecao: editedFormData.descricao_inspecao,
+            texto_rodape_capa: editedFormData.texto_rodape_capa
+        }));
+        setEditCoverOpen(false);
+        toast.success("Campos da capa atualizados!");
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSaving(true);
         try {
-            const dataToSave = { ...formData };
+            const dataToSave = {
+                ...formData,
+                instalacoes: [{
+                    itens: formData.itens_instalacao,
+                    comentarios: formData.comentarios_instalacao || ''
+                }],
+                ordem_secoes: [
+                    { tipo: 'instalacao', indice: 0 },
+                    ...formData.centrais.map((_, index) => ({ tipo: 'central', indice: index }))
+                ]
+            };
             if (dataToSave.data_inspecao && !dataToSave.data_inspecao.includes('T')) {
                 dataToSave.data_inspecao = dataToSave.data_inspecao + 'T12:00:00';
             }
@@ -184,9 +342,14 @@ export default function NovaInspecaoSDAI() {
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold">{t.title}</h1>
-                <Button variant="outline" onClick={() => navigate(-1)}>
-                    <ArrowLeft className="w-4 h-4 mr-2" />{t.back}
-                </Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleOpenEditCover}>
+                        <Edit2 className="w-4 h-4 mr-2" />Editar Capa
+                    </Button>
+                    <Button variant="outline" onClick={() => navigate(-1)}>
+                        <ArrowLeft className="w-4 h-4 mr-2" />{t.back}
+                    </Button>
+                </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -262,6 +425,16 @@ export default function NovaInspecaoSDAI() {
                         <Button type="button" variant="outline" size="sm" onClick={addDocItem}>
                             <Plus className="w-4 h-4 mr-2" /> {t.addItem}
                         </Button>
+
+                        <div className="mt-4 space-y-2">
+                            <Label className="font-medium">Observações Gerais</Label>
+                            <Textarea
+                                placeholder="Observações gerais sobre a documentação técnica..."
+                                value={formData.comentarios_documentacao || ''}
+                                onChange={e => handleInputChange('comentarios_documentacao', e.target.value)}
+                                rows={3}
+                            />
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -363,39 +536,73 @@ export default function NovaInspecaoSDAI() {
                                 </thead>
                                 <tbody>
                                     {(formData.itens_instalacao || []).map((item, itemIndex) => (
-                                        <tr key={itemIndex}>
-                                            <td className="border border-gray-300 p-2">
-                                                <Input
-                                                    value={item.item_verificacao}
-                                                    onChange={e => handleInstalacaoItemChange(itemIndex, 'item_verificacao', e.target.value)}
-                                                    className="border-0 focus-visible:ring-0"
-                                                />
-                                            </td>
-                                            <td className="border border-gray-300 p-2 text-center">
-                                                <Checkbox
-                                                    checked={item.resultado === 'OK'}
-                                                    onCheckedChange={checked => handleInstalacaoItemChange(itemIndex, 'resultado', checked ? 'OK' : '')}
-                                                />
-                                            </td>
-                                            <td className="border border-gray-300 p-2 text-center">
-                                                <Checkbox
-                                                    checked={item.resultado === 'NA'}
-                                                    onCheckedChange={checked => handleInstalacaoItemChange(itemIndex, 'resultado', checked ? 'NA' : '')}
-                                                />
-                                            </td>
-                                            <td className="border border-gray-300 p-2">
-                                                <Input
-                                                    value={item.comentario}
-                                                    onChange={e => handleInstalacaoItemChange(itemIndex, 'comentario', e.target.value)}
-                                                    className="border-0 focus-visible:ring-0"
-                                                />
-                                            </td>
-                                            <td className="border border-gray-300 p-2 text-center">
-                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeInstalacaoItem(itemIndex)} className="h-8 w-8">
-                                                    <Trash2 className="w-4 h-4 text-red-500" />
-                                                </Button>
-                                            </td>
-                                        </tr>
+                                        <React.Fragment key={itemIndex}>
+                                            <tr>
+                                                <td className="border border-gray-300 p-2">
+                                                    <Input
+                                                        value={item.item_verificacao}
+                                                        onChange={e => handleInstalacaoItemChange(itemIndex, 'item_verificacao', e.target.value)}
+                                                        className="border-0 focus-visible:ring-0"
+                                                    />
+                                                </td>
+                                                <td className="border border-gray-300 p-2 text-center">
+                                                    <Checkbox
+                                                        checked={item.resultado === 'OK'}
+                                                        onCheckedChange={checked => handleInstalacaoItemChange(itemIndex, 'resultado', checked ? 'OK' : '')}
+                                                    />
+                                                </td>
+                                                <td className="border border-gray-300 p-2 text-center">
+                                                    <Checkbox
+                                                        checked={item.resultado === 'NA'}
+                                                        onCheckedChange={checked => handleInstalacaoItemChange(itemIndex, 'resultado', checked ? 'NA' : '')}
+                                                    />
+                                                </td>
+                                                <td className="border border-gray-300 p-2">
+                                                    <Input
+                                                        value={item.comentario}
+                                                        onChange={e => handleInstalacaoItemChange(itemIndex, 'comentario', e.target.value)}
+                                                        className="border-0 focus-visible:ring-0"
+                                                    />
+                                                </td>
+                                                <td className="border border-gray-300 p-2 text-center align-top">
+                                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeInstalacaoItem(itemIndex)} className="h-8 w-8">
+                                                        <Trash2 className="w-4 h-4 text-red-500" />
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td colSpan="5" className="border border-gray-300 p-3 bg-gray-50">
+                                                    <div>
+                                                        <Label className="text-sm">{t.photos}</Label>
+                                                        <Input
+                                                            type="file"
+                                                            multiple
+                                                            accept="image/*"
+                                                            onChange={(e) => handlePhotoUpload(e, itemIndex)}
+                                                            disabled={uploadingPhoto}
+                                                            className="mb-2 mt-2"
+                                                        />
+                                                        {uploadingPhoto && <div className="flex items-center gap-2 text-sm"><Loader2 className="w-4 h-4 animate-spin" /> {t.uploading}</div>}
+                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+                                                            {(item.fotos || []).map((foto, photoIndex) => (
+                                                                <div key={photoIndex} className="relative">
+                                                                    <img src={foto.url} alt="Foto da instalação" className="w-full h-24 object-cover rounded border" />
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="destructive"
+                                                                        size="icon"
+                                                                        className="absolute top-1 right-1 h-5 w-5"
+                                                                        onClick={() => removePhoto(itemIndex, photoIndex)}
+                                                                    >
+                                                                        <Trash2 className="w-3 h-3" />
+                                                                    </Button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </React.Fragment>
                                     ))}
                                 </tbody>
                             </table>
@@ -425,6 +632,29 @@ export default function NovaInspecaoSDAI() {
                             rows={4}
                             placeholder="Digite observações gerais sobre a inspeção..."
                         />
+                        <div className="mt-4 space-y-2">
+                            <Label>Conclusão - 1ª Vistoria (R01)</Label>
+                            <select value={formData.conclusao_r01 || ''} onChange={e => handleInputChange('conclusao_r01', e.target.value)} className="w-full border rounded px-2 py-1">
+                                <option value="">-- Selecionar --</option>
+                                <option value="totalidade">Aprovado com totalidade</option>
+                                <option value="ressalvas">Aprovado com ressalvas</option>
+                                <option value="reprovado">Reprovado</option>
+                            </select>
+                            <Label>Conclusão - 2ª Vistoria (R02)</Label>
+                            <select value={formData.conclusao_r02 || ''} onChange={e => handleInputChange('conclusao_r02', e.target.value)} className="w-full border rounded px-2 py-1">
+                                <option value="">-- Selecionar --</option>
+                                <option value="totalidade">Aprovado com totalidade</option>
+                                <option value="ressalvas">Aprovado com ressalvas</option>
+                                <option value="reprovado">Reprovado</option>
+                            </select>
+                            <Label>Conclusão (fallback)</Label>
+                            <select value={formData.conclusao || ''} onChange={e => handleInputChange('conclusao', e.target.value)} className="w-full border rounded px-2 py-1">
+                                <option value="">-- Selecionar --</option>
+                                <option value="totalidade">Aprovado com totalidade</option>
+                                <option value="ressalvas">Aprovado com ressalvas</option>
+                                <option value="reprovado">Reprovado</option>
+                            </select>
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -432,18 +662,47 @@ export default function NovaInspecaoSDAI() {
                     <CardHeader><CardTitle>{t.signatures}</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
                         {formData.assinaturas.map((assinatura, index) => (
-                            <div key={index} className="grid grid-cols-1 md:grid-cols-3 items-end gap-2 p-2 border rounded-lg">
-                                <div className="space-y-1">
-                                    <Label>{t.party}</Label>
-                                    <Input value={assinatura.parte} onChange={e => handleAssinaturaChange(index, 'parte', e.target.value)} />
+                            <div key={index} className="p-4 border rounded-lg bg-gray-50 space-y-3">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <Label>{t.party}</Label>
+                                        <Input value={assinatura.parte} onChange={e => handleAssinaturaChange(index, 'parte', e.target.value)} />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label>{t.name}</Label>
+                                        <Input value={assinatura.nome} onChange={e => handleAssinaturaChange(index, 'nome', e.target.value)} />
+                                    </div>
                                 </div>
-                                <div className="space-y-1">
-                                    <Label>{t.name}</Label>
-                                    <Input value={assinatura.nome} onChange={e => handleAssinaturaChange(index, 'nome', e.target.value)} />
+                                <div className="space-y-2">
+                                    <Label>Assinatura</Label>
+                                    <div className="border-2 border-dashed rounded-lg p-4 bg-white flex items-center justify-center min-h-[120px]">
+                                        {assinatura.assinatura_imagem ? (
+                                            <img src={assinatura.assinatura_imagem} alt="Assinatura" className="max-h-24 object-contain" />
+                                        ) : (
+                                            <p className="text-gray-400 text-sm">Sem assinatura</p>
+                                        )}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Button type="button" variant="outline" size="sm" onClick={() => openSignatureDialog(index)}>
+                                            <Edit2 className="w-4 h-4 mr-2" />
+                                            {assinatura.assinatura_imagem ? 'Editar Assinatura' : 'Adicionar Assinatura'}
+                                        </Button>
+                                        {assinatura.assinatura_imagem && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleAssinaturaChange(index, 'assinatura_imagem', '')}
+                                            >
+                                                Limpar
+                                            </Button>
+                                        )}
+                                        <Button type="button" variant="ghost" size="sm" onClick={() => removeAssinatura(index)}>
+                                            <Trash2 className="w-4 h-4 text-red-500 mr-2" />
+                                            Remover
+                                        </Button>
+                                    </div>
                                 </div>
-                                <Button type="button" variant="ghost" size="icon" onClick={() => removeAssinatura(index)}>
-                                    <Trash2 className="w-4 h-4 text-red-500" />
-                                </Button>
                             </div>
                         ))}
                         <Button type="button" variant="outline" onClick={addAssinatura}>
@@ -451,6 +710,137 @@ export default function NovaInspecaoSDAI() {
                         </Button>
                     </CardContent>
                 </Card>
+
+                <Dialog open={showSignatureDialog} onOpenChange={setShowSignatureDialog}>
+                    <DialogContent className="max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>
+                                {activeSignatureIndex !== null && formData.assinaturas[activeSignatureIndex]?.assinatura_imagem
+                                    ? 'Editar Assinatura'
+                                    : 'Adicionar Assinatura'}
+                            </DialogTitle>
+                            <DialogDescription>Escolha entre desenhar ou digitar sua assinatura</DialogDescription>
+                        </DialogHeader>
+
+                        {activeSignatureIndex !== null && formData.assinaturas[activeSignatureIndex]?.assinatura_imagem && (
+                            <div className="mb-4 p-3 bg-gray-50 rounded-lg border">
+                                <Label className="text-xs text-gray-600 mb-2 block">Assinatura atual:</Label>
+                                <div className="flex justify-center border-b-2 border-gray-300 pb-2">
+                                    <img
+                                        src={formData.assinaturas[activeSignatureIndex].assinatura_imagem}
+                                        alt="Assinatura atual"
+                                        className="max-h-16 object-contain"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex gap-2 mb-4">
+                            <Button
+                                type="button"
+                                variant={signatureMode === 'draw' ? 'default' : 'outline'}
+                                onClick={() => setSignatureMode('draw')}
+                                className="flex-1"
+                            >
+                                Desenhar
+                            </Button>
+                            <Button
+                                type="button"
+                                variant={signatureMode === 'type' ? 'default' : 'outline'}
+                                onClick={() => setSignatureMode('type')}
+                                className="flex-1"
+                            >
+                                Digitar
+                            </Button>
+                        </div>
+
+                        {signatureMode === 'draw' ? (
+                            <div className="border rounded-md overflow-hidden h-52 bg-white">
+                                <SimpleSignaturePad ref={signaturePadRef} />
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <Label>Digite sua assinatura</Label>
+                                <Input
+                                    type="text"
+                                    value={typedSignature}
+                                    onChange={(e) => setTypedSignature(e.target.value)}
+                                    placeholder="Digite seu nome..."
+                                    className="text-sm"
+                                    style={{ fontFamily: 'Calibri, sans-serif' }}
+                                />
+                                <p className="text-xs text-gray-500">Será exibida em fonte Calibri</p>
+                            </div>
+                        )}
+
+                        <DialogFooter className="flex justify-between">
+                            {signatureMode === 'draw' && (
+                                <Button type="button" variant="outline" onClick={handleClearSignature}>
+                                    Limpar
+                                </Button>
+                            )}
+                            <div className="flex gap-2 ml-auto">
+                                <Button type="button" variant="ghost" onClick={() => setShowSignatureDialog(false)}>
+                                    Cancelar
+                                </Button>
+                                <Button type="button" onClick={handleSaveSignature}>
+                                    Salvar
+                                </Button>
+                            </div>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog open={editCoverOpen} onOpenChange={setEditCoverOpen}>
+                    <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                            <DialogTitle>Editar Capa</DialogTitle>
+                            <DialogDescription>Configure os campos da capa do relatório</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                            <div className="border rounded-lg p-4 bg-blue-50">
+                                <h3 className="font-semibold text-sm mb-4 text-blue-900">Títulos da Capa</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <Label className="text-xs font-semibold">Título Principal</Label>
+                                        <Input value={editedFormData?.titulo_capa || ''} onChange={(e) => setEditedFormData({ ...editedFormData, titulo_capa: e.target.value })} className="mt-1" />
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs font-semibold">Subtítulo (vermelho)</Label>
+                                        <Input value={editedFormData?.subtitulo_capa || ''} onChange={(e) => setEditedFormData({ ...editedFormData, subtitulo_capa: e.target.value })} className="mt-1" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="border rounded-lg p-4 bg-green-50 border-green-200">
+                                <h3 className="font-semibold text-sm mb-4 text-green-900">Informações da Inspeção</h3>
+                                <div className="space-y-3">
+                                    <div>
+                                        <Label className="text-xs font-semibold">Título da Inspeção</Label>
+                                        <Input value={editedFormData?.titulo_inspecao || ''} onChange={(e) => setEditedFormData({ ...editedFormData, titulo_inspecao: e.target.value })} placeholder="Ex: INSPEÇÃO DE CENTRAL SDAI" className="mt-1" />
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs font-semibold">Descrição da Inspeção</Label>
+                                        <Input value={editedFormData?.descricao_inspecao || ''} onChange={(e) => setEditedFormData({ ...editedFormData, descricao_inspecao: e.target.value })} placeholder="Ex: Pavimentos tipo e áreas técnicas" className="mt-1" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="border rounded-lg p-4 bg-red-50 border-red-200">
+                                <h3 className="font-semibold text-sm mb-4 text-red-900">Rodapé da Capa</h3>
+                                <div>
+                                    <Label className="text-xs font-semibold">Texto do Rodapé</Label>
+                                    <Input value={editedFormData?.texto_rodape_capa || ''} onChange={(e) => setEditedFormData({ ...editedFormData, texto_rodape_capa: e.target.value })} placeholder="Ex: Most Moema | Ed. Most Moema | MPD" className="mt-1" />
+                                    <p className="text-xs text-gray-500 mt-1">Este texto será exibido no rodapé da capa</p>
+                                </div>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setEditCoverOpen(false)}>Cancelar</Button>
+                            <Button type="button" onClick={handleSaveCover}>Salvar</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
 
                 <div className="flex justify-end gap-4">
                     <Button type="submit" disabled={saving}>

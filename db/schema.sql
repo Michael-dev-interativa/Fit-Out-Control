@@ -796,6 +796,8 @@ CREATE TABLE IF NOT EXISTS public.inspecoes_ar_condicionado (
   inspecao_condensadora JSONB,
   inspecao_eletrica JSONB,
   inspecao_sensores JSONB,
+  conclusao_r01 TEXT,
+  conclusao_r02 TEXT,
   locais JSONB,
   observacoes_gerais TEXT,
   assinaturas JSONB,

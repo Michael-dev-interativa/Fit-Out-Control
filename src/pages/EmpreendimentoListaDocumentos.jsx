@@ -205,7 +205,7 @@ export default function EmpreendimentoListaDocumentos({ language: initialLanguag
                         variant="outline"
                         size="sm"
                         className="flex-1"
-                        onClick={() => navigate(createPageUrl(`VisualizarListaDocumentosReport?documentoId=${doc.id}&empreendimentoId=${empreendimentoId}`))}
+                        onClick={() => navigate(createPageUrl(`VisualizarListaDocumentos?documentoId=${doc.id}&empreendimentoId=${empreendimentoId}`))}
                       >
                         <Eye className="w-4 h-4 mr-1" />
                         {t.view}

@@ -10,6 +10,23 @@ import { AssinaturasPage } from '@/components/relatorios/AssinaturasSection';
 
 const isValidId = (id) => id && typeof id === 'string' && id.length > 0;
 
+const isConclusaoMatching = (val, key) => {
+    if (val === null || typeof val === 'undefined') return false;
+    const s = String(val).normalize('NFD').replace(/\p{Diacritic}/gu, '').trim().toLowerCase();
+    if (!s) return false;
+
+    if (key === 'totalidade') {
+        return s === 'totalidade' || s.includes('totalidade') || s.includes('aprovado') || s === 'ok' || s === 'aprovado com totalidade';
+    }
+    if (key === 'ressalvas') {
+        return s === 'ressalvas' || s.includes('ressalva');
+    }
+    if (key === 'reprovado') {
+        return s === 'reprovado' || s.includes('reprovado');
+    }
+    return s === key;
+};
+
 const compressImage = (url, maxWidth = 800, quality = 0.7) => {
     return new Promise((resolve) => {
         if (!url || typeof url !== 'string' || url.startsWith('data:image')) {
@@ -65,7 +82,7 @@ const CoverPage = ({ relatorio, empreendimento }) => {
     const logoInterativaBrancoUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/22086ec44_LOGOPNG-branco.png";
 
     const defaultResponsaveis = [empreendimento?.cli_empreendimento, empreendimento?.nome_empreendimento].filter(Boolean).join(' | ');
-    const responsaveis = empreendimento?.texto_capa_rodape || defaultResponsaveis;
+    const responsaveis = relatorio?.texto_rodape_capa || empreendimento?.texto_capa_rodape || defaultResponsaveis;
 
     const getTextStyle = (text) => {
         const len = text ? text.length : 0;
@@ -85,12 +102,12 @@ const CoverPage = ({ relatorio, empreendimento }) => {
                 <span className="font-normal text-white" style={{ fontSize: '60px', fontFamily: "'Inter', sans-serif", textShadow: '2px 2px 4px rgba(0,0,0,0.2)' }}>{year}</span>
             </div>
             <div className="absolute z-30" style={{ top: '10%', right: '8%', width: '50%', textAlign: 'right' }}>
-                <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: '64px', fontWeight: 'bold', color: '#394557', lineHeight: '1.1', marginBottom: '4px' }}>RELATÓRIO</h1>
-                <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '24px', color: redColor, letterSpacing: '1.5px' }}>SISTEMA SDAI</h2>
+                <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: '64px', fontWeight: 'bold', color: '#394557', lineHeight: '1.1', marginBottom: '4px' }}>{relatorio?.titulo_capa || 'RELATÓRIO'}</h1>
+                <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '24px', color: redColor, letterSpacing: '1.5px' }}>{relatorio?.subtitulo_capa || 'Gerenciamento de Obra'}</h2>
             </div>
             <div className="absolute z-30" style={{ top: '50%', right: '-3%', width: '45%', padding: '1.3% 2.5%', textAlign: 'center' }}>
-                <h1 className="font-black uppercase" style={{ fontSize: '28px', lineHeight: '1.0', fontFamily: "'Inter', sans-serif", marginBottom: '6px', color: 'black' }}>{relatorio?.cliente || 'Cliente'}</h1>
-                <h2 className="text-gray-600 font-medium" style={{ fontSize: '16px', fontFamily: "'Inter', sans-serif" }}>{relatorio?.subtitulo_relatorio || ''}</h2>
+                <h1 className="font-black uppercase" style={{ fontSize: '28px', lineHeight: '1.0', fontFamily: "'Inter', sans-serif", marginBottom: '6px', color: 'black' }}>{relatorio?.titulo_inspecao || 'INSPEÇÃO DE CENTRAL SDAI'}</h1>
+                <h2 className="text-gray-600 font-medium" style={{ fontSize: '16px', fontFamily: "'Inter', sans-serif" }}>{relatorio?.descricao_inspecao || relatorio?.subtitulo_relatorio || ''}</h2>
             </div>
             <div className="absolute z-20" style={{ top: '-350px', right: '-30%', width: '1700px', height: '1150px', backgroundColor: redColor, WebkitMaskImage: `url(${redDecorativeElementUrl})`, maskImage: `url(${redDecorativeElementUrl})`, WebkitMaskSize: '100% 100%', WebkitMaskRepeat: 'no-repeat', maskPosition: 'center' }} />
             <div className="absolute z-50" style={{ top: '-10%', right: '-20%', width: '1800px', height: '800px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -107,7 +124,7 @@ const CoverPage = ({ relatorio, empreendimento }) => {
     );
 };
 
-const DocumentacaoPage = ({ itens }) => {
+const DocumentacaoPage = ({ itens, comentarios }) => {
     return (
         <div className="px-4 pt-4 pb-2">
             <h2 className="text-xl font-bold text-center mb-4 bg-blue-900 text-white p-2">Documentação Técnica</h2>
@@ -129,6 +146,25 @@ const DocumentacaoPage = ({ itens }) => {
                     ))}
                 </tbody>
             </table>
+            {comentarios && comentarios.trim() !== '' && (
+                <div className="mt-4 p-3 bg-gray-50 border border-gray-300 rounded">
+                    <p className="font-bold mb-1" style={{ fontSize: '12px' }}>Comentários:</p>
+                    <p className="whitespace-pre-wrap" style={{ fontSize: '12px' }}>{comentarios}</p>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const FotoInstalacao = ({ url, legenda }) => {
+    const imageUrl = useCompressedImage(getUploadUrl(url), 800, 0.7);
+
+    return (
+        <div style={{ textAlign: 'center', overflow: 'hidden', marginBottom: '6px', boxSizing: 'border-box' }}>
+            <img src={imageUrl} alt={legenda || 'Foto da instalação'} style={{ width: '100%', height: 'auto', maxHeight: '45mm', objectFit: 'contain', border: '1px solid #ddd', display: 'block' }} />
+            {legenda && (
+                <p style={{ fontSize: '7px', color: '#555', marginTop: '4px', lineHeight: '1.1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{legenda}</p>
+            )}
         </div>
     );
 };
@@ -191,12 +227,25 @@ const InstalacaoPage = ({ itens_instalacao, comentarios_instalacao, showHeader =
                 </thead>
                 <tbody>
                     {(itens_instalacao || []).map((item, idx) => (
-                        <tr key={idx}>
-                            <td className="border border-black p-1" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.item_verificacao}</td>
-                            <td className="border border-black p-1 text-center">{item.resultado === 'OK' ? '☑' : '☐'}</td>
-                            <td className="border border-black p-1 text-center">{item.resultado === 'NA' ? '☑' : '☐'}</td>
-                            <td className="border border-black p-1" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.comentario || ''}</td>
-                        </tr>
+                        <React.Fragment key={idx}>
+                            <tr>
+                                <td className="border border-black p-1" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.item_verificacao}</td>
+                                <td className="border border-black p-1 text-center">{item.resultado === 'OK' ? '☑' : '☐'}</td>
+                                <td className="border border-black p-1 text-center">{item.resultado === 'NA' ? '☑' : '☐'}</td>
+                                <td className="border border-black p-1" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.comentario || ''}</td>
+                            </tr>
+                            {item.fotos && item.fotos.length > 0 && (
+                                <tr>
+                                    <td colSpan="4" className="border border-black p-1">
+                                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(item.fotos.length, 3)}, 1fr)`, gap: '4px', maxWidth: '100%' }}>
+                                            {item.fotos.map((foto, fotoIdx) => (
+                                                <FotoInstalacao key={fotoIdx} url={foto.url} legenda={foto.legenda} />
+                                            ))}
+                                        </div>
+                                    </td>
+                                </tr>
+                            )}
+                        </React.Fragment>
                     ))}
                 </tbody>
             </table>
@@ -217,7 +266,7 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
     const isCover = pageNumber === 1;
 
     return (
-        <div className="report-page">
+        <div className="report-page" style={isCover ? { height: '297mm', overflow: 'hidden' } : {}}>
             {!isCover && (
                 <div className="flex justify-between items-center border-b border-gray-200 bg-white" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: HEADER_HEIGHT, zIndex: 100, padding: '4px 8px', maxWidth: '210mm', boxSizing: 'border-box' }}>
                     <img src={logoHorizontalCompressed} alt="Logo Interativa Engenharia" style={{ height: '32px', maxWidth: '120px', objectFit: 'contain' }} />
@@ -228,7 +277,7 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
                     </div>
                 </div>
             )}
-            <div className="page-content" style={{ paddingTop: HEADER_HEIGHT, paddingBottom: FOOTER_HEIGHT, height: '100%', overflow: 'hidden' }}>
+            <div className="page-content" style={{ paddingTop: HEADER_HEIGHT, paddingBottom: FOOTER_HEIGHT, minHeight: '100%', overflow: 'visible' }}>
                 {children}
             </div>
             <div className="border-t border-gray-200 bg-gray-50 flex justify-between items-center text-[9px] text-gray-500" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: FOOTER_HEIGHT, padding: '4px 8px', maxWidth: '210mm', boxSizing: 'border-box' }}>
@@ -253,11 +302,64 @@ const ObservacoesGeraisPage = ({ observacoes }) => {
     );
 };
 
+const ConclusaoPage = ({ conclusaoR01, conclusaoR02 }) => {
+    const opcoes = [
+        { key: 'totalidade', label: 'Aprovado com totalidade' },
+        { key: 'ressalvas', label: 'Aprovado com ressalvas' },
+        { key: 'reprovado', label: 'Reprovado' },
+    ];
+
+    return (
+        <div className="px-4 pb-4">
+            <h2 className="text-xl font-bold text-center mb-3 bg-blue-900 text-white p-2">Conclusão</h2>
+            <div className="flex mb-3" style={{ border: '1px solid #ccc', padding: '10px 14px', gap: '40px' }}>
+                <div style={{ flex: 1 }}>
+                    <p className="font-bold mb-2" style={{ fontSize: '12px' }}>1ª Vistoria</p>
+                    {opcoes.map((opcao) => (
+                        <div key={opcao.key} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '5px' }}>
+                            <span style={{
+                                display: 'inline-block', width: '13px', height: '13px', minWidth: '13px',
+                                border: '1px solid #555', textAlign: 'center', lineHeight: '12px', fontSize: '11px',
+                                flexShrink: 0,
+                                backgroundColor: isConclusaoMatching(conclusaoR01, opcao.key) ? '#1d4ed8' : 'white',
+                                color: 'white'
+                            }}>
+                                {isConclusaoMatching(conclusaoR01, opcao.key) ? '✓' : ''}
+                            </span>
+                            <span style={{ fontSize: '12px' }}>{opcao.label}</span>
+                        </div>
+                    ))}
+                </div>
+                <div style={{ flex: 1 }}>
+                    <p className="font-bold mb-2" style={{ fontSize: '12px' }}>2ª Vistoria</p>
+                    {opcoes.map((opcao) => (
+                        <div key={opcao.key} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '5px' }}>
+                            <span style={{
+                                display: 'inline-block', width: '13px', height: '13px', minWidth: '13px',
+                                border: '1px solid #555', textAlign: 'center', lineHeight: '12px', fontSize: '11px',
+                                flexShrink: 0,
+                                backgroundColor: isConclusaoMatching(conclusaoR02, opcao.key) ? '#1d4ed8' : 'white',
+                                color: 'white'
+                            }}>
+                                {isConclusaoMatching(conclusaoR02, opcao.key) ? '✓' : ''}
+                            </span>
+                            <span style={{ fontSize: '12px' }}>{opcao.label}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            <div className="p-3 bg-gray-50" style={{ border: '1px solid #ccc', fontSize: '12px' }}>
+                <p className="font-bold mb-1">Observação:</p>
+                <p>Em caso de sistema não aprovado com totalidade na 1ª vistoria, a inspeção deverá ser refeita para confirmação de correções e aprovação com totalidade.</p>
+            </div>
+        </div>
+    );
+};
+
 const ReportContent = ({ relatorio, empreendimento, navigate }) => {
     const [isPrintingMode, setIsPrintingMode] = useState(false);
 
     const hasDocumentacao = relatorio.itens_documentacao && relatorio.itens_documentacao.length > 0;
-    const ITEMS_PER_PAGE = 15;
 
     // Preparar estruturas para suportar múltiplas instalações e centrais
     let instalacoes = [];
@@ -288,54 +390,63 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
     // Paginar itens de instalação
     const paginateInstallationItems = (items) => {
         const pages = [];
-        for (let i = 0; i < items.length; i += ITEMS_PER_PAGE) {
-            pages.push(items.slice(i, i + ITEMS_PER_PAGE));
+        const MAX_WEIGHT_PER_PAGE = 10;
+        let currentItems = [];
+        let currentWeight = 0;
+
+        const getItemWeight = (item) => {
+            const photoRows = Math.max(1, Math.ceil(((item.fotos || []).length || 0) / 3));
+            return 1 + (((item.fotos || []).length || 0) > 0 ? photoRows * 2 : 0);
+        };
+
+        (items || []).forEach((item) => {
+            const itemWeight = getItemWeight(item);
+            if (currentItems.length > 0 && currentWeight + itemWeight > MAX_WEIGHT_PER_PAGE) {
+                pages.push(currentItems);
+                currentItems = [];
+                currentWeight = 0;
+            }
+
+            currentItems.push(item);
+            currentWeight += itemWeight;
+        });
+
+        if (currentItems.length > 0) {
+            pages.push(currentItems);
         }
         return pages.length > 0 ? pages : [[]];
     };
 
     // Construir páginas de conteúdo seguindo a ordem definida
-    const allSections = [];
-
-    // Primeira página: Documentação + Observações Gerais
-    const firstPageContent = [];
-    if (hasDocumentacao) {
-        firstPageContent.push({ type: 'documentacao', data: relatorio.itens_documentacao });
-    }
+    const contentPages = [];
 
     // Processar seções na ordem definida (ordem_secoes)
     ordemSecoes.forEach((secao) => {
         if (secao.tipo === 'central') {
             const central = centrais[secao.indice];
             if (central) {
-                allSections.push({ type: 'central', data: central });
+                contentPages.push([{ type: 'central', data: central }]);
             }
         } else if (secao.tipo === 'instalacao') {
             const instalacao = instalacoes[secao.indice];
             if (instalacao && instalacao.itens && instalacao.itens.length > 0) {
                 const paginatedItems = paginateInstallationItems(instalacao.itens);
                 paginatedItems.forEach((pageItems, pageIndex) => {
-                    allSections.push({
+                    contentPages.push([{
                         type: 'instalacao',
                         items: pageItems,
                         comentarios: pageIndex === paginatedItems.length - 1 ? instalacao.comentarios : null,
                         showHeader: pageIndex === 0
-                    });
+                    }]);
                 });
             }
         }
     });
 
-    // Agrupar seções em pares (2 por página)
-    const contentPages = [];
-    for (let i = 0; i < allSections.length; i += 2) {
-        contentPages.push(allSections.slice(i, i + 2));
-    }
-
     const hasAssinaturas = relatorio.assinaturas && relatorio.assinaturas.length > 0 &&
         relatorio.assinaturas.some(ass => (ass.nome && ass.nome.trim() !== '') || (ass.parte && ass.parte.trim() !== '') || (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== ''));
 
-    const totalPages = 1 + 1 + contentPages.length + 1 + (hasAssinaturas ? 1 : 0);
+    const totalPages = 1 + (hasDocumentacao ? 1 : 0) + contentPages.length + 1 + (hasAssinaturas ? 1 : 0);
     let currentPage = 1;
 
     const handlePrint = async () => {
@@ -359,24 +470,11 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     <CoverPage relatorio={relatorio} empreendimento={empreendimento} />
                 </ReportPageLayout>
 
-                <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                    <div>
-                        {firstPageContent.map((content, index) => {
-                            if (content.type === 'documentacao') {
-                                return (
-                                    <React.Fragment key={`doc-${index}`}>
-                                        <DocumentacaoPage itens={content.data} />
-                                        <div className="px-4 pt-2 pb-2">
-                                            <h4 className="text-sm font-bold mb-1 bg-gray-100 p-1 border border-black">Observações Gerais:</h4>
-                                            <div className="border border-black border-t-0 p-2 text-xs min-h-[40px] whitespace-pre-wrap" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{relatorio.observacoes_gerais || ''}</div>
-                                        </div>
-                                    </React.Fragment>
-                                );
-                            }
-                            return null;
-                        })}
-                    </div>
-                </ReportPageLayout>
+                {hasDocumentacao && (
+                    <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+                        <DocumentacaoPage itens={relatorio.itens_documentacao} comentarios={relatorio.comentarios_documentacao} />
+                    </ReportPageLayout>
+                )}
 
                 {contentPages.map((pageSections, index) => (
                     <ReportPageLayout key={`content-${index}`} pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
@@ -398,6 +496,10 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
 
                 <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
                     <ObservacoesGeraisPage observacoes={relatorio.observacoes_gerais} />
+                    <ConclusaoPage
+                        conclusaoR01={relatorio.conclusao_r01 || relatorio.conclusao}
+                        conclusaoR02={relatorio.conclusao_r02 || relatorio.conclusao}
+                    />
                 </ReportPageLayout>
 
                 {hasAssinaturas && (

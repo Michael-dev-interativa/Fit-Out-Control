@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { getUploadUrl } from '@/api/config';
+import { getUploadUrl } from '@/api/config.js';
 import { Empreendimento } from '@/api/entities';
 import { UnidadeEmpreendimento } from '@/api/entities';
 import { KO_unidade } from '@/api/entities';
@@ -46,6 +46,7 @@ const ProjetosOriginaisDialog = lazy(() => import('@/components/empreendimento/P
 const ParticularidadesDialog = lazy(() => import('@/components/empreendimento/ParticularidadesDialog'));
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useRef } from 'react';
 
 const EmpreendimentoPage = () => {
   const { isDark, theme } = useTheme();
@@ -72,6 +73,8 @@ const EmpreendimentoPage = () => {
   const isValidId = (id) => id && String(id).trim() !== '';
 
   const loadEmpreendimentoData = async () => {
+    if (loadEmpreendimentoData._running) return;
+    loadEmpreendimentoData._running = true;
     setLoading(true);
     setError(null);
     try {
@@ -134,6 +137,7 @@ const EmpreendimentoPage = () => {
       }
     } finally {
       setLoading(false);
+      loadEmpreendimentoData._running = false;
     }
   };
 
@@ -350,7 +354,7 @@ const EmpreendimentoPage = () => {
                 <Button
                   variant="outline"
                   className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                  onClick={() => navigate(createPageUrl(`EmpreendimentoTermoAceite?empreendimentoId=${empreendimentoId}`))}
+                  onClick={() => navigate(createPageUrl(`EmpreendimentoTermosAceite?empreendimentoId=${empreendimentoId}`))}
                 >
                   <ClipboardList className="w-5 h-5" />
                   <span className="text-center leading-tight">{t['Termo de Aceite']}</span>

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { UploadFile } from '@/api/integrations';
-import { InspecaoEletrica } from '@/api/entities';
+import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -59,6 +58,9 @@ export default function EditarInspecaoEletrica() {
     const [typedSignature, setTypedSignature] = useState('');
     const signaturePadRef = React.useRef(null);
 
+    const [editCoverOpen, setEditCoverOpen] = useState(false);
+    const [editedFormData, setEditedFormData] = useState({});
+
     useEffect(() => {
         if (!inspecaoId) {
             toast.error("ID da inspeção não encontrado.");
@@ -67,7 +69,7 @@ export default function EditarInspecaoEletrica() {
         }
         const loadData = async () => {
             try {
-                const data = await InspecaoEletrica.get(inspecaoId);
+                const data = await base44.entities.InspecaoArCondicionado.get(inspecaoId);
                 let dataInspecao = '';
                 if (data.data_inspecao) {
                     dataInspecao = data.data_inspecao.includes('T')
@@ -85,6 +87,11 @@ export default function EditarInspecaoEletrica() {
                 setFormData({
                     ...data,
                     data_inspecao: dataInspecao,
+                    titulo_capa: data.titulo_capa || 'RELATÓRIO',
+                    subtitulo_capa: data.subtitulo_capa || 'Gerenciamento de Obra',
+                    texto_rodape_capa: data.texto_rodape_capa || '',
+                    titulo_inspecao: data.titulo_inspecao || 'INSPEÇÃO DAS INSTALAÇÕES ELÉTRICAS',
+                    descricao_inspecao: data.descricao_inspecao || '',
                     titulo_secao_inspecao: data.titulo_secao_inspecao || 'Inspeção Física – Quadros',
                     label_local: data.label_local || 'Pavimento/Região:',
                     itens_documentacao: data.itens_documentacao || [],
@@ -93,6 +100,9 @@ export default function EditarInspecaoEletrica() {
                         ...ass,
                         assinatura_imagem: ass.assinatura_imagem || ''
                     })),
+                    conclusao: data.conclusao || '',
+                    conclusao_r01: data.conclusao_r01 || '',
+                    conclusao_r02: data.conclusao_r02 || ''
                 });
             } catch (error) {
                 toast.error("Falha ao carregar dados da inspeção.");
@@ -175,7 +185,7 @@ export default function EditarInspecaoEletrica() {
         setUploadingPhoto(true);
         try {
             const uploadedPhotos = await Promise.all(files.map(async file => {
-                const { file_url } = await UploadFile({ file });
+                const { file_url } = await base44.integrations.Core.UploadFile({ file });
                 return { url: file_url, legenda: '' };
             }));
             const newLocais = [...formData.locais];
@@ -239,7 +249,7 @@ export default function EditarInspecaoEletrica() {
                 const blob = await fetch(signatureDataUrl).then(res => res.blob());
                 const file = new File([blob], `assinatura-${Date.now()}.png`, { type: 'image/png' });
 
-                const { file_url } = await UploadFile({ file });
+                const { file_url } = await base44.integrations.Core.UploadFile({ file });
                 handleAssinaturaChange(activeSignatureIndex, 'assinatura_imagem', file_url);
                 setShowSignatureDialog(false);
                 setActiveSignatureIndex(null);
@@ -251,7 +261,7 @@ export default function EditarInspecaoEletrica() {
                     const blob = await fetch(signatureDataUrl).then(res => res.blob());
                     const file = new File([blob], `assinatura-${Date.now()}.png`, { type: 'image/png' });
 
-                    const { file_url } = await UploadFile({ file });
+                    const { file_url } = await base44.integrations.Core.UploadFile({ file });
                     handleAssinaturaChange(activeSignatureIndex, 'assinatura_imagem', file_url);
                     setShowSignatureDialog(false);
                     setActiveSignatureIndex(null);
@@ -271,6 +281,30 @@ export default function EditarInspecaoEletrica() {
         }
     };
 
+    const handleOpenEditCover = () => {
+        setEditedFormData({
+            titulo_capa: formData?.titulo_capa || 'RELATÓRIO',
+            subtitulo_capa: formData?.subtitulo_capa || 'Gerenciamento de Obra',
+            titulo_inspecao: formData?.titulo_inspecao || 'INSPEÇÃO DAS INSTALAÇÕES ELÉTRICAS',
+            descricao_inspecao: formData?.descricao_inspecao || '',
+            texto_rodape_capa: formData?.texto_rodape_capa || ''
+        });
+        setEditCoverOpen(true);
+    };
+
+    const handleSaveCover = () => {
+        setFormData(p => ({
+            ...p,
+            titulo_capa: editedFormData.titulo_capa,
+            subtitulo_capa: editedFormData.subtitulo_capa,
+            titulo_inspecao: editedFormData.titulo_inspecao,
+            descricao_inspecao: editedFormData.descricao_inspecao,
+            texto_rodape_capa: editedFormData.texto_rodape_capa
+        }));
+        setEditCoverOpen(false);
+        toast.success("Campos da capa atualizados!");
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSaving(true);
@@ -280,7 +314,7 @@ export default function EditarInspecaoEletrica() {
                 updateData.data_inspecao = updateData.data_inspecao + 'T12:00:00';
             }
 
-            await InspecaoEletrica.update(id, updateData);
+            await base44.entities.InspecaoArCondicionado.update(id, updateData);
             toast.success("Inspeção atualizada com sucesso!");
             navigate(createPageUrl(`EmpreendimentoInspecaoEletrica?empreendimentoId=${formData.id_empreendimento}`));
         } catch (error) {
@@ -295,7 +329,12 @@ export default function EditarInspecaoEletrica() {
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold">{t.title}</h1>
-                <Button variant="outline" onClick={() => navigate(-1)}><ArrowLeft className="w-4 h-4 mr-2" />{t.back}</Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleOpenEditCover}>
+                        <Edit2 className="w-4 h-4 mr-2" />Editar Capa
+                    </Button>
+                    <Button variant="outline" onClick={() => navigate(-1)}><ArrowLeft className="w-4 h-4 mr-2" />{t.back}</Button>
+                </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -405,6 +444,8 @@ export default function EditarInspecaoEletrica() {
                                                     <div className="flex items-center gap-2">
                                                         <Checkbox checked={item.resultado === 'OK'} onCheckedChange={checked => handleInspItemChange(localIndex, itemIndex, 'resultado', checked ? 'OK' : '')} />
                                                         <Label className="text-sm">OK</Label>
+                                                        <Checkbox checked={item.resultado === 'N/OK'} onCheckedChange={checked => handleInspItemChange(localIndex, itemIndex, 'resultado', checked ? 'N/OK' : '')} />
+                                                        <Label className="text-sm">N/OK</Label>
                                                         <Checkbox checked={item.resultado === 'Não'} onCheckedChange={checked => handleInspItemChange(localIndex, itemIndex, 'resultado', checked ? 'Não' : '')} />
                                                         <Label className="text-sm">NA</Label>
                                                     </div>
@@ -456,6 +497,29 @@ export default function EditarInspecaoEletrica() {
                     <CardHeader><CardTitle>{t.generalObservations}</CardTitle></CardHeader>
                     <CardContent>
                         <Textarea value={formData.observacoes_gerais} onChange={e => handleInputChange('observacoes_gerais', e.target.value)} rows={4} />
+                        <div className="mt-4 space-y-2">
+                            <Label>Conclusão - 1ª Vistoria (R01)</Label>
+                            <select value={formData.conclusao_r01 || ''} onChange={e => handleInputChange('conclusao_r01', e.target.value)} className="w-full border rounded px-2 py-1">
+                                <option value="">-- Selecionar --</option>
+                                <option value="totalidade">Aprovado com totalidade</option>
+                                <option value="ressalvas">Aprovado com ressalvas</option>
+                                <option value="reprovado">Reprovado</option>
+                            </select>
+                            <Label>Conclusão - 2ª Vistoria (R02)</Label>
+                            <select value={formData.conclusao_r02 || ''} onChange={e => handleInputChange('conclusao_r02', e.target.value)} className="w-full border rounded px-2 py-1">
+                                <option value="">-- Selecionar --</option>
+                                <option value="totalidade">Aprovado com totalidade</option>
+                                <option value="ressalvas">Aprovado com ressalvas</option>
+                                <option value="reprovado">Reprovado</option>
+                            </select>
+                            <Label>Conclusão (fallback)</Label>
+                            <select value={formData.conclusao || ''} onChange={e => handleInputChange('conclusao', e.target.value)} className="w-full border rounded px-2 py-1">
+                                <option value="">-- Selecionar --</option>
+                                <option value="totalidade">Aprovado com totalidade</option>
+                                <option value="ressalvas">Aprovado com ressalvas</option>
+                                <option value="reprovado">Reprovado</option>
+                            </select>
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -586,6 +650,57 @@ export default function EditarInspecaoEletrica() {
                                     Salvar
                                 </Button>
                             </div>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog open={editCoverOpen} onOpenChange={setEditCoverOpen}>
+                    <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                            <DialogTitle>Editar Capa</DialogTitle>
+                            <DialogDescription>Configure os campos da capa do relatório</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                            <div className="border rounded-lg p-4 bg-blue-50">
+                                <h3 className="font-semibold text-sm mb-4 text-blue-900">Títulos da Capa</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <Label className="text-xs font-semibold">Título Principal</Label>
+                                        <Input value={editedFormData?.titulo_capa || ''} onChange={(e) => setEditedFormData({ ...editedFormData, titulo_capa: e.target.value })} className="mt-1" />
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs font-semibold">Subtítulo (vermelho)</Label>
+                                        <Input value={editedFormData?.subtitulo_capa || ''} onChange={(e) => setEditedFormData({ ...editedFormData, subtitulo_capa: e.target.value })} className="mt-1" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="border rounded-lg p-4 bg-green-50 border-green-200">
+                                <h3 className="font-semibold text-sm mb-4 text-green-900">Informações da Inspeção</h3>
+                                <div className="space-y-3">
+                                    <div>
+                                        <Label className="text-xs font-semibold">Título da Inspeção</Label>
+                                        <Input value={editedFormData?.titulo_inspecao || ''} onChange={(e) => setEditedFormData({ ...editedFormData, titulo_inspecao: e.target.value })} placeholder="Ex: INSPEÇÃO DAS INSTALAÇÕES ELÉTRICAS" className="mt-1" />
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs font-semibold">Descrição da Inspeção</Label>
+                                        <Input value={editedFormData?.descricao_inspecao || ''} onChange={(e) => setEditedFormData({ ...editedFormData, descricao_inspecao: e.target.value })} placeholder="Ex: 3º subsolo ao 23º andar" className="mt-1" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="border rounded-lg p-4 bg-red-50 border-red-200">
+                                <h3 className="font-semibold text-sm mb-4 text-red-900">Rodapé da Capa</h3>
+                                <div>
+                                    <Label className="text-xs font-semibold">Texto do Rodapé</Label>
+                                    <Input value={editedFormData?.texto_rodape_capa || ''} onChange={(e) => setEditedFormData({ ...editedFormData, texto_rodape_capa: e.target.value })} placeholder="Ex: Most Moema | Ed. Most Moema | MPD" className="mt-1" />
+                                    <p className="text-xs text-gray-500 mt-1">Este texto será exibido no rodapé da capa</p>
+                                </div>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setEditCoverOpen(false)}>Cancelar</Button>
+                            <Button type="button" onClick={handleSaveCover}>Salvar</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>

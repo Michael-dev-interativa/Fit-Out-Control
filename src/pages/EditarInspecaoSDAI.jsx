@@ -39,6 +39,8 @@ const t = {
     party: "Parte",
     name: "Nome",
     documentation: "Documentação Técnica",
+    photos: "Fotos",
+    uploading: "Enviando...",
 };
 
 export default function EditarInspecaoSDAI() {
@@ -51,12 +53,16 @@ export default function EditarInspecaoSDAI() {
     const [formData, setFormData] = useState(null);
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
     const [showSignatureDialog, setShowSignatureDialog] = useState(false);
     const [activeSignatureIndex, setActiveSignatureIndex] = useState(null);
     const [signatureMode, setSignatureMode] = useState('draw');
     const [typedSignature, setTypedSignature] = useState('');
     const signaturePadRef = React.useRef(null);
+
+    const [editCoverOpen, setEditCoverOpen] = useState(false);
+    const [editedFormData, setEditedFormData] = useState({});
 
     useEffect(() => {
         if (saving) return;
@@ -96,6 +102,13 @@ export default function EditarInspecaoSDAI() {
                 if (!instalacoes || instalacoes.length === 0) {
                     instalacoes = [{ itens: [], comentarios: '' }];
                 }
+                instalacoes = instalacoes.map((instalacao) => ({
+                    ...instalacao,
+                    itens: (instalacao.itens || []).map((item) => ({
+                        ...item,
+                        fotos: item.fotos || []
+                    }))
+                }));
 
                 // Criar array de ordem das seções se não existir
                 let ordemSecoes = data.ordem_secoes;
@@ -115,11 +128,20 @@ export default function EditarInspecaoSDAI() {
                 setFormData({
                     ...data,
                     data_inspecao: dataInspecao,
+                    titulo_capa: data.titulo_capa || 'RELATÓRIO',
+                    subtitulo_capa: data.subtitulo_capa || 'Gerenciamento de Obra',
+                    titulo_inspecao: data.titulo_inspecao || 'INSPEÇÃO DE CENTRAL SDAI',
+                    descricao_inspecao: data.descricao_inspecao || '',
+                    texto_rodape_capa: data.texto_rodape_capa || '',
                     itens_documentacao: data.itens_documentacao || [],
+                    comentarios_documentacao: data.comentarios_documentacao || '',
                     instalacoes: instalacoes,
                     assinaturas: data.assinaturas || [],
                     centrais: data.centrais || [{ tag: '', localizacao: '', fabricante_modelo: '', modulos_instalados: '', baterias_central: '', fonte_auxiliar_baterias: '' }],
-                    ordem_secoes: ordemSecoes
+                    ordem_secoes: ordemSecoes,
+                    conclusao: data.conclusao || '',
+                    conclusao_r01: data.conclusao_r01 || '',
+                    conclusao_r02: data.conclusao_r02 || ''
                 });
             } catch (error) {
                 toast.error("Falha ao carregar dados da inspeção.");
@@ -144,13 +166,45 @@ export default function EditarInspecaoSDAI() {
 
     const addInstalacaoItem = (instalacaoIndex) => {
         const newInstalacoes = [...formData.instalacoes];
-        newInstalacoes[instalacaoIndex].itens.push({ item_verificacao: '', resultado: 'OK', comentario: '' });
+        newInstalacoes[instalacaoIndex].itens.push({ item_verificacao: '', resultado: 'OK', comentario: '', fotos: [] });
         handleInputChange('instalacoes', newInstalacoes);
     };
 
     const removeInstalacaoItem = (instalacaoIndex, itemIndex) => {
         const newInstalacoes = [...formData.instalacoes];
         newInstalacoes[instalacaoIndex].itens = newInstalacoes[instalacaoIndex].itens.filter((_, i) => i !== itemIndex);
+        handleInputChange('instalacoes', newInstalacoes);
+    };
+
+    const handlePhotoUpload = async (e, instalacaoIndex, itemIndex) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        setUploadingPhoto(true);
+        try {
+            const uploadedPhotos = await Promise.all(files.map(async (file) => {
+                const { file_url } = await UploadFile({ file });
+                return { url: file_url, legenda: '' };
+            }));
+
+            const newInstalacoes = [...formData.instalacoes];
+            if (!newInstalacoes[instalacaoIndex].itens[itemIndex].fotos) {
+                newInstalacoes[instalacaoIndex].itens[itemIndex].fotos = [];
+            }
+            newInstalacoes[instalacaoIndex].itens[itemIndex].fotos.push(...uploadedPhotos);
+            handleInputChange('instalacoes', newInstalacoes);
+        } catch (error) {
+            toast.error("Falha no upload da foto.");
+        } finally {
+            setUploadingPhoto(false);
+            e.target.value = '';
+        }
+    };
+
+    const removePhoto = (instalacaoIndex, itemIndex, photoIndex) => {
+        const newInstalacoes = [...formData.instalacoes];
+        newInstalacoes[instalacaoIndex].itens[itemIndex].fotos =
+            (newInstalacoes[instalacaoIndex].itens[itemIndex].fotos || []).filter((_, i) => i !== photoIndex);
         handleInputChange('instalacoes', newInstalacoes);
     };
 
@@ -247,6 +301,30 @@ export default function EditarInspecaoSDAI() {
         }
     };
 
+    const handleOpenEditCover = () => {
+        setEditedFormData({
+            titulo_capa: formData?.titulo_capa || 'RELATÓRIO',
+            subtitulo_capa: formData?.subtitulo_capa || 'Gerenciamento de Obra',
+            titulo_inspecao: formData?.titulo_inspecao || 'INSPEÇÃO DE CENTRAL SDAI',
+            descricao_inspecao: formData?.descricao_inspecao || '',
+            texto_rodape_capa: formData?.texto_rodape_capa || ''
+        });
+        setEditCoverOpen(true);
+    };
+
+    const handleSaveCover = () => {
+        setFormData((prev) => ({
+            ...prev,
+            titulo_capa: editedFormData.titulo_capa,
+            subtitulo_capa: editedFormData.subtitulo_capa,
+            titulo_inspecao: editedFormData.titulo_inspecao,
+            descricao_inspecao: editedFormData.descricao_inspecao,
+            texto_rodape_capa: editedFormData.texto_rodape_capa
+        }));
+        setEditCoverOpen(false);
+        toast.success("Campos da capa atualizados!");
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSaving(true);
@@ -285,7 +363,12 @@ export default function EditarInspecaoSDAI() {
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold">{t.title}</h1>
-                <Button variant="outline" onClick={() => navigate(-1)}><ArrowLeft className="w-4 h-4 mr-2" />{t.back}</Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleOpenEditCover}>
+                        <Edit2 className="w-4 h-4 mr-2" />Editar Capa
+                    </Button>
+                    <Button variant="outline" onClick={() => navigate(-1)}><ArrowLeft className="w-4 h-4 mr-2" />{t.back}</Button>
+                </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -329,12 +412,12 @@ export default function EditarInspecaoSDAI() {
                         <Button type="button" variant="outline" size="sm" onClick={addDocItem}><Plus className="w-4 h-4 mr-2" /> {t.addItem}</Button>
 
                         <div className="space-y-2 mt-4 pt-4 border-t">
-                            <Label>{t.generalObservations}:</Label>
+                            <Label>Observações Gerais</Label>
                             <Textarea
-                                value={formData.observacoes_gerais || ''}
-                                onChange={e => handleInputChange('observacoes_gerais', e.target.value)}
-                                rows={4}
-                                placeholder="Observações gerais sobre a documentação..."
+                                value={formData.comentarios_documentacao || ''}
+                                onChange={e => handleInputChange('comentarios_documentacao', e.target.value)}
+                                rows={3}
+                                placeholder="Observações gerais sobre a documentação técnica..."
                             />
                         </div>
                     </CardContent>
@@ -381,39 +464,73 @@ export default function EditarInspecaoSDAI() {
                                             </thead>
                                             <tbody>
                                                 {(instalacao.itens || []).map((item, itemIndex) => (
-                                                    <tr key={itemIndex}>
-                                                        <td className="border border-gray-300 p-2">
-                                                            <Input
-                                                                value={item.item_verificacao}
-                                                                onChange={e => handleInstalacaoItemChange(instalacaoIndex, itemIndex, 'item_verificacao', e.target.value)}
-                                                                className="border-0 focus-visible:ring-0"
-                                                            />
-                                                        </td>
-                                                        <td className="border border-gray-300 p-2 text-center">
-                                                            <Checkbox
-                                                                checked={item.resultado === 'OK'}
-                                                                onCheckedChange={checked => handleInstalacaoItemChange(instalacaoIndex, itemIndex, 'resultado', checked ? 'OK' : '')}
-                                                            />
-                                                        </td>
-                                                        <td className="border border-gray-300 p-2 text-center">
-                                                            <Checkbox
-                                                                checked={item.resultado === 'NA'}
-                                                                onCheckedChange={checked => handleInstalacaoItemChange(instalacaoIndex, itemIndex, 'resultado', checked ? 'NA' : '')}
-                                                            />
-                                                        </td>
-                                                        <td className="border border-gray-300 p-2">
-                                                            <Input
-                                                                value={item.comentario}
-                                                                onChange={e => handleInstalacaoItemChange(instalacaoIndex, itemIndex, 'comentario', e.target.value)}
-                                                                className="border-0 focus-visible:ring-0"
-                                                            />
-                                                        </td>
-                                                        <td className="border border-gray-300 p-2 text-center">
-                                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeInstalacaoItem(instalacaoIndex, itemIndex)} className="h-8 w-8">
-                                                                <Trash2 className="w-4 h-4 text-red-500" />
-                                                            </Button>
-                                                        </td>
-                                                    </tr>
+                                                    <React.Fragment key={itemIndex}>
+                                                        <tr>
+                                                            <td className="border border-gray-300 p-2">
+                                                                <Input
+                                                                    value={item.item_verificacao}
+                                                                    onChange={e => handleInstalacaoItemChange(instalacaoIndex, itemIndex, 'item_verificacao', e.target.value)}
+                                                                    className="border-0 focus-visible:ring-0"
+                                                                />
+                                                            </td>
+                                                            <td className="border border-gray-300 p-2 text-center">
+                                                                <Checkbox
+                                                                    checked={item.resultado === 'OK'}
+                                                                    onCheckedChange={checked => handleInstalacaoItemChange(instalacaoIndex, itemIndex, 'resultado', checked ? 'OK' : '')}
+                                                                />
+                                                            </td>
+                                                            <td className="border border-gray-300 p-2 text-center">
+                                                                <Checkbox
+                                                                    checked={item.resultado === 'NA'}
+                                                                    onCheckedChange={checked => handleInstalacaoItemChange(instalacaoIndex, itemIndex, 'resultado', checked ? 'NA' : '')}
+                                                                />
+                                                            </td>
+                                                            <td className="border border-gray-300 p-2">
+                                                                <Input
+                                                                    value={item.comentario}
+                                                                    onChange={e => handleInstalacaoItemChange(instalacaoIndex, itemIndex, 'comentario', e.target.value)}
+                                                                    className="border-0 focus-visible:ring-0"
+                                                                />
+                                                            </td>
+                                                            <td className="border border-gray-300 p-2 text-center align-top">
+                                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeInstalacaoItem(instalacaoIndex, itemIndex)} className="h-8 w-8">
+                                                                    <Trash2 className="w-4 h-4 text-red-500" />
+                                                                </Button>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td colSpan="5" className="border border-gray-300 p-3 bg-gray-50">
+                                                                <div>
+                                                                    <Label className="text-sm">{t.photos}</Label>
+                                                                    <Input
+                                                                        type="file"
+                                                                        multiple
+                                                                        accept="image/*"
+                                                                        onChange={(e) => handlePhotoUpload(e, instalacaoIndex, itemIndex)}
+                                                                        disabled={uploadingPhoto}
+                                                                        className="mb-2 mt-2"
+                                                                    />
+                                                                    {uploadingPhoto && <div className="flex items-center gap-2 text-sm"><Loader2 className="w-4 h-4 animate-spin" /> {t.uploading}</div>}
+                                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+                                                                        {(item.fotos || []).map((foto, photoIndex) => (
+                                                                            <div key={photoIndex} className="relative">
+                                                                                <img src={foto.url} alt="Foto da instalação" className="w-full h-24 object-cover rounded border" />
+                                                                                <Button
+                                                                                    type="button"
+                                                                                    variant="destructive"
+                                                                                    size="icon"
+                                                                                    className="absolute top-1 right-1 h-5 w-5"
+                                                                                    onClick={() => removePhoto(instalacaoIndex, itemIndex, photoIndex)}
+                                                                                >
+                                                                                    <Trash2 className="w-3 h-3" />
+                                                                                </Button>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    </React.Fragment>
                                                 ))}
                                             </tbody>
                                         </table>
@@ -543,6 +660,41 @@ export default function EditarInspecaoSDAI() {
                 </div>
 
                 <Card>
+                    <CardHeader><CardTitle>{t.generalObservations}</CardTitle></CardHeader>
+                    <CardContent>
+                        <Textarea
+                            value={formData.observacoes_gerais || ''}
+                            onChange={e => handleInputChange('observacoes_gerais', e.target.value)}
+                            rows={4}
+                            placeholder="Digite observações gerais sobre a inspeção..."
+                        />
+                        <div className="mt-4 space-y-2">
+                            <Label>Conclusão - 1ª Vistoria (R01)</Label>
+                            <select value={formData.conclusao_r01 || ''} onChange={e => handleInputChange('conclusao_r01', e.target.value)} className="w-full border rounded px-2 py-1">
+                                <option value="">-- Selecionar --</option>
+                                <option value="totalidade">Aprovado com totalidade</option>
+                                <option value="ressalvas">Aprovado com ressalvas</option>
+                                <option value="reprovado">Reprovado</option>
+                            </select>
+                            <Label>Conclusão - 2ª Vistoria (R02)</Label>
+                            <select value={formData.conclusao_r02 || ''} onChange={e => handleInputChange('conclusao_r02', e.target.value)} className="w-full border rounded px-2 py-1">
+                                <option value="">-- Selecionar --</option>
+                                <option value="totalidade">Aprovado com totalidade</option>
+                                <option value="ressalvas">Aprovado com ressalvas</option>
+                                <option value="reprovado">Reprovado</option>
+                            </select>
+                            <Label>Conclusão (fallback)</Label>
+                            <select value={formData.conclusao || ''} onChange={e => handleInputChange('conclusao', e.target.value)} className="w-full border rounded px-2 py-1">
+                                <option value="">-- Selecionar --</option>
+                                <option value="totalidade">Aprovado com totalidade</option>
+                                <option value="ressalvas">Aprovado com ressalvas</option>
+                                <option value="reprovado">Reprovado</option>
+                            </select>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
                     <CardHeader><CardTitle>{t.signatures}</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
                         {formData.assinaturas.map((assinatura, index) => (
@@ -652,6 +804,57 @@ export default function EditarInspecaoSDAI() {
                                     Salvar
                                 </Button>
                             </div>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog open={editCoverOpen} onOpenChange={setEditCoverOpen}>
+                    <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                            <DialogTitle>Editar Capa</DialogTitle>
+                            <DialogDescription>Configure os campos da capa do relatório</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                            <div className="border rounded-lg p-4 bg-blue-50">
+                                <h3 className="font-semibold text-sm mb-4 text-blue-900">Títulos da Capa</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <Label className="text-xs font-semibold">Título Principal</Label>
+                                        <Input value={editedFormData?.titulo_capa || ''} onChange={(e) => setEditedFormData({ ...editedFormData, titulo_capa: e.target.value })} className="mt-1" />
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs font-semibold">Subtítulo (vermelho)</Label>
+                                        <Input value={editedFormData?.subtitulo_capa || ''} onChange={(e) => setEditedFormData({ ...editedFormData, subtitulo_capa: e.target.value })} className="mt-1" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="border rounded-lg p-4 bg-green-50 border-green-200">
+                                <h3 className="font-semibold text-sm mb-4 text-green-900">Informações da Inspeção</h3>
+                                <div className="space-y-3">
+                                    <div>
+                                        <Label className="text-xs font-semibold">Título da Inspeção</Label>
+                                        <Input value={editedFormData?.titulo_inspecao || ''} onChange={(e) => setEditedFormData({ ...editedFormData, titulo_inspecao: e.target.value })} placeholder="Ex: INSPEÇÃO DE CENTRAL SDAI" className="mt-1" />
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs font-semibold">Descrição da Inspeção</Label>
+                                        <Input value={editedFormData?.descricao_inspecao || ''} onChange={(e) => setEditedFormData({ ...editedFormData, descricao_inspecao: e.target.value })} placeholder="Ex: Pavimentos tipo e áreas técnicas" className="mt-1" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="border rounded-lg p-4 bg-red-50 border-red-200">
+                                <h3 className="font-semibold text-sm mb-4 text-red-900">Rodapé da Capa</h3>
+                                <div>
+                                    <Label className="text-xs font-semibold">Texto do Rodapé</Label>
+                                    <Input value={editedFormData?.texto_rodape_capa || ''} onChange={(e) => setEditedFormData({ ...editedFormData, texto_rodape_capa: e.target.value })} placeholder="Ex: Most Moema | Ed. Most Moema | MPD" className="mt-1" />
+                                    <p className="text-xs text-gray-500 mt-1">Este texto será exibido no rodapé da capa</p>
+                                </div>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setEditCoverOpen(false)}>Cancelar</Button>
+                            <Button type="button" onClick={handleSaveCover}>Salvar</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>

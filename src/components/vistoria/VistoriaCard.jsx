@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { FileText, Eye, Edit, Calendar, User, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { RespostaVistoria } from "@/api/entities";
+import { toast } from 'react-hot-toast';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,8 +33,11 @@ export default function VistoriaCard({ vistoria, unidadeId, empreendimentoId, on
     try {
       await RespostaVistoria.delete(vistoria.id);
       onUpdate();
+      toast.success('Vistoria excluída');
     } catch (error) {
       console.error("Erro ao excluir vistoria:", error);
+      const msg = (error && error.message) ? error.message : 'Erro desconhecido';
+      toast.error('Falha ao excluir: ' + msg);
     }
   };
 
@@ -53,7 +57,7 @@ export default function VistoriaCard({ vistoria, unidadeId, empreendimentoId, on
           </Badge>
         </div>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         <div className="space-y-2 text-sm">
           <div className={`flex items-center gap-2 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
@@ -70,7 +74,7 @@ export default function VistoriaCard({ vistoria, unidadeId, empreendimentoId, on
             </div>
           )}
         </div>
-        
+
         <div className="flex gap-2 pt-2">
           <Link to={linkToView} className="flex-1">
             <Button variant="outline" className="w-full">

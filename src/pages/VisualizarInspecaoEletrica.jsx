@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { InspecaoEletrica, Empreendimento } from '@/api/entities';
-import { getUploadUrl } from '@/api/config';
+import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Loader2, Printer, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -10,54 +9,114 @@ import { AssinaturasPage } from '@/components/relatorios/AssinaturasSection';
 
 const isValidId = (id) => id && typeof id === 'string' && id.length > 0;
 
-const compressImage = (url, maxWidth = 800, quality = 0.7) => {
+
+// Componente Checkbox simples usado apenas no visualizador/impressão
+const Checkbox = ({ checked }) => {
+    return (
+        <span style={{ display: 'inline-block', width: '18px', height: '18px', textAlign: 'center', lineHeight: '16px', fontSize: '12px' }}>{checked ? '☑' : '☐'}</span>
+    );
+};
+const matchResultado = (res, target) => {
+    if (res === null || typeof res === 'undefined') return false;
+    const s = String(res).normalize('NFD').replace(/\p{Diacritic}/gu, '').trim().toUpperCase();
+
+    if (target === 'OK') {
+        return s === 'OK' || /\bOK\b/.test(s);
+    }
+    if (target === 'N/OK') {
+        return s === 'N/OK' || s === 'NOK' || /N\/?OK/.test(s) || /^N\b/.test(s);
+    }
+    if (target === 'NAO' || target === 'NÃO' || target === 'NA') {
+        return s === 'NAO' || s === 'NA' || s === 'N' || /NAO/.test(s) || /^NÃO$/.test(s);
+    }
+    return s === String(target).toUpperCase();
+};
+
+const isConclusaoMatching = (val, key) => {
+    if (val === null || typeof val === 'undefined') return false;
+    const s = String(val).normalize('NFD').replace(/\p{Diacritic}/gu, '').trim().toLowerCase();
+    if (!s) return false;
+
+    if (key === 'totalidade') {
+        return s === 'totalidade' || s.includes('totalidade') || s.includes('aprovado') || s === 'ok' || s === 'aprovado com totalidade';
+    }
+    if (key === 'ressalvas') {
+        return s === 'ressalvas' || s.includes('ressalva') || s.includes('ressalvas') || s.includes('ressalva') || s.includes('ressalvas') || s.includes('ressalvas') || s.includes('ressalvas');
+    }
+    if (key === 'reprovado') {
+        return s === 'reprovado' || s.includes('reprovado') || s === 'reprovado';
+    }
+    return s === key;
+};
+
+const compressImage = (url, maxWidth = 800, quality = 0.2) => {
     return new Promise((resolve) => {
-        if (!url || typeof url !== 'string' || url.startsWith('data:image')) {
+        if (!url || typeof url !== 'string') {
+            console.log("Imagem inválida ou já data URL:", url?.substring(0, 50));
             resolve(url);
             return;
         }
+
+        // Se já é data URL comprimida, retorna
+        if (url.startsWith('data:image')) {
+            resolve(url);
+            return;
+        }
+
         // Skip compression for base44.app/api URLs due to CORS restrictions
         if (url.includes('base44.app/api')) {
+            console.log("Pulando compressão (base44.app/api):", url);
             resolve(url);
             return;
         }
+
+        console.log(`Comprimindo imagem: maxWidth=${maxWidth}, quality=${quality}, url=${url.substring(0, 60)}...`);
         const img = new Image();
         img.crossOrigin = 'anonymous';
+
         img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            let width = img.width;
-            let height = img.height;
-            if (width > maxWidth) {
-                height *= maxWidth / width;
-                width = maxWidth;
+            try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                let width = img.width;
+                let height = img.height;
+
+                // Reduz proporcionalmente se exceder maxWidth
+                if (width > maxWidth) {
+                    height *= maxWidth / width;
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                const originalSize = url.length;
+                const compressedSize = compressedDataUrl.length;
+                console.log(`✓ Imagem comprimida: ${originalSize} → ${compressedSize} bytes (${Math.round(compressedSize / originalSize * 100)}%)`);
+
+                resolve(compressedDataUrl);
+            } catch (error) {
+                console.error("Erro ao comprimir imagem:", error);
+                resolve(url);
             }
-            canvas.width = width;
-            canvas.height = height;
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL('image/jpeg', quality));
         };
-        img.onerror = () => resolve(url);
+
+        img.onerror = (error) => {
+            console.warn("Erro ao carregar imagem (CORS ou URL inválida):", url, error);
+            resolve(url);
+        };
+
         img.src = url;
     });
 };
 
-const useCompressedImage = (url, maxWidth = 800, quality = 0.7) => {
-    const [compressedUrl, setCompressedUrl] = useState(url);
-    useEffect(() => {
-        if (url && typeof url === 'string' && url.startsWith('http')) {
-            compressImage(url, maxWidth, quality).then(setCompressedUrl);
-        } else {
-            setCompressedUrl(url);
-        }
-    }, [url, maxWidth, quality]);
-    return compressedUrl;
-};
 
 const CoverPage = ({ relatorio, empreendimento }) => {
     const year = new Date(relatorio?.data_inspecao || Date.now()).getFullYear();
     const redColor = '#CE2D2D';
-    const empreendimentoImageUrl = useCompressedImage(getUploadUrl(empreendimento?.foto_empreendimento) || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80', 800, 0.7);
+    const empreendimentoImageUrl = empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
     const logoInterativaUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png";
     const coverFrameOriginalUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png";
     const redDecorativeElementUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/513d57969_Designsemnome2.png';
@@ -65,7 +124,7 @@ const CoverPage = ({ relatorio, empreendimento }) => {
     const logoInterativaBrancoUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/22086ec44_LOGOPNG-branco.png";
 
     const defaultResponsaveis = [empreendimento?.cli_empreendimento, empreendimento?.nome_empreendimento].filter(Boolean).join(' | ');
-    const responsaveis = empreendimento?.texto_capa_rodape || defaultResponsaveis;
+    const responsaveis = relatorio?.texto_rodape_capa || empreendimento?.texto_capa_rodape || defaultResponsaveis;
 
     const getTextStyle = (text) => {
         const len = text ? text.length : 0;
@@ -85,12 +144,12 @@ const CoverPage = ({ relatorio, empreendimento }) => {
                 <span className="font-normal text-white" style={{ fontSize: '60px', fontFamily: "'Inter', sans-serif", textShadow: '2px 2px 4px rgba(0,0,0,0.2)' }}>{year}</span>
             </div>
             <div className="absolute z-30" style={{ top: '10%', right: '8%', width: '50%', textAlign: 'right' }}>
-                <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: '64px', fontWeight: 'bold', color: '#394557', lineHeight: '1.1', marginBottom: '4px' }}>RELATÓRIO</h1>
-                <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '20px', color: redColor, letterSpacing: '1px' }}>INSPEÇÃO DE INSTALAÇÕES ELÉTRICAS</h2>
+                <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: '64px', fontWeight: 'bold', color: '#394557', lineHeight: '1.1', marginBottom: '4px' }}>{relatorio?.titulo_capa || 'RELATÓRIO'}</h1>
+                <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '20px', color: redColor, letterSpacing: '1px' }}>{relatorio?.subtitulo_capa || 'Gerenciamento de Obra'}</h2>
             </div>
             <div className="absolute z-30" style={{ top: '50%', right: '-3%', width: '45%', padding: '1.3% 2.5%', textAlign: 'center' }}>
-                <h1 className="font-black uppercase" style={{ fontSize: '28px', lineHeight: '1.0', fontFamily: "'Inter', sans-serif", marginBottom: '6px', color: 'black' }}>{relatorio?.cliente || 'Cliente'}</h1>
-                <h2 className="text-gray-600 font-medium" style={{ fontSize: '16px', fontFamily: "'Inter', sans-serif" }}>{relatorio?.subtitulo_relatorio || ''}</h2>
+                <h1 className="font-black uppercase" style={{ fontSize: '28px', lineHeight: '1.0', fontFamily: "'Inter', sans-serif", marginBottom: '6px', color: 'black' }}>{relatorio?.titulo_inspecao || 'INSPEÇÃO DAS INSTALAÇÕES ELÉTRICAS'}</h1>
+                <h2 className="text-gray-600 font-medium" style={{ fontSize: '16px', fontFamily: "'Inter', sans-serif" }}>{relatorio?.descricao_inspecao || ''}</h2>
             </div>
             <div className="absolute z-20" style={{ top: '-350px', right: '-30%', width: '1700px', height: '1150px', backgroundColor: redColor, WebkitMaskImage: `url(${redDecorativeElementUrl})`, maskImage: `url(${redDecorativeElementUrl})`, WebkitMaskSize: '100% 100%', WebkitMaskRepeat: 'no-repeat', maskPosition: 'center' }} />
             <div className="absolute z-50" style={{ top: '-10%', right: '-20%', width: '1800px', height: '800px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -111,7 +170,7 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
     return (
         <div className="px-4 pt-4 pb-2">
             <h2 className="text-xl font-bold text-center mb-4 bg-blue-900 text-white p-2">Documentação Técnica</h2>
-            <table className="w-full border-collapse text-xs table-fixed">
+            <table className="w-full border-collapse table-fixed" style={{ fontSize: '12px' }}>
                 <thead>
                     <tr className="bg-gray-100">
                         <th className="border border-black p-2 text-left" style={{ width: '40%' }}>Descrição</th>
@@ -123,7 +182,9 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
                     {itens.map((item, idx) => (
                         <tr key={idx}>
                             <td className="border border-black p-2" style={{ width: '40%' }}>{item.descricao}</td>
-                            <td className="border border-black p-2 text-center" style={{ width: '8%' }}>{item.resultado === 'OK' ? '☑' : '☐'}</td>
+                            <td className="border border-black p-2 text-center" style={{ width: '8%' }}>
+                                <span style={{ display: 'inline-block', width: '12px', height: '12px', minWidth: '12px', minHeight: '12px', border: '1px solid #555', backgroundColor: item.resultado === 'OK' ? '#1d4ed8' : 'white', color: 'white', fontSize: '9px', lineHeight: '12px', textAlign: 'center', boxSizing: 'border-box' }}>{item.resultado === 'OK' ? '✓' : ''}</span>
+                            </td>
                             <td className="border border-black p-2" style={{ width: '52%' }}>{item.observacoes}</td>
                         </tr>
                     ))}
@@ -131,21 +192,20 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
             </table>
             {comentarios && comentarios.trim() !== '' && (
                 <div className="mt-4 p-3 bg-gray-50 border border-gray-300 rounded">
-                    <p className="font-bold text-xs mb-1">Comentários:</p>
-                    <p className="text-xs whitespace-pre-wrap">{comentarios}</p>
+                    <p className="font-bold mb-1" style={{ fontSize: '12px' }}>Comentários:</p>
+                    <p className="whitespace-pre-wrap" style={{ fontSize: '12px' }}>{comentarios}</p>
                 </div>
             )}
         </div>
     );
 };
 
-const FotoInspecao = ({ url, legenda }) => {
-    const compressedUrl = useCompressedImage(url, 600, 0.6);
+const FotoInspecao = ({ url, legenda, maxHeight = '66mm' }) => {
     return (
-        <div className="text-center">
-            <img src={compressedUrl} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: '120px', objectFit: 'cover', border: '1px solid #ddd' }} />
+        <div style={{ textAlign: 'center', overflow: 'hidden', marginBottom: '6px', boxSizing: 'border-box' }}>
+            <img src={url} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: 'auto', maxHeight: maxHeight, objectFit: 'contain', border: '1px solid #ddd', display: 'block' }} />
             {legenda && (
-                <p className="text-[9px] text-gray-600 mt-1">{legenda}</p>
+                <p style={{ fontSize: '7px', color: '#555', marginTop: '4px', lineHeight: '1.1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{legenda}</p>
             )}
         </div>
     );
@@ -156,20 +216,25 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
         <div className={combineWithDoc ? "px-4 pb-4" : (isFirstPageOfLocal ? "p-4" : "px-4 pt-6 pb-4")}>
             {items && items.length > 0 && (
                 <div>
-                    <h3 className="text-lg font-bold mb-2 bg-blue-900 text-white p-2 text-center">{relatorio?.titulo_secao_inspecao || 'Inspeção Física – Quadros'}</h3>
-                    <div className="mb-4 border border-black">
-                        <div className="p-2">
-                            <span className="font-bold">{relatorio?.label_local || 'LOCAL:'} </span>{local.nome_local}
-                        </div>
-                    </div>
-                    <p className="text-[9px] text-gray-600 italic mb-1">Tique se for OK ✓, NA - Não se aplica. Caso contrário, faça um comentário.</p>
+                    {isFirstPageOfLocal && (
+                        <>
+                            <h3 className="text-lg font-bold mb-2 bg-blue-900 text-white p-2 text-center">{relatorio?.titulo_secao_inspecao || 'Inspeção Física – Quadros'}</h3>
+                            <div className="mb-4 border border-black">
+                                <div className="p-2">
+                                    <span className="font-bold">{relatorio?.label_local || 'LOCAL:'} </span>{local.nome_local}
+                                </div>
+                            </div>
+                            <p className="text-[9px] text-gray-600 italic mb-1">Tique se for OK ✓, NA - Não se aplica. Caso contrário, faça um comentário.</p>
+                        </>
+                    )}
                     <table className="w-full border-collapse text-xs table-fixed">
                         <thead>
                             <tr className="bg-gray-100">
                                 <th className="border border-black p-2 text-left" style={{ width: '40%' }}>Descrição</th>
-                                <th className="border border-black p-2 text-center" style={{ width: '8%' }}>OK</th>
-                                <th className="border border-black p-2 text-center" style={{ width: '8%' }}>NA</th>
-                                <th className="border border-black p-2 text-left" style={{ width: '44%' }}>Observações</th>
+                                <th className="border border-black p-2 text-center" style={{ width: '6%' }}>OK</th>
+                                <th className="border border-black p-2 text-center" style={{ width: '6%' }}>N/OK</th>
+                                <th className="border border-black p-2 text-center" style={{ width: '6%' }}>NA</th>
+                                <th className="border border-black p-2 text-left" style={{ width: '42%' }}>Observações</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -179,20 +244,20 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                 if (isComentario) {
                                     return (
                                         <tr key={idx} className="bg-gray-50" style={{ pageBreakInside: 'avoid', pageBreakAfter: 'auto' }}>
-                                            <td className="border border-black p-2 font-bold" style={{ verticalAlign: 'top' }}>Comentários:</td>
-                                            <td className="border border-black p-2" colSpan="3" style={{ wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', wordBreak: 'break-word', maxWidth: '500px' }}>{item.texto || item.comentarios || ''}</td>
+                                            <td className="border border-black p-2 font-bold" style={{ verticalAlign: 'top', fontSize: '12px' }}>Comentários:</td>
+                                            <td className="border border-black p-2" colSpan="4" style={{ wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', wordBreak: 'break-word', maxWidth: '500px', fontSize: '12px' }}>{item.texto || item.comentarios || ''}</td>
                                         </tr>
                                     );
                                 }
 
                                 if (item.showOnlyPhotos) {
                                     return (
-                                        <tr key={idx}>
-                                            <td colSpan="4" className="border border-black p-2 pt-4">
-                                                <div className="text-xs text-gray-600 italic mb-2">{item.descricao}</div>
-                                                <div className="grid grid-cols-3 gap-2">
+                                        <tr key={idx} style={{ pageBreakInside: 'auto' }}>
+                                            <td colSpan="5" className="border border-black p-1">
+                                                <div style={{ fontSize: '9px', color: '#666', fontStyle: 'italic', marginBottom: '3px' }}>{item.descricao}</div>
+                                                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(item.fotos.length, 3)}, 1fr)`, gap: '3px', maxWidth: '100%', overflow: 'visible' }}>
                                                     {item.fotos.map((foto, fotoIdx) => (
-                                                        <FotoInspecao key={fotoIdx} url={foto.url} legenda={foto.legenda} />
+                                                        <FotoInspecao key={fotoIdx} url={foto.url} legenda={foto.legenda} maxHeight="66mm" />
                                                     ))}
                                                 </div>
                                             </td>
@@ -201,25 +266,32 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                 }
 
                                 return (
-                                    <>
-                                        <tr key={idx} style={{ pageBreakInside: 'avoid', pageBreakAfter: 'auto' }}>
-                                            <td className="border border-black p-2" style={{ width: '40%', wordWrap: 'break-word', wordBreak: 'break-word' }}>{item.descricao}</td>
-                                            <td className="border border-black p-2 text-center" style={{ width: '8%' }}>{item.resultado === 'OK' ? '☑' : '☐'}</td>
-                                            <td className="border border-black p-2 text-center" style={{ width: '8%' }}>{item.resultado === 'Não' ? '☑' : '☐'}</td>
-                                            <td className="border border-black p-2" style={{ width: '44%', wordWrap: 'break-word', wordBreak: 'break-word' }}>{item.observacoes || ''}</td>
+                                    <React.Fragment key={idx}>
+                                        <tr style={{ pageBreakInside: 'avoid' }}>
+                                            <td className="border border-black p-2" style={{ width: '40%', wordWrap: 'break-word', wordBreak: 'break-word', verticalAlign: 'top', fontSize: '11px' }}>{item.descricao}</td>
+                                            <td className="border border-black p-2 text-center" style={{ width: '6%', verticalAlign: 'middle' }}>
+                                                <span style={{ display: 'inline-block', width: '12px', height: '12px', minWidth: '12px', minHeight: '12px', border: '1px solid #555', backgroundColor: item.resultado === 'OK' ? '#1d4ed8' : 'white', color: 'white', fontSize: '9px', lineHeight: '12px', textAlign: 'center', boxSizing: 'border-box' }}>{item.resultado === 'OK' ? '✓' : ''}</span>
+                                            </td>
+                                            <td className="border border-black p-2 text-center" style={{ width: '6%', verticalAlign: 'middle' }}>
+                                                <span style={{ display: 'inline-block', width: '12px', height: '12px', minWidth: '12px', minHeight: '12px', border: '1px solid #555', backgroundColor: item.resultado === 'N/OK' ? '#1d4ed8' : 'white', color: 'white', fontSize: '9px', lineHeight: '12px', textAlign: 'center', boxSizing: 'border-box' }}>{item.resultado === 'N/OK' ? '✓' : ''}</span>
+                                            </td>
+                                            <td className="border border-black p-2 text-center" style={{ width: '6%', verticalAlign: 'middle' }}>
+                                                <span style={{ display: 'inline-block', width: '12px', height: '12px', minWidth: '12px', minHeight: '12px', border: '1px solid #555', backgroundColor: item.resultado === 'Não' ? '#1d4ed8' : 'white', color: 'white', fontSize: '9px', lineHeight: '12px', textAlign: 'center', boxSizing: 'border-box' }}>{item.resultado === 'Não' ? '✓' : ''}</span>
+                                            </td>
+                                            <td className="border border-black p-2" style={{ width: '42%', wordWrap: 'break-word', wordBreak: 'break-word', verticalAlign: 'top', fontSize: '11px' }}>{item.observacoes || ''}</td>
                                         </tr>
                                         {item.fotos && item.fotos.length > 0 && (
-                                            <tr key={`${idx}-fotos`}>
-                                                <td colSpan="4" className="border border-black p-2">
-                                                    <div className="grid grid-cols-3 gap-2">
+                                            <tr style={{ pageBreakInside: 'auto', pageBreakBefore: 'auto' }}>
+                                                <td colSpan="5" className="border border-black p-1">
+                                                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(item.fotos.length, 3)}, 1fr)`, gap: '3px', maxWidth: '100%', overflow: 'visible' }}>
                                                         {item.fotos.map((foto, fotoIdx) => (
-                                                            <FotoInspecao key={fotoIdx} url={foto.url} legenda={foto.legenda} />
+                                                            <FotoInspecao key={fotoIdx} url={foto.url} legenda={foto.legenda} maxHeight="66mm" />
                                                         ))}
                                                     </div>
                                                 </td>
                                             </tr>
                                         )}
-                                    </>
+                                    </React.Fragment>
                                 );
                             })}
                         </tbody>
@@ -231,16 +303,17 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
 };
 
 const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreendimento }) => {
-    const logoHorizontalCompressed = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png", 400, 0.7);
+    const logoHorizontalUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png";
     const HEADER_HEIGHT = pageNumber > 1 ? '80px' : '0px';
     const FOOTER_HEIGHT = '45px';
+    const PAGE_HEIGHT = '297mm';
     const isCover = pageNumber === 1;
 
     return (
-        <div className="report-page">
+        <div className="report-page" style={{ height: PAGE_HEIGHT, boxSizing: 'border-box', pageBreakAfter: 'always', WebkitPageBreakAfter: 'always', breakAfter: 'page', overflow: isCover ? 'hidden' : 'visible' }}>
             {!isCover && (
                 <div className="flex justify-between items-center border-b border-gray-200 bg-white" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: HEADER_HEIGHT, zIndex: 100, padding: '4px 8px', maxWidth: '210mm', boxSizing: 'border-box' }}>
-                    <img src={logoHorizontalCompressed} alt="Logo Interativa Engenharia" style={{ height: '32px', maxWidth: '120px', objectFit: 'contain' }} />
+                    <img src={logoHorizontalUrl} alt="Logo Interativa Engenharia" style={{ height: '32px', maxWidth: '120px', objectFit: 'contain' }} />
                     <div className="text-right" style={{ flex: 1, paddingLeft: '8px', overflow: 'hidden' }}>
                         <h2 className="text-[10px] font-bold text-gray-800 uppercase leading-tight truncate">{relatorio?.titulo_relatorio || 'INSPEÇÃO DE INSTALAÇÕES ELÉTRICAS'}</h2>
                         <p className="text-[9px] text-gray-600 leading-tight truncate">{empreendimento?.nome_empreendimento} - {relatorio?.cliente}</p>
@@ -248,7 +321,7 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
                     </div>
                 </div>
             )}
-            <div className="page-content" style={{ paddingTop: HEADER_HEIGHT, paddingBottom: FOOTER_HEIGHT, height: '100%', overflow: 'hidden' }}>
+            <div className="page-content" style={{ paddingTop: HEADER_HEIGHT, paddingBottom: FOOTER_HEIGHT, minHeight: `calc(${PAGE_HEIGHT} - ${HEADER_HEIGHT} - ${FOOTER_HEIGHT})`, overflow: 'visible', boxSizing: 'border-box' }}>
                 {children}
             </div>
             <div className="border-t border-gray-200 bg-gray-50 flex justify-between items-center text-[9px] text-gray-500" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: FOOTER_HEIGHT, padding: '4px 8px', maxWidth: '210mm', boxSizing: 'border-box' }}>
@@ -268,116 +341,139 @@ const ObservacoesGeraisPage = ({ observacoes }) => {
     return (
         <div className="p-4">
             <h2 className="text-xl font-bold text-center mb-4 bg-blue-900 text-white p-2">Observações Gerais</h2>
-            <div className="border border-black p-4 text-sm whitespace-pre-wrap min-h-[100px]">{observacoes || ''}</div>
+            <div className="border border-black p-4 whitespace-pre-wrap min-h-[100px]" style={{ fontSize: '12px' }}>{observacoes || ''}</div>
         </div>
     );
 };
+
+const ConclusaoPage = ({ conclusaoR01, conclusaoR02 }) => {
+    const opcoes = [
+        { key: 'totalidade', label: 'Aprovado com totalidade' },
+        { key: 'ressalvas', label: 'Aprovado com ressalvas' },
+        { key: 'reprovado', label: 'Reprovado' },
+    ];
+    return (
+        <div className="px-4 pb-4">
+            <h2 className="text-xl font-bold text-center mb-3 bg-blue-900 text-white p-2">Conclusão</h2>
+            <div className="flex mb-3" style={{ border: '1px solid #ccc', padding: '10px 14px', gap: '40px' }}>
+                <div style={{ flex: 1 }}>
+                    <p className="font-bold mb-2" style={{ fontSize: '12px' }}>1ª Vistoria</p>
+                    {opcoes.map(opcao => (
+                        <div key={opcao.key} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '5px' }}>
+                            <span style={{
+                                display: 'inline-block', width: '13px', height: '13px', minWidth: '13px',
+                                border: '1px solid #555', textAlign: 'center', lineHeight: '12px', fontSize: '11px',
+                                flexShrink: 0,
+                                backgroundColor: isConclusaoMatching(conclusaoR01, opcao.key) ? '#1d4ed8' : 'white',
+                                color: 'white'
+                            }}>
+                                {isConclusaoMatching(conclusaoR01, opcao.key) ? '✓' : ''}
+                            </span>
+                            <span style={{ fontSize: '12px' }}>{opcao.label}</span>
+                        </div>
+                    ))}
+                </div>
+                <div style={{ flex: 1 }}>
+                    <p className="font-bold mb-2" style={{ fontSize: '12px' }}>2ª Vistoria</p>
+                    {opcoes.map(opcao => (
+                        <div key={opcao.key} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '5px' }}>
+                            <span style={{
+                                display: 'inline-block', width: '13px', height: '13px', minWidth: '13px',
+                                border: '1px solid #555', textAlign: 'center', lineHeight: '12px', fontSize: '11px',
+                                flexShrink: 0,
+                                backgroundColor: isConclusaoMatching(conclusaoR02, opcao.key) ? '#1d4ed8' : 'white',
+                                color: 'white'
+                            }}>
+                                {isConclusaoMatching(conclusaoR02, opcao.key) ? '✓' : ''}
+                            </span>
+                            <span style={{ fontSize: '12px' }}>{opcao.label}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            <div className="p-3 bg-gray-50" style={{ border: '1px solid #ccc', fontSize: '12px' }}>
+                <p className="font-bold mb-1">Observação:</p>
+                <p>Em caso de sistema não aprovado com totalidade na 1ª vistoria, a inspeção deverá ser refeita para confirmação de correções e aprovação com totalidade.</p>
+            </div>
+        </div>
+    );
+};
+
 
 const ReportContent = ({ relatorio, empreendimento, navigate }) => {
     const [isPrintingMode, setIsPrintingMode] = useState(false);
 
     const hasDocumentacao = relatorio.itens_documentacao && relatorio.itens_documentacao.length > 0;
 
-    const paginateLocalItems = (local, maxItemsForFirstPage = 14) => {
-        const pages = [];
-        const maxItemsPerPage = 14;
-        const MAX_FOTOS_PER_ITEM = 6;
+    // Paginação por peso / chunks (portada de VisualizarInspecaoHidraulica)
+    const paginateLocalItems = (local) => {
         const allItems = [...(local.itens_inspecao || [])];
-
         if (local.comentarios) {
-            allItems.push({ tipo: 'comentario', comentarios: local.comentarios, isComentarioGeral: true });
+            allItems.push({ tipo: 'comentario', texto: local.comentarios });
         }
 
-        let currentPage = [];
-        let isFirstPage = true;
+        const MAX_FOTOS_PER_ITEM = 6;
+        const MAX_WEIGHT_PER_PAGE = 12;
+
+        let currentSlice = [];
+        const slices = [];
+
+        const calculateItemWeight = (item) => {
+            if (item.tipo === 'comentario') return 1;
+            if (item.fotos && item.fotos.length > 0) return 1 + (Math.ceil(item.fotos.length / 3) * 3);
+            return 1;
+        };
+        const calculateSliceWeight = (slice) => slice.reduce((acc, p) => acc + calculateItemWeight(p), 0);
 
         allItems.forEach((item) => {
-            const isComentario = item.tipo === 'comentario' || item.isComentarioGeral;
-
-            if (!isComentario && item.fotos && item.fotos.length > MAX_FOTOS_PER_ITEM) {
+            if (item.tipo !== 'comentario' && item.fotos && item.fotos.length > MAX_FOTOS_PER_ITEM) {
                 const fotosChunks = [];
                 for (let i = 0; i < item.fotos.length; i += MAX_FOTOS_PER_ITEM) {
                     fotosChunks.push(item.fotos.slice(i, i + MAX_FOTOS_PER_ITEM));
                 }
-
                 const firstItemPart = { ...item, fotos: fotosChunks[0] };
-                const weight = 1 + (Math.ceil(fotosChunks[0].length / 3) * 2);
-                const currentWeight = currentPage.reduce((acc, p) => {
-                    const isC = p.tipo === 'comentario' || p.isComentarioGeral;
-                    if (isC) {
-                        const text = p.texto || p.comentarios || '';
-                        const lines = Math.ceil(text.length / 100);
-                        return acc + Math.max(1, Math.ceil(lines / 3));
-                    }
-                    if (p.fotos && p.fotos.length > 0) {
-                        return acc + 1 + (Math.ceil(p.fotos.length / 3) * 2);
-                    }
-                    return acc + 1;
-                }, 0);
-                const currentLimit = isFirstPage ? maxItemsForFirstPage : maxItemsPerPage;
-
-                if (currentPage.length > 0 && currentWeight + weight > currentLimit) {
-                    pages.push({ local, items: currentPage, isFirstPageOfLocal: isFirstPage });
-                    currentPage = [];
-                    isFirstPage = false;
+                const weight = calculateItemWeight(firstItemPart);
+                const currentWeight = calculateSliceWeight(currentSlice);
+                if (currentSlice.length > 0 && currentWeight + weight > MAX_WEIGHT_PER_PAGE) {
+                    slices.push([...currentSlice]);
+                    currentSlice = [];
                 }
-                currentPage.push(firstItemPart);
-
+                currentSlice.push(firstItemPart);
                 for (let i = 1; i < fotosChunks.length; i++) {
-                    if (currentPage.length > 0) {
-                        pages.push({ local, items: currentPage, isFirstPageOfLocal: isFirstPage });
-                        currentPage = [];
-                        isFirstPage = false;
-                    }
-                    currentPage.push({
-                        ...item,
-                        descricao: `(Continuação) ${item.descricao}`,
-                        fotos: fotosChunks[i],
-                        showOnlyPhotos: true
-                    });
+                    if (currentSlice.length > 0) { slices.push([...currentSlice]); currentSlice = []; }
+                    currentSlice.push({ ...item, descricao: `(Continuação) ${item.descricao}`, fotos: fotosChunks[i], showOnlyPhotos: true });
                 }
             } else {
-                const comentarioText = item.texto || item.comentarios || '';
-                let itemWeight = 1;
-                if (isComentario) {
-                    const estimatedLines = Math.ceil(comentarioText.length / 100);
-                    itemWeight = Math.max(1, Math.ceil(estimatedLines / 3));
-                } else if (item.fotos && item.fotos.length > 0) {
-                    const fotoRows = Math.ceil(item.fotos.length / 3);
-                    itemWeight = 1 + (fotoRows * 2);
+                const weight = calculateItemWeight(item);
+                const currentWeight = calculateSliceWeight(currentSlice);
+                if (currentSlice.length > 0 && currentWeight + weight > MAX_WEIGHT_PER_PAGE) {
+                    slices.push([...currentSlice]);
+                    currentSlice = [item];
+                } else {
+                    currentSlice.push(item);
                 }
-
-                const currentWeight = currentPage.reduce((acc, p) => {
-                    const isC = p.tipo === 'comentario' || p.isComentarioGeral;
-                    const text = p.texto || p.comentarios || '';
-                    if (isC) {
-                        const lines = Math.ceil(text.length / 100);
-                        return acc + Math.max(1, Math.ceil(lines / 3));
-                    } else if (p.fotos && p.fotos.length > 0) {
-                        const fotoRows = Math.ceil(p.fotos.length / 3);
-                        return acc + 1 + (fotoRows * 2);
-                    }
-                    return acc + 1;
-                }, 0);
-
-                const currentLimit = isFirstPage ? maxItemsForFirstPage : maxItemsPerPage;
-
-                if (currentWeight + itemWeight > currentLimit && currentPage.length > 0) {
-                    pages.push({ local, items: currentPage, isFirstPageOfLocal: isFirstPage });
-                    currentPage = [];
-                    isFirstPage = false;
-                }
-
-                currentPage.push(item);
             }
         });
 
-        if (currentPage.length > 0) {
-            pages.push({ local, items: currentPage, isFirstPageOfLocal: isFirstPage });
-        }
+        if (currentSlice.length > 0) slices.push(currentSlice);
 
-        return pages;
+        return slices.map((slice, sliceIdx) => ({
+            local,
+            items: slice,
+            isFirstPageOfLocal: sliceIdx === 0,
+        }));
     };
+
+    // Helper: escape HTML to avoid inserting raw HTML quando medimos
+    function escapeHtml(unsafe) {
+        if (!unsafe && unsafe !== 0) return '';
+        return String(unsafe)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
 
     const docItemCount = hasDocumentacao ? (relatorio.itens_documentacao.length || 0) : 0;
     const combineDocWithContent = hasDocumentacao && docItemCount <= 6;
@@ -443,6 +539,10 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
 
                 <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
                     <ObservacoesGeraisPage observacoes={relatorio.observacoes_gerais} />
+                    <ConclusaoPage
+                        conclusaoR01={relatorio.conclusao_r01}
+                        conclusaoR02={relatorio.conclusao_r02}
+                    />
                 </ReportPageLayout>
 
                 {hasAssinaturas && (
@@ -468,10 +568,11 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 
                 .report-page { 
                     width: 210mm; 
-                    height: 297mm; 
+                    min-height: 297mm;
+                    height: auto;
                     position: relative; 
                     background: white; 
-                    overflow: hidden;
+                    overflow: visible;
                 }
                 
                 @media screen { 
@@ -525,20 +626,33 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     }
                     
                     .report-page { 
-                        page-break-after: always; 
-                        page-break-inside: avoid;
+                        page-break-after: always;
+                        break-after: page;
                         width: 210mm !important; 
-                        height: 297mm !important; 
+                        height: 297mm !important;
+                        min-height: unset !important;
                         margin: 0 !important; 
                         padding: 0 !important; 
                         box-shadow: none !important; 
+                        /* Restore clipping so each report page occupies full A4 */
                         overflow: hidden !important;
+                        position: relative !important;
                     }
                     
-                    .report-page:last-child { page-break-after: auto; }
+                    .report-page:last-child { 
+                        page-break-after: auto;
+                        break-after: auto;
+                    }
+                    
+                    .page-content {
+                        overflow: hidden !important;
+                        padding-bottom: 45px !important;
+                        box-sizing: border-box !important;
+                    }
                     
                     img { max-width: 100%; }
-                    table { page-break-inside: auto; }
+                    table { page-break-inside: auto; border-collapse: collapse; }
+                    thead { display: table-header-group; }
                     tr { page-break-inside: avoid; }
                 }
                 
@@ -572,12 +686,53 @@ export default function VisualizarInspecaoEletrica() {
 
         const fetchData = async () => {
             try {
-                const relatorioData = await InspecaoEletrica.get(relatorioId);
+                const relatorioData = await base44.entities.InspecaoEletrica.get(relatorioId);
                 if (!relatorioData) throw new Error("Relatório não encontrado.");
 
-                const empreendimentoData = await Empreendimento.get(relatorioData.id_empreendimento);
+                const empreendimentoData = await base44.entities.Empreendimento.get(relatorioData.id_empreendimento);
                 if (!empreendimentoData) throw new Error("Empreendimento associado não encontrado.");
 
+                // Pré-comprimir todas as imagens antes de usar
+                console.log("==== INICIANDO COMPRESSÃO DE IMAGENS ====");
+
+                // Comprimir foto do empreendimento (capa) - qualidade muito baixa
+                if (empreendimentoData?.foto_empreendimento) {
+                    console.log("Comprimindo foto do empreendimento...");
+                    empreendimentoData.foto_empreendimento = await compressImage(empreendimentoData.foto_empreendimento, 600, 0.15);
+                }
+
+                // Comprimir fotos de inspeção nos locais - máxima compressão
+                if (relatorioData.locais && relatorioData.locais.length > 0) {
+                    console.log("Comprimindo fotos de inspeção...");
+                    let totalFotos = 0;
+                    for (const local of relatorioData.locais) {
+                        if (local.itens_inspecao && local.itens_inspecao.length > 0) {
+                            for (const item of local.itens_inspecao) {
+                                if (item.fotos && item.fotos.length > 0) {
+                                    for (const foto of item.fotos) {
+                                        if (foto.url) {
+                                            foto.url = await compressImage(foto.url, 500, 0.15);
+                                            totalFotos++;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    console.log(`✓ ${totalFotos} fotos de inspeção comprimidas`);
+                }
+
+                // Comprimir imagens de assinaturas
+                if (relatorioData.assinaturas && relatorioData.assinaturas.length > 0) {
+                    console.log("Comprimindo assinaturas...");
+                    for (const assinatura of relatorioData.assinaturas) {
+                        if (assinatura.assinatura_imagem) {
+                            assinatura.assinatura_imagem = await compressImage(assinatura.assinatura_imagem, 300, 0.2);
+                        }
+                    }
+                }
+
+                console.log("==== TODAS AS IMAGENS COMPRIMIDAS! ====");
                 setRelatorio(relatorioData);
                 setEmpreendimento(empreendimentoData);
             } catch (err) {

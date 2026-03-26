@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 export default function TabelaContatos({ contatos, theme }) {
     const isDark = theme === 'dark';
-    
+
     if (!contatos || contatos.length === 0) return null;
 
     return (
@@ -14,25 +14,25 @@ export default function TabelaContatos({ contatos, theme }) {
                     <Table>
                         <TableHeader>
                             <TableRow className={`${isDark ? 'hover:bg-gray-700' : ''}`}>
-                                <TableHead 
+                                <TableHead
                                     className={`font-bold text-white text-center p-2 text-xs sm:text-sm ${isDark ? 'bg-gray-700' : 'bg-gray-800'}`}
                                     style={{ backgroundColor: isDark ? '#374151' : '#1f2937' }}
                                 >
                                     PROPRIETÁRIO HIRE
                                 </TableHead>
-                                <TableHead 
+                                <TableHead
                                     className={`font-bold text-white text-center p-2 text-xs sm:text-sm ${isDark ? 'bg-gray-700' : 'bg-gray-800'}`}
                                     style={{ backgroundColor: isDark ? '#374151' : '#1f2937' }}
                                 >
                                     NOME
                                 </TableHead>
-                                <TableHead 
+                                <TableHead
                                     className={`font-bold text-white text-center p-2 text-xs sm:text-sm ${isDark ? 'bg-gray-700' : 'bg-gray-800'}`}
                                     style={{ backgroundColor: isDark ? '#374151' : '#1f2937' }}
                                 >
                                     TELEFONE
                                 </TableHead>
-                                <TableHead 
+                                <TableHead
                                     className={`font-bold text-white text-center p-2 text-xs sm:text-sm ${isDark ? 'bg-gray-700' : 'bg-gray-800'}`}
                                     style={{ backgroundColor: isDark ? '#374151' : '#1f2937' }}
                                 >
@@ -43,7 +43,7 @@ export default function TabelaContatos({ contatos, theme }) {
                         <TableBody>
                             {contatos.map((contato, index) => (
                                 <TableRow key={index} className={`${isDark ? 'border-gray-700 hover:bg-gray-700/50' : 'hover:bg-gray-50'}`}>
-                                    <TableCell 
+                                    <TableCell
                                         className="font-medium text-center p-2 text-xs sm:text-sm"
                                         style={{ backgroundColor: isDark ? '#374151' : '#334155', color: 'white' }}
                                     >
