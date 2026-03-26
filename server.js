@@ -5324,6 +5324,44 @@ app.put('/api/usuarios/:id', async (req, res) => {
   }
 });
 
+app.delete('/api/usuarios/:id', async (req, res) => {
+  try {
+    const u = requireAdmin(req, res); if (!u) return;
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: 'invalid_id' });
+    if (String(u.id) === String(id) || String(u.sub) === String(id)) {
+      return res.status(400).json({ error: 'cannot_delete_self' });
+    }
+
+    try {
+      const p = requirePool();
+      await p.query('BEGIN');
+      try {
+        await p.query('DELETE FROM public.usuarios_empreendimentos WHERE user_id = $1', [id]);
+        const { rowCount } = await p.query('DELETE FROM public.usuarios WHERE id = $1', [id]);
+        if (!rowCount) {
+          await p.query('ROLLBACK');
+          return res.status(404).json({ error: 'not_found' });
+        }
+        await p.query('COMMIT');
+        return res.json({ ok: true });
+      } catch (e) {
+        await p.query('ROLLBACK');
+        throw e;
+      }
+    } catch (err) {
+      if (!shouldReturnEmptyOnDbError(err)) throw err;
+      const before = memory.usuarios.length;
+      memory.usuarios = memory.usuarios.filter(x => Number(x.id) !== id);
+      memory.usuarios_empreendimentos = memory.usuarios_empreendimentos.filter(x => Number(x.user_id) !== id);
+      if (memory.usuarios.length === before) return res.status(404).json({ error: 'not_found' });
+      return res.json({ ok: true });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
 // ===== Vínculos Usuário x Empreendimentos =====
 // GET lista de IDs de empreendimentos vinculados a um usuário
 app.get('/api/usuarios/:id/empreendimentos', async (req, res) => {

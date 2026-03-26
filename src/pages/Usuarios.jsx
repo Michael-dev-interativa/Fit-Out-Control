@@ -16,7 +16,8 @@ import {
   Eye,
   Settings,
   X,
-  Check
+  Check,
+  Trash2
 } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -60,6 +61,11 @@ const translations = {
     cancel: "Cancelar",
     accessUpdated: "Acesso atualizado com sucesso",
     userRole: "Perfil do Usuário",
+    deleteUser: "Excluir Usuário",
+    deleteConfirm: "Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.",
+    deleteSuccess: "Usuário excluído com sucesso",
+    deleteError: "Erro ao excluir usuário",
+    cannotDeleteSelf: "Você não pode excluir seu próprio usuário",
   },
   en: {
     title: "Users",
@@ -84,6 +90,11 @@ const translations = {
     cancel: "Cancel",
     accessUpdated: "Access updated successfully",
     userRole: "User Role",
+    deleteUser: "Delete User",
+    deleteConfirm: "Are you sure you want to delete this user? This action cannot be undone.",
+    deleteSuccess: "User deleted successfully",
+    deleteError: "Failed to delete user",
+    cannotDeleteSelf: "You cannot delete your own user",
   },
 };
 
@@ -347,6 +358,27 @@ export default function Usuarios({ language: initialLanguage }) {
     }
   };
 
+  const handleDeleteUser = async (usuario) => {
+    if (!usuario?.id) return;
+    const currentId = currentUser?.id != null ? String(currentUser.id) : null;
+    if (currentId && String(usuario.id) === currentId) {
+      toast.error(t.cannotDeleteSelf);
+      return;
+    }
+    if (!window.confirm(t.deleteConfirm)) return;
+    setSaving(true);
+    try {
+      await Usuario.delete(usuario.id);
+      toast.success(t.deleteSuccess);
+      await loadUsuarios();
+    } catch (err) {
+      console.error('Erro ao excluir usuário', err);
+      toast.error(t.deleteError);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const filteredUsuarios = usuarios.filter(user => {
     const name = (user.full_name || user.nome || '').toLowerCase();
     const email = (user.email || '').toLowerCase();
@@ -484,6 +516,16 @@ export default function Usuarios({ language: initialLanguage }) {
                       className={isDark ? 'hover:bg-gray-700' : ''}
                     >
                       <Settings className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteUser(usuario)}
+                      disabled={saving || (currentUser?.id != null && String(currentUser.id) === String(usuario.id))}
+                      className={isDark ? 'hover:bg-gray-700 text-red-400' : 'text-red-600'}
+                      title={t.deleteUser}
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
