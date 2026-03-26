@@ -281,6 +281,85 @@ if (pool) {
       try { console.warn('[DB] could not ensure fotos_empreendimento column:', err && (err.message || String(err))); } catch (e) { }
     }
   })();
+
+  (async () => {
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS public.atividades (
+          id BIGSERIAL PRIMARY KEY,
+          funcao TEXT,
+          descricao_atividade TEXT NOT NULL,
+          recorrencia TEXT,
+          frequencia TEXT,
+          tempo_estimado_horas NUMERIC(10,2),
+          id_empreendimento BIGINT,
+          nome_empreendimento TEXT,
+          id_unidade BIGINT,
+          nome_unidade TEXT,
+          created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+          updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+        );
+      `);
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS public.atividades_planejamento (
+          id BIGSERIAL PRIMARY KEY,
+          titulo_atividade TEXT NOT NULL,
+          descricao_atividade TEXT,
+          responsavel_email TEXT,
+          responsavel_nome TEXT,
+          data_inicio TIMESTAMPTZ,
+          data_prazo TIMESTAMPTZ,
+          data_conclusao TIMESTAMPTZ,
+          prioridade TEXT,
+          tipo_atividade TEXT,
+          status_atividade TEXT,
+          id_empreendimento BIGINT,
+          nome_empreendimento TEXT,
+          id_unidade BIGINT,
+          nome_unidade TEXT,
+          horas_estimadas NUMERIC(10,2),
+          horas_realizadas NUMERIC(10,2),
+          observacoes TEXT,
+          recorrencia TEXT,
+          frequencia TEXT,
+          created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+          updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+        );
+      `);
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS public.execucoes (
+          id BIGSERIAL PRIMARY KEY,
+          id_atividade_planejamento BIGINT,
+          titulo_atividade TEXT,
+          id_empreendimento BIGINT,
+          nome_empreendimento TEXT,
+          id_unidade BIGINT,
+          nome_pavimento TEXT,
+          usuario_email TEXT,
+          usuario_nome TEXT,
+          data_inicio TIMESTAMPTZ,
+          data_termino TIMESTAMPTZ,
+          status_execucao TEXT,
+          tipo_atividade TEXT,
+          pausas JSONB DEFAULT '[]'::jsonb,
+          tempo_total_minutos INTEGER,
+          tempo_total_horas NUMERIC(10,2),
+          created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+          updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+        );
+      `);
+      await pool.query("CREATE TRIGGER atividades_set_updated_at BEFORE UPDATE ON public.atividades FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();").catch(() => {});
+      await pool.query("CREATE TRIGGER atividades_planejamento_set_updated_at BEFORE UPDATE ON public.atividades_planejamento FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();").catch(() => {});
+      await pool.query("CREATE TRIGGER execucoes_set_updated_at BEFORE UPDATE ON public.execucoes FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();").catch(() => {});
+      await pool.query("CREATE INDEX IF NOT EXISTS idx_atividades_funcao ON public.atividades (funcao);").catch(() => {});
+      await pool.query("CREATE INDEX IF NOT EXISTS idx_atividades_planejamento_responsavel ON public.atividades_planejamento (responsavel_email);").catch(() => {});
+      await pool.query("CREATE INDEX IF NOT EXISTS idx_atividades_planejamento_status ON public.atividades_planejamento (status_atividade);").catch(() => {});
+      await pool.query("CREATE INDEX IF NOT EXISTS idx_execucoes_atividade ON public.execucoes (id_atividade_planejamento);").catch(() => {});
+      console.log('[DB] ensured planning tables exist');
+    } catch (err) {
+      try { console.warn('[DB] could not ensure planning tables:', err && (err.message || String(err))); } catch (e) { }
+    }
+  })();
 }
 
 // Global safety: log unhandled rejections/exceptions to avoid process crash during transient DB issues
@@ -368,6 +447,9 @@ const memory = {
   unidades_empreendimento: [],
   usuarios: [],
   diarios_obra: [],
+  atividades: [],
+  atividades_planejamento: [],
+  execucoes: [],
   vistorias_terminalidade: [],
   usuarios_empreendimentos: [], // { user_id, empreendimento_id }
 };
@@ -4525,6 +4607,27 @@ app.post('/api/empreendimentos', async (req, res) => {
     if (!b.nome_empreendimento && !b.nome) {
       return res.status(400).json({ error: 'missing_nome_empreendimento' });
     }
+    const normalizedNome = String(b.nome_empreendimento ?? b.nome ?? '').trim();
+    const normalizedCliente = String(b.cliente ?? b.cli_empreendimento ?? '').trim();
+    const normalizedOs = String(b.os_number ?? '').trim();
+    const normalizedSigla = String(b.sigla_obra ?? '').trim();
+    const normalizedEndereco = String(b.endereco ?? b.endereco_empreendimento ?? '').trim();
+
+    const existing = await p.query(
+      `SELECT *
+       FROM public.empreendimentos
+       WHERE lower(trim(nome_empreendimento)) = lower(trim($1))
+         AND lower(trim(COALESCE(cli_empreendimento, ''))) = lower(trim($2))
+         AND lower(trim(COALESCE(os_number, ''))) = lower(trim($3))
+         AND lower(trim(COALESCE(sigla_obra, ''))) = lower(trim($4))
+         AND lower(trim(COALESCE(endereco_empreendimento, ''))) = lower(trim($5))
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [normalizedNome, normalizedCliente, normalizedOs, normalizedSigla, normalizedEndereco]
+    );
+    if (existing.rows.length) {
+      return res.status(409).json({ error: 'duplicate_empreendimento', existing: mapEmpreendimentoRow(existing.rows[0]) });
+    }
     const sql = `INSERT INTO public.empreendimentos(
       nome_empreendimento, cli_empreendimento, endereco_empreendimento, foto_empreendimento, os_number, sigla_obra,
       data_inicio_contrato, termino_obra_previsto, data_sem_entrega, data_termino_contrato,
@@ -4564,11 +4667,30 @@ app.post('/api/empreendimentos', async (req, res) => {
   } catch (err) {
     // Fallback em memória quando DB indisponível
     if (shouldReturnEmptyOnDbError(err)) {
+      const candidate = {
+        nome_empreendimento: (req.body?.nome_empreendimento ?? req.body?.nome) ?? null,
+        cli_empreendimento: (req.body?.cliente ?? req.body?.cli_empreendimento) ?? null,
+        os_number: req.body?.os_number ?? null,
+        sigla_obra: req.body?.sigla_obra ?? null,
+        endereco_empreendimento: (req.body?.endereco ?? req.body?.endereco_empreendimento) ?? null,
+      };
+      const duplicate = memory.empreendimentos.find((item) =>
+        String(item.nome_empreendimento || '').trim().toLowerCase() === String(candidate.nome_empreendimento || '').trim().toLowerCase() &&
+        String(item.cli_empreendimento || '').trim().toLowerCase() === String(candidate.cli_empreendimento || '').trim().toLowerCase() &&
+        String(item.os_number || '').trim().toLowerCase() === String(candidate.os_number || '').trim().toLowerCase() &&
+        String(item.sigla_obra || '').trim().toLowerCase() === String(candidate.sigla_obra || '').trim().toLowerCase() &&
+        String(item.endereco_empreendimento || '').trim().toLowerCase() === String(candidate.endereco_empreendimento || '').trim().toLowerCase()
+      );
+      if (duplicate) {
+        return res.status(409).json({ error: 'duplicate_empreendimento', existing: mapEmpreendimentoRow(duplicate) });
+      }
       const created = {
         id: memoryIdSeq++,
         nome_empreendimento: (req.body?.nome_empreendimento ?? req.body?.nome) ?? null,
-        cli_empreendimento: req.body?.cliente ?? null,
+        cli_empreendimento: (req.body?.cliente ?? req.body?.cli_empreendimento) ?? null,
         endereco_empreendimento: (req.body?.endereco ?? req.body?.endereco_empreendimento) ?? null,
+        os_number: req.body?.os_number ?? null,
+        sigla_obra: req.body?.sigla_obra ?? null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };

@@ -13,6 +13,28 @@ import NovoEmpreendimentoDialog from "../components/empreendimentos/NovoEmpreend
 
 const ITEMS_PER_PAGE = 50;
 
+const normalizeText = (value) => String(value || '').trim().toLowerCase();
+
+const buildEmpreendimentoBusinessKey = (empreendimento) => {
+  const nome = normalizeText(empreendimento?.nome_empreendimento || empreendimento?.nome);
+  const cliente = normalizeText(empreendimento?.cliente || empreendimento?.cli_empreendimento);
+  const osNumber = normalizeText(empreendimento?.os_number);
+  const siglaObra = normalizeText(empreendimento?.sigla_obra);
+  const endereco = normalizeText(empreendimento?.endereco || empreendimento?.endereco_empreendimento);
+  return [nome, cliente, osNumber, siglaObra, endereco].join('|');
+};
+
+const dedupeEmpreendimentos = (items) => {
+  const seen = new Set();
+  return (items || []).filter((empreendimento) => {
+    const key = buildEmpreendimentoBusinessKey(empreendimento);
+    if (!key.replace(/\|/g, '')) return true;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
 // Validação de ID compatível com banco (aceita inteiros positivos e strings não vazias)
 const isValidId = (id) => {
   if (id === null || id === undefined) return false;
@@ -114,8 +136,10 @@ export default function Empreendimentos({ language: initialLanguage }) {
           return valid;
         });
 
+        const uniqueData = dedupeEmpreendimentos(validData);
         console.log("Empreendimentos válidos (depois do filtro):", validData.length);
-        setTodosEmpreendimentos(validData);
+        console.log("Empreendimentos únicos (depois da deduplicação):", uniqueData.length);
+        setTodosEmpreendimentos(uniqueData);
       } catch (error) {
         console.error("Erro ao carregar empreendimentos:", error);
         setTodosEmpreendimentos([]);
@@ -173,7 +197,7 @@ export default function Empreendimentos({ language: initialLanguage }) {
     const reloadData = async () => {
       const data = await Empreendimento.list("-created_date", 1000);
       const validData = data.filter(emp => emp && isValidId(emp.id));
-      setTodosEmpreendimentos(validData);
+      setTodosEmpreendimentos(dedupeEmpreendimentos(validData));
     };
     reloadData();
   };

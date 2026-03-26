@@ -8,6 +8,25 @@ import { Building2, FileText, Eye, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+const normalizeText = (value) => String(value || '').trim().toLowerCase();
+
+const dedupeEmpreendimentos = (items) => {
+  const seen = new Set();
+  return (items || []).filter((empreendimento) => {
+    const key = [
+      normalizeText(empreendimento?.nome_empreendimento),
+      normalizeText(empreendimento?.cli_empreendimento || empreendimento?.cliente),
+      normalizeText(empreendimento?.os_number),
+      normalizeText(empreendimento?.sigla_obra),
+      normalizeText(empreendimento?.endereco_empreendimento || empreendimento?.endereco),
+    ].join('|');
+    if (!key.replace(/\|/g, '')) return true;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
 export default function DashboardCliente({ language: initialLanguage, theme: initialTheme }) {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -42,7 +61,7 @@ export default function DashboardCliente({ language: initialLanguage, theme: ini
             Empreendimento.get(id).catch(() => null)
           )
         );
-        setEmpreendimentos(empreendimentosData.filter(e => e !== null));
+        setEmpreendimentos(dedupeEmpreendimentos(empreendimentosData.filter(e => e !== null)));
       }
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
