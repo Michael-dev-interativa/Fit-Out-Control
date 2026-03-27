@@ -201,10 +201,10 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
     );
 };
 
-const FotoInspecao = ({ url, legenda, maxHeight = '66mm' }) => {
+const FotoInspecao = ({ url, legenda }) => {
     return (
-        <div style={{ textAlign: 'left', overflow: 'hidden', marginBottom: '6px', boxSizing: 'border-box', width: '100%', justifySelf: 'stretch' }}>
-            <img src={url} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: 'auto', maxHeight: maxHeight, objectFit: 'contain', border: '1px solid #ddd', display: 'block' }} />
+        <div style={{ textAlign: 'left', overflow: 'hidden', marginBottom: '6px', boxSizing: 'border-box', width: '250px', justifySelf: 'start' }}>
+            <img src={url} alt={legenda || 'Foto da inspeção'} style={{ width: '250px', height: '250px', objectFit: 'cover', border: '1px solid #ddd', display: 'block' }} />
             {legenda && (
                 <p style={{ fontSize: '7px', color: '#555', marginTop: '4px', lineHeight: '1.1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{legenda}</p>
             )}
@@ -257,9 +257,9 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                         <tr key={idx} style={{ pageBreakInside: 'auto' }}>
                                             <td colSpan="5" className="border border-black p-1">
                                                 <div style={{ fontSize: '9px', color: '#666', fontStyle: 'italic', marginBottom: '3px' }}>{item.descricao}</div>
-                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '3px', maxWidth: '100%', overflow: 'visible', justifyItems: 'stretch', justifyContent: 'start', alignItems: 'start', gridAutoFlow: 'row' }}>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 250px)', gap: '3px', maxWidth: '100%', overflow: 'visible', justifyItems: 'start', justifyContent: 'start', alignItems: 'start', gridAutoFlow: 'row' }}>
                                                     {fotosValidas.map((foto, fotoIdx) => (
-                                                        <FotoInspecao key={fotoIdx} url={foto.url} legenda={foto.legenda} maxHeight="66mm" />
+                                                        <FotoInspecao key={fotoIdx} url={foto.url} legenda={foto.legenda} />
                                                     ))}
                                                 </div>
                                             </td>
@@ -285,9 +285,9 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                         {fotosValidas.length > 0 && (
                                             <tr style={{ pageBreakInside: 'auto', pageBreakBefore: 'auto' }}>
                                                 <td colSpan="5" className="border border-black p-1">
-                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '3px', maxWidth: '100%', overflow: 'visible', justifyItems: 'stretch', justifyContent: 'start', alignItems: 'start', gridAutoFlow: 'row' }}>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 250px)', gap: '3px', maxWidth: '100%', overflow: 'visible', justifyItems: 'start', justifyContent: 'start', alignItems: 'start', gridAutoFlow: 'row' }}>
                                                         {fotosValidas.map((foto, fotoIdx) => (
-                                                            <FotoInspecao key={fotoIdx} url={foto.url} legenda={foto.legenda} maxHeight="66mm" />
+                                                            <FotoInspecao key={fotoIdx} url={foto.url} legenda={foto.legenda} />
                                                         ))}
                                                     </div>
                                                 </td>
@@ -419,7 +419,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 headerHeightPx: 80,
                 footerHeightPx: 45,
                 pagePaddingPx: 12,
-                photoMaxHeightPx: 260,
+                photoMaxHeightPx: 250,
                 itemBufferPx: 12,
                 safetyMarginPx: 110,
                 footerGuardPx: 28,
