@@ -258,7 +258,7 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                                 <div style={{ fontSize: '8px', color: '#666', fontStyle: 'italic', marginBottom: '1px' }}>{item.descricao}</div>
                                                 <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(item.fotos.length, 3)}, 1fr)`, gap: '1px', maxWidth: '100%', overflow: 'visible' }}>
                                                     {item.fotos.map((foto, fotoIdx) => (
-                                                        <FotoInspecao key={fotoIdx} url={foto.url} legenda={foto.legenda} maxHeight="40mm" />
+                                                        <FotoInspecao key={fotoIdx} url={foto.url} legenda={foto.legenda} maxHeight="50mm" />
                                                     ))}
                                                 </div>
                                             </td>
@@ -286,7 +286,7 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                                 <td colSpan="5" className="border border-black" style={{ padding: '2px' }}>
                                                     <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(item.fotos.length, 3)}, 1fr)`, gap: '1px', maxWidth: '100%', overflow: 'visible' }}>
                                                         {item.fotos.map((foto, fotoIdx) => (
-                                                            <FotoInspecao key={fotoIdx} url={foto.url} legenda={foto.legenda} maxHeight="40mm" />
+                                                            <FotoInspecao key={fotoIdx} url={foto.url} legenda={foto.legenda} maxHeight="50mm" />
                                                         ))}
                                                     </div>
                                                 </td>
@@ -418,10 +418,9 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 headerHeightPx: 80,
                 footerHeightPx: 45,
                 pagePaddingPx: 4,
-                photoMaxHeightPx: 152,
-                itemBufferPx: 4,
-                footerGuardPx: 16,
-                breakBeforeLimitPx: 24,
+                photoPlaceholderHeightPx: 180,
+                itemExtraPaddingPx: 4,
+                safetyMarginPx: 40,
             })
         )
         : [];
