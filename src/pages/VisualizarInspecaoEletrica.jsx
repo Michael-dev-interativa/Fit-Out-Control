@@ -270,7 +270,7 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                 return (
                                     <React.Fragment key={idx}>
                                         <tr style={{ pageBreakInside: 'avoid' }}>
-                                            <td className="border border-black p-2" style={{ width: '40%', wordWrap: 'break-word', wordBreak: 'break-word', verticalAlign: 'top', fontSize: '11px' }}>{item.descricao}</td>
+                                            <td className="border border-black p-2" style={{ width: '40%', wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap', verticalAlign: 'top', fontSize: '11px' }}>{item.descricao}</td>
                                             <td className="border border-black p-2 text-center" style={{ width: '6%', verticalAlign: 'middle' }}>
                                                 <span style={{ display: 'inline-block', width: '12px', height: '12px', minWidth: '12px', minHeight: '12px', border: '1px solid #555', backgroundColor: item.resultado === 'OK' ? '#1d4ed8' : 'white', color: 'white', fontSize: '9px', lineHeight: '12px', textAlign: 'center', boxSizing: 'border-box' }}>{item.resultado === 'OK' ? '✓' : ''}</span>
                                             </td>
@@ -280,7 +280,7 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                             <td className="border border-black p-2 text-center" style={{ width: '6%', verticalAlign: 'middle' }}>
                                                 <span style={{ display: 'inline-block', width: '12px', height: '12px', minWidth: '12px', minHeight: '12px', border: '1px solid #555', backgroundColor: item.resultado === 'Não' ? '#1d4ed8' : 'white', color: 'white', fontSize: '9px', lineHeight: '12px', textAlign: 'center', boxSizing: 'border-box' }}>{item.resultado === 'Não' ? '✓' : ''}</span>
                                             </td>
-                                            <td className="border border-black p-2" style={{ width: '42%', wordWrap: 'break-word', wordBreak: 'break-word', verticalAlign: 'top', fontSize: '11px' }}>{item.observacoes || ''}</td>
+                                            <td className="border border-black p-2" style={{ width: '42%', wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap', verticalAlign: 'top', fontSize: '11px' }}>{item.observacoes || ''}</td>
                                         </tr>
                                         {fotosValidas.length > 0 && (
                                             <tr style={{ pageBreakInside: 'auto', pageBreakBefore: 'auto' }}>

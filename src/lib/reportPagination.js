@@ -40,9 +40,16 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
         const len = (item.texto || item.comentarios || '').length;
         return Math.max(40, ITEM_BUFFER_PX + Math.ceil(len / 120) * 18);
       }
+
+      const descricaoLen = (item.descricao || '').length;
+      const observacoesLen = (item.observacoes || '').length;
+      const descricaoLines = Math.max(1, Math.ceil(descricaoLen / 42));
+      const observacoesLines = Math.max(1, Math.ceil(observacoesLen / 46));
+      const textHeight = Math.max(descricaoLines, observacoesLines) * 14;
+
       const fotos = (item.fotos && item.fotos.length) || 0;
       const fotoRows = Math.ceil(fotos / 3);
-      return ITEM_BUFFER_PX + 28 + (fotos > 0 ? (fotoRows * PHOTO_MAX_HEIGHT_PX) : 0);
+      return ITEM_BUFFER_PX + 20 + textHeight + (fotos > 0 ? (fotoRows * PHOTO_MAX_HEIGHT_PX) : 0);
     }
 
     const tempDiv = document.createElement('div');
@@ -58,7 +65,7 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
     let inner = '';
     if (item.tipo === 'comentario' || item.isComentarioGeral) {
       const text = item.texto || item.comentarios || '';
-      inner = `<div style="border:1px solid #000; padding:8px; font-size:10px;">${escapeHtml(text)}</div>`;
+      inner = `<div style="border:1px solid #000; padding:8px; font-size:11px; line-height:1.2; white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere;">${escapeHtml(text)}</div>`;
     } else if (item.showOnlyPhotos) {
       const fotos = item.fotos || [];
       inner = `<div style="font-size:10px; margin-bottom:6px;">${escapeHtml(item.descricao || '')}</div>`;
@@ -68,11 +75,19 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
       });
       inner += '</div>';
     } else {
-      inner = '<div style="display:flex; gap:8px; align-items:flex-start;">';
-      inner += `<div style="flex:0 0 40%; font-size:10px;">${escapeHtml(item.descricao || '')}</div>`;
-      inner += `<div style="flex:0 0 6%; text-align:center; font-size:10px;">${escapeHtml(item.resultado || '')}</div>`;
-      inner += `<div style="flex:1; font-size:10px;">${escapeHtml(item.observacoes || '')}</div>`;
-      inner += '</div>';
+      const isOk = item.resultado === 'OK' ? '✓' : '';
+      const isNok = item.resultado === 'N/OK' ? '✓' : '';
+      const isNa = item.resultado === 'Não' ? '✓' : '';
+
+      inner = '<table style="width:100%; border-collapse:collapse; table-layout:fixed; font-size:11px;">';
+      inner += '<tbody><tr>';
+      inner += `<td style="width:40%; border:1px solid #000; padding:8px; vertical-align:top; word-break:break-word; overflow-wrap:anywhere; white-space:pre-wrap;">${escapeHtml(item.descricao || '')}</td>`;
+      inner += `<td style="width:6%; border:1px solid #000; padding:8px; text-align:center; vertical-align:middle;">${isOk}</td>`;
+      inner += `<td style="width:6%; border:1px solid #000; padding:8px; text-align:center; vertical-align:middle;">${isNok}</td>`;
+      inner += `<td style="width:6%; border:1px solid #000; padding:8px; text-align:center; vertical-align:middle;">${isNa}</td>`;
+      inner += `<td style="width:42%; border:1px solid #000; padding:8px; vertical-align:top; word-break:break-word; overflow-wrap:anywhere; white-space:pre-wrap;">${escapeHtml(item.observacoes || '')}</td>`;
+      inner += '</tr></tbody></table>';
+
       if (item.fotos && item.fotos.length > 0) {
         inner += `<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:8px;">`;
         item.fotos.forEach(() => {
