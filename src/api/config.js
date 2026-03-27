@@ -69,6 +69,12 @@ export function getUploadUrl(filePath) {
     return filePath;
   }
 
+  // Suporte a imagens locais offline (DataURL / blob URL)
+  if (filePath.startsWith('data:') || filePath.startsWith('blob:')) {
+    console.log('[getUploadUrl] → Local data/blob URL, returning as-is');
+    return filePath;
+  }
+
   // Se é um caminho de API (/api/files/123), usa diretamente
   if (filePath.startsWith('/api/')) {
     const fullUrl = `${currentApiBase}${filePath}`;

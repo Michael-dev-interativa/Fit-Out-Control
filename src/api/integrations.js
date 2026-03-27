@@ -31,6 +31,41 @@ async function compressImageFile(file, { maxWidth = 1600, quality = 0.78 } = {})
   }
 }
 
+function isNetworkLikeError(err) {
+  const msg = String(err?.message || '').toLowerCase();
+  return (
+    !navigator.onLine
+    || msg.includes('failed to fetch')
+    || msg.includes('networkerror')
+    || msg.includes('network error')
+    || msg.includes('load failed')
+  );
+}
+
+async function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Falha ao converter arquivo para DataURL'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function buildOfflineUploadPayload(file) {
+  const dataUrl = await fileToDataUrl(file);
+  const pseudoId = `offline_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  return {
+    id: pseudoId,
+    offline: true,
+    queued: true,
+    file_url: dataUrl,
+    file_path: dataUrl,
+    name: file?.name || 'offline-image.jpg',
+    size: file?.size || 0,
+    mime_type: file?.type || 'image/jpeg'
+  };
+}
+
 export async function UploadFile({ file }) {
   // If image is larger than threshold, compress it before uploading
   const IMAGE_SIZE_THRESHOLD = 2.5 * 1024 * 1024; // 2.5 MB
@@ -45,9 +80,22 @@ export async function UploadFile({ file }) {
     }
   }
 
-  const form = new FormData();
-  form.append('file', toUpload);
-  const r = await fetch(apiUrl('/api/upload'), { method: 'POST', body: form });
+  // Se estiver offline, salva como DataURL e segue fluxo sem erro
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    console.warn('[UploadFile] Offline detectado, salvando imagem localmente como DataURL');
+    return buildOfflineUploadPayload(toUpload);
+  }
+
+  let r;
+  try {
+    const form = new FormData();
+    form.append('file', toUpload);
+    r = await fetch(apiUrl('/api/upload'), { method: 'POST', body: form });
+  } catch (err) {
+    if (!isNetworkLikeError(err)) throw err;
+    console.warn('[UploadFile] Falha de rede no upload, usando fallback DataURL:', err?.message || err);
+    return buildOfflineUploadPayload(toUpload);
+  }
   // tolerant parsing: accept JSON or text; include parsed payload in thrown errors
   const ctype = String(r.headers.get('content-type') || '').toLowerCase();
   let payload = null;
@@ -75,6 +123,11 @@ export async function UploadFile({ file }) {
 
   if (!r.ok) {
     console.error('UploadFile failed', { status: r.status, payload });
+    // Em indisponibilidade de rede/backend, mantém imagem local para não perder dados
+    if (r.status >= 500 || r.status === 0) {
+      console.warn('[UploadFile] Backend indisponível, salvando imagem localmente como DataURL');
+      return buildOfflineUploadPayload(toUpload);
+    }
     const err = new Error('UploadFile failed');
     err.status = r.status;
     err.payload = payload;
