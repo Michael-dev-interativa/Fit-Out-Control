@@ -7,23 +7,20 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
   const PAGE_PADDING_PX = opts.pagePaddingPx || 8;
   const FOOTER_GUARD_PX = opts.footerGuardPx || 16;
   const BREAK_BEFORE_LIMIT_PX = opts.breakBeforeLimitPx || 24;
+  const FIRST_PAGE_EXTRA_HEIGHT_PX = opts.firstPageExtraHeightPx || 0;
 
   // Backward compatibility with older callers.
   const ITEM_BUFFER_PX = opts.itemBufferPx || opts.itemExtraPaddingPx || 8;
   const LEGACY_SAFETY_MARGIN_PX = opts.safetyMarginPx || 0;
-  const PHOTO_MAX_HEIGHT_PX =
-    opts.photoMaxHeightPx ||
-    opts.photoPlaceholderHeightPx ||
-    150;
+  const PHOTO_MAX_HEIGHT_PX = opts.photoMaxHeightPx || opts.photoPlaceholderHeightPx || 150;
 
-  const getUsableHeight = () =>
-    PAGE_HEIGHT_PX -
-    HEADER_HEIGHT_PX -
-    FOOTER_HEIGHT_PX -
-    PAGE_PADDING_PX -
-    LEGACY_SAFETY_MARGIN_PX;
+  const getUsableHeight = (isFirstPage) => {
+    const base = PAGE_HEIGHT_PX - HEADER_HEIGHT_PX - FOOTER_HEIGHT_PX - PAGE_PADDING_PX - LEGACY_SAFETY_MARGIN_PX;
+    if (!isFirstPage) return base;
+    return Math.max(120, base - FIRST_PAGE_EXTRA_HEIGHT_PX);
+  };
 
-  const getBottomLimit = () => getUsableHeight() - FOOTER_GUARD_PX;
+  const getBottomLimit = (isFirstPage) => Math.max(120, getUsableHeight(isFirstPage) - FOOTER_GUARD_PX);
 
   const supportsDOM = typeof document !== 'undefined' && document.body;
 
@@ -97,21 +94,24 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
     allItems.push({ tipo: 'comentario', comentarios: local.comentarios, isComentarioGeral: true });
   }
 
-  let usableHeight = getUsableHeight();
-  let bottomLimit = getBottomLimit();
   let currentPage = [];
   let currentHeight = 0;
   let currentMapItems = [];
 
-  const buildPageMap = (itemsMap, usedHeightPx) => ({
-    maxUsableHeightPx: usableHeight,
-    breakLimitPx: bottomLimit,
-    usedHeightPx,
-    remainingHeightPx: Math.max(0, bottomLimit - usedHeightPx),
-    footerGuardPx: FOOTER_GUARD_PX,
-    breakBeforeLimitPx: BREAK_BEFORE_LIMIT_PX,
-    items: itemsMap,
-  });
+  const buildPageMap = (itemsMap, usedHeightPx, isFirstPage) => {
+    const maxUsableHeightPx = getUsableHeight(isFirstPage);
+    const breakLimitPx = getBottomLimit(isFirstPage);
+    return {
+      maxUsableHeightPx,
+      breakLimitPx,
+      usedHeightPx,
+      remainingHeightPx: Math.max(0, breakLimitPx - usedHeightPx),
+      footerGuardPx: FOOTER_GUARD_PX,
+      breakBeforeLimitPx: BREAK_BEFORE_LIMIT_PX,
+      firstPageExtraHeightPx: isFirstPage ? FIRST_PAGE_EXTRA_HEIGHT_PX : 0,
+      items: itemsMap,
+    };
+  };
 
   // support numeric second arg for legacy callers: paginateLocalItemsForPrinting(local, maxItemsForFirstPage)
   let firstPageMaxItems = undefined;
@@ -125,12 +125,13 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
         local,
         items: currentPage,
         isFirstPageOfLocal: true,
-        pageMap: buildPageMap(currentMapItems, currentHeight),
+        pageMap: buildPageMap(currentMapItems, currentHeight, true),
       });
       currentPage = [];
       currentHeight = 0;
       currentMapItems = [];
     }
+
     let itemHeight = 0;
     try {
       itemHeight = measureItemHeight(item);
@@ -140,19 +141,18 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
       itemHeight = 28 + (fotos > 0 ? (fotoRows * 160) : 0);
     }
 
+    const isFirstPage = pages.length === 0;
+    const bottomLimit = getBottomLimit(isFirstPage);
     const projectedHeight = currentHeight + itemHeight;
     const remainingAfterProjection = bottomLimit - projectedHeight;
-    const shouldBreakBeforeItem =
-      currentPage.length > 0 &&
-      (projectedHeight > bottomLimit || remainingAfterProjection < BREAK_BEFORE_LIMIT_PX);
+    const shouldBreakBeforeItem = currentPage.length > 0 && (projectedHeight > bottomLimit || remainingAfterProjection < BREAK_BEFORE_LIMIT_PX);
 
     if (shouldBreakBeforeItem) {
-      const isFirst = pages.length === 0;
       pages.push({
         local,
         items: currentPage,
-        isFirstPageOfLocal: isFirst,
-        pageMap: buildPageMap(currentMapItems, currentHeight),
+        isFirstPageOfLocal: isFirstPage,
+        pageMap: buildPageMap(currentMapItems, currentHeight, isFirstPage),
       });
       currentPage = [];
       currentHeight = 0;
@@ -162,6 +162,10 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
     const startHeight = currentHeight;
     currentPage.push(item);
     currentHeight += itemHeight;
+
+    const pageIsFirstAfterPush = pages.length === 0;
+    const pageBottomAfterPush = getBottomLimit(pageIsFirstAfterPush);
+
     currentMapItems.push({
       indexInLocal: currentPage.length - 1,
       tipo: item.tipo || 'item',
@@ -170,7 +174,7 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
       estimatedHeightPx: itemHeight,
       startPx: startHeight,
       endPx: currentHeight,
-      remainingAfterPx: Math.max(0, bottomLimit - currentHeight),
+      remainingAfterPx: Math.max(0, pageBottomAfterPush - currentHeight),
     });
   }
 
@@ -180,7 +184,7 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
       local,
       items: currentPage,
       isFirstPageOfLocal: isFirst,
-      pageMap: buildPageMap(currentMapItems, currentHeight),
+      pageMap: buildPageMap(currentMapItems, currentHeight, isFirst),
     });
   }
 

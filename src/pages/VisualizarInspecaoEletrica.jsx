@@ -418,9 +418,12 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 headerHeightPx: 80,
                 footerHeightPx: 45,
                 pagePaddingPx: 12,
-                photoPlaceholderHeightPx: 220,
-                itemExtraPaddingPx: 10,
-                safetyMarginPx: 96,
+                photoMaxHeightPx: 260,
+                itemBufferPx: 12,
+                safetyMarginPx: 110,
+                footerGuardPx: 28,
+                breakBeforeLimitPx: 32,
+                firstPageExtraHeightPx: 140,
             })
         )
         : [];
