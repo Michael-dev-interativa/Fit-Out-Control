@@ -13,6 +13,7 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
   const ITEM_BUFFER_PX = opts.itemBufferPx || opts.itemExtraPaddingPx || 8;
   const LEGACY_SAFETY_MARGIN_PX = opts.safetyMarginPx || 0;
   const PHOTO_MAX_HEIGHT_PX = opts.photoMaxHeightPx || opts.photoPlaceholderHeightPx || 150;
+  const MAX_PHOTOS_PER_ITEM = opts.maxPhotosPerItem || 6;
 
   const getUsableHeight = (isFirstPage) => {
     const base = PAGE_HEIGHT_PX - HEADER_HEIGHT_PX - FOOTER_HEIGHT_PX - PAGE_PADDING_PX - LEGACY_SAFETY_MARGIN_PX;
@@ -104,7 +105,27 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
     return height;
   };
 
-  const allItems = [...(local.itens_inspecao || [])];
+  const allItems = [];
+  for (const originalItem of (local.itens_inspecao || [])) {
+    const fotos = (originalItem.fotos || []).filter((foto) => foto && typeof foto.url === 'string' && foto.url.trim() !== '');
+
+    if (fotos.length > MAX_PHOTOS_PER_ITEM) {
+      const firstChunk = fotos.slice(0, MAX_PHOTOS_PER_ITEM);
+      allItems.push({ ...originalItem, fotos: firstChunk });
+
+      for (let i = MAX_PHOTOS_PER_ITEM; i < fotos.length; i += MAX_PHOTOS_PER_ITEM) {
+        allItems.push({
+          ...originalItem,
+          descricao: `(Continuação) ${originalItem.descricao || ''}`.trim(),
+          fotos: fotos.slice(i, i + MAX_PHOTOS_PER_ITEM),
+          showOnlyPhotos: true,
+        });
+      }
+    } else {
+      allItems.push({ ...originalItem, fotos });
+    }
+  }
+
   if (local.comentarios) {
     allItems.push({ tipo: 'comentario', comentarios: local.comentarios, isComentarioGeral: true });
   }

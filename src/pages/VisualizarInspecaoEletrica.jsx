@@ -435,6 +435,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 footerHeightPx: 45,
                 pagePaddingPx: 12,
                 photoMaxHeightPx: 250,
+                maxPhotosPerItem: 3,
                 itemBufferPx: 12,
                 safetyMarginPx: 110,
                 footerGuardPx: 28,
