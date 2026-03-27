@@ -5504,6 +5504,37 @@ app.post('/api/admin/fix-image-urls', async (req, res) => {
   }
 });
 
+// Admin: listar tabelas do banco
+app.get('/api/admin/db-tables', async (req, res) => {
+  try {
+    const u = requireAdmin(req, res); if (!u) return;
+    const p = requirePool();
+    const tables = await p.query(`
+      SELECT table_name, 
+             (SELECT COUNT(*) FROM information_schema.columns c WHERE c.table_name = t.table_name) as col_count
+      FROM information_schema.tables t
+      WHERE table_schema = 'public'
+      ORDER BY table_name
+    `);
+    
+    const result = {};
+    for (const row of tables.rows) {
+      try {
+        const count = await p.query(`SELECT COUNT(*) as cnt FROM ${row.table_name}`);
+        result[row.table_name] = {
+          columns: row.col_count,
+          records: Number(count.rows[0].cnt)
+        };
+      } catch {
+        result[row.table_name] = { columns: row.col_count, records: 'erro ao contar' };
+      }
+    }
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
 // ---- Iniciar servidor ----
 // IMPORTANTE: app.listen() deve estar DEPOIS de todas as definições de rotas
 const DEFAULT_PORT = 5000;
