@@ -20,10 +20,34 @@ const pwaPlugin = VitePWA({
   registerType: 'autoUpdate',
   injectRegister: 'auto',
   workbox: {
+    cleanupOutdatedCaches: true,
     globPatterns: ['**/*.{js,css,html,ico,svg,png,woff2}'],
     navigateFallback: '/index.html',
     navigateFallbackDenylist: [/^\/api\//],
     runtimeCaching: [
+      {
+        // Respostas de API para leitura offline de telas já visitadas
+        urlPattern: /\/api\/.+/,
+        handler: 'NetworkFirst',
+        method: 'GET',
+        options: {
+          cacheName: 'fitout-api-get',
+          networkTimeoutSeconds: 4,
+          expiration: { maxEntries: 300, maxAgeSeconds: 24 * 60 * 60 },
+          cacheableResponse: { statuses: [0, 200] },
+        },
+      },
+      {
+        // Arquivos persistidos no banco (endpoint /api/files/:id)
+        urlPattern: /\/api\/files\/.+/,
+        handler: 'CacheFirst',
+        method: 'GET',
+        options: {
+          cacheName: 'fitout-api-files',
+          expiration: { maxEntries: 300, maxAgeSeconds: 30 * 24 * 60 * 60 },
+          cacheableResponse: { statuses: [0, 200] },
+        },
+      },
       {
         urlPattern: /\/uploads\/.+/,
         handler: 'CacheFirst',
