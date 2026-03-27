@@ -1,7 +1,8 @@
 ﻿import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Auth, User } from "@/api/entities";
+import { Auth, User, Empreendimento } from "@/api/entities";
+import { getUploadUrl } from "@/api/config";
 import ApiConnectionAlert from "@/components/ApiConnectionAlert";
 import {
   Building2,
@@ -94,6 +95,56 @@ export default function Layout({ children }) {
   const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' ? !navigator.onLine : false);
   const [redirectChecked, setRedirectChecked] = useState(false);
   const [isLoadingUser, setIsLoadingUser] = useState(false);
+  const [precacheStatus, setPrecacheStatus] = useState('idle'); // idle | running | done | error
+
+  // Pre-cache dos empreendimentos para navegacao offline sem abrir a tela manualmente
+  useEffect(() => {
+    const runPrecache = async () => {
+      try {
+        if (!user) {
+          setPrecacheStatus('idle');
+          return;
+        }
+        if (isOffline) return;
+        const sessionId = user?.id || user?.email || 'anon';
+        const doneKey = `offline_precache_done_v1_${sessionId}`;
+        if (sessionStorage.getItem(doneKey) === '1') {
+          setPrecacheStatus('done');
+          return;
+        }
+
+        setPrecacheStatus('running');
+        sessionStorage.setItem(doneKey, '1');
+
+        const rows = await Empreendimento.list('-created_date');
+        const itens = Array.isArray(rows) ? rows : [];
+        console.log(`[precache] empreendimentos cacheados: ${itens.length}`);
+
+        const rawUrls = itens.flatMap((emp) => {
+          const list = [];
+          if (emp?.foto_empreendimento) list.push(emp.foto_empreendimento);
+          if (Array.isArray(emp?.fotos_empreendimento)) list.push(...emp.fotos_empreendimento);
+          return list;
+        });
+
+        const imageUrls = [...new Set(rawUrls
+          .map((u) => getUploadUrl(u))
+          .filter(Boolean)
+          .slice(0, 80))];
+
+        await Promise.allSettled(
+          imageUrls.map((url) => fetch(url, { cache: 'force-cache' }))
+        );
+        console.log(`[precache] imagens de empreendimentos cacheadas: ${imageUrls.length}`);
+        setPrecacheStatus('done');
+      } catch (err) {
+        setPrecacheStatus('error');
+        console.warn('[precache] erro ao pre-cachear empreendimentos:', err?.message || err);
+      }
+    };
+
+    runPrecache();
+  }, [user, isOffline]);
 
   // Monitora status de conexao e processa fila ao voltar online
   useEffect(() => {
@@ -181,15 +232,26 @@ export default function Layout({ children }) {
     }
   }, [location.pathname, user]);
 
-  // Redireciona para Login quando nÃ£o hÃ¡ token
+  // Redireciona para Login quando nÃ£o hÃ¡ token (exceto sessÃ£o offline)
   useEffect(() => {
     try {
       const hasToken = !!(localStorage.getItem('authToken') || localStorage.getItem('token'));
+      const hasOfflineSession = !!(
+        localStorage.getItem('appRole')
+        || localStorage.getItem('userEmail')
+        || localStorage.getItem('lastLoginEmail')
+        || localStorage.getItem('userId')
+        || localStorage.getItem('perfilCliente') === 'true'
+      );
       if (!hasToken && !isAuthPage) {
+        if (isOffline && hasOfflineSession) {
+          console.log('Layout - modo offline com sessao local; mantendo navegacao sem token');
+          return;
+        }
         navigate(createPageUrl('Login'));
       }
     } catch { }
-  }, [location.pathname]);
+  }, [location.pathname, isOffline]);
 
   const handleLanguageChange = (lang) => {
     setLanguage(lang);
@@ -497,6 +559,21 @@ export default function Layout({ children }) {
                   <span>Offline</span>
                 </div>
               )}
+              {!isOffline && precacheStatus === 'running' && (
+                <div className="flex items-center gap-1 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full border border-blue-300">
+                  <span>Pre-cache em andamento...</span>
+                </div>
+              )}
+              {!isOffline && precacheStatus === 'done' && (
+                <div className="flex items-center gap-1 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full border border-green-300">
+                  <span>Offline pronto</span>
+                </div>
+              )}
+              {!isOffline && precacheStatus === 'error' && (
+                <div className="flex items-center gap-1 bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full border border-red-300">
+                  <span>Falha no pre-cache</span>
+                </div>
+              )}
                 <div className={`p-3 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
                   <p className={`font-medium text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{user.full_name}</p>
                   <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{user.email}</p>
@@ -564,6 +641,21 @@ export default function Layout({ children }) {
                 <div className="flex items-center gap-1 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full border border-yellow-300">
                   <WifiOff className="w-3 h-3" />
                   <span>Offline</span>
+                </div>
+              )}
+              {!isOffline && precacheStatus === 'running' && (
+                <div className="flex items-center gap-1 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full border border-blue-300">
+                  <span>Pre-cache...</span>
+                </div>
+              )}
+              {!isOffline && precacheStatus === 'done' && (
+                <div className="flex items-center gap-1 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full border border-green-300">
+                  <span>Offline pronto</span>
+                </div>
+              )}
+              {!isOffline && precacheStatus === 'error' && (
+                <div className="flex items-center gap-1 bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full border border-red-300">
+                  <span>Falha pre-cache</span>
                 </div>
               )}
               {/* Theme Toggle Button for Mobile */}
