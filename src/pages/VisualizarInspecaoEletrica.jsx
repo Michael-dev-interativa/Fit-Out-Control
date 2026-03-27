@@ -434,13 +434,14 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 headerHeightPx: 80,
                 footerHeightPx: 45,
                 pagePaddingPx: 12,
-                photoMaxHeightPx: 250,
+                // Slightly overestimate photo height so pagination breaks earlier in print
+                photoMaxHeightPx: 260,
                 maxPhotosPerItem: 3,
                 itemBufferPx: 12,
-                safetyMarginPx: 110,
-                footerGuardPx: 28,
-                breakBeforeLimitPx: 32,
-                firstPageExtraHeightPx: 140,
+                safetyMarginPx: 180,
+                footerGuardPx: 80,
+                breakBeforeLimitPx: 280,
+                firstPageExtraHeightPx: 180,
             })
         )
         : [];
