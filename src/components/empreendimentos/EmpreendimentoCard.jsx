@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { getUploadUrl } from "@/api/config.js";
@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Building2, Eye, Edit, Users, Trash2 } from "lucide-react";
 import { Empreendimento } from "@/api/entities";
-import { User } from "@/api/entities";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,7 +35,13 @@ const isValidId = (id) => {
 export default function EmpreendimentoCard({ empreendimento, onUpdate }) {
   const navigate = useNavigate();
   const defaultImage = "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&h=300&fit=crop";
-  const [currentUser, setCurrentUser] = useState(null);
+  // Lê o papel do usuário diretamente do localStorage para evitar N requests ao backend
+  const currentUser = useMemo(() => {
+    try {
+      const role = (localStorage.getItem('appRole') || '').toLowerCase();
+      return role ? { role } : null;
+    } catch { return null; }
+  }, []);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Resolve uma URL de imagem segura: evita blob: e strings inválidas
@@ -63,18 +68,6 @@ export default function EmpreendimentoCard({ empreendimento, onUpdate }) {
       }
     }
   }, [empreendimento, isEmpreendimentoValid]);
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const user = await User.me();
-        setCurrentUser(user);
-      } catch (e) {
-        console.error("Failed to fetch user", e);
-      }
-    };
-    fetchUser();
-  }, []);
 
   const handleEditClick = () => {
     if (!isEmpreendimentoValid) {

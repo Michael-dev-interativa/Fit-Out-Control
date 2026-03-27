@@ -154,12 +154,30 @@ export const User = {
       console.log('📡 /api/auth/me - Status:', r.status);
 
       if (!r.ok) {
+        // Se 401, token inválido/expirado — limpa token para redirecionar ao login
+        if (r.status === 401) {
+          try {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('token');
+          } catch { }
+          console.log('⚠️ User.me() - Token inválido (401), limpando token');
+          return null;
+        }
         url = apiUrl('/api/usuarios/me');
         r = await fetch(url, { headers: getAuthHeaders() });
         console.log('📡 /api/usuarios/me - Status:', r.status);
       }
 
       if (!r.ok) {
+        // Se 401, token inválido/expirado
+        if (r.status === 401) {
+          try {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('token');
+          } catch { }
+          console.log('⚠️ User.me() - Token inválido (401) em /usuarios/me, limpando token');
+          return null;
+        }
         console.log('⚠️ User.me() - Backend falhou, usando fallback localStorage');
         // Fallback: reconstruir usuário a partir do localStorage
         try {
