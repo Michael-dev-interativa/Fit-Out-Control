@@ -60,6 +60,7 @@
     "express-rate-limit": "^7.0.1",
     "framer-motion": "^12.4.7",
     "helmet": "^7.0.0",
+    "idb": "^8.0.3",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.475.0",
     "multer": "^2.0.2",
@@ -77,6 +78,7 @@
     "tailwind-merge": "^3.0.2",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.1.2",
+    "vite-plugin-pwa": "^1.2.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {

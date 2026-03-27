@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Auth, User } from "@/api/entities";
@@ -15,7 +15,8 @@ import {
   FileText,
   Calendar,
   ListChecks,
-  Eye
+  Eye,
+  WifiOff
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -90,8 +91,31 @@ export default function Layout({ children }) {
   };
   const [user, setUser] = useState(() => buildUserFromLocal());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' ? !navigator.onLine : false);
   const [redirectChecked, setRedirectChecked] = useState(false);
   const [isLoadingUser, setIsLoadingUser] = useState(false);
+
+  // Monitora status de conexao e processa fila ao voltar online
+  useEffect(() => {
+    const handleOnline = async () => {
+      setIsOffline(false);
+      try {
+        const { processSyncQueue } = await import('@/lib/offlineDb');
+        const cnt = await processSyncQueue(() => {
+          const t = localStorage.getItem('authToken') || localStorage.getItem('token');
+          return t ? { Authorization: 'Bearer ' + t } : {};
+        });
+        if (cnt > 0) console.log('[offline] ' + cnt + ' operacoes sincronizadas');
+      } catch { /* silencioso */ }
+    };
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Detect if the current page is a report page to render it without the main layout
   const reportPagePaths = [
@@ -109,7 +133,7 @@ export default function Layout({ children }) {
   ];
   const isReportPage = reportPagePaths.some(path => location.pathname.startsWith(path));
 
-  // Páginas de autenticação não devem exibir sidebar/header
+  // PÃ¡ginas de autenticaÃ§Ã£o nÃ£o devem exibir sidebar/header
   const authPaths = ['/Login', '/login', '/Register', '/register'];
   const isAuthPage = authPaths.includes(location.pathname);
 
@@ -119,7 +143,7 @@ export default function Layout({ children }) {
     if (storedLang) setLanguage(storedLang);
     if (storedTheme) setTheme(storedTheme);
 
-    // Adicionar meta tag para prevenir dark mode forçado no mobile
+    // Adicionar meta tag para prevenir dark mode forÃ§ado no mobile
     let metaColorScheme = document.querySelector("meta[name='color-scheme']");
     if (!metaColorScheme) {
       metaColorScheme = document.createElement('meta');
@@ -136,7 +160,7 @@ export default function Layout({ children }) {
       document.documentElement.style.colorScheme = 'light';
     }
 
-    // Se já temos usuário do localStorage, não deixar em branco antes do fetch
+    // Se jÃ¡ temos usuÃ¡rio do localStorage, nÃ£o deixar em branco antes do fetch
     const uLocal = buildUserFromLocal();
     if (uLocal && !user) {
       console.log('Layout - inicializando a partir do localStorage:', uLocal);
@@ -145,19 +169,19 @@ export default function Layout({ children }) {
     loadUser();
   }, []);
 
-  // Recarrega usuário quando há mudanças de autenticação
+  // Recarrega usuÃ¡rio quando hÃ¡ mudanÃ§as de autenticaÃ§Ã£o
   useEffect(() => {
     const hasToken = !!(localStorage.getItem('authToken') || localStorage.getItem('token'));
-    console.log('Layout - Verificando autenticação. hasToken:', hasToken, 'user:', user, 'isLoadingUser:', isLoadingUser);
+    console.log('Layout - Verificando autenticaÃ§Ã£o. hasToken:', hasToken, 'user:', user, 'isLoadingUser:', isLoadingUser);
 
-    // Se há token mas não há usuário e não está carregando, carrega o usuário
+    // Se hÃ¡ token mas nÃ£o hÃ¡ usuÃ¡rio e nÃ£o estÃ¡ carregando, carrega o usuÃ¡rio
     if (hasToken && !user && !isAuthPage && !isLoadingUser) {
-      console.log('Layout - Token presente mas user null, carregando usuário...');
+      console.log('Layout - Token presente mas user null, carregando usuÃ¡rio...');
       loadUser();
     }
   }, [location.pathname, user]);
 
-  // Redireciona para Login quando não há token
+  // Redireciona para Login quando nÃ£o hÃ¡ token
   useEffect(() => {
     try {
       const hasToken = !!(localStorage.getItem('authToken') || localStorage.getItem('token'));
@@ -253,7 +277,7 @@ export default function Layout({ children }) {
 
   const loadUser = async () => {
     if (isLoadingUser) {
-      console.log('Layout - loadUser já em execução, ignorando chamada duplicada');
+      console.log('Layout - loadUser jÃ¡ em execuÃ§Ã£o, ignorando chamada duplicada');
       return;
     }
 
@@ -266,7 +290,7 @@ export default function Layout({ children }) {
       console.log('localStorage.appRole:', localStorage.getItem('appRole'));
       console.log('localStorage.perfilCliente:', localStorage.getItem('perfilCliente'));
       if (!me) {
-        // Fallback: construir usuário mínimo a partir do localStorage
+        // Fallback: construir usuÃ¡rio mÃ­nimo a partir do localStorage
         try {
           console.log('Layout - me nulo, verificando localStorage para fallback');
           const roleLocal = (localStorage.getItem('appRole') || '').toLowerCase();
@@ -283,7 +307,7 @@ export default function Layout({ children }) {
             setRedirectChecked(true);
             return;
           }
-          console.log('Layout - Fallback localStorage indisponível');
+          console.log('Layout - Fallback localStorage indisponÃ­vel');
         } catch { }
         setUser(null);
         setRedirectChecked(true);
@@ -294,21 +318,21 @@ export default function Layout({ children }) {
       let finalRole = (roleMe === 'admin') ? 'admin' : (roleMe === 'cliente' ? 'cliente' : 'user');
       const perfilCliente = me?.perfil_cliente === true || finalRole === 'cliente';
       const currentUser = { ...me, role: finalRole, perfil_cliente: perfilCliente };
-      console.log('Layout - CURRENT USER CONSTRUÍDO:', currentUser);
+      console.log('Layout - CURRENT USER CONSTRUÃDO:', currentUser);
       console.log('Layout - currentUser.role:', currentUser.role);
       console.log('Layout - currentUser.perfil_cliente:', currentUser.perfil_cliente);
-      // Persistir papel/perfil para consistência entre renders
+      // Persistir papel/perfil para consistÃªncia entre renders
       try {
         if (currentUser?.role) localStorage.setItem('appRole', String(currentUser.role));
         if (currentUser?.perfil_cliente !== undefined) localStorage.setItem('perfilCliente', String(!!currentUser.perfil_cliente));
       } catch { }
-      console.log("Layout - Usuário carregado:", currentUser);
+      console.log("Layout - UsuÃ¡rio carregado:", currentUser);
       console.log("Layout - perfil_cliente value:", currentUser?.perfil_cliente);
       console.log('==========================================');
       setUser(currentUser);
       setRedirectChecked(true);
     } catch (error) {
-      console.log("Erro ao carregar usuário:", error.message || error);
+      console.log("Erro ao carregar usuÃ¡rio:", error.message || error);
       setUser(null);
       setRedirectChecked(true);
     } finally {
@@ -318,7 +342,7 @@ export default function Layout({ children }) {
     // Fim de loadUser
   };
 
-  // Efeito para reagir a mudanças do usuário e redirecionar clientes quando necessário
+  // Efeito para reagir a mudanÃ§as do usuÃ¡rio e redirecionar clientes quando necessÃ¡rio
   useEffect(() => {
     console.log("Layout - User:", user);
     console.log("Layout - perfil_cliente:", user?.perfil_cliente);
@@ -359,7 +383,7 @@ export default function Layout({ children }) {
     );
   }
 
-  // Se for página de autenticação (Login/Registro), não renderizar layout com sidebar/header
+  // Se for pÃ¡gina de autenticaÃ§Ã£o (Login/Registro), nÃ£o renderizar layout com sidebar/header
   if (isAuthPage) {
     return (
       <main className="min-h-screen">
@@ -369,7 +393,7 @@ export default function Layout({ children }) {
     );
   }
 
-  // Aguarda verificação de redirecionamento para clientes
+  // Aguarda verificaÃ§Ã£o de redirecionamento para clientes
   if (!redirectChecked) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -379,16 +403,16 @@ export default function Layout({ children }) {
   }
 
   const NavItems = ({ mobile = false, user }) => {
-    console.log('🔍 NavItems - user recebido:', user);
-    console.log('🔍 NavItems - user.role:', user?.role);
-    console.log('🔍 NavItems - user.role === "admin":', user?.role === "admin");
+    console.log('NavItems - user recebido:', user);
+    console.log('NavItems - user.role:', user?.role);
+    console.log('NavItems - user.role === "admin":', user?.role === "admin");
 
     const items = getNavigationItems(user);
     const filteredItems = items.filter(item => !item.adminOnly || (user?.role === "admin"));
 
-    console.log('📋 NavItems - Total de itens:', items.length);
-    console.log('📋 NavItems - Itens filtrados:', filteredItems.length);
-    console.log('📋 NavItems - Itens:', filteredItems.map(i => ({ title: i.title, adminOnly: i.adminOnly })));
+    console.log('NavItems - Total de itens:', items.length);
+    console.log('NavItems - Itens filtrados:', filteredItems.length);
+    console.log('NavItems - Itens:', filteredItems.map(i => ({ title: i.title, adminOnly: i.adminOnly })));
 
     return (
       <div className={`${mobile ? 'space-y-1' : 'space-y-2'}`}>
@@ -467,6 +491,12 @@ export default function Layout({ children }) {
 
             {user && (
               <div className="space-y-3">
+              {isOffline && (
+                <div className="flex items-center gap-1 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full border border-yellow-300">
+                  <WifiOff className="w-3 h-3" />
+                  <span>Offline</span>
+                </div>
+              )}
                 <div className={`p-3 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
                   <p className={`font-medium text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{user.full_name}</p>
                   <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{user.email}</p>
@@ -530,6 +560,12 @@ export default function Layout({ children }) {
             </div>
 
             <div className="flex items-center gap-2">
+              {isOffline && (
+                <div className="flex items-center gap-1 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full border border-yellow-300">
+                  <WifiOff className="w-3 h-3" />
+                  <span>Offline</span>
+                </div>
+              )}
               {/* Theme Toggle Button for Mobile */}
               <Button
                 variant="ghost"
@@ -564,3 +600,7 @@ export default function Layout({ children }) {
     </div>
   );
 }
+
+
+
+

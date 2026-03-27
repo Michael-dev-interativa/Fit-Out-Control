@@ -1,6 +1,7 @@
 // Cliente local: wrappers que chamam nosso backend Express
 import { apiUrl } from './config';
 import { base44 } from './base44Client';
+import { cacheGet, cachePut, cacheClearPrefix, isOnline, queuePush } from '@/lib/offlineDb';
 function getAuthToken() {
   try { return localStorage.getItem('authToken') || localStorage.getItem('token') || null; } catch { return null; }
 }
@@ -29,14 +30,39 @@ async function handleResponse(r, resource, action) {
   throw new Error(`${action} ${resource} failed`);
 }
 
+function shouldQueueWriteError(err) {
+  const msg = String(err?.message || '').toLowerCase();
+  return (
+    !isOnline()
+    || msg.includes('failed to fetch')
+    || msg.includes('networkerror')
+    || msg.includes('network error')
+    || msg.includes('load failed')
+  );
+}
+
 const makeEntity = (resource) => ({
   async list(order) {
     const params = new URLSearchParams();
     if (order) params.append('order', order);
     const url = apiUrl(`/api/${resource}?${params.toString()}`);
+    const cacheKey = `LIST:${resource}:${params.toString()}`;
     console.log(`[API] LIST ${resource} -> ${url}`);
-    const r = await fetch(url, { headers: getAuthHeaders() });
-    return handleResponse(r, resource, 'LIST');
+    if (!isOnline()) {
+      const cached = await cacheGet(cacheKey);
+      if (cached) { console.log(`[offline] servindo cache: ${cacheKey}`); return cached; }
+      return [];
+    }
+    try {
+      const r = await fetch(url, { headers: getAuthHeaders() });
+      const data = await handleResponse(r, resource, 'LIST');
+      cachePut(cacheKey, data).catch(() => {});
+      return data;
+    } catch (err) {
+      const cached = await cacheGet(cacheKey);
+      if (cached) { console.log(`[offline] fallback cache: ${cacheKey}`); return cached; }
+      throw err;
+    }
   },
   async filter(criteria = {}, order) {
     const params = new URLSearchParams();
@@ -45,32 +71,119 @@ const makeEntity = (resource) => ({
     });
     if (order) params.append('order', order);
     const url = apiUrl(`/api/${resource}?${params.toString()}`);
-    const r = await fetch(url, { headers: getAuthHeaders() });
-    return handleResponse(r, resource, 'FILTER');
+    const cacheKey = `FILTER:${resource}:${params.toString()}`;
+    if (!isOnline()) {
+      const cached = await cacheGet(cacheKey);
+      if (cached) return cached;
+      return [];
+    }
+    try {
+      const r = await fetch(url, { headers: getAuthHeaders() });
+      const data = await handleResponse(r, resource, 'FILTER');
+      cachePut(cacheKey, data).catch(() => {});
+      return data;
+    } catch (err) {
+      const cached = await cacheGet(cacheKey);
+      if (cached) return cached;
+      throw err;
+    }
   },
   async get(id) {
     const url = apiUrl(`/api/${resource}/${id}`);
-    const r = await fetch(url, { headers: getAuthHeaders() });
-    return handleResponse(r, resource, `GET ${id}`);
+    const cacheKey = `GET:${resource}:${id}`;
+    if (!isOnline()) {
+      const cached = await cacheGet(cacheKey);
+      if (cached) { console.log(`[offline] servindo cache: ${cacheKey}`); return cached; }
+      return null;
+    }
+    try {
+      const r = await fetch(url, { headers: getAuthHeaders() });
+      const data = await handleResponse(r, resource, `GET ${id}`);
+      cachePut(cacheKey, data).catch(() => {});
+      return data;
+    } catch (err) {
+      const cached = await cacheGet(cacheKey);
+      if (cached) return cached;
+      throw err;
+    }
   },
   async create(data) {
     const url = apiUrl(`/api/${resource}`);
-    const r = await fetch(url, {
-      method: 'POST', headers: getAuthHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(data)
-    });
-    return handleResponse(r, resource, 'CREATE');
+    if (!isOnline()) {
+      await queuePush('POST', url, data);
+      cacheClearPrefix(`LIST:${resource}`).catch(() => {});
+      cacheClearPrefix(`FILTER:${resource}`).catch(() => {});
+      return { queued: true, offline: true, action: 'CREATE', resource, data };
+    }
+    try {
+      const r = await fetch(url, {
+        method: 'POST', headers: getAuthHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(data)
+      });
+      const result = await handleResponse(r, resource, 'CREATE');
+      // Invalida cache de listagem após mutação
+      cacheClearPrefix(`LIST:${resource}`).catch(() => {});
+      cacheClearPrefix(`FILTER:${resource}`).catch(() => {});
+      return result;
+    } catch (err) {
+      if (!shouldQueueWriteError(err)) throw err;
+      await queuePush('POST', url, data);
+      cacheClearPrefix(`LIST:${resource}`).catch(() => {});
+      cacheClearPrefix(`FILTER:${resource}`).catch(() => {});
+      return { queued: true, offline: true, action: 'CREATE', resource, data };
+    }
   },
   async update(id, data) {
     const url = apiUrl(`/api/${resource}/${id}`);
-    const r = await fetch(url, {
-      method: 'PUT', headers: getAuthHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(data)
-    });
-    return handleResponse(r, resource, `UPDATE ${id}`);
+    if (!isOnline()) {
+      await queuePush('PUT', url, data);
+      cacheClearPrefix(`GET:${resource}:${id}`).catch(() => {});
+      cacheClearPrefix(`LIST:${resource}`).catch(() => {});
+      cacheClearPrefix(`FILTER:${resource}`).catch(() => {});
+      return { queued: true, offline: true, action: 'UPDATE', resource, id, data };
+    }
+    try {
+      const r = await fetch(url, {
+        method: 'PUT', headers: getAuthHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(data)
+      });
+      const result = await handleResponse(r, resource, `UPDATE ${id}`);
+      // Invalida cache do item e listagens
+      cacheClearPrefix(`GET:${resource}:${id}`).catch(() => {});
+      cacheClearPrefix(`LIST:${resource}`).catch(() => {});
+      cacheClearPrefix(`FILTER:${resource}`).catch(() => {});
+      return result;
+    } catch (err) {
+      if (!shouldQueueWriteError(err)) throw err;
+      await queuePush('PUT', url, data);
+      cacheClearPrefix(`GET:${resource}:${id}`).catch(() => {});
+      cacheClearPrefix(`LIST:${resource}`).catch(() => {});
+      cacheClearPrefix(`FILTER:${resource}`).catch(() => {});
+      return { queued: true, offline: true, action: 'UPDATE', resource, id, data };
+    }
   },
   async delete(id) {
     const url = apiUrl(`/api/${resource}/${id}`);
-    const r = await fetch(url, { method: 'DELETE', headers: getAuthHeaders() });
-    return handleResponse(r, resource, `DELETE ${id}`);
+    if (!isOnline()) {
+      await queuePush('DELETE', url);
+      cacheClearPrefix(`GET:${resource}:${id}`).catch(() => {});
+      cacheClearPrefix(`LIST:${resource}`).catch(() => {});
+      cacheClearPrefix(`FILTER:${resource}`).catch(() => {});
+      return { queued: true, offline: true, action: 'DELETE', resource, id };
+    }
+    try {
+      const r = await fetch(url, { method: 'DELETE', headers: getAuthHeaders() });
+      const result = await handleResponse(r, resource, `DELETE ${id}`);
+      cacheClearPrefix(`GET:${resource}:${id}`).catch(() => {});
+      cacheClearPrefix(`LIST:${resource}`).catch(() => {});
+      cacheClearPrefix(`FILTER:${resource}`).catch(() => {});
+      return result;
+    } catch (err) {
+      if (!shouldQueueWriteError(err)) throw err;
+      await queuePush('DELETE', url);
+      cacheClearPrefix(`GET:${resource}:${id}`).catch(() => {});
+      cacheClearPrefix(`LIST:${resource}`).catch(() => {});
+      cacheClearPrefix(`FILTER:${resource}`).catch(() => {});
+      return { queued: true, offline: true, action: 'DELETE', resource, id };
+    }
   }
 });
 
