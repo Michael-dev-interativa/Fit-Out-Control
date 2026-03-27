@@ -406,14 +406,13 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
     const hasDocumentacao = relatorio.itens_documentacao && relatorio.itens_documentacao.length > 0;
 
     // Paginação por peso / chunks (portada de VisualizarInspecaoHidraulica)
-    const paginateLocalItems = (local) => {
+    const paginateLocalItems = (local, maxWeightPerPage = 10) => {
         const allItems = [...(local.itens_inspecao || [])];
         if (local.comentarios) {
             allItems.push({ tipo: 'comentario', texto: local.comentarios });
         }
 
         const MAX_FOTOS_PER_ITEM = 6;
-        const MAX_WEIGHT_PER_PAGE = 12;
 
         let currentSlice = [];
         const slices = [];
@@ -434,7 +433,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 const firstItemPart = { ...item, fotos: fotosChunks[0] };
                 const weight = calculateItemWeight(firstItemPart);
                 const currentWeight = calculateSliceWeight(currentSlice);
-                if (currentSlice.length > 0 && currentWeight + weight > MAX_WEIGHT_PER_PAGE) {
+                if (currentSlice.length > 0 && currentWeight + weight > maxWeightPerPage) {
                     slices.push([...currentSlice]);
                     currentSlice = [];
                 }
@@ -446,7 +445,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
             } else {
                 const weight = calculateItemWeight(item);
                 const currentWeight = calculateSliceWeight(currentSlice);
-                if (currentSlice.length > 0 && currentWeight + weight > MAX_WEIGHT_PER_PAGE) {
+                if (currentSlice.length > 0 && currentWeight + weight > maxWeightPerPage) {
                     slices.push([...currentSlice]);
                     currentSlice = [item];
                 } else {
@@ -478,11 +477,12 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
     const docItemCount = hasDocumentacao ? (relatorio.itens_documentacao.length || 0) : 0;
     const combineDocWithContent = hasDocumentacao && docItemCount <= 6;
 
-    const firstPageItemLimit = combineDocWithContent ? Math.max(6, 12 - docItemCount) : 14;
+    const DEFAULT_WEIGHT_PER_PAGE = 10;
+    const firstPageItemLimit = combineDocWithContent ? Math.max(6, DEFAULT_WEIGHT_PER_PAGE - docItemCount) : DEFAULT_WEIGHT_PER_PAGE;
 
     const contentPages = (relatorio.locais && relatorio.locais.length > 0)
         ? relatorio.locais.flatMap((local, index) =>
-            paginateLocalItems(local, index === 0 ? firstPageItemLimit : 14)
+            paginateLocalItems(local, index === 0 ? firstPageItemLimit : DEFAULT_WEIGHT_PER_PAGE)
         )
         : [];
 
