@@ -1,7 +1,7 @@
 // Cliente local: wrappers que chamam nosso backend Express
 import { apiUrl } from './config';
 import { base44 } from './base44Client';
-import { cacheGet, cachePut, cacheClearPrefix, isOnline, queuePush } from '@/lib/offlineDb';
+import { cacheGet, cachePut, cacheClearPrefix, isOnline, queuePush, shadowPut, shadowGetAll } from '@/lib/offlineDb';
 function getAuthToken() {
   try { return localStorage.getItem('authToken') || localStorage.getItem('token') || null; } catch { return null; }
 }
@@ -41,6 +41,19 @@ function shouldQueueWriteError(err) {
   );
 }
 
+function makeOfflineId(resource) {
+  return `offline_${resource}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function mergeShadowCreates(baseItems, shadowRows) {
+  const items = Array.isArray(baseItems) ? [...baseItems] : [];
+  for (const shadow of shadowRows) {
+    if (shadow?.kind !== 'create' || !shadow?.data) continue;
+    items.unshift(shadow.data);
+  }
+  return items;
+}
+
 const makeEntity = (resource) => ({
   async list(order) {
     const params = new URLSearchParams();
@@ -50,17 +63,20 @@ const makeEntity = (resource) => ({
     console.log(`[API] LIST ${resource} -> ${url}`);
     if (!isOnline()) {
       const cached = await cacheGet(cacheKey);
-      if (cached) { console.log(`[offline] servindo cache: ${cacheKey}`); return cached; }
-      return [];
+      const shadows = await shadowGetAll(resource);
+      if (cached) { console.log(`[offline] servindo cache: ${cacheKey}`); return mergeShadowCreates(cached, shadows); }
+      return mergeShadowCreates([], shadows);
     }
     try {
       const r = await fetch(url, { headers: getAuthHeaders() });
       const data = await handleResponse(r, resource, 'LIST');
       cachePut(cacheKey, data).catch(() => {});
-      return data;
+      const shadows = await shadowGetAll(resource);
+      return mergeShadowCreates(data, shadows);
     } catch (err) {
       const cached = await cacheGet(cacheKey);
-      if (cached) { console.log(`[offline] fallback cache: ${cacheKey}`); return cached; }
+      const shadows = await shadowGetAll(resource);
+      if (cached) { console.log(`[offline] fallback cache: ${cacheKey}`); return mergeShadowCreates(cached, shadows); }
       throw err;
     }
   },
@@ -91,6 +107,11 @@ const makeEntity = (resource) => ({
   async get(id) {
     const url = apiUrl(`/api/${resource}/${id}`);
     const cacheKey = `GET:${resource}:${id}`;
+    if (String(id).startsWith(`offline_${resource}_`)) {
+      const shadows = await shadowGetAll(resource);
+      const found = shadows.find((shadow) => shadow?.kind === 'create' && shadow?.data?.id === id);
+      if (found?.data) return found.data;
+    }
     if (!isOnline()) {
       const cached = await cacheGet(cacheKey);
       if (cached) { console.log(`[offline] servindo cache: ${cacheKey}`); return cached; }
@@ -110,10 +131,18 @@ const makeEntity = (resource) => ({
   async create(data) {
     const url = apiUrl(`/api/${resource}`);
     if (!isOnline()) {
-      await queuePush('POST', url, data);
-      cacheClearPrefix(`LIST:${resource}`).catch(() => {});
-      cacheClearPrefix(`FILTER:${resource}`).catch(() => {});
-      return { queued: true, offline: true, action: 'CREATE', resource, data };
+      const offlineId = makeOfflineId(resource);
+      const offlineRecord = {
+        ...data,
+        id: offlineId,
+        offline: true,
+        queued: true,
+        created_at: data?.created_at || new Date().toISOString(),
+      };
+      const shadowKey = `${resource}:create:${offlineId}`;
+      await shadowPut({ key: shadowKey, resource, kind: 'create', data: offlineRecord, timestamp: Date.now() });
+      await queuePush('POST', url, data, { resource, shadowKey, kind: 'create' });
+      return offlineRecord;
     }
     try {
       const r = await fetch(url, {
@@ -126,10 +155,18 @@ const makeEntity = (resource) => ({
       return result;
     } catch (err) {
       if (!shouldQueueWriteError(err)) throw err;
-      await queuePush('POST', url, data);
-      cacheClearPrefix(`LIST:${resource}`).catch(() => {});
-      cacheClearPrefix(`FILTER:${resource}`).catch(() => {});
-      return { queued: true, offline: true, action: 'CREATE', resource, data };
+      const offlineId = makeOfflineId(resource);
+      const offlineRecord = {
+        ...data,
+        id: offlineId,
+        offline: true,
+        queued: true,
+        created_at: data?.created_at || new Date().toISOString(),
+      };
+      const shadowKey = `${resource}:create:${offlineId}`;
+      await shadowPut({ key: shadowKey, resource, kind: 'create', data: offlineRecord, timestamp: Date.now() });
+      await queuePush('POST', url, data, { resource, shadowKey, kind: 'create' });
+      return offlineRecord;
     }
   },
   async update(id, data) {

@@ -15,6 +15,7 @@ const DB_NAME = 'fitout_offline';
 const DB_VERSION = 1;
 const CACHE_STORE = 'api_cache';
 const QUEUE_STORE = 'sync_queue';
+const SHADOW_STORE = 'shadow_records';
 
 // TTL padrão: 24h em milissegundos
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;
@@ -30,6 +31,9 @@ function getDb() {
         }
         if (!db.objectStoreNames.contains(QUEUE_STORE)) {
           db.createObjectStore(QUEUE_STORE, { keyPath: 'id', autoIncrement: true });
+        }
+        if (!db.objectStoreNames.contains(SHADOW_STORE)) {
+          db.createObjectStore(SHADOW_STORE, { keyPath: 'key' });
         }
       },
     });
@@ -109,14 +113,41 @@ export async function cacheClearPrefix(prefix) {
 /**
  * Adiciona uma operação à fila de sincronização (para quando ficar online)
  */
-export async function queuePush(method, url, body) {
+export async function queuePush(method, url, body, meta = {}) {
   try {
     const db = await getDb();
-    await db.add(QUEUE_STORE, { method, url, body, timestamp: Date.now() });
+    await db.add(QUEUE_STORE, { method, url, body, meta, timestamp: Date.now() });
     console.log('[offlineDb] Operação enfileirada:', method, url);
   } catch (err) {
     console.warn('[offlineDb] queuePush falhou:', err.message);
   }
+}
+
+export async function shadowPut(record) {
+  try {
+    const db = await getDb();
+    await db.put(SHADOW_STORE, record);
+  } catch (err) {
+    console.warn('[offlineDb] shadowPut falhou:', err.message);
+  }
+}
+
+export async function shadowGetAll(resource) {
+  try {
+    const db = await getDb();
+    const rows = await db.getAll(SHADOW_STORE);
+    return rows.filter((row) => row?.resource === resource);
+  } catch (err) {
+    console.warn('[offlineDb] shadowGetAll falhou:', err.message);
+    return [];
+  }
+}
+
+export async function shadowDelete(key) {
+  try {
+    const db = await getDb();
+    await db.delete(SHADOW_STORE, key);
+  } catch { /* silencioso */ }
 }
 
 /**
@@ -160,6 +191,9 @@ export async function processSyncQueue(getAuthHeaders) {
       });
       if (res.ok) {
         await queueDelete(op.id);
+        if (op?.meta?.shadowKey) {
+          await shadowDelete(op.meta.shadowKey);
+        }
         try {
           const path = new URL(op.url).pathname;
           // Espera formato /api/<resource> ou /api/<resource>/<id>

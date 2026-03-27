@@ -108,13 +108,13 @@ export default function Layout({ children }) {
         if (isOffline) return;
         const sessionId = user?.id || user?.email || 'anon';
         const doneKey = `offline_precache_done_v1_${sessionId}`;
+        const failedKey = `offline_precache_failed_v1_${sessionId}`;
         if (sessionStorage.getItem(doneKey) === '1') {
           setPrecacheStatus('done');
           return;
         }
 
         setPrecacheStatus('running');
-        sessionStorage.setItem(doneKey, '1');
 
         const rows = await Empreendimento.list('-created_date');
         const itens = Array.isArray(rows) ? rows : [];
@@ -132,12 +132,21 @@ export default function Layout({ children }) {
           .filter(Boolean)
           .slice(0, 80))];
 
-        await Promise.allSettled(
+        const imageResults = await Promise.allSettled(
           imageUrls.map((url) => fetch(url, { cache: 'force-cache' }))
         );
-        console.log(`[precache] imagens de empreendimentos cacheadas: ${imageUrls.length}`);
+        const imageOkCount = imageResults.filter((r) => r.status === 'fulfilled').length;
+        console.log(`[precache] imagens de empreendimentos cacheadas: ${imageOkCount}/${imageUrls.length}`);
+
+        // Só marca concluído após o núcleo de dados ter sido cacheado com sucesso.
+        sessionStorage.setItem(doneKey, '1');
+        sessionStorage.removeItem(failedKey);
         setPrecacheStatus('done');
       } catch (err) {
+        try {
+          const sessionId = user?.id || user?.email || 'anon';
+          sessionStorage.setItem(`offline_precache_failed_v1_${sessionId}`, String(Date.now()));
+        } catch { /* silencioso */ }
         setPrecacheStatus('error');
         console.warn('[precache] erro ao pre-cachear empreendimentos:', err?.message || err);
       }
