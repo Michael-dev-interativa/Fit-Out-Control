@@ -441,10 +441,12 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
         return paginateLocalItemsForPrinting(localNormalizado, opts);
     };
 
-    const combineDocWithContent = false;
+    const docItemCount = hasDocumentacao ? (relatorio.itens_documentacao?.length || 0) : 0;
+    const combineDocWithContent = hasDocumentacao && docItemCount <= 8;
+    const firstPageMaxItems = combineDocWithContent ? Math.max(1, 7 - docItemCount) : undefined;
 
     const contentPages = (relatorio.locais && relatorio.locais.length > 0)
-        ? relatorio.locais.flatMap((local) =>
+        ? relatorio.locais.flatMap((local, index) =>
             paginateLocalItems(local, {
                 pageHeightPx: 1122,
                 headerHeightPx: 80,
@@ -456,6 +458,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 footerGuardPx: 28,
                 breakBeforeLimitPx: 32,
                 firstPageExtraHeightPx: 140,
+                firstPageMaxItems: index === 0 ? firstPageMaxItems : undefined,
             })
         )
         : [];
