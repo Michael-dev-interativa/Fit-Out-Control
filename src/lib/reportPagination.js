@@ -4,12 +4,26 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
   const PAGE_HEIGHT_PX = opts.pageHeightPx || 1122; // A4 297mm ≈ 1122px (96dpi)
   const HEADER_HEIGHT_PX = opts.headerHeightPx || 80;
   const FOOTER_HEIGHT_PX = opts.footerHeightPx || 45;
-  const PAGE_PADDING_PX = opts.pagePaddingPx || 12;
-  const PHOTO_PLACEHOLDER_HEIGHT = opts.photoPlaceholderHeightPx || 200; // fixed per-photo cell height (200px)
-  const ITEM_EXTRA_PADDING = opts.itemExtraPaddingPx || 8; // extra safety padding per item
-  const SAFETY_MARGIN_PX = opts.safetyMarginPx || 72; // extra margin to avoid footer/header overflow
+  const PAGE_PADDING_PX = opts.pagePaddingPx || 8;
+  const FOOTER_GUARD_PX = opts.footerGuardPx || 16;
+  const BREAK_BEFORE_LIMIT_PX = opts.breakBeforeLimitPx || 24;
 
-  const getUsableHeight = () => PAGE_HEIGHT_PX - HEADER_HEIGHT_PX - FOOTER_HEIGHT_PX - PAGE_PADDING_PX - SAFETY_MARGIN_PX;
+  // Backward compatibility with older callers.
+  const ITEM_BUFFER_PX = opts.itemBufferPx || opts.itemExtraPaddingPx || 8;
+  const LEGACY_SAFETY_MARGIN_PX = opts.safetyMarginPx || 0;
+  const PHOTO_MAX_HEIGHT_PX =
+    opts.photoMaxHeightPx ||
+    opts.photoPlaceholderHeightPx ||
+    150;
+
+  const getUsableHeight = () =>
+    PAGE_HEIGHT_PX -
+    HEADER_HEIGHT_PX -
+    FOOTER_HEIGHT_PX -
+    PAGE_PADDING_PX -
+    LEGACY_SAFETY_MARGIN_PX;
+
+  const getBottomLimit = () => getUsableHeight() - FOOTER_GUARD_PX;
 
   const supportsDOM = typeof document !== 'undefined' && document.body;
 
@@ -27,11 +41,11 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
     if (!supportsDOM) {
       if (item.tipo === 'comentario' || item.isComentarioGeral) {
         const len = (item.texto || item.comentarios || '').length;
-        return Math.max(40, ITEM_EXTRA_PADDING + Math.ceil(len / 120) * 18);
+        return Math.max(40, ITEM_BUFFER_PX + Math.ceil(len / 120) * 18);
       }
       const fotos = (item.fotos && item.fotos.length) || 0;
       const fotoRows = Math.ceil(fotos / 3);
-      return ITEM_EXTRA_PADDING + 28 + (fotos > 0 ? (fotoRows * PHOTO_PLACEHOLDER_HEIGHT) : 0);
+      return ITEM_BUFFER_PX + 28 + (fotos > 0 ? (fotoRows * PHOTO_MAX_HEIGHT_PX) : 0);
     }
 
     const tempDiv = document.createElement('div');
@@ -53,7 +67,7 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
       inner = `<div style="font-size:10px; margin-bottom:6px;">${escapeHtml(item.descricao || '')}</div>`;
       inner += '<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px;">';
       fotos.forEach(() => {
-        inner += `<div style="width:100%; height:${PHOTO_PLACEHOLDER_HEIGHT}px; border:1px solid #ddd; box-sizing:border-box;"></div>`;
+        inner += `<div style="width:100%; height:${PHOTO_MAX_HEIGHT_PX}px; border:1px solid #ddd; box-sizing:border-box;"></div>`;
       });
       inner += '</div>';
     } else {
@@ -65,7 +79,7 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
       if (item.fotos && item.fotos.length > 0) {
         inner += `<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:8px;">`;
         item.fotos.forEach(() => {
-          inner += `<div style="width:100%; height:${PHOTO_PLACEHOLDER_HEIGHT}px; border:1px solid #ddd; box-sizing:border-box;"></div>`;
+          inner += `<div style="width:100%; height:${PHOTO_MAX_HEIGHT_PX}px; border:1px solid #ddd; box-sizing:border-box;"></div>`;
         });
         inner += '</div>';
       }
@@ -73,7 +87,7 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
 
     tempDiv.innerHTML = inner;
     document.body.appendChild(tempDiv);
-    const height = tempDiv.offsetHeight + ITEM_EXTRA_PADDING;
+    const height = tempDiv.offsetHeight + ITEM_BUFFER_PX;
     document.body.removeChild(tempDiv);
     return height;
   };
@@ -84,8 +98,20 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
   }
 
   let usableHeight = getUsableHeight();
+  let bottomLimit = getBottomLimit();
   let currentPage = [];
   let currentHeight = 0;
+  let currentMapItems = [];
+
+  const buildPageMap = (itemsMap, usedHeightPx) => ({
+    maxUsableHeightPx: usableHeight,
+    breakLimitPx: bottomLimit,
+    usedHeightPx,
+    remainingHeightPx: Math.max(0, bottomLimit - usedHeightPx),
+    footerGuardPx: FOOTER_GUARD_PX,
+    breakBeforeLimitPx: BREAK_BEFORE_LIMIT_PX,
+    items: itemsMap,
+  });
 
   // support numeric second arg for legacy callers: paginateLocalItemsForPrinting(local, maxItemsForFirstPage)
   let firstPageMaxItems = undefined;
@@ -95,9 +121,15 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
   for (const item of allItems) {
     // If configured, enforce an item-count cap on the first page of this local
     if (pages.length === 0 && typeof firstPageMaxItems === 'number' && currentPage.length >= firstPageMaxItems) {
-      pages.push({ local, items: currentPage, isFirstPageOfLocal: true });
+      pages.push({
+        local,
+        items: currentPage,
+        isFirstPageOfLocal: true,
+        pageMap: buildPageMap(currentMapItems, currentHeight),
+      });
       currentPage = [];
       currentHeight = 0;
+      currentMapItems = [];
     }
     let itemHeight = 0;
     try {
@@ -108,20 +140,48 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
       itemHeight = 28 + (fotos > 0 ? (fotoRows * 160) : 0);
     }
 
-    if (currentHeight + itemHeight > usableHeight && currentPage.length > 0) {
+    const projectedHeight = currentHeight + itemHeight;
+    const remainingAfterProjection = bottomLimit - projectedHeight;
+    const shouldBreakBeforeItem =
+      currentPage.length > 0 &&
+      (projectedHeight > bottomLimit || remainingAfterProjection < BREAK_BEFORE_LIMIT_PX);
+
+    if (shouldBreakBeforeItem) {
       const isFirst = pages.length === 0;
-      pages.push({ local, items: currentPage, isFirstPageOfLocal: isFirst });
+      pages.push({
+        local,
+        items: currentPage,
+        isFirstPageOfLocal: isFirst,
+        pageMap: buildPageMap(currentMapItems, currentHeight),
+      });
       currentPage = [];
       currentHeight = 0;
+      currentMapItems = [];
     }
 
+    const startHeight = currentHeight;
     currentPage.push(item);
     currentHeight += itemHeight;
+    currentMapItems.push({
+      indexInLocal: currentPage.length - 1,
+      tipo: item.tipo || 'item',
+      hasPhotos: !!(item.fotos && item.fotos.length > 0),
+      photosCount: (item.fotos && item.fotos.length) || 0,
+      estimatedHeightPx: itemHeight,
+      startPx: startHeight,
+      endPx: currentHeight,
+      remainingAfterPx: Math.max(0, bottomLimit - currentHeight),
+    });
   }
 
   if (currentPage.length > 0) {
     const isFirst = pages.length === 0;
-    pages.push({ local, items: currentPage, isFirstPageOfLocal: isFirst });
+    pages.push({
+      local,
+      items: currentPage,
+      isFirstPageOfLocal: isFirst,
+      pageMap: buildPageMap(currentMapItems, currentHeight),
+    });
   }
 
   return pages;
