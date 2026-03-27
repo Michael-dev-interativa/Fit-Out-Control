@@ -407,8 +407,39 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
 
     const hasDocumentacao = relatorio.itens_documentacao && relatorio.itens_documentacao.length > 0;
 
+    const normalizeLocalItemsForPagination = (local) => {
+        const itensNormalizados = [];
+
+        (local.itens_inspecao || []).forEach((item) => {
+            const fotosValidas = (item.fotos || []).filter((foto) => foto && typeof foto.url === 'string' && foto.url.trim() !== '');
+
+            // Sempre renderiza a linha principal do checklist sem fotos para permitir quebra limpa.
+            itensNormalizados.push({ ...item, fotos: [] });
+
+            // Fotos viram blocos separados de até 3 por linha.
+            if (fotosValidas.length > 0) {
+                for (let i = 0; i < fotosValidas.length; i += 3) {
+                    itensNormalizados.push({
+                        tipo: 'fotos',
+                        showOnlyPhotos: true,
+                        descricao: item.descricao,
+                        fotos: fotosValidas.slice(i, i + 3),
+                    });
+                }
+            }
+        });
+
+        return {
+            ...local,
+            itens_inspecao: itensNormalizados,
+        };
+    };
+
     // Paginação por altura real para quebrar no ponto exato antes do overflow
-    const paginateLocalItems = (local, opts) => paginateLocalItemsForPrinting(local, opts);
+    const paginateLocalItems = (local, opts) => {
+        const localNormalizado = normalizeLocalItemsForPagination(local);
+        return paginateLocalItemsForPrinting(localNormalizado, opts);
+    };
 
     const combineDocWithContent = false;
 
