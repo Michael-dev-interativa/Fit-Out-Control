@@ -213,6 +213,14 @@ const FotoInspecao = ({ url, legenda }) => {
 };
 
 const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relatorio }) => {
+    const chunkFotos = (fotos, size = 3) => {
+        const chunks = [];
+        for (let i = 0; i < fotos.length; i += size) {
+            chunks.push(fotos.slice(i, i + size));
+        }
+        return chunks;
+    };
+
     return (
         <div className={combineWithDoc ? "px-4 pb-4" : (isFirstPageOfLocal ? "p-4" : "px-4 pt-6 pb-4")}>
             {items && items.length > 0 && (
@@ -253,17 +261,24 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                 }
 
                                 if (item.showOnlyPhotos) {
+                                    const linhasDeFotos = chunkFotos(fotosValidas, 3);
                                     return (
-                                        <tr key={idx} style={{ pageBreakInside: 'auto' }}>
-                                            <td colSpan="5" className="border border-black p-1">
-                                                <div style={{ fontSize: '9px', color: '#666', fontStyle: 'italic', marginBottom: '3px' }}>{item.descricao}</div>
-                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 250px)', gridAutoRows: '250px', gap: '3px', maxWidth: '100%', overflow: 'visible', justifyItems: 'start', justifyContent: 'start', alignItems: 'start', gridAutoFlow: 'row' }}>
-                                                    {fotosValidas.map((foto, fotoIdx) => (
-                                                        <FotoInspecao key={fotoIdx} url={foto.url} legenda={foto.legenda} />
-                                                    ))}
-                                                </div>
-                                            </td>
-                                        </tr>
+                                        <React.Fragment key={idx}>
+                                            {linhasDeFotos.map((linha, linhaIdx) => (
+                                                <tr key={`${idx}-linha-${linhaIdx}`} className="photo-row" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                                    <td colSpan="5" className="border border-black p-1">
+                                                        {linhaIdx === 0 && (
+                                                            <div style={{ fontSize: '9px', color: '#666', fontStyle: 'italic', marginBottom: '3px' }}>{item.descricao}</div>
+                                                        )}
+                                                        <div className="photo-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 250px)', gridAutoRows: '250px', gap: '3px', maxWidth: '100%', overflow: 'visible', justifyItems: 'start', justifyContent: 'start', alignItems: 'start', gridAutoFlow: 'row' }}>
+                                                            {linha.map((foto, fotoIdx) => (
+                                                                <FotoInspecao key={`${idx}-${linhaIdx}-${fotoIdx}`} url={foto.url} legenda={foto.legenda} />
+                                                            ))}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </React.Fragment>
                                     );
                                 }
 
@@ -282,17 +297,17 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                             </td>
                                             <td className="border border-black p-2" style={{ width: '42%', wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap', verticalAlign: 'top', fontSize: '11px' }}>{item.observacoes || ''}</td>
                                         </tr>
-                                        {fotosValidas.length > 0 && (
-                                            <tr style={{ pageBreakInside: 'auto', pageBreakBefore: 'auto' }}>
+                                        {fotosValidas.length > 0 && chunkFotos(fotosValidas, 3).map((linha, linhaIdx) => (
+                                            <tr key={`${idx}-fotos-${linhaIdx}`} className="photo-row" style={{ pageBreakInside: 'avoid', breakInside: 'avoid', pageBreakBefore: 'auto' }}>
                                                 <td colSpan="5" className="border border-black p-1">
-                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 250px)', gridAutoRows: '250px', gap: '3px', maxWidth: '100%', overflow: 'visible', justifyItems: 'start', justifyContent: 'start', alignItems: 'start', gridAutoFlow: 'row' }}>
-                                                        {fotosValidas.map((foto, fotoIdx) => (
-                                                            <FotoInspecao key={fotoIdx} url={foto.url} legenda={foto.legenda} />
+                                                    <div className="photo-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 250px)', gridAutoRows: '250px', gap: '3px', maxWidth: '100%', overflow: 'visible', justifyItems: 'start', justifyContent: 'start', alignItems: 'start', gridAutoFlow: 'row' }}>
+                                                        {linha.map((foto, fotoIdx) => (
+                                                            <FotoInspecao key={`${idx}-${linhaIdx}-${fotoIdx}`} url={foto.url} legenda={foto.legenda} />
                                                         ))}
                                                     </div>
                                                 </td>
                                             </tr>
-                                        )}
+                                        ))}
                                     </React.Fragment>
                                 );
                             })}
@@ -597,6 +612,8 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     table { page-break-inside: auto; border-collapse: collapse; }
                     thead { display: table-header-group; }
                     tr { page-break-inside: avoid; }
+                    .photo-row { page-break-inside: avoid !important; break-inside: avoid !important; }
+                    .photo-grid { page-break-inside: avoid !important; break-inside: avoid !important; }
                 }
                 
                 @media screen {
