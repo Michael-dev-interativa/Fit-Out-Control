@@ -474,11 +474,10 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
             .replace(/'/g, '&#039;');
     }
 
-    const docItemCount = hasDocumentacao ? (relatorio.itens_documentacao.length || 0) : 0;
-    const combineDocWithContent = hasDocumentacao && docItemCount <= 6;
+    const combineDocWithContent = false;
 
     const DEFAULT_WEIGHT_PER_PAGE = 10;
-    const firstPageItemLimit = combineDocWithContent ? Math.max(6, DEFAULT_WEIGHT_PER_PAGE - docItemCount) : DEFAULT_WEIGHT_PER_PAGE;
+    const firstPageItemLimit = DEFAULT_WEIGHT_PER_PAGE;
 
     const contentPages = (relatorio.locais && relatorio.locais.length > 0)
         ? relatorio.locais.flatMap((local, index) =>
