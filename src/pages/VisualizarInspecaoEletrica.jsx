@@ -169,32 +169,32 @@ const CoverPage = ({ relatorio, empreendimento }) => {
 
 const DocumentacaoPage = ({ itens, comentarios }) => {
     return (
-        <div className="px-2 py-0">
-            <h2 className="text-base font-bold text-center mb-0 bg-blue-900 text-white p-0" style={{ fontSize: '13px', padding: '2px' }}>Documentação Técnica</h2>
-            <table className="w-full border-collapse table-fixed" style={{ fontSize: '10px' }}>
+        <div className="px-3 pt-1 pb-1">
+            <h2 className="text-lg font-bold text-center mb-1 bg-blue-900 text-white p-1" style={{ fontSize: '14px' }}>Documentação Técnica</h2>
+            <table className="w-full border-collapse table-fixed" style={{ fontSize: '11px' }}>
                 <thead>
                     <tr className="bg-gray-100">
-                        <th className="border border-black" style={{ width: '40%', padding: '2px', fontSize: '10px' }}>Descrição</th>
-                        <th className="border border-black text-center" style={{ width: '8%', padding: '2px', fontSize: '10px' }}>Recebido</th>
-                        <th className="border border-black" style={{ width: '52%', padding: '2px', fontSize: '10px' }}>Observações</th>
+                        <th className="border border-black p-1 text-left" style={{ width: '40%' }}>Descrição</th>
+                        <th className="border border-black p-1 text-center" style={{ width: '8%' }}>Recebido</th>
+                        <th className="border border-black p-1 text-left" style={{ width: '52%' }}>Observações</th>
                     </tr>
                 </thead>
                 <tbody>
                     {itens.map((item, idx) => (
                         <tr key={idx}>
-                            <td className="border border-black" style={{ width: '40%', fontSize: '10px', padding: '2px' }}>{item.descricao}</td>
-                            <td className="border border-black text-center" style={{ width: '8%', padding: '2px' }}>
-                                <span style={{ display: 'inline-block', width: '9px', height: '9px', minWidth: '9px', minHeight: '9px', border: '1px solid #555', backgroundColor: item.resultado === 'OK' ? '#1d4ed8' : 'white', color: 'white', fontSize: '7px', lineHeight: '9px', textAlign: 'center', boxSizing: 'border-box' }}>{item.resultado === 'OK' ? '✓' : ''}</span>
+                            <td className="border border-black p-1" style={{ width: '40%', fontSize: '11px' }}>{item.descricao}</td>
+                            <td className="border border-black p-1 text-center" style={{ width: '8%' }}>
+                                <span style={{ display: 'inline-block', width: '10px', height: '10px', minWidth: '10px', minHeight: '10px', border: '1px solid #555', backgroundColor: item.resultado === 'OK' ? '#1d4ed8' : 'white', color: 'white', fontSize: '8px', lineHeight: '10px', textAlign: 'center', boxSizing: 'border-box' }}>{item.resultado === 'OK' ? '✓' : ''}</span>
                             </td>
-                            <td className="border border-black" style={{ width: '52%', fontSize: '10px', padding: '2px' }}>{item.observacoes}</td>
+                            <td className="border border-black p-1" style={{ width: '52%', fontSize: '11px' }}>{item.observacoes}</td>
                         </tr>
                     ))}
                 </tbody>
             </table>
             {comentarios && comentarios.trim() !== '' && (
-                <div className="border border-gray-300 bg-gray-50" style={{ fontSize: '9px', padding: '2px' }}>
-                    <p className="font-bold m-0" style={{ fontSize: '9px', margin: '0' }}>Comentários:</p>
-                    <p className="whitespace-pre-wrap m-0" style={{ fontSize: '9px', margin: '0' }}>{comentarios}</p>
+                <div className="mt-1 p-2 bg-gray-50 border border-gray-300" style={{ fontSize: '10px' }}>
+                    <p className="font-bold mb-0" style={{ fontSize: '10px' }}>Comentários:</p>
+                    <p className="whitespace-pre-wrap" style={{ fontSize: '10px' }}>{comentarios}</p>
                 </div>
             )}
         </div>
@@ -219,23 +219,23 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                 <div>
                     {isFirstPageOfLocal && (
                         <>
-                            <h3 className="font-bold bg-blue-900 text-white text-center" style={{ fontSize: '12px', padding: '2px', margin: '0 0 2px 0' }}>{relatorio?.titulo_secao_inspecao || 'Inspeção Física – Quadros'}</h3>
-                            <div className="border border-black" style={{ marginBottom: '2px' }}>
-                                <div style={{ fontSize: '10px', padding: '2px' }}>
+                            <h3 className="text-base font-bold mb-1 bg-blue-900 text-white p-1 text-center" style={{ fontSize: '13px' }}>{relatorio?.titulo_secao_inspecao || 'Inspeção Física – Quadros'}</h3>
+                            <div className="mb-1 border border-black">
+                                <div className="p-1" style={{ fontSize: '11px' }}>
                                     <span className="font-bold">{relatorio?.label_local || 'LOCAL:'} </span>{local.nome_local}
                                 </div>
                             </div>
-                            <p className="text-[7px] text-gray-600 italic" style={{ margin: '0 0 2px 0' }}>Tique se for OK ✓, NA – Não se aplica. Caso contrário, faça um comentário.</p>
+                            <p className="text-[8px] text-gray-600 italic mb-0">Tique se for OK ✓, NA - Não se aplica. Caso contrário, faça um comentário.</p>
                         </>
                     )}
-                    <table className="w-full border-collapse table-fixed" style={{ fontSize: '9px' }}>
+                    <table className="w-full border-collapse table-fixed" style={{ fontSize: '10px' }}>
                         <thead>
                             <tr className="bg-gray-100">
-                                <th className="border border-black text-left" style={{ width: '40%', fontSize: '9px', padding: '2px' }}>Descrição</th>
-                                <th className="border border-black text-center" style={{ width: '6%', fontSize: '9px', padding: '2px' }}>OK</th>
-                                <th className="border border-black text-center" style={{ width: '6%', fontSize: '9px', padding: '2px' }}>N/OK</th>
-                                <th className="border border-black text-center" style={{ width: '6%', fontSize: '9px', padding: '2px' }}>NA</th>
-                                <th className="border border-black text-left" style={{ width: '42%', fontSize: '9px', padding: '2px' }}>Observações</th>
+                                <th className="border border-black p-1 text-left" style={{ width: '40%', fontSize: '10px' }}>Descrição</th>
+                                <th className="border border-black p-1 text-center" style={{ width: '6%', fontSize: '10px' }}>OK</th>
+                                <th className="border border-black p-1 text-center" style={{ width: '6%', fontSize: '10px' }}>N/OK</th>
+                                <th className="border border-black p-1 text-center" style={{ width: '6%', fontSize: '10px' }}>NA</th>
+                                <th className="border border-black p-1 text-left" style={{ width: '42%', fontSize: '10px' }}>Observações</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -245,8 +245,8 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                 if (isComentario) {
                                     return (
                                         <tr key={idx} className="bg-gray-50" style={{ pageBreakInside: 'avoid', pageBreakAfter: 'auto' }}>
-                                            <td className="border border-black font-bold" style={{ verticalAlign: 'top', fontSize: '9px', padding: '2px' }}>Comentários:</td>
-                                            <td className="border border-black" colSpan="4" style={{ wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', wordBreak: 'break-word', maxWidth: '500px', fontSize: '9px', padding: '2px' }}>{item.texto || item.comentarios || ''}</td>
+                                            <td className="border border-black p-1 font-bold" style={{ verticalAlign: 'top', fontSize: '10px' }}>Comentários:</td>
+                                            <td className="border border-black p-1" colSpan="4" style={{ wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', wordBreak: 'break-word', maxWidth: '500px', fontSize: '10px' }}>{item.texto || item.comentarios || ''}</td>
                                         </tr>
                                     );
                                 }
@@ -254,11 +254,11 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                 if (item.showOnlyPhotos) {
                                     return (
                                         <tr key={idx} style={{ pageBreakInside: 'auto' }}>
-                                            <td colSpan="5" className="border border-black" style={{ padding: '2px' }}>
-                                                <div style={{ fontSize: '8px', color: '#666', fontStyle: 'italic', marginBottom: '1px' }}>{item.descricao}</div>
-                                                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(item.fotos.length, 3)}, 1fr)`, gap: '1px', maxWidth: '100%', overflow: 'visible' }}>
+                                            <td colSpan="5" className="border border-black p-1">
+                                                <div style={{ fontSize: '8px', color: '#666', fontStyle: 'italic', marginBottom: '2px' }}>{item.descricao}</div>
+                                                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(item.fotos.length, 3)}, 1fr)`, gap: '2px', maxWidth: '100%', overflow: 'visible' }}>
                                                     {item.fotos.map((foto, fotoIdx) => (
-                                                        <FotoInspecao key={fotoIdx} url={foto.url} legenda={foto.legenda} maxHeight="50mm" />
+                                                        <FotoInspecao key={fotoIdx} url={foto.url} legenda={foto.legenda} maxHeight="55mm" />
                                                     ))}
                                                 </div>
                                             </td>
@@ -269,24 +269,24 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                 return (
                                     <React.Fragment key={idx}>
                                         <tr style={{ pageBreakInside: 'avoid' }}>
-                                            <td className="border border-black" style={{ width: '40%', wordWrap: 'break-word', wordBreak: 'break-word', verticalAlign: 'top', fontSize: '9px', padding: '2px' }}>{item.descricao}</td>
-                                            <td className="border border-black text-center" style={{ width: '6%', verticalAlign: 'middle', padding: '2px' }}>
-                                                <span style={{ display: 'inline-block', width: '9px', height: '9px', minWidth: '9px', minHeight: '9px', border: '1px solid #555', backgroundColor: item.resultado === 'OK' ? '#1d4ed8' : 'white', color: 'white', fontSize: '7px', lineHeight: '9px', textAlign: 'center', boxSizing: 'border-box' }}>{item.resultado === 'OK' ? '✓' : ''}</span>
+                                            <td className="border border-black p-1" style={{ width: '40%', wordWrap: 'break-word', wordBreak: 'break-word', verticalAlign: 'top', fontSize: '10px' }}>{item.descricao}</td>
+                                            <td className="border border-black p-1 text-center" style={{ width: '6%', verticalAlign: 'middle' }}>
+                                                <span style={{ display: 'inline-block', width: '10px', height: '10px', minWidth: '10px', minHeight: '10px', border: '1px solid #555', backgroundColor: item.resultado === 'OK' ? '#1d4ed8' : 'white', color: 'white', fontSize: '8px', lineHeight: '10px', textAlign: 'center', boxSizing: 'border-box' }}>{item.resultado === 'OK' ? '✓' : ''}</span>
                                             </td>
-                                            <td className="border border-black text-center" style={{ width: '6%', verticalAlign: 'middle', padding: '2px' }}>
-                                                <span style={{ display: 'inline-block', width: '9px', height: '9px', minWidth: '9px', minHeight: '9px', border: '1px solid #555', backgroundColor: item.resultado === 'N/OK' ? '#1d4ed8' : 'white', color: 'white', fontSize: '7px', lineHeight: '9px', textAlign: 'center', boxSizing: 'border-box' }}>{item.resultado === 'N/OK' ? '✓' : ''}</span>
+                                            <td className="border border-black p-1 text-center" style={{ width: '6%', verticalAlign: 'middle' }}>
+                                                <span style={{ display: 'inline-block', width: '10px', height: '10px', minWidth: '10px', minHeight: '10px', border: '1px solid #555', backgroundColor: item.resultado === 'N/OK' ? '#1d4ed8' : 'white', color: 'white', fontSize: '8px', lineHeight: '10px', textAlign: 'center', boxSizing: 'border-box' }}>{item.resultado === 'N/OK' ? '✓' : ''}</span>
                                             </td>
-                                            <td className="border border-black text-center" style={{ width: '6%', verticalAlign: 'middle', padding: '2px' }}>
-                                                <span style={{ display: 'inline-block', width: '9px', height: '9px', minWidth: '9px', minHeight: '9px', border: '1px solid #555', backgroundColor: item.resultado === 'Não' ? '#1d4ed8' : 'white', color: 'white', fontSize: '7px', lineHeight: '9px', textAlign: 'center', boxSizing: 'border-box' }}>{item.resultado === 'Não' ? '✓' : ''}</span>
+                                            <td className="border border-black p-1 text-center" style={{ width: '6%', verticalAlign: 'middle' }}>
+                                                <span style={{ display: 'inline-block', width: '10px', height: '10px', minWidth: '10px', minHeight: '10px', border: '1px solid #555', backgroundColor: item.resultado === 'Não' ? '#1d4ed8' : 'white', color: 'white', fontSize: '8px', lineHeight: '10px', textAlign: 'center', boxSizing: 'border-box' }}>{item.resultado === 'Não' ? '✓' : ''}</span>
                                             </td>
-                                            <td className="border border-black" style={{ width: '42%', wordWrap: 'break-word', wordBreak: 'break-word', verticalAlign: 'top', fontSize: '9px', padding: '2px' }}>{item.observacoes || ''}</td>
+                                            <td className="border border-black p-1" style={{ width: '42%', wordWrap: 'break-word', wordBreak: 'break-word', verticalAlign: 'top', fontSize: '10px' }}>{item.observacoes || ''}</td>
                                         </tr>
                                         {item.fotos && item.fotos.length > 0 && (
                                             <tr style={{ pageBreakInside: 'auto', pageBreakBefore: 'auto' }}>
-                                                <td colSpan="5" className="border border-black" style={{ padding: '2px' }}>
-                                                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(item.fotos.length, 3)}, 1fr)`, gap: '1px', maxWidth: '100%', overflow: 'visible' }}>
+                                                <td colSpan="5" className="border border-black p-1">
+                                                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(item.fotos.length, 3)}, 1fr)`, gap: '2px', maxWidth: '100%', overflow: 'visible' }}>
                                                         {item.fotos.map((foto, fotoIdx) => (
-                                                            <FotoInspecao key={fotoIdx} url={foto.url} legenda={foto.legenda} maxHeight="50mm" />
+                                                            <FotoInspecao key={fotoIdx} url={foto.url} legenda={foto.legenda} maxHeight="55mm" />
                                                         ))}
                                                     </div>
                                                 </td>
@@ -340,9 +340,9 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
 
 const ObservacoesGeraisPage = ({ observacoes }) => {
     return (
-        <div className="px-2 py-0">
-            <h2 className="text-base font-bold text-center bg-blue-900 text-white" style={{ fontSize: '12px', padding: '2px', margin: '0 0 2px 0' }}>Observações Gerais</h2>
-            <div className="border border-black" style={{ fontSize: '9px', padding: '2px', minHeight: 'auto' }}>{observacoes || ''}</div>
+        <div className="p-4">
+            <h2 className="text-xl font-bold text-center mb-4 bg-blue-900 text-white p-2">Observações Gerais</h2>
+            <div className="border border-black p-4 whitespace-pre-wrap min-h-[100px]" style={{ fontSize: '12px' }}>{observacoes || ''}</div>
         </div>
     );
 };
@@ -354,47 +354,47 @@ const ConclusaoPage = ({ conclusaoR01, conclusaoR02 }) => {
         { key: 'reprovado', label: 'Reprovado' },
     ];
     return (
-        <div className="px-2 py-0">
-            <h2 className="text-base font-bold text-center bg-blue-900 text-white" style={{ fontSize: '12px', padding: '2px', margin: '0 0 2px 0' }}>Conclusão</h2>
-            <div style={{ border: '1px solid #ccc', padding: '4px 6px', gap: '20px', display: 'flex' }}>
+        <div className="px-4 pb-4">
+            <h2 className="text-xl font-bold text-center mb-3 bg-blue-900 text-white p-2">Conclusão</h2>
+            <div className="flex mb-3" style={{ border: '1px solid #ccc', padding: '10px 14px', gap: '40px' }}>
                 <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: '9px', fontWeight: 'bold', marginBottom: '2px', margin: '0 0 2px 0' }}>1ª Vistoria</p>
+                    <p className="font-bold mb-2" style={{ fontSize: '12px' }}>1ª Vistoria</p>
                     {opcoes.map(opcao => (
-                        <div key={opcao.key} style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+                        <div key={opcao.key} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '5px' }}>
                             <span style={{
-                                display: 'inline-block', width: '8px', height: '8px', minWidth: '8px',
-                                border: '1px solid #555', textAlign: 'center', lineHeight: '8px', fontSize: '7px',
+                                display: 'inline-block', width: '13px', height: '13px', minWidth: '13px',
+                                border: '1px solid #555', textAlign: 'center', lineHeight: '12px', fontSize: '11px',
                                 flexShrink: 0,
                                 backgroundColor: isConclusaoMatching(conclusaoR01, opcao.key) ? '#1d4ed8' : 'white',
                                 color: 'white'
                             }}>
                                 {isConclusaoMatching(conclusaoR01, opcao.key) ? '✓' : ''}
                             </span>
-                            <span style={{ fontSize: '9px' }}>{opcao.label}</span>
+                            <span style={{ fontSize: '12px' }}>{opcao.label}</span>
                         </div>
                     ))}
                 </div>
                 <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: '9px', fontWeight: 'bold', marginBottom: '2px', margin: '0 0 2px 0' }}>2ª Vistoria</p>
+                    <p className="font-bold mb-2" style={{ fontSize: '12px' }}>2ª Vistoria</p>
                     {opcoes.map(opcao => (
-                        <div key={opcao.key} style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+                        <div key={opcao.key} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '5px' }}>
                             <span style={{
-                                display: 'inline-block', width: '8px', height: '8px', minWidth: '8px',
-                                border: '1px solid #555', textAlign: 'center', lineHeight: '8px', fontSize: '7px',
+                                display: 'inline-block', width: '13px', height: '13px', minWidth: '13px',
+                                border: '1px solid #555', textAlign: 'center', lineHeight: '12px', fontSize: '11px',
                                 flexShrink: 0,
                                 backgroundColor: isConclusaoMatching(conclusaoR02, opcao.key) ? '#1d4ed8' : 'white',
                                 color: 'white'
                             }}>
                                 {isConclusaoMatching(conclusaoR02, opcao.key) ? '✓' : ''}
                             </span>
-                            <span style={{ fontSize: '9px' }}>{opcao.label}</span>
+                            <span style={{ fontSize: '12px' }}>{opcao.label}</span>
                         </div>
                     ))}
                 </div>
             </div>
-            <div style={{ border: '1px solid #ccc', fontSize: '8px', padding: '3px', marginTop: '2px' }}>
-                <p style={{ fontWeight: 'bold', marginBottom: '2px', margin: '0 0 2px 0' }}>Observação:</p>
-                <p style={{ margin: '0' }}>Em caso de sistema não aprovado com totalidade na 1ª vistoria, a inspeção deverá ser refeita para confirmação de correções e aprovação com totalidade.</p>
+            <div className="p-3 bg-gray-50" style={{ border: '1px solid #ccc', fontSize: '12px' }}>
+                <p className="font-bold mb-1">Observação:</p>
+                <p>Em caso de sistema não aprovado com totalidade na 1ª vistoria, a inspeção deverá ser refeita para confirmação de correções e aprovação com totalidade.</p>
             </div>
         </div>
     );
@@ -417,10 +417,10 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 pageHeightPx: 1122,
                 headerHeightPx: 80,
                 footerHeightPx: 45,
-                pagePaddingPx: 4,
-                photoPlaceholderHeightPx: 180,
-                itemExtraPaddingPx: 4,
-                safetyMarginPx: 40,
+                pagePaddingPx: 8,
+                photoPlaceholderHeightPx: 200,
+                itemExtraPaddingPx: 6,
+                safetyMarginPx: 60,
             })
         )
         : [];
