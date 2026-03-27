@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { paginateLocalItemsForPrinting } from '@/lib/reportPagination';
 import { Button } from '@/components/ui/button';
 import { Loader2, Printer, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -258,7 +257,7 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                                 <div style={{ fontSize: '8px', color: '#666', fontStyle: 'italic', marginBottom: '1px' }}>{item.descricao}</div>
                                                 <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(item.fotos.length, 3)}, 1fr)`, gap: '1px', maxWidth: '100%', overflow: 'visible' }}>
                                                     {item.fotos.map((foto, fotoIdx) => (
-                                                        <FotoInspecao key={fotoIdx} url={foto.url} legenda={foto.legenda} maxHeight="50mm" />
+                                                        <FotoInspecao key={fotoIdx} url={foto.url} legenda={foto.legenda} maxHeight="40mm" />
                                                     ))}
                                                 </div>
                                             </td>
@@ -403,33 +402,97 @@ const ConclusaoPage = ({ conclusaoR01, conclusaoR02 }) => {
 
 const ReportContent = ({ relatorio, empreendimento, navigate }) => {
     const [isPrintingMode, setIsPrintingMode] = useState(false);
+    // null = aguardando medição; [] ou [...] = páginas calculadas
+    const [contentPages, setContentPages] = useState(null);
+    const measureRef = useRef(null);
 
     const hasDocumentacao = relatorio.itens_documentacao && relatorio.itens_documentacao.length > 0;
-
-    // Paginação por altura real para quebrar no ponto exato antes do overflow
-    const paginateLocalItems = (local, opts) => paginateLocalItemsForPrinting(local, opts);
-
     const combineDocWithContent = false;
 
-    const contentPages = (relatorio.locais && relatorio.locais.length > 0)
-        ? relatorio.locais.flatMap((local) =>
-            paginateLocalItems(local, {
-                pageHeightPx: 1122,
-                headerHeightPx: 80,
-                footerHeightPx: 45,
-                pagePaddingPx: 4,
-                photoPlaceholderHeightPx: 180,
-                itemExtraPaddingPx: 4,
-                safetyMarginPx: 40,
-            })
-        )
-        : [];
+    // Constantes de layout — devem espelhar ReportPageLayout exatamente
+    const PAGE_H = 1122;   // 297mm a 96dpi
+    const HEADER_H = 80;
+    const FOOTER_H = 45;
+    const PADDING_V = 8;   // ContentPage py (soma topo+base)
+    const SAFETY = 20;     // margem mínima de segurança antes do rodapé
+    const USABLE = PAGE_H - HEADER_H - FOOTER_H - PADDING_V - SAFETY; // ≈ 969px
+
+    useEffect(() => {
+        if (!relatorio.locais?.length) {
+            setContentPages([]);
+            return;
+        }
+
+        const compute = () => {
+            if (!measureRef.current) return;
+            const allPages = [];
+
+            relatorio.locais.forEach((local, localIdx) => {
+                const localEl = measureRef.current.querySelector(`[data-local-idx="${localIdx}"]`);
+                if (!localEl) return;
+
+                const headerEl = localEl.querySelector('[data-local-header]');
+                // Altura do cabeçalho do local (só aparece na primeira página do local)
+                const headerH = headerEl ? headerEl.getBoundingClientRect().height : 0;
+
+                const itemEls = localEl.querySelectorAll('[data-item-row]');
+                let currentItems = [];
+                let currentH = 0;
+                let isFirst = true;
+
+                itemEls.forEach((el) => {
+                    const idx = parseInt(el.dataset.itemRow, 10);
+                    const item = (local.itens_inspecao || [])[idx];
+                    if (!item) return;
+
+                    const h = el.getBoundingClientRect().height;
+                    // Primeira página precisa de espaço para o cabeçalho do local
+                    const available = USABLE - (isFirst && currentItems.length === 0 ? headerH : 0);
+
+                    if (currentH + h > available && currentItems.length > 0) {
+                        allPages.push({ local, items: currentItems, isFirstPageOfLocal: isFirst });
+                        isFirst = false;
+                        currentItems = [];
+                        currentH = 0;
+                    }
+
+                    currentItems.push(item);
+                    currentH += h;
+                });
+
+                if (currentItems.length > 0) {
+                    allPages.push({ local, items: currentItems, isFirstPageOfLocal: isFirst });
+                }
+            });
+
+            setContentPages(allPages);
+        };
+
+        // Aguarda as imagens carregarem para ter alturas reais
+        const imgs = Array.from(measureRef.current?.querySelectorAll('img') || []);
+        const total = imgs.length;
+
+        if (total === 0) {
+            requestAnimationFrame(() => setTimeout(compute, 30));
+            return;
+        }
+
+        let done = 0;
+        const onImg = () => { if (++done >= total) setTimeout(compute, 30); };
+        imgs.forEach(img => {
+            if (img.complete && img.naturalWidth > 0) onImg();
+            else { img.onload = onImg; img.onerror = onImg; }
+        });
+
+        // Fallback: se alguma imagem não responder em 8s, pagina com o que tiver
+        const fallback = setTimeout(() => {
+            if (contentPages === null) compute();
+        }, 8000);
+        return () => clearTimeout(fallback);
+    }, [relatorio]);
 
     const hasAssinaturas = relatorio.assinaturas && relatorio.assinaturas.length > 0 &&
         relatorio.assinaturas.some(ass => (ass.nome && ass.nome.trim() !== '') || (ass.parte && ass.parte.trim() !== '') || (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== ''));
-
-    const totalPages = 1 + (hasDocumentacao && !combineDocWithContent ? 1 : 0) + contentPages.length + 1 + (hasAssinaturas ? 1 : 0);
-    let currentPage = 1;
 
     const handlePrint = async () => {
         setIsPrintingMode(true);
@@ -438,62 +501,174 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
         setTimeout(() => setIsPrintingMode(false), 2000);
     };
 
+    // Renderiza o container oculto de medição enquanto contentPages === null
+    const MeasurementContainer = contentPages === null ? (
+        <div
+            ref={measureRef}
+            aria-hidden="true"
+            style={{
+                position: 'fixed',
+                top: 0,
+                left: '-9999px',
+                // Mesma largura disponível que ContentPage usa (210mm - 2×12px padding)
+                width: 'calc(210mm - 24px)',
+                overflow: 'visible',
+                background: 'white',
+                fontFamily: 'Inter, Poppins, sans-serif',
+                fontSize: '9px',
+                lineHeight: '1.3',
+                pointerEvents: 'none',
+                zIndex: -1,
+            }}
+        >
+            {relatorio.locais?.map((local, localIdx) => (
+                <div key={localIdx} data-local-idx={localIdx}>
+                    {/* Cabeçalho do local — medido separadamente */}
+                    <div data-local-header style={{ fontSize: '12px', padding: '2px', marginBottom: '2px', fontWeight: 'bold' }}>
+                        LOCAL: {local.nome_local}
+                    </div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', fontSize: '9px' }}>
+                        <colgroup>
+                            <col style={{ width: '40%' }} />
+                            <col style={{ width: '6%' }} />
+                            <col style={{ width: '6%' }} />
+                            <col style={{ width: '6%' }} />
+                            <col style={{ width: '42%' }} />
+                        </colgroup>
+                        <tbody>
+                            {(local.itens_inspecao || []).map((item, idx) => {
+                                if (item.tipo === 'comentario' || item.isComentarioGeral) {
+                                    return (
+                                        <tr key={idx} data-item-row={idx}>
+                                            <td style={{ padding: '2px', fontWeight: 'bold' }}>Comentários:</td>
+                                            <td colSpan="4" style={{ padding: '2px', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{item.texto || item.comentarios || ''}</td>
+                                        </tr>
+                                    );
+                                }
+                                if (item.showOnlyPhotos) {
+                                    return (
+                                        <tr key={idx} data-item-row={idx}>
+                                            <td colSpan="5" style={{ padding: '2px' }}>
+                                                <div style={{ fontSize: '8px', marginBottom: '1px' }}>{item.descricao}</div>
+                                                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min((item.fotos || []).length, 3)}, 1fr)`, gap: '1px' }}>
+                                                    {(item.fotos || []).map((foto, fi) => (
+                                                        <div key={fi} style={{ marginBottom: '6px', overflow: 'hidden', textAlign: 'center' }}>
+                                                            <img src={foto.url} alt="" style={{ width: '100%', height: 'auto', maxHeight: '40mm', objectFit: 'contain', display: 'block' }} />
+                                                            {foto.legenda && <span style={{ fontSize: '7px' }}>{foto.legenda}</span>}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                }
+                                // Item normal (com ou sem fotos)
+                                return (
+                                    <tr key={idx} data-item-row={idx}>
+                                        <td style={{ padding: '2px', wordBreak: 'break-word', verticalAlign: 'top' }}>{item.descricao}</td>
+                                        <td style={{ padding: '2px', textAlign: 'center' }}>{item.resultado === 'OK' ? '✓' : ''}</td>
+                                        <td style={{ padding: '2px', textAlign: 'center' }}>{item.resultado === 'N/OK' ? '✓' : ''}</td>
+                                        <td style={{ padding: '2px', textAlign: 'center' }}>{item.resultado === 'Não' ? '✓' : ''}</td>
+                                        <td style={{ padding: '2px', wordBreak: 'break-word', verticalAlign: 'top' }}>
+                                            {item.observacoes || ''}
+                                            {item.fotos && item.fotos.length > 0 && (
+                                                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(item.fotos.length, 3)}, 1fr)`, gap: '1px', marginTop: '2px' }}>
+                                                    {item.fotos.map((foto, fi) => (
+                                                        <div key={fi} style={{ marginBottom: '6px', overflow: 'hidden', textAlign: 'center' }}>
+                                                            <img src={foto.url} alt="" style={{ width: '100%', height: 'auto', maxHeight: '50mm', objectFit: 'contain', display: 'block' }} />
+                                                            {foto.legenda && <span style={{ fontSize: '7px' }}>{foto.legenda}</span>}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            ))}
+        </div>
+    ) : null;
+
     return (
         <div className="bg-gray-200 print:bg-white min-h-screen font-sans">
             <div className="no-print shadow-sm border-b p-4 mb-4 bg-white">
                 <div className="flex justify-between items-center max-w-4xl mx-auto">
                     <Button onClick={() => navigate(-1)} variant="outline"><ArrowLeft className="w-4 h-4 mr-2" />Voltar</Button>
                     <h1 className="text-xl font-semibold text-gray-800">Visualizar Inspeção Elétrica</h1>
-                    <Button onClick={handlePrint} className="bg-green-600 hover:bg-green-700 text-white"><Printer className="w-4 h-4 mr-2" />Gerar PDF</Button>
+                    <Button onClick={handlePrint} disabled={contentPages === null} className="bg-green-600 hover:bg-green-700 text-white">
+                        {contentPages === null ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Calculando...</> : <><Printer className="w-4 h-4 mr-2" />Gerar PDF</>}
+                    </Button>
                 </div>
             </div>
-            <div className="report-container max-w-4xl mx-auto" style={{ padding: 0 }}>
-                <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                    <CoverPage relatorio={relatorio} empreendimento={empreendimento} />
-                </ReportPageLayout>
 
-                {hasDocumentacao && combineDocWithContent && contentPages.length > 0 ? (
-                    <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                        <DocumentacaoPage itens={relatorio.itens_documentacao} comentarios={relatorio.comentarios_documentacao} />
-                        <ContentPage local={contentPages[0].local} items={contentPages[0].items} isFirstPageOfLocal={contentPages[0].isFirstPageOfLocal} combineWithDoc={true} relatorio={relatorio} />
-                    </ReportPageLayout>
-                ) : (
-                    <>
-                        {hasDocumentacao && (
+            {/* Container oculto de medição */}
+            {MeasurementContainer}
+
+            {/* Indicador de carregamento enquanto mede */}
+            {contentPages === null && (
+                <div className="flex items-center justify-center py-16 text-gray-500 no-print">
+                    <Loader2 className="w-6 h-6 mr-3 animate-spin text-blue-600" />
+                    <span>Calculando paginação das imagens...</span>
+                </div>
+            )}
+
+            {/* Relatório — renderizado após medição */}
+            {contentPages !== null && (() => {
+                const totalPages = 1 + (hasDocumentacao && !combineDocWithContent ? 1 : 0) + contentPages.length + 1 + (hasAssinaturas ? 1 : 0);
+                let currentPage = 1;
+                return (
+                    <div className="report-container max-w-4xl mx-auto" style={{ padding: 0 }}>
+                        <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+                            <CoverPage relatorio={relatorio} empreendimento={empreendimento} />
+                        </ReportPageLayout>
+
+                        {hasDocumentacao && combineDocWithContent && contentPages.length > 0 ? (
                             <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
                                 <DocumentacaoPage itens={relatorio.itens_documentacao} comentarios={relatorio.comentarios_documentacao} />
+                                <ContentPage local={contentPages[0].local} items={contentPages[0].items} isFirstPageOfLocal={contentPages[0].isFirstPageOfLocal} combineWithDoc={true} relatorio={relatorio} />
+                            </ReportPageLayout>
+                        ) : (
+                            <>
+                                {hasDocumentacao && (
+                                    <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+                                        <DocumentacaoPage itens={relatorio.itens_documentacao} comentarios={relatorio.comentarios_documentacao} />
+                                    </ReportPageLayout>
+                                )}
+                            </>
+                        )}
+
+                        {contentPages.map((page, index) => {
+                            if (combineDocWithContent && index === 0) return null;
+                            return (
+                                <ReportPageLayout key={index} pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+                                    <ContentPage local={page.local} items={page.items} isFirstPageOfLocal={page.isFirstPageOfLocal} combineWithDoc={false} relatorio={relatorio} />
+                                </ReportPageLayout>
+                            );
+                        })}
+
+                        <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+                            <ObservacoesGeraisPage observacoes={relatorio.observacoes_gerais} />
+                            <ConclusaoPage
+                                conclusaoR01={relatorio.conclusao_r01}
+                                conclusaoR02={relatorio.conclusao_r02}
+                            />
+                        </ReportPageLayout>
+
+                        {hasAssinaturas && (
+                            <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+                                <AssinaturasPage assinaturas={relatorio.assinaturas.filter(ass =>
+                                    (ass.nome && ass.nome.trim() !== '') ||
+                                    (ass.parte && ass.parte.trim() !== '') ||
+                                    (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== '')
+                                )} />
                             </ReportPageLayout>
                         )}
-                    </>
-                )}
-
-                {contentPages.map((page, index) => {
-                    if (combineDocWithContent && index === 0) return null;
-                    return (
-                        <ReportPageLayout key={index} pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                            <ContentPage local={page.local} items={page.items} isFirstPageOfLocal={page.isFirstPageOfLocal} combineWithDoc={false} relatorio={relatorio} />
-                        </ReportPageLayout>
-                    );
-                })}
-
-                <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                    <ObservacoesGeraisPage observacoes={relatorio.observacoes_gerais} />
-                    <ConclusaoPage
-                        conclusaoR01={relatorio.conclusao_r01}
-                        conclusaoR02={relatorio.conclusao_r02}
-                    />
-                </ReportPageLayout>
-
-                {hasAssinaturas && (
-                    <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                        <AssinaturasPage assinaturas={relatorio.assinaturas.filter(ass =>
-                            (ass.nome && ass.nome.trim() !== '') ||
-                            (ass.parte && ass.parte.trim() !== '') ||
-                            (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== '')
-                        )} />
-                    </ReportPageLayout>
-                )}
-            </div>
+                    </div>
+                );
+            })()}
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@700&family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
                 
