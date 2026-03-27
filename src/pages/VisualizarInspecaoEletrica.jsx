@@ -203,7 +203,7 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
 
 const FotoInspecao = ({ url, legenda }) => {
     return (
-        <div style={{ textAlign: 'left', overflow: 'hidden', marginBottom: '6px', boxSizing: 'border-box', width: '250px', minWidth: '250px', maxWidth: '250px', height: '250px', minHeight: '250px', maxHeight: '250px', justifySelf: 'start' }}>
+        <div style={{ textAlign: 'left', overflow: 'hidden', marginBottom: '0px', boxSizing: 'border-box', width: '250px', minWidth: '250px', maxWidth: '250px', height: '250px', minHeight: '250px', maxHeight: '250px', justifySelf: 'start' }}>
             <img src={url} alt={legenda || 'Foto da inspeção'} style={{ width: '250px', minWidth: '250px', maxWidth: '250px', height: '250px', minHeight: '250px', maxHeight: '250px', objectFit: 'cover', border: '1px solid #ddd', display: 'block' }} />
             {legenda && (
                 <p style={{ fontSize: '7px', color: '#555', marginTop: '4px', lineHeight: '1.1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{legenda}</p>
@@ -266,11 +266,11 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                         <React.Fragment key={idx}>
                                             {linhasDeFotos.map((linha, linhaIdx) => (
                                                 <tr key={`${idx}-linha-${linhaIdx}`} className="photo-row" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                                    <td colSpan="5" className="border border-black p-1">
+                                                    <td colSpan="5" className="border border-black p-0" style={{ verticalAlign: 'top' }}>
                                                         {linhaIdx === 0 && (
-                                                            <div style={{ fontSize: '9px', color: '#666', fontStyle: 'italic', marginBottom: '3px' }}>{item.descricao}</div>
+                                                            <div style={{ fontSize: '9px', color: '#666', fontStyle: 'italic', margin: '4px 4px 3px 4px' }}>{item.descricao}</div>
                                                         )}
-                                                        <div className="photo-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 250px)', gridAutoRows: '250px', gap: '3px', maxWidth: '100%', overflow: 'visible', justifyItems: 'start', justifyContent: 'start', alignItems: 'start', gridAutoFlow: 'row' }}>
+                                                        <div className="photo-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 250px)', gridAutoRows: '250px', gap: '0px', maxWidth: '100%', overflow: 'visible', justifyItems: 'start', justifyContent: 'start', alignItems: 'start', gridAutoFlow: 'row' }}>
                                                             {linha.map((foto, fotoIdx) => (
                                                                 <FotoInspecao key={`${idx}-${linhaIdx}-${fotoIdx}`} url={foto.url} legenda={foto.legenda} />
                                                             ))}
@@ -299,8 +299,8 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                         </tr>
                                         {fotosValidas.length > 0 && chunkFotos(fotosValidas, 3).map((linha, linhaIdx) => (
                                             <tr key={`${idx}-fotos-${linhaIdx}`} className="photo-row" style={{ pageBreakInside: 'avoid', breakInside: 'avoid', pageBreakBefore: 'auto' }}>
-                                                <td colSpan="5" className="border border-black p-1">
-                                                    <div className="photo-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 250px)', gridAutoRows: '250px', gap: '3px', maxWidth: '100%', overflow: 'visible', justifyItems: 'start', justifyContent: 'start', alignItems: 'start', gridAutoFlow: 'row' }}>
+                                                <td colSpan="5" className="border border-black p-0" style={{ verticalAlign: 'top' }}>
+                                                    <div className="photo-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 250px)', gridAutoRows: '250px', gap: '0px', maxWidth: '100%', overflow: 'visible', justifyItems: 'start', justifyContent: 'start', alignItems: 'start', gridAutoFlow: 'row' }}>
                                                         {linha.map((foto, fotoIdx) => (
                                                             <FotoInspecao key={`${idx}-${linhaIdx}-${fotoIdx}`} url={foto.url} legenda={foto.legenda} />
                                                         ))}
