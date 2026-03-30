@@ -590,7 +590,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     .no-print, aside, header, nav { display: none !important; }
                     
                     /* Hide scrollbars */
-                    html, body, * { 
+                    html, body { 
                         overflow: visible !important;
                         -ms-overflow-style: none !important;
                         scrollbar-width: none !important;
@@ -656,6 +656,8 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                         display: flex !important;
                         flex-wrap: wrap !important;
                         gap: 8px !important;
+                        max-width: 100% !important;
+                        overflow: hidden !important;
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
                     }
@@ -665,6 +667,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                         width: calc((100% - 16px) / 3) !important;
                         height: 180px !important;
                         overflow: hidden !important;
+                        box-sizing: border-box !important;
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
                     }
@@ -677,6 +680,10 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                         border-radius: 6px !important;
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
+                    }
+                    td, th {
+                        overflow: hidden !important;
+                        box-sizing: border-box !important;
                     }
                 }
                 
