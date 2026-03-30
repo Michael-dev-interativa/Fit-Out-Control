@@ -633,10 +633,10 @@ export default function EditarInspecaoArCondicionado() {
                                             />
                                             <Label className="text-sm">OK</Label>
                                             <Checkbox 
-                                                checked={item.resultado === 'Não'} 
-                                                onCheckedChange={checked => handleInspecaoSectionItemChange(section.key, itemIndex, 'resultado', checked ? 'Não' : '')}
+                                                checked={item.resultado === 'N/OK' || item.resultado === 'Não' || item.resultado === 'NA'} 
+                                                onCheckedChange={checked => handleInspecaoSectionItemChange(section.key, itemIndex, 'resultado', checked ? 'N/OK' : '')}
                                             />
-                                            <Label className="text-sm">NA</Label>
+                                            <Label className="text-sm">N/OK</Label>
                                         </div>
                                         <Button type="button" variant="ghost" size="icon" onClick={() => removeInspecaoSectionItem(section.key, itemIndex)}>
                                             <Trash2 className="w-4 h-4 text-red-500" />
