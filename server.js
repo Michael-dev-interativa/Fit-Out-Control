@@ -4412,6 +4412,83 @@ function mapRAT(row) {
   };
 }
 
+let ratSchemaEnsured = false;
+async function ensureRATSchema() {
+  if (ratSchemaEnsured) return;
+  const p = requirePool();
+  await p.query(`
+    CREATE TABLE IF NOT EXISTS public.relatorios_analise_tecnica (
+      id BIGSERIAL PRIMARY KEY,
+      id_empreendimento BIGINT NOT NULL REFERENCES public.empreendimentos(id) ON DELETE CASCADE,
+      id_unidade BIGINT REFERENCES public.unidades_empreendimento(id) ON DELETE SET NULL,
+      numero_os TEXT,
+      metragem TEXT,
+      edificio_pavimento TEXT,
+      nome_arquivo TEXT,
+      data_emissao DATE,
+      fase_emissao TEXT,
+      revisoes JSONB,
+      lista_arquivos JSONB,
+      projetos JSONB,
+      instalacoes_eletricas JSONB,
+      instalacoes_hidraulicas JSONB,
+      projeto_legal_bombeiro JSONB,
+      instalacoes_hvac JSONB,
+      conclusao JSONB,
+      nota_geral TEXT,
+      titulo_capa TEXT,
+      subtitulo_capa TEXT,
+      texto_rodape_capa TEXT,
+      status_relatorio TEXT DEFAULT 'Rascunho',
+      consultor_responsavel TEXT,
+      created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+      updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+    )
+  `);
+
+  // Garantia de compatibilidade para ambientes com tabela criada parcialmente.
+  await p.query(`ALTER TABLE public.relatorios_analise_tecnica ADD COLUMN IF NOT EXISTS id_unidade BIGINT`);
+  await p.query(`ALTER TABLE public.relatorios_analise_tecnica ADD COLUMN IF NOT EXISTS numero_os TEXT`);
+  await p.query(`ALTER TABLE public.relatorios_analise_tecnica ADD COLUMN IF NOT EXISTS metragem TEXT`);
+  await p.query(`ALTER TABLE public.relatorios_analise_tecnica ADD COLUMN IF NOT EXISTS edificio_pavimento TEXT`);
+  await p.query(`ALTER TABLE public.relatorios_analise_tecnica ADD COLUMN IF NOT EXISTS nome_arquivo TEXT`);
+  await p.query(`ALTER TABLE public.relatorios_analise_tecnica ADD COLUMN IF NOT EXISTS data_emissao DATE`);
+  await p.query(`ALTER TABLE public.relatorios_analise_tecnica ADD COLUMN IF NOT EXISTS fase_emissao TEXT`);
+  await p.query(`ALTER TABLE public.relatorios_analise_tecnica ADD COLUMN IF NOT EXISTS revisoes JSONB`);
+  await p.query(`ALTER TABLE public.relatorios_analise_tecnica ADD COLUMN IF NOT EXISTS lista_arquivos JSONB`);
+  await p.query(`ALTER TABLE public.relatorios_analise_tecnica ADD COLUMN IF NOT EXISTS projetos JSONB`);
+  await p.query(`ALTER TABLE public.relatorios_analise_tecnica ADD COLUMN IF NOT EXISTS instalacoes_eletricas JSONB`);
+  await p.query(`ALTER TABLE public.relatorios_analise_tecnica ADD COLUMN IF NOT EXISTS instalacoes_hidraulicas JSONB`);
+  await p.query(`ALTER TABLE public.relatorios_analise_tecnica ADD COLUMN IF NOT EXISTS projeto_legal_bombeiro JSONB`);
+  await p.query(`ALTER TABLE public.relatorios_analise_tecnica ADD COLUMN IF NOT EXISTS instalacoes_hvac JSONB`);
+  await p.query(`ALTER TABLE public.relatorios_analise_tecnica ADD COLUMN IF NOT EXISTS conclusao JSONB`);
+  await p.query(`ALTER TABLE public.relatorios_analise_tecnica ADD COLUMN IF NOT EXISTS nota_geral TEXT`);
+  await p.query(`ALTER TABLE public.relatorios_analise_tecnica ADD COLUMN IF NOT EXISTS titulo_capa TEXT`);
+  await p.query(`ALTER TABLE public.relatorios_analise_tecnica ADD COLUMN IF NOT EXISTS subtitulo_capa TEXT`);
+  await p.query(`ALTER TABLE public.relatorios_analise_tecnica ADD COLUMN IF NOT EXISTS texto_rodape_capa TEXT`);
+  await p.query(`ALTER TABLE public.relatorios_analise_tecnica ADD COLUMN IF NOT EXISTS status_relatorio TEXT DEFAULT 'Rascunho'`);
+  await p.query(`ALTER TABLE public.relatorios_analise_tecnica ADD COLUMN IF NOT EXISTS consultor_responsavel TEXT`);
+  await p.query(`ALTER TABLE public.relatorios_analise_tecnica ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now() NOT NULL`);
+  await p.query(`ALTER TABLE public.relatorios_analise_tecnica ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now() NOT NULL`);
+
+  await p.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'relatorios_analise_tecnica_id_unidade_fkey'
+      ) THEN
+        ALTER TABLE public.relatorios_analise_tecnica
+        ADD CONSTRAINT relatorios_analise_tecnica_id_unidade_fkey
+        FOREIGN KEY (id_unidade) REFERENCES public.unidades_empreendimento(id) ON DELETE SET NULL;
+      END IF;
+    END
+    $$;
+  `);
+
+  ratSchemaEnsured = true;
+}
+
 function buildOrderClauseRAT(order) {
   if (!order) return 'ORDER BY created_at DESC';
   const field = String(order).replace(/^[-+]/, '');
@@ -4423,6 +4500,7 @@ function buildOrderClauseRAT(order) {
 
 app.get('/api/relatorios-analise-tecnica', async (req, res) => {
   try {
+    await ensureRATSchema();
     const p = requirePool();
     const { id_empreendimento, id_unidade, status_relatorio, order } = req.query;
     const where = [];
@@ -4450,6 +4528,7 @@ app.get('/api/relatorios-analise-tecnica', async (req, res) => {
 
 app.get('/api/relatorios-analise-tecnica/:id', async (req, res) => {
   try {
+    await ensureRATSchema();
     const p = requirePool();
     const id = Number(req.params.id);
     const { rows } = await p.query('SELECT * FROM public.relatorios_analise_tecnica WHERE id = $1', [id]);
@@ -4462,6 +4541,7 @@ app.get('/api/relatorios-analise-tecnica/:id', async (req, res) => {
 
 app.post('/api/relatorios-analise-tecnica', async (req, res) => {
   try {
+    await ensureRATSchema();
     const p = requirePool();
     const b = req.body || {};
     const sql = `INSERT INTO public.relatorios_analise_tecnica(
@@ -4508,6 +4588,7 @@ app.post('/api/relatorios-analise-tecnica', async (req, res) => {
 
 app.put('/api/relatorios-analise-tecnica/:id', async (req, res) => {
   try {
+    await ensureRATSchema();
     const p = requirePool();
     const id = Number(req.params.id);
     const b = req.body || {};
@@ -4570,6 +4651,7 @@ app.put('/api/relatorios-analise-tecnica/:id', async (req, res) => {
 
 app.delete('/api/relatorios-analise-tecnica/:id', async (req, res) => {
   try {
+    await ensureRATSchema();
     const p = requirePool();
     const id = Number(req.params.id);
     const { rowCount } = await p.query('DELETE FROM public.relatorios_analise_tecnica WHERE id = $1', [id]);
