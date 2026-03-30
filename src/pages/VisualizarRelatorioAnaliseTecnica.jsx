@@ -60,7 +60,7 @@ const CabecalhoRelatorio = ({ relatorio, empreendimento }) => (
     {/* Datas de Emissão */}
     <div style={{ border: '1px solid #d1d5db', borderRadius: '10px', overflow: 'hidden', marginBottom: '8px' }}>
       <div style={{ textAlign: 'center', fontWeight: 'bold', backgroundColor: '#0c2461', color: '#fff', padding: '6px' }}>
-        DATAS DE EMISSÃO DO RELATÓRIO
+        REVISÕES E DATAS DE EMISSÃO DO RELATÓRIO
       </div>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
@@ -86,6 +86,43 @@ const CabecalhoRelatorio = ({ relatorio, empreendimento }) => (
         </tbody>
       </table>
     </div>
+  </div>
+);
+
+const TabelaRevisoes = ({ revisoes }) => (
+  <div style={{ border: '1px solid #d1d5db', borderRadius: '10px', overflow: 'hidden', marginBottom: '8px' }}>
+    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
+      <thead>
+        <tr>
+          <th colSpan="3" style={{ textAlign: 'center', fontWeight: 'bold', backgroundColor: '#0c2461', color: '#fff', padding: '8px', fontSize: '11px' }}>
+            REVISÕES
+          </th>
+        </tr>
+        <tr style={{ backgroundColor: '#e5e7eb', color: '#111827' }}>
+          <th style={{ padding: '6px 8px', width: '12%', textAlign: 'center', borderBottom: '1px solid #d1d5db' }}>Rev.</th>
+          <th style={{ padding: '6px 8px', textAlign: 'left', borderBottom: '1px solid #d1d5db', borderLeft: '1px solid #e5e7eb' }}>Descrição</th>
+          <th style={{ padding: '6px 8px', width: '18%', textAlign: 'center', borderBottom: '1px solid #d1d5db', borderLeft: '1px solid #e5e7eb' }}>Data</th>
+        </tr>
+      </thead>
+      <tbody>
+        {(revisoes || []).map((rev, i) => (
+          <tr key={i} style={{ borderBottom: '1px solid #e5e7eb', backgroundColor: i % 2 === 0 ? '#fff' : '#f9fafb' }}>
+            <td style={{ padding: '6px 8px', textAlign: 'center' }}>{rev.rev}</td>
+            <td style={{ padding: '6px 8px', borderLeft: '1px solid #e5e7eb' }}>{rev.descricao}</td>
+            <td style={{ padding: '6px 8px', textAlign: 'center', borderLeft: '1px solid #e5e7eb' }}>
+              {rev.data ? format(new Date(rev.data.includes('T') ? rev.data : rev.data + 'T12:00:00'), 'dd/MM/yyyy') : ''}
+            </td>
+          </tr>
+        ))}
+        {(!revisoes || revisoes.length === 0) && (
+          <tr>
+            <td colSpan={3} style={{ padding: '10px', textAlign: 'center', color: '#9ca3af', fontStyle: 'italic' }}>
+              Nenhuma revisão registrada.
+            </td>
+          </tr>
+        )}
+      </tbody>
+    </table>
   </div>
 );
 
@@ -313,9 +350,10 @@ export default function VisualizarRelatorioAnaliseTecnica() {
       <div className="report-container max-w-5xl mx-auto bg-white shadow p-8 print:shadow-none print:p-4">
         <CabecalhoRelatorio relatorio={relatorio} empreendimento={empreendimento} />
 
-        <Tabs defaultValue="analise" className="w-full" style={{ marginBottom: '12px' }}>
-          <TabsList className="grid w-full grid-cols-6 gap-1 h-auto">
-            <TabsTrigger value="analise" className="text-xs">Análise Técnica</TabsTrigger>
+        <Tabs defaultValue="revisoes" className="w-full" style={{ marginBottom: '12px' }}>
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-1 h-auto">
+            <TabsTrigger value="revisoes" className="text-xs">Revisões</TabsTrigger>
+            <TabsTrigger value="arquivos" className="text-xs">Lista de Arquivos</TabsTrigger>
             <TabsTrigger value="projetos" className="text-xs">Projeto Arquitetura</TabsTrigger>
             <TabsTrigger value="eletricas" className="text-xs">Elétricas</TabsTrigger>
             <TabsTrigger value="hidraulicas" className="text-xs">Hidráulicas</TabsTrigger>
@@ -324,13 +362,22 @@ export default function VisualizarRelatorioAnaliseTecnica() {
             <TabsTrigger value="conclusao" className="text-xs">Conclusão</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="analise" style={{ marginTop: '12px' }}>
+          <TabsContent value="revisoes" style={{ marginTop: '12px' }}>
+            <TabelaRevisoes revisoes={relatorio.revisoes} />
+          </TabsContent>
+
+          <TabsContent value="arquivos" style={{ marginTop: '12px' }}>
             {relatorio.lista_arquivos?.length > 0 && (
               <TabelaArquivos
                 arquivos={relatorio.lista_arquivos}
                 isCliente={isCliente}
                 onResponder={handleResponder}
               />
+            )}
+            {(!relatorio.lista_arquivos || relatorio.lista_arquivos.length === 0) && (
+              <div style={{ padding: '20px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>
+                Nenhum arquivo disponível neste relatório.
+              </div>
             )}
           </TabsContent>
 
@@ -433,9 +480,13 @@ export default function VisualizarRelatorioAnaliseTecnica() {
 
         {/* Seção apenas para impressão - mostra todos os conteúdos */}
         <div style={{ display: 'none' }} className="print:block">
+          <div style={{ marginBottom: '16px' }}>
+            <TabelaRevisoes revisoes={relatorio.revisoes} />
+          </div>
+
           {/* Análise Técnica */}
           <div style={{ marginBottom: '16px' }}>
-            <div style={{ textAlign: 'center', fontWeight: 'bold', backgroundColor: '#0c2461', color: '#fff', padding: '8px', marginBottom: '12px', borderRadius: '6px', fontSize: '11px' }}>ANÁLISE TÉCNICA</div>
+            <div style={{ textAlign: 'center', fontWeight: 'bold', backgroundColor: '#0c2461', color: '#fff', padding: '8px', marginBottom: '12px', borderRadius: '6px', fontSize: '11px' }}>LISTA DE ARQUIVOS</div>
             {relatorio.lista_arquivos?.length > 0 ? (
               <TabelaArquivos
                 arquivos={relatorio.lista_arquivos}
