@@ -271,7 +271,7 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                         <React.Fragment key={idx}>
                                             {linhasDeFotos.map((linha, linhaIdx) => (
                                                 <tr key={`${idx}-linha-${linhaIdx}`} className="photo-row" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                                    <td colSpan="5" className="border border-black p-0" style={{ verticalAlign: 'top' }}>
+                                                    <td colSpan="5" className="photo-cell border border-black p-0" style={{ verticalAlign: 'top' }}>
                                                         {linhaIdx === 0 && (
                                                             item.descricao ? <div style={{ fontSize: '9px', color: '#666', fontStyle: 'italic', margin: '4px 4px 3px 4px' }}>{item.descricao}</div> : null
                                                         )}
@@ -304,7 +304,7 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                         </tr>
                                         {fotosValidas.length > 0 && chunkFotos(fotosValidas, 3).map((linha, linhaIdx) => (
                                             <tr key={`${idx}-fotos-${linhaIdx}`} className="photo-row" style={{ pageBreakInside: 'avoid', breakInside: 'avoid', pageBreakBefore: 'auto' }}>
-                                                <td colSpan="5" className="border border-black p-0" style={{ verticalAlign: 'top' }}>
+                                                <td colSpan="5" className="photo-cell border border-black p-0" style={{ verticalAlign: 'top' }}>
                                                     <div className="imagens-container">
                                                         {linha.map((foto, fotoIdx) => (
                                                             <FotoInspecao key={`${idx}-${linhaIdx}-${fotoIdx}`} foto={foto} />
@@ -551,6 +551,11 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     page-break-inside: avoid;
                 }
 
+                .photo-cell {
+                    padding: 6px !important;
+                    background: #fff;
+                }
+
                 .imagem-box {
                     flex: 0 0 calc((100% - 16px) / 3);
                     max-width: calc((100% - 16px) / 3);
@@ -590,7 +595,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     .no-print, aside, header, nav { display: none !important; }
                     
                     /* Hide scrollbars */
-                    html, body { 
+                    html, body, * { 
                         overflow: visible !important;
                         -ms-overflow-style: none !important;
                         scrollbar-width: none !important;
@@ -652,12 +657,14 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     thead { display: table-header-group; }
                     tr { page-break-inside: avoid; }
                     .photo-row { page-break-inside: avoid !important; break-inside: avoid !important; }
+                    .photo-cell {
+                        padding: 6px !important;
+                        background: #fff !important;
+                    }
                     .imagens-container {
                         display: flex !important;
                         flex-wrap: wrap !important;
                         gap: 8px !important;
-                        max-width: 100% !important;
-                        overflow: hidden !important;
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
                     }
@@ -667,7 +674,6 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                         width: calc((100% - 16px) / 3) !important;
                         height: 180px !important;
                         overflow: hidden !important;
-                        box-sizing: border-box !important;
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
                     }
@@ -680,10 +686,6 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                         border-radius: 6px !important;
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
-                    }
-                    td, th {
-                        overflow: hidden !important;
-                        box-sizing: border-box !important;
                     }
                 }
                 
