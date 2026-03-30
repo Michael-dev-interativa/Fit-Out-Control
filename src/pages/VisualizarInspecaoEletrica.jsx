@@ -271,7 +271,7 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                         <React.Fragment key={idx}>
                                             {linhasDeFotos.map((linha, linhaIdx) => (
                                                 <tr key={`${idx}-linha-${linhaIdx}`} className="photo-row" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                                    <td colSpan="5" className="photo-cell border border-black" style={{ verticalAlign: 'top', padding: '8px' }}>
+                                                    <td colSpan="5" className="photo-cell border border-black" style={{ verticalAlign: 'top', padding: '0' }}>
                                                         {linhaIdx === 0 && (
                                                             item.descricao ? <div style={{ fontSize: '9px', color: '#666', fontStyle: 'italic', margin: '4px 4px 3px 4px' }}>{item.descricao}</div> : null
                                                         )}
@@ -306,7 +306,7 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                         </tr>
                                         {fotosValidas.length > 0 && chunkFotos(fotosValidas, 3).map((linha, linhaIdx) => (
                                             <tr key={`${idx}-fotos-${linhaIdx}`} className="photo-row" style={{ pageBreakInside: 'avoid', breakInside: 'avoid', pageBreakBefore: 'auto' }}>
-                                                <td colSpan="5" className="photo-cell border border-black" style={{ verticalAlign: 'top', padding: '8px' }}>
+                                                <td colSpan="5" className="photo-cell border border-black" style={{ verticalAlign: 'top', padding: '0' }}>
                                                     <div className="photo-inner-wrap">
                                                         <div className="imagens-container">
                                                             {linha.map((foto, fotoIdx) => (
@@ -548,7 +548,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 .imagens-container {
                     display: flex;
                     flex-wrap: wrap;
-                    gap: 8px;
+                    gap: 0;
                     width: 100%;
                     align-items: flex-start;
                     break-inside: avoid;
@@ -556,20 +556,20 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 }
 
                 .photo-cell {
-                    padding: 6px !important;
+                    padding: 0 !important;
                     background: #fff;
                     box-sizing: border-box;
                 }
 
                 .photo-inner-wrap {
-                    padding: 2px;
+                    padding: 0;
                     background: #fff;
                 }
 
                 .imagem-box {
-                    flex: 0 0 calc((100% - 16px) / 3);
-                    max-width: calc((100% - 16px) / 3);
-                    width: calc((100% - 16px) / 3);
+                    flex: 0 0 calc(100% / 3);
+                    max-width: calc(100% / 3);
+                    width: calc(100% / 3);
                     height: 180px;
                     overflow: hidden;
                     break-inside: avoid;
@@ -668,25 +668,25 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     tr { page-break-inside: avoid; }
                     .photo-row { page-break-inside: avoid !important; break-inside: avoid !important; }
                     .photo-cell {
-                        padding: 6px !important;
+                        padding: 0 !important;
                         background: #fff !important;
                         box-sizing: border-box !important;
                     }
                     .photo-inner-wrap {
-                        padding: 2px !important;
+                        padding: 0 !important;
                         background: #fff !important;
                     }
                     .imagens-container {
                         display: flex !important;
                         flex-wrap: wrap !important;
-                        gap: 8px !important;
+                        gap: 0 !important;
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
                     }
                     .imagem-box {
-                        flex: 0 0 calc((100% - 16px) / 3) !important;
-                        max-width: calc((100% - 16px) / 3) !important;
-                        width: calc((100% - 16px) / 3) !important;
+                        flex: 0 0 calc(100% / 3) !important;
+                        max-width: calc(100% / 3) !important;
+                        width: calc(100% / 3) !important;
                         height: 180px !important;
                         overflow: hidden !important;
                         page-break-inside: avoid !important;
