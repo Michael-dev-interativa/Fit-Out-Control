@@ -204,14 +204,32 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
 const FotoInspecao = ({ foto }) => {
     const url = foto?.url;
     const legenda = foto?.legenda;
-    const objectFit = foto?.objectFit || foto?.fit || 'cover';
-    const objectPosition = foto?.objectPosition || foto?.posicao || 'center center';
 
     return (
-        <div className="imagem-box" style={{ textAlign: 'left', marginBottom: '0px', boxSizing: 'border-box' }}>
-            <img src={url} alt={legenda || 'Foto da inspeção'} style={{ objectFit, objectPosition }} />
+        <div style={{
+            flex: '0 0 calc(100% / 3)',
+            width: 'calc(100% / 3)',
+            maxWidth: 'calc(100% / 3)',
+            height: '160px',
+            overflow: 'hidden',
+            boxSizing: 'border-box',
+            padding: '2px',
+        }}>
+            <img
+                src={url}
+                alt={legenda || 'Foto da inspeção'}
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    objectPosition: 'center center',
+                    display: 'block',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '3px',
+                }}
+            />
             {legenda && (
-                <p style={{ fontSize: '7px', color: '#555', marginTop: '4px', lineHeight: '1.1', overflowWrap: 'anywhere', whiteSpace: 'normal' }}>{legenda}</p>
+                <p style={{ fontSize: '7px', color: '#555', marginTop: '2px', lineHeight: '1.1', overflowWrap: 'anywhere', whiteSpace: 'normal' }}>{legenda}</p>
             )}
         </div>
     );
@@ -276,7 +294,7 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                                             item.descricao ? <div style={{ fontSize: '9px', color: '#666', fontStyle: 'italic', margin: '4px 4px 3px 4px' }}>{item.descricao}</div> : null
                                                         )}
                                                         <div className="photo-inner-wrap">
-                                                            <div className="imagens-container">
+                                                            <div className="imagens-container" style={{ display: 'flex', flexWrap: 'nowrap', width: '100%', alignItems: 'stretch', gap: 0 }}>
                                                                 {linha.map((foto, fotoIdx) => (
                                                                     <FotoInspecao key={`${idx}-${linhaIdx}-${fotoIdx}`} foto={foto} />
                                                                 ))}
@@ -308,7 +326,7 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                             <tr key={`${idx}-fotos-${linhaIdx}`} className="photo-row" style={{ pageBreakInside: 'avoid', breakInside: 'avoid', pageBreakBefore: 'auto' }}>
                                                 <td colSpan="5" className="photo-cell border border-black" style={{ verticalAlign: 'top', padding: '0' }}>
                                                     <div className="photo-inner-wrap">
-                                                        <div className="imagens-container">
+                                                        <div className="imagens-container" style={{ display: 'flex', flexWrap: 'nowrap', width: '100%', alignItems: 'stretch', gap: 0 }}>
                                                             {linha.map((foto, fotoIdx) => (
                                                                 <FotoInspecao key={`${idx}-${linhaIdx}-${fotoIdx}`} foto={foto} />
                                                             ))}
