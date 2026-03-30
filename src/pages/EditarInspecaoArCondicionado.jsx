@@ -624,9 +624,9 @@ export default function EditarInspecaoArCondicionado() {
                                             placeholder={t.description} 
                                             value={item.descricao} 
                                             onChange={e => handleInspecaoSectionItemChange(section.key, itemIndex, 'descricao', e.target.value)} 
-                                            className="flex-1"
+                                            className="flex-1 min-w-0"
                                         />
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 shrink-0 min-w-[220px] justify-end whitespace-nowrap">
                                             <Checkbox 
                                                 checked={item.resultado === 'OK'} 
                                                 onCheckedChange={checked => handleInspecaoSectionItemChange(section.key, itemIndex, 'resultado', checked ? 'OK' : '')}
