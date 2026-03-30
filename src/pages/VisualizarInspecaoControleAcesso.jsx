@@ -234,14 +234,15 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, tituloS
                             </div>
                         </div>
                     )}
-                    <p className="text-[9px] text-gray-600 italic mb-1">Tique se for OK ✓, NA - Não se aplica. Caso contrário, faça um comentário.</p>
+                    <p className="text-[9px] text-gray-600 italic mb-1">Tique se for OK ✓, N/OK - Não OK, NA - Não se aplica. Caso contrário, faça um comentário.</p>
                     <table className="w-full border-collapse text-xs table-fixed">
                         <thead>
                             <tr className="bg-gray-100">
                                 <th className="border border-black p-1 text-left text-xs" style={{ width: '40%' }}>Descrição</th>
                                 <th className="border border-black p-1 text-center text-xs" style={{ width: '8%' }}>OK</th>
+                                <th className="border border-black p-1 text-center text-xs" style={{ width: '8%' }}>N/OK</th>
                                 <th className="border border-black p-1 text-center text-xs" style={{ width: '8%' }}>NA</th>
-                                <th className="border border-black p-1 text-left text-xs" style={{ width: '44%' }}>Observações</th>
+                                <th className="border border-black p-1 text-left text-xs" style={{ width: '36%' }}>Observações</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -254,7 +255,7 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, tituloS
                                     return (
                                         <tr key={idx} className="bg-gray-50">
                                             <td className="border border-black p-1 font-bold text-xs" style={{ verticalAlign: 'top' }}>Comentários:</td>
-                                            <td className="border border-black p-1 text-xs" colSpan="3" style={{ wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', wordBreak: 'break-word', maxWidth: '500px' }}>{comentarioText}</td>
+                                            <td className="border border-black p-1 text-xs" colSpan="4" style={{ wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', wordBreak: 'break-word', maxWidth: '500px' }}>{comentarioText}</td>
                                         </tr>
                                     );
                                 }
@@ -263,8 +264,9 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, tituloS
                                     <tr key={idx}>
                                         <td className="border border-black p-1 text-xs" style={{ width: '40%', wordWrap: 'break-word', wordBreak: 'break-word', verticalAlign: 'top' }}>{item.descricao}</td>
                                         <td className="border border-black p-1 text-center text-xs" style={{ width: '8%', verticalAlign: 'top' }}>{item.resultado === 'OK' ? '☑' : '☐'}</td>
-                                        <td className="border border-black p-1 text-center text-xs" style={{ width: '8%', verticalAlign: 'top' }}>{item.resultado === 'Não' ? '☑' : '☐'}</td>
-                                        <td className="border border-black p-1 text-xs" style={{ width: '44%', wordWrap: 'break-word', wordBreak: 'break-word', verticalAlign: 'top' }}>{item.observacoes || ''}</td>
+                                        <td className="border border-black p-1 text-center text-xs" style={{ width: '8%', verticalAlign: 'top' }}>{item.resultado === 'N/OK' || item.resultado === 'Não' ? '☑' : '☐'}</td>
+                                        <td className="border border-black p-1 text-center text-xs" style={{ width: '8%', verticalAlign: 'top' }}>{item.resultado === 'NA' ? '☑' : '☐'}</td>
+                                        <td className="border border-black p-1 text-xs" style={{ width: '36%', wordWrap: 'break-word', wordBreak: 'break-word', verticalAlign: 'top' }}>{item.observacoes || ''}</td>
                                     </tr>
                                 );
                             })}

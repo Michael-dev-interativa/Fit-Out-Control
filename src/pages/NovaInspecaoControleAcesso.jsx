@@ -598,17 +598,22 @@ export default function NovaInspecaoControleAcesso() {
                                                         placeholder={t.description}
                                                         value={item.descricao}
                                                         onChange={e => handleInspItemChange(localIndex, itemIndex, 'descricao', e.target.value)}
-                                                        className="flex-1"
+                                                        className="flex-1 min-w-0"
                                                     />
-                                                    <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-2 shrink-0 min-w-[260px] justify-end whitespace-nowrap">
                                                         <Checkbox
                                                             checked={item.resultado === 'OK'}
                                                             onCheckedChange={checked => handleInspItemChange(localIndex, itemIndex, 'resultado', checked ? 'OK' : '')}
                                                         />
                                                         <Label className="text-sm">OK</Label>
                                                         <Checkbox
-                                                            checked={item.resultado === 'Não'}
-                                                            onCheckedChange={checked => handleInspItemChange(localIndex, itemIndex, 'resultado', checked ? 'Não' : '')}
+                                                            checked={item.resultado === 'N/OK' || item.resultado === 'Não'}
+                                                            onCheckedChange={checked => handleInspItemChange(localIndex, itemIndex, 'resultado', checked ? 'N/OK' : '')}
+                                                        />
+                                                        <Label className="text-sm">N/OK</Label>
+                                                        <Checkbox
+                                                            checked={item.resultado === 'NA'}
+                                                            onCheckedChange={checked => handleInspItemChange(localIndex, itemIndex, 'resultado', checked ? 'NA' : '')}
                                                         />
                                                         <Label className="text-sm">NA</Label>
                                                     </div>
