@@ -434,14 +434,15 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 headerHeightPx: 80,
                 footerHeightPx: 45,
                 pagePaddingPx: 12,
-                // Slightly overestimate photo height so pagination breaks earlier in print
-                photoMaxHeightPx: 260,
+                // Keep photo estimate aligned with rendered photo box (250px) to avoid early breaks.
+                photoMaxHeightPx: 250,
                 maxPhotosPerItem: 3,
-                itemBufferPx: 12,
-                safetyMarginPx: 180,
-                footerGuardPx: 80,
-                breakBeforeLimitPx: 280,
-                firstPageExtraHeightPx: 180,
+                itemBufferPx: 10,
+                // Conservative values were creating large blank areas before breaking.
+                safetyMarginPx: 24,
+                footerGuardPx: 16,
+                breakBeforeLimitPx: 24,
+                firstPageExtraHeightPx: 90,
             })
         )
         : [];
