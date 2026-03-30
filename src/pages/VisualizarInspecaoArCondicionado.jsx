@@ -229,12 +229,15 @@ const ProjetoEquipamentosPage = ({ relatorio }) => {
 const InspecaoFisicaSection = ({ titulo, items, isFirstPage, comentarios }) => {
     if (!items || items.length === 0) return null;
 
+    const isNok = (resultado) => resultado === 'N/OK' || resultado === 'Não';
+    const isNa = (resultado) => resultado === 'NA';
+
     return (
         <div className={isFirstPage ? "px-4 pt-2 pb-2" : "px-4 pt-6 pb-2"}>
             {isFirstPage && (
                 <>
                     <h3 className="text-lg font-bold mb-1 bg-blue-900 text-white p-1.5 text-center">{titulo}</h3>
-                    <p className="text-[9px] text-gray-600 italic mb-1">Tique se for OK ✓ ou N/OK ✓. Caso contrário, faça um comentário.</p>
+                    <p className="text-[9px] text-gray-600 italic mb-1">Tique se for OK ✓, N/OK ✓ ou NA ✓. Caso contrário, faça um comentário.</p>
                 </>
             )}
             <table className="w-full border-collapse text-xs table-fixed">
@@ -244,7 +247,8 @@ const InspecaoFisicaSection = ({ titulo, items, isFirstPage, comentarios }) => {
                             <th className="border border-black p-1.5 text-left" style={{ width: '40%' }}>Descrição</th>
                             <th className="border border-black p-1.5 text-center" style={{ width: '8%' }}>OK</th>
                             <th className="border border-black p-1.5 text-center" style={{ width: '8%' }}>N/OK</th>
-                            <th className="border border-black p-1.5 text-left" style={{ width: '44%' }}>Observações</th>
+                            <th className="border border-black p-1.5 text-center" style={{ width: '8%' }}>NA</th>
+                            <th className="border border-black p-1.5 text-left" style={{ width: '36%' }}>Observações</th>
                         </tr>
                     </thead>
                 )}
@@ -256,7 +260,7 @@ const InspecaoFisicaSection = ({ titulo, items, isFirstPage, comentarios }) => {
                             return (
                                 <tr key={idx} className="bg-gray-50" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                     <td className="border border-black p-1.5 font-bold" style={{ verticalAlign: 'top' }}>Comentários:</td>
-                                    <td className="border border-black p-1.5" colSpan="3" style={{ wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{item.texto || item.comentarios || ''}</td>
+                                    <td className="border border-black p-1.5" colSpan="4" style={{ wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{item.texto || item.comentarios || ''}</td>
                                 </tr>
                             );
                         }
@@ -265,7 +269,7 @@ const InspecaoFisicaSection = ({ titulo, items, isFirstPage, comentarios }) => {
                         if (item.showOnlyPhotos) {
                             return (
                                 <tr key={idx}>
-                                    <td colSpan="4" className="border border-black p-2 pt-4">
+                                    <td colSpan="5" className="border border-black p-2 pt-4">
                                         <div className="text-xs text-gray-600 italic mb-2">{item.descricao}</div>
                                         <div className="grid grid-cols-3 gap-2">
                                             {item.fotos.map((foto, fotoIdx) => (
@@ -282,12 +286,13 @@ const InspecaoFisicaSection = ({ titulo, items, isFirstPage, comentarios }) => {
                                 <tr key={idx} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                     <td className="border border-black p-1.5" style={{ width: '40%', wordWrap: 'break-word', wordBreak: 'break-word' }}>{item.descricao}</td>
                                     <td className="border border-black p-1.5 text-center" style={{ width: '8%' }}>{item.resultado === 'OK' ? '☑' : '☐'}</td>
-                                    <td className="border border-black p-1.5 text-center" style={{ width: '8%' }}>{item.resultado === 'N/OK' || item.resultado === 'Não' || item.resultado === 'NA' ? '☑' : '☐'}</td>
-                                    <td className="border border-black p-1.5" style={{ width: '44%', wordWrap: 'break-word', wordBreak: 'break-word' }}>{item.observacoes || ''}</td>
+                                    <td className="border border-black p-1.5 text-center" style={{ width: '8%' }}>{isNok(item.resultado) ? '☑' : '☐'}</td>
+                                    <td className="border border-black p-1.5 text-center" style={{ width: '8%' }}>{isNa(item.resultado) ? '☑' : '☐'}</td>
+                                    <td className="border border-black p-1.5" style={{ width: '36%', wordWrap: 'break-word', wordBreak: 'break-word' }}>{item.observacoes || ''}</td>
                                 </tr>
                                 {item.fotos && item.fotos.length > 0 && (
                                     <tr key={`${idx}-fotos`}>
-                                        <td colSpan="4" className="border border-black p-2">
+                                        <td colSpan="5" className="border border-black p-2">
                                             <div className="grid grid-cols-3 gap-2">
                                                 {item.fotos.map((foto, fotoIdx) => (
                                                     <FotoInspecao key={fotoIdx} url={foto.url} legenda={foto.legenda} />
