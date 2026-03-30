@@ -107,15 +107,30 @@ export default function NovaEmissaoAnalise() {
     try {
       setSaving(true);
       setError('');
-      const created = await RelatorioAnaliseTecnica.create({
+      const payload = {
         ...form,
         id_empreendimento: Number(form.id_empreendimento),
         id_unidade: form.id_unidade ? Number(form.id_unidade) : null,
-      });
+        numero_os: form.numero_os?.trim() || null,
+        metragem: form.metragem?.trim() || null,
+        edificio_pavimento: form.edificio_pavimento?.trim() || null,
+        nome_arquivo: form.nome_arquivo?.trim() || null,
+        fase_emissao: form.fase_emissao?.trim() || null,
+        data_emissao: form.data_emissao || null,
+        nota_geral: form.nota_geral?.trim() || null,
+        titulo_capa: form.titulo_capa?.trim() || 'RELATORIO',
+        subtitulo_capa: form.subtitulo_capa?.trim() || 'Analise Tecnica',
+        texto_rodape_capa: form.texto_rodape_capa?.trim() || null,
+        status_relatorio: form.status_relatorio?.trim() || 'Rascunho',
+        consultor_responsavel: form.consultor_responsavel?.trim() || null,
+      };
+
+      const created = await RelatorioAnaliseTecnica.create(payload);
 
       navigate(createPageUrl(`EditarRelatorioAnaliseTecnica?id=${created.id}&empreendimentoId=${form.id_empreendimento}`));
     } catch (e) {
-      setError('Erro ao criar relatorio de analise tecnica.');
+      const details = e?.message ? ` (${e.message})` : '';
+      setError(`Erro ao criar relatorio de analise tecnica${details}`);
     } finally {
       setSaving(false);
     }
