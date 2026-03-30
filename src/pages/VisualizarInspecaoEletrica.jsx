@@ -268,7 +268,7 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                                 <tr key={`${idx}-linha-${linhaIdx}`} className="photo-row" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                                     <td colSpan="5" className="border border-black p-0" style={{ verticalAlign: 'top' }}>
                                                         {linhaIdx === 0 && (
-                                                            <div style={{ fontSize: '9px', color: '#666', fontStyle: 'italic', margin: '4px 4px 3px 4px' }}>{item.descricao}</div>
+                                                            item.descricao ? <div style={{ fontSize: '9px', color: '#666', fontStyle: 'italic', margin: '4px 4px 3px 4px' }}>{item.descricao}</div> : null
                                                         )}
                                                         <div className="photo-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 250px)', gridAutoRows: '250px', gap: '0px', maxWidth: '100%', overflow: 'visible', justifyItems: 'start', justifyContent: 'start', alignItems: 'start', gridAutoFlow: 'row' }}>
                                                             {linha.map((foto, fotoIdx) => (
@@ -437,6 +437,8 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 // Keep photo estimate aligned with rendered photo box (250px) to avoid early breaks.
                 photoMaxHeightPx: 250,
                 maxPhotosPerItem: 3,
+                splitPhotoRows: true,
+                photoChunkSize: 3,
                 itemBufferPx: 10,
                 // Conservative values were creating large blank areas before breaking.
                 safetyMarginPx: 24,

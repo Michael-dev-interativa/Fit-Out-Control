@@ -14,6 +14,8 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
   const LEGACY_SAFETY_MARGIN_PX = opts.safetyMarginPx || 0;
   const PHOTO_MAX_HEIGHT_PX = opts.photoMaxHeightPx || opts.photoPlaceholderHeightPx || 150;
   const MAX_PHOTOS_PER_ITEM = opts.maxPhotosPerItem || 6;
+  const SPLIT_PHOTO_ROWS = opts.splitPhotoRows === true;
+  const PHOTO_CHUNK_SIZE = Math.max(1, opts.photoChunkSize || 3);
 
   const getUsableHeight = (isFirstPage) => {
     const base = PAGE_HEIGHT_PX - HEADER_HEIGHT_PX - FOOTER_HEIGHT_PX - PAGE_PADDING_PX - LEGACY_SAFETY_MARGIN_PX;
@@ -69,7 +71,8 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
       inner = `<div style="border:1px solid #000; padding:8px; font-size:11px; line-height:1.2; white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere;">${escapeHtml(text)}</div>`;
     } else if (item.showOnlyPhotos) {
       const fotos = item.fotos || [];
-      inner = `<div style="font-size:10px; margin-bottom:6px;">${escapeHtml(item.descricao || '')}</div>`;
+      const hasLabel = !!(item.descricao && String(item.descricao).trim());
+      inner = hasLabel ? `<div style="font-size:10px; margin-bottom:6px;">${escapeHtml(item.descricao || '')}</div>` : '';
       inner += '<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px;">';
       fotos.forEach(() => {
         inner += `<div style="width:100%; height:${PHOTO_MAX_HEIGHT_PX}px; border:1px solid #ddd; box-sizing:border-box;"></div>`;
@@ -108,6 +111,20 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
   const allItems = [];
   for (const originalItem of (local.itens_inspecao || [])) {
     const fotos = (originalItem.fotos || []).filter((foto) => foto && typeof foto.url === 'string' && foto.url.trim() !== '');
+
+    // Split in render blocks (text row + photo rows) to fit the remaining page space more precisely.
+    if (SPLIT_PHOTO_ROWS && fotos.length > 0 && !originalItem.showOnlyPhotos) {
+      allItems.push({ ...originalItem, fotos: [] });
+      for (let i = 0; i < fotos.length; i += PHOTO_CHUNK_SIZE) {
+        allItems.push({
+          ...originalItem,
+          descricao: '',
+          fotos: fotos.slice(i, i + PHOTO_CHUNK_SIZE),
+          showOnlyPhotos: true,
+        });
+      }
+      continue;
+    }
 
     if (fotos.length > MAX_PHOTOS_PER_ITEM) {
       const firstChunk = fotos.slice(0, MAX_PHOTOS_PER_ITEM);
