@@ -2271,57 +2271,132 @@ app.delete('/api/inspecoes-ar-condicionado/:id', async (req, res) => {
   }
 });
 
-// ===== Inspeções Elétrica (wrapper sobre inspecoes_ar_condicionado.inspecao_eletrica) =====
+// ===== Inspeções Elétricas =====
 function mapInspecaoEletricaRow(row) {
-  const ele = row.inspecao_eletrica || {};
-  // Also consider top-level columns on the parent row if present
-  const topLevelConclusao = row.conclusao ?? row.conclusao_r02 ?? row.conclusao_r01;
-  // Normalize conclusao: prefer explicit in JSONB, then top-level r02/r01
-  const normalizedConclusao = (ele && (ele.conclusao ?? ele.conclusao_r02 ?? ele.conclusao_r01)) ?? topLevelConclusao ?? null;
   return {
     id: row.id,
     id_empreendimento: row.id_empreendimento,
     data_inspecao: row.data_inspecao,
+    titulo_capa: row.titulo_capa,
+    subtitulo_capa: row.subtitulo_capa,
+    texto_rodape_capa: row.texto_rodape_capa,
+    titulo_inspecao: row.titulo_inspecao,
+    descricao_inspecao: row.descricao_inspecao,
     titulo_relatorio: row.titulo_relatorio,
     subtitulo_relatorio: row.subtitulo_relatorio,
     cliente: row.cliente,
     revisao: row.revisao,
     eng_responsavel: row.eng_responsavel,
     nome_arquivo: row.nome_arquivo,
+    titulo_secao_inspecao: row.titulo_secao_inspecao,
+    label_local: row.label_local,
     itens_documentacao: row.itens_documentacao,
     comentarios_documentacao: row.comentarios_documentacao,
-    // expõe o conteúdo da coluna inspecao_eletrica como campos do relatório elétrico
-    inspecao_eletrica: ele,
-    conclusao: normalizedConclusao,
-    // expose r01/r02 preferring JSONB then top-level columns
-    conclusao_r01: ele.conclusao_r01 ?? row.conclusao_r01 ?? null,
-    conclusao_r02: ele.conclusao_r02 ?? row.conclusao_r02 ?? null,
     locais: row.locais,
+    distribuicao_eletrica: row.distribuicao_eletrica,
     observacoes_gerais: row.observacoes_gerais,
+    conclusao: row.conclusao,
+    conclusao_r01: row.conclusao_r01,
+    conclusao_r02: row.conclusao_r02,
     assinaturas: row.assinaturas,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
 }
 
+app.get('/api/inspecoes-eletrica', async (req, res) => {
+  try {
+    const p = requirePool();
+    const { id_empreendimento, order } = req.query;
+    const where = [];
+    const params = [];
+    if (id_empreendimento) { where.push('id_empreendimento = $' + (params.length + 1)); params.push(Number(id_empreendimento)); }
+    const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+    const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
+    const sql = `SELECT * FROM public.inspecoes_eletrica ${whereClause} ${orderClause}`;
+    const { rows } = await p.query(sql, params);
+    res.json(rows.map(mapInspecaoEletricaRow));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (shouldReturnEmptyOnDbError(err)) return res.json([]);
+    res.status(500).json({ error: msg });
+  }
+});
+
 app.get('/api/inspecoes-eletrica/:id', async (req, res) => {
   try {
     const p = requirePool();
     const id = Number(req.params.id);
-    const { rows } = await p.query('SELECT * FROM public.inspecoes_ar_condicionado WHERE id = $1', [id]);
+    const { rows } = await p.query('SELECT * FROM public.inspecoes_eletrica WHERE id = $1', [id]);
     if (!rows.length) return res.status(404).json({ error: 'not_found' });
-    try {
-      const mapped = mapInspecaoEletricaRow(rows[0]);
-      console.log('[GET /api/inspecoes-eletrica/:id] db row inspecao_eletrica:', JSON.stringify(rows[0].inspecao_eletrica).slice(0, 2000));
-      console.log('[GET /api/inspecoes-eletrica/:id] db row conclusao_r01/r02:', rows[0].conclusao_r01, rows[0].conclusao_r02);
-      console.log('[GET /api/inspecoes-eletrica/:id] mapped result conclusao/conclusao_r02/conclusao_r01:', mapped.conclusao, mapped.conclusao_r02, mapped.conclusao_r01);
-    } catch (logErr) {
-      console.error('[GET /api/inspecoes-eletrica/:id] erro ao logar mapeamento:', logErr);
-    }
     res.json(mapInspecaoEletricaRow(rows[0]));
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     res.status(500).json({ error: msg });
+  }
+});
+
+app.post('/api/inspecoes-eletrica', async (req, res) => {
+  try {
+    const p = requirePool();
+    const b = req.body || {};
+    if (!b.id_empreendimento) {
+      return res.status(400).json({ error: 'missing_id_empreendimento' });
+    }
+    const empId = Number(b.id_empreendimento);
+    try {
+      const chk = await p.query('SELECT 1 FROM public.empreendimentos WHERE id = $1', [empId]);
+      if (!chk.rows.length) {
+        return res.status(400).json({ error: 'invalid_empreendimento', id: empId });
+      }
+    } catch (e) {
+      if (shouldReturnEmptyOnDbError(e)) return res.status(500).json({ error: 'db_unavailable' });
+      throw e;
+    }
+    const sql = `INSERT INTO public.inspecoes_eletrica (
+      id_empreendimento, data_inspecao, titulo_capa, subtitulo_capa, texto_rodape_capa,
+      titulo_inspecao, descricao_inspecao, titulo_relatorio, subtitulo_relatorio, cliente,
+      revisao, eng_responsavel, nome_arquivo, titulo_secao_inspecao, label_local,
+      itens_documentacao, comentarios_documentacao, locais, distribuicao_eletrica,
+      observacoes_gerais, conclusao, conclusao_r01, conclusao_r02, assinaturas
+    ) VALUES (
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,
+      $16::jsonb,$17,$18::jsonb,$19::jsonb,$20,$21,$22,$23,$24::jsonb
+    ) RETURNING *`;
+    const params = [
+      empId,
+      normalizeDate(b.data_inspecao) ?? null,
+      b.titulo_capa ?? null,
+      b.subtitulo_capa ?? null,
+      b.texto_rodape_capa ?? null,
+      b.titulo_inspecao ?? null,
+      b.descricao_inspecao ?? null,
+      b.titulo_relatorio ?? null,
+      b.subtitulo_relatorio ?? null,
+      b.cliente ?? null,
+      b.revisao ?? null,
+      b.eng_responsavel ?? null,
+      b.nome_arquivo ?? null,
+      b.titulo_secao_inspecao ?? null,
+      b.label_local ?? null,
+      toJson(b.itens_documentacao ?? []),
+      b.comentarios_documentacao ?? null,
+      toJson(b.locais ?? []),
+      toJson(b.distribuicao_eletrica ?? []),
+      b.observacoes_gerais ?? null,
+      b.conclusao ?? null,
+      b.conclusao_r01 ?? null,
+      b.conclusao_r02 ?? null,
+      toJson(b.assinaturas ?? []),
+    ];
+    const { rows } = await p.query(sql, params);
+    res.status(201).json(mapInspecaoEletricaRow(rows[0]));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const code = err && typeof err === 'object' && 'code' in err ? err.code : undefined;
+    const detail = err && typeof err === 'object' && 'detail' in err ? err.detail : undefined;
+    console.error('[POST /api/inspecoes-eletrica] error:', err);
+    res.status(500).json({ error: msg, code, detail });
   }
 });
 
@@ -2330,44 +2405,80 @@ app.put('/api/inspecoes-eletrica/:id', async (req, res) => {
     const p = requirePool();
     const id = Number(req.params.id);
     const b = req.body || {};
-
-    // Carrega linha existente
-    const { rows: existingRows } = await p.query('SELECT * FROM public.inspecoes_ar_condicionado WHERE id = $1', [id]);
-    if (!existingRows.length) return res.status(404).json({ error: 'not_found' });
-    const row = existingRows[0];
-    const current = row.inspecao_eletrica || {};
-
-    // Monta objeto a ser mesclado no JSONB inspecao_eletrica
-    const incoming = (b.inspecao_eletrica && typeof b.inspecao_eletrica === 'object') ? b.inspecao_eletrica : {};
-    // Também aceita campos enviados no corpo como top-level (ex: conclusao, conclusao_r01, conclusao_r02)
-    if (b.conclusao !== undefined) incoming.conclusao = b.conclusao;
-    if (b.conclusao_r01 !== undefined) incoming.conclusao_r01 = b.conclusao_r01;
-    if (b.conclusao_r02 !== undefined) incoming.conclusao_r02 = b.conclusao_r02;
-
-    const merged = { ...current, ...incoming };
-    // If incoming set r01/r02 but not top-level conclusao, prefer r02 then r01
-    if ((merged.conclusao === undefined || merged.conclusao === null || merged.conclusao === '') && (merged.conclusao_r02 || merged.conclusao_r01)) {
-      merged.conclusao = merged.conclusao_r02 || merged.conclusao_r01;
-    }
-
-    // Update JSONB and also persist top-level conclusao_r01/conclusao_r02 if provided
-    const sql = `UPDATE public.inspecoes_ar_condicionado SET
-      inspecao_eletrica = $1::jsonb,
-      conclusao_r01 = $2,
-      conclusao_r02 = $3,
+    const sql = `UPDATE public.inspecoes_eletrica SET
+      id_empreendimento = COALESCE($1, id_empreendimento),
+      data_inspecao = $2,
+      titulo_capa = $3,
+      subtitulo_capa = $4,
+      texto_rodape_capa = $5,
+      titulo_inspecao = $6,
+      descricao_inspecao = $7,
+      titulo_relatorio = $8,
+      subtitulo_relatorio = $9,
+      cliente = $10,
+      revisao = $11,
+      eng_responsavel = $12,
+      nome_arquivo = $13,
+      titulo_secao_inspecao = $14,
+      label_local = $15,
+      itens_documentacao = $16::jsonb,
+      comentarios_documentacao = $17,
+      locais = $18::jsonb,
+      distribuicao_eletrica = $19::jsonb,
+      observacoes_gerais = $20,
+      conclusao = $21,
+      conclusao_r01 = $22,
+      conclusao_r02 = $23,
+      assinaturas = $24::jsonb,
       updated_at = now()
-    WHERE id = $4 RETURNING *`;
-    const params = [JSON.stringify(merged), (merged.conclusao_r01 ?? null), (merged.conclusao_r02 ?? null), id];
-    const { rows: updated } = await p.query(sql, params);
-    if (!updated.length) return res.status(404).json({ error: 'not_found' });
-    try {
-      console.log('[PUT /api/inspecoes-eletrica/:id] merged to save (inspecao_eletrica):', JSON.stringify(merged).slice(0, 2000));
-      console.log('[PUT /api/inspecoes-eletrica/:id] updated row top-level conclusao_r01/r02:', updated[0].conclusao_r01, updated[0].conclusao_r02);
-    } catch (logErr) { console.error('[PUT /api/inspecoes-eletrica/:id] erro ao logar update:', logErr); }
-    res.json(mapInspecaoEletricaRow(updated[0]));
+    WHERE id = $25 RETURNING *`;
+    const params = [
+      (b.id_empreendimento !== undefined && b.id_empreendimento !== null) ? Number(b.id_empreendimento) : null,
+      normalizeDate(b.data_inspecao) ?? null,
+      b.titulo_capa ?? null,
+      b.subtitulo_capa ?? null,
+      b.texto_rodape_capa ?? null,
+      b.titulo_inspecao ?? null,
+      b.descricao_inspecao ?? null,
+      b.titulo_relatorio ?? null,
+      b.subtitulo_relatorio ?? null,
+      b.cliente ?? null,
+      b.revisao ?? null,
+      b.eng_responsavel ?? null,
+      b.nome_arquivo ?? null,
+      b.titulo_secao_inspecao ?? null,
+      b.label_local ?? null,
+      b.itens_documentacao === undefined ? null : toJson(b.itens_documentacao),
+      b.comentarios_documentacao ?? null,
+      b.locais === undefined ? null : toJson(b.locais),
+      b.distribuicao_eletrica === undefined ? null : toJson(b.distribuicao_eletrica),
+      b.observacoes_gerais ?? null,
+      b.conclusao ?? null,
+      b.conclusao_r01 ?? null,
+      b.conclusao_r02 ?? null,
+      b.assinaturas === undefined ? null : toJson(b.assinaturas),
+      id,
+    ];
+    const { rows } = await p.query(sql, params);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapInspecaoEletricaRow(rows[0]));
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
+    const code = err && typeof err === 'object' && 'code' in err ? err.code : undefined;
     console.error('[PUT /api/inspecoes-eletrica/:id] error:', err);
+    res.status(500).json({ error: msg, code });
+  }
+});
+
+app.delete('/api/inspecoes-eletrica/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const { rowCount } = await p.query('DELETE FROM public.inspecoes_eletrica WHERE id = $1', [id]);
+    if (!rowCount) return res.status(404).json({ error: 'not_found' });
+    res.json({ ok: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
     res.status(500).json({ error: msg });
   }
 });
