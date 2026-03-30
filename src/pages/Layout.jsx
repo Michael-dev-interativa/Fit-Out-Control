@@ -97,15 +97,6 @@ export default function Layout({ children }) {
   const [isLoadingUser, setIsLoadingUser] = useState(false);
   const [precacheStatus, setPrecacheStatus] = useState('idle'); // idle | running | done | error
 
-  const isSameOriginUrl = (url) => {
-    try {
-      const parsed = new URL(url, window.location.origin);
-      return parsed.origin === window.location.origin;
-    } catch {
-      return false;
-    }
-  };
-
   const preloadExternalImage = (url) => new Promise((resolve) => {
     const img = new Image();
     img.onload = () => resolve(true);
@@ -153,20 +144,11 @@ export default function Layout({ children }) {
           .filter(Boolean)
           .slice(0, 80))];
 
-        const sameOriginUrls = imageUrls.filter((url) => isSameOriginUrl(url));
-        const externalUrls = imageUrls.filter((url) => !isSameOriginUrl(url));
-
-        const sameOriginResults = await Promise.allSettled(
-          sameOriginUrls.map((url) => fetch(url, { cache: 'force-cache' }))
-        );
-        const externalResults = await Promise.allSettled(
-          externalUrls.map((url) => preloadExternalImage(url))
+        const imageResults = await Promise.allSettled(
+          imageUrls.map((url) => preloadExternalImage(url))
         );
 
-        const imageOkCount = [
-          ...sameOriginResults,
-          ...externalResults,
-        ].filter((r) => r.status === 'fulfilled').length;
+        const imageOkCount = imageResults.filter((r) => r.status === 'fulfilled').length;
         console.log(`[precache] imagens de empreendimentos cacheadas: ${imageOkCount}/${imageUrls.length}`);
 
         // Só marca concluído após o núcleo de dados ter sido cacheado com sucesso.
