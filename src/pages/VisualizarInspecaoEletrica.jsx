@@ -203,8 +203,8 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
 
 const FotoInspecao = ({ url, legenda }) => {
     return (
-        <div className="photo-item" style={{ textAlign: 'left', overflow: 'hidden', marginBottom: '0px', boxSizing: 'border-box' }}>
-            <img className="photo-image" src={url} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: '120px', objectFit: 'cover', border: '1px solid #ddd', display: 'block', backgroundColor: '#fff' }} />
+        <div className="imagem-box" style={{ textAlign: 'left', marginBottom: '0px', boxSizing: 'border-box' }}>
+            <img src={url} alt={legenda || 'Foto da inspeção'} />
             {legenda && (
                 <p style={{ fontSize: '7px', color: '#555', marginTop: '4px', lineHeight: '1.1', overflowWrap: 'anywhere', whiteSpace: 'normal' }}>{legenda}</p>
             )}
@@ -270,7 +270,7 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                                         {linhaIdx === 0 && (
                                                             item.descricao ? <div style={{ fontSize: '9px', color: '#666', fontStyle: 'italic', margin: '4px 4px 3px 4px' }}>{item.descricao}</div> : null
                                                         )}
-                                                        <div className="photo-grid">
+                                                        <div className="imagens-container">
                                                             {linha.map((foto, fotoIdx) => (
                                                                 <FotoInspecao key={`${idx}-${linhaIdx}-${fotoIdx}`} url={foto.url} legenda={foto.legenda} />
                                                             ))}
@@ -300,7 +300,7 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                         {fotosValidas.length > 0 && chunkFotos(fotosValidas, 3).map((linha, linhaIdx) => (
                                             <tr key={`${idx}-fotos-${linhaIdx}`} className="photo-row" style={{ pageBreakInside: 'avoid', breakInside: 'avoid', pageBreakBefore: 'auto' }}>
                                                 <td colSpan="5" className="border border-black p-0" style={{ verticalAlign: 'top' }}>
-                                                    <div className="photo-grid">
+                                                    <div className="imagens-container">
                                                         {linha.map((foto, fotoIdx) => (
                                                             <FotoInspecao key={`${idx}-${linhaIdx}-${fotoIdx}`} url={foto.url} legenda={foto.legenda} />
                                                         ))}
@@ -434,8 +434,8 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 headerHeightPx: 80,
                 footerHeightPx: 45,
                 pagePaddingPx: 12,
-                // Keep estimate aligned with print photo box height.
-                photoMaxHeightPx: 140,
+                // Keep estimate aligned with fixed photo box height (180px) plus spacing/caption.
+                photoMaxHeightPx: 200,
                 maxPhotosPerItem: 3,
                 itemBufferPx: 10,
                 // Conservative values were creating large blank areas before breaking.
@@ -536,25 +536,33 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     overflow: visible;
                 }
 
-                .photo-grid {
+                .imagens-container {
                     display: flex;
                     flex-wrap: wrap;
                     gap: 8px;
                     width: 100%;
                     align-items: flex-start;
+                    break-inside: avoid;
+                    page-break-inside: avoid;
                 }
 
-                .photo-item {
+                .imagem-box {
                     flex: 0 0 calc((100% - 16px) / 3);
                     max-width: calc((100% - 16px) / 3);
+                    width: calc((100% - 16px) / 3);
+                    height: 180px;
+                    overflow: hidden;
                     break-inside: avoid;
                     page-break-inside: avoid;
                 }
 
-                .photo-image {
+                .imagem-box img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    border-radius: 6px;
                     break-inside: avoid;
                     page-break-inside: avoid;
-                    border-radius: 4px;
                 }
                 
                 @media screen { 
@@ -637,23 +645,27 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     thead { display: table-header-group; }
                     tr { page-break-inside: avoid; }
                     .photo-row { page-break-inside: avoid !important; break-inside: avoid !important; }
-                    .photo-grid {
+                    .imagens-container {
                         display: flex !important;
                         flex-wrap: wrap !important;
                         gap: 8px !important;
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
                     }
-                    .photo-item {
+                    .imagem-box {
                         flex: 0 0 calc((100% - 16px) / 3) !important;
                         max-width: calc((100% - 16px) / 3) !important;
+                        width: calc((100% - 16px) / 3) !important;
+                        height: 180px !important;
+                        overflow: hidden !important;
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
                     }
-                    .photo-image {
+                    .imagem-box img {
                         width: 100% !important;
-                        height: 120px !important;
+                        height: 100% !important;
                         object-fit: cover !important;
+                        border-radius: 6px !important;
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
                     }
