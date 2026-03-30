@@ -2271,12 +2271,97 @@ app.delete('/api/inspecoes-ar-condicionado/:id', async (req, res) => {
   }
 });
 
-// ===== Inspeções Elétricas =====
+// ===== Inspeções Elétrica =====
+let inspecaoEletricaSchemaEnsured = false;
+
+async function ensureInspecaoEletricaSchema() {
+  if (inspecaoEletricaSchemaEnsured) return;
+
+  const p = requirePool();
+  await p.query(`
+    CREATE TABLE IF NOT EXISTS public.inspecoes_eletrica (
+      id BIGSERIAL PRIMARY KEY,
+      id_empreendimento BIGINT NOT NULL REFERENCES public.empreendimentos(id) ON DELETE CASCADE,
+      data_inspecao DATE,
+      titulo_capa TEXT,
+      subtitulo_capa TEXT,
+      texto_rodape_capa TEXT,
+      titulo_inspecao TEXT,
+      descricao_inspecao TEXT,
+      titulo_relatorio TEXT,
+      subtitulo_relatorio TEXT,
+      cliente TEXT,
+      revisao TEXT,
+      eng_responsavel TEXT,
+      nome_arquivo TEXT,
+      titulo_secao_inspecao TEXT,
+      label_local TEXT,
+      itens_documentacao JSONB,
+      comentarios_documentacao TEXT,
+      locais JSONB,
+      distribuicao_eletrica JSONB,
+      observacoes_gerais TEXT,
+      conclusao TEXT,
+      conclusao_r01 TEXT,
+      conclusao_r02 TEXT,
+      assinaturas JSONB,
+      created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+      updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+    )
+  `);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS data_inspecao DATE`);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS titulo_capa TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS subtitulo_capa TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS texto_rodape_capa TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS titulo_inspecao TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS descricao_inspecao TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS titulo_relatorio TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS subtitulo_relatorio TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS cliente TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS revisao TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS eng_responsavel TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS nome_arquivo TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS titulo_secao_inspecao TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS label_local TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS itens_documentacao JSONB`);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS comentarios_documentacao TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS locais JSONB`);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS distribuicao_eletrica JSONB`);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS observacoes_gerais TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS conclusao TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS conclusao_r01 TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS conclusao_r02 TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS assinaturas JSONB`);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now() NOT NULL`);
+  await p.query(`ALTER TABLE public.inspecoes_eletrica ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now() NOT NULL`);
+  await p.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'inspecoes_eletrica_id_empreendimento_fkey'
+      ) THEN
+        ALTER TABLE public.inspecoes_eletrica
+        ADD CONSTRAINT inspecoes_eletrica_id_empreendimento_fkey
+        FOREIGN KEY (id_empreendimento) REFERENCES public.empreendimentos(id) ON DELETE CASCADE;
+      END IF;
+    END $$;
+  `);
+  await p.query('DROP TRIGGER IF EXISTS inspecoes_eletrica_set_updated_at ON public.inspecoes_eletrica');
+  await p.query('CREATE TRIGGER inspecoes_eletrica_set_updated_at BEFORE UPDATE ON public.inspecoes_eletrica FOR EACH ROW EXECUTE FUNCTION public.set_updated_at()');
+  await p.query('CREATE INDEX IF NOT EXISTS idx_inspecoes_eletrica_empreendimento ON public.inspecoes_eletrica (id_empreendimento)');
+  await p.query('CREATE INDEX IF NOT EXISTS idx_inspecoes_eletrica_data ON public.inspecoes_eletrica (data_inspecao)');
+  await p.query('CREATE INDEX IF NOT EXISTS idx_inspecoes_eletrica_revisao ON public.inspecoes_eletrica (revisao)');
+
+  inspecaoEletricaSchemaEnsured = true;
+}
+
 function mapInspecaoEletricaRow(row) {
   return {
     id: row.id,
     id_empreendimento: row.id_empreendimento,
-    data_inspecao: row.data_inspecao,
+    data_inspecao: formatDateForAPI(row.data_inspecao),
     titulo_capa: row.titulo_capa,
     subtitulo_capa: row.subtitulo_capa,
     texto_rodape_capa: row.texto_rodape_capa,
@@ -2306,6 +2391,7 @@ function mapInspecaoEletricaRow(row) {
 
 app.get('/api/inspecoes-eletrica', async (req, res) => {
   try {
+    await ensureInspecaoEletricaSchema();
     const p = requirePool();
     const { id_empreendimento, order } = req.query;
     const where = [];
@@ -2325,6 +2411,7 @@ app.get('/api/inspecoes-eletrica', async (req, res) => {
 
 app.get('/api/inspecoes-eletrica/:id', async (req, res) => {
   try {
+    await ensureInspecaoEletricaSchema();
     const p = requirePool();
     const id = Number(req.params.id);
     const { rows } = await p.query('SELECT * FROM public.inspecoes_eletrica WHERE id = $1', [id]);
@@ -2338,6 +2425,7 @@ app.get('/api/inspecoes-eletrica/:id', async (req, res) => {
 
 app.post('/api/inspecoes-eletrica', async (req, res) => {
   try {
+    await ensureInspecaoEletricaSchema();
     const p = requirePool();
     const b = req.body || {};
     if (!b.id_empreendimento) {
@@ -2360,8 +2448,7 @@ app.post('/api/inspecoes-eletrica', async (req, res) => {
       itens_documentacao, comentarios_documentacao, locais, distribuicao_eletrica,
       observacoes_gerais, conclusao, conclusao_r01, conclusao_r02, assinaturas
     ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,
-      $16::jsonb,$17,$18::jsonb,$19::jsonb,$20,$21,$22,$23,$24::jsonb
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16::jsonb,$17,$18::jsonb,$19::jsonb,$20,$21,$22,$23,$24::jsonb
     ) RETURNING *`;
     const params = [
       empId,
@@ -2387,7 +2474,7 @@ app.post('/api/inspecoes-eletrica', async (req, res) => {
       b.conclusao ?? null,
       b.conclusao_r01 ?? null,
       b.conclusao_r02 ?? null,
-      toJson(b.assinaturas ?? []),
+      toJson(b.assinaturas ?? [])
     ];
     const { rows } = await p.query(sql, params);
     res.status(201).json(mapInspecaoEletricaRow(rows[0]));
@@ -2402,6 +2489,7 @@ app.post('/api/inspecoes-eletrica', async (req, res) => {
 
 app.put('/api/inspecoes-eletrica/:id', async (req, res) => {
   try {
+    await ensureInspecaoEletricaSchema();
     const p = requirePool();
     const id = Number(req.params.id);
     const b = req.body || {};
@@ -2448,16 +2536,16 @@ app.put('/api/inspecoes-eletrica/:id', async (req, res) => {
       b.nome_arquivo ?? null,
       b.titulo_secao_inspecao ?? null,
       b.label_local ?? null,
-      b.itens_documentacao === undefined ? null : toJson(b.itens_documentacao),
+      toJson(b.itens_documentacao ?? []),
       b.comentarios_documentacao ?? null,
-      b.locais === undefined ? null : toJson(b.locais),
-      b.distribuicao_eletrica === undefined ? null : toJson(b.distribuicao_eletrica),
+      toJson(b.locais ?? []),
+      toJson(b.distribuicao_eletrica ?? []),
       b.observacoes_gerais ?? null,
       b.conclusao ?? null,
       b.conclusao_r01 ?? null,
       b.conclusao_r02 ?? null,
-      b.assinaturas === undefined ? null : toJson(b.assinaturas),
-      id,
+      toJson(b.assinaturas ?? []),
+      id
     ];
     const { rows } = await p.query(sql, params);
     if (!rows.length) return res.status(404).json({ error: 'not_found' });
@@ -2472,6 +2560,7 @@ app.put('/api/inspecoes-eletrica/:id', async (req, res) => {
 
 app.delete('/api/inspecoes-eletrica/:id', async (req, res) => {
   try {
+    await ensureInspecaoEletricaSchema();
     const p = requirePool();
     const id = Number(req.params.id);
     const { rowCount } = await p.query('DELETE FROM public.inspecoes_eletrica WHERE id = $1', [id]);

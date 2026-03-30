@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Empreendimento, InspecaoArCondicionado } from '@/api/entities';
+import { Empreendimento, InspecaoEletrica } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Loader2, Plus, ArrowLeft, Trash2, Pencil, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -45,7 +45,7 @@ export default function EmpreendimentoInspecaoEletrica({ language: initialLangua
         try {
             const [empreendimentoData, inspecoesData] = await Promise.all([
                 Empreendimento.get(empreendimentoId),
-                InspecaoArCondicionado.filter({ id_empreendimento: empreendimentoId }, "-data_inspecao")
+                InspecaoEletrica.filter({ id_empreendimento: empreendimentoId }, "-data_inspecao")
             ]);
             setEmpreendimento(empreendimentoData);
             setInspecoes(inspecoesData);
@@ -62,7 +62,7 @@ export default function EmpreendimentoInspecaoEletrica({ language: initialLangua
 
     const handleDelete = async (id) => {
         try {
-            await InspecaoArCondicionado.delete(id);
+            await InspecaoEletrica.delete(id);
             loadData();
         } catch (error) {
             console.error("Failed to delete report:", error);

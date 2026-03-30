@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
+import { InspecaoEletrica } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -69,7 +70,7 @@ export default function EditarInspecaoEletrica() {
         }
         const loadData = async () => {
             try {
-                const data = await base44.entities.InspecaoArCondicionado.get(inspecaoId);
+                const data = await InspecaoEletrica.get(inspecaoId);
                 let dataInspecao = '';
                 if (data.data_inspecao) {
                     dataInspecao = data.data_inspecao.includes('T')
@@ -314,7 +315,7 @@ export default function EditarInspecaoEletrica() {
                 updateData.data_inspecao = updateData.data_inspecao + 'T12:00:00';
             }
 
-            await base44.entities.InspecaoArCondicionado.update(id, updateData);
+            await InspecaoEletrica.update(id, updateData);
             toast.success("Inspeção atualizada com sucesso!");
             navigate(createPageUrl(`EmpreendimentoInspecaoEletrica?empreendimentoId=${formData.id_empreendimento}`));
         } catch (error) {

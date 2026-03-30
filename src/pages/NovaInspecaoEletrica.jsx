@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Plus, Trash2, ArrowLeft, Edit2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-import { Empreendimento, InspecaoEletrica, InspecaoArCondicionado } from '@/api/entities';
+import { Empreendimento, InspecaoEletrica } from '@/api/entities';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { SimpleSignaturePad } from '@/components/signature/SignaturePadComponent';
@@ -425,9 +425,7 @@ export default function NovaInspecaoEletrica() {
                 dataToSave.data_inspecao = dataToSave.data_inspecao + 'T12:00:00';
             }
 
-            // Backend does not expose POST /api/inspecoes-eletrica — use the ar-condicionado create endpoint
-            // which persists to the same table (inspecoes_ar_condicionado) and accepts inspecao_eletrica JSONB.
-            await InspecaoArCondicionado.create(dataToSave);
+            await InspecaoEletrica.create(dataToSave);
             toast.success("Inspeção criada com sucesso!");
             navigate(createPageUrl(`EmpreendimentoInspecaoEletrica?empreendimentoId=${empreendimentoId}`));
         } catch (error) {
