@@ -437,8 +437,6 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 // Keep photo estimate aligned with rendered photo box (250px) to avoid early breaks.
                 photoMaxHeightPx: 250,
                 maxPhotosPerItem: 3,
-                splitPhotoRows: true,
-                photoChunkSize: 3,
                 itemBufferPx: 10,
                 // Conservative values were creating large blank areas before breaking.
                 safetyMarginPx: 24,
@@ -660,32 +658,8 @@ export default function VisualizarInspecaoEletrica() {
                 // Pré-comprimir todas as imagens antes de usar
                 console.log("==== INICIANDO COMPRESSÃO DE IMAGENS ====");
 
-                // Comprimir foto do empreendimento (capa) - qualidade muito baixa
-                if (empreendimentoData?.foto_empreendimento) {
-                    console.log("Comprimindo foto do empreendimento...");
-                    empreendimentoData.foto_empreendimento = await compressImage(empreendimentoData.foto_empreendimento, 600, 0.15);
-                }
-
-                // Comprimir fotos de inspeção nos locais - máxima compressão
-                if (relatorioData.locais && relatorioData.locais.length > 0) {
-                    console.log("Comprimindo fotos de inspeção...");
-                    let totalFotos = 0;
-                    for (const local of relatorioData.locais) {
-                        if (local.itens_inspecao && local.itens_inspecao.length > 0) {
-                            for (const item of local.itens_inspecao) {
-                                if (item.fotos && item.fotos.length > 0) {
-                                    for (const foto of item.fotos) {
-                                        if (foto.url) {
-                                            foto.url = await compressImage(foto.url, 500, 0.15);
-                                            totalFotos++;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    console.log(`✓ ${totalFotos} fotos de inspeção comprimidas`);
-                }
+                // Preserve original project/inspection images for print fidelity.
+                // Previous aggressive JPEG compression changed visual appearance in PDFs.
 
                 // Comprimir imagens de assinaturas
                 if (relatorioData.assinaturas && relatorioData.assinaturas.length > 0) {
