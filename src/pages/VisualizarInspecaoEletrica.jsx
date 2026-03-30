@@ -203,8 +203,8 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
 
 const FotoInspecao = ({ url, legenda }) => {
     return (
-        <div style={{ textAlign: 'left', overflow: 'visible', marginBottom: '0px', boxSizing: 'border-box', width: '250px', minWidth: '250px', maxWidth: '250px', justifySelf: 'start' }}>
-            <img src={url} alt={legenda || 'Foto da inspeção'} style={{ width: '250px', minWidth: '250px', maxWidth: '250px', height: 'auto', maxHeight: '250px', objectFit: 'contain', border: '1px solid #ddd', display: 'block', backgroundColor: '#fff' }} />
+        <div className="photo-item" style={{ textAlign: 'left', overflow: 'hidden', marginBottom: '0px', boxSizing: 'border-box' }}>
+            <img className="photo-image" src={url} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: '120px', objectFit: 'cover', border: '1px solid #ddd', display: 'block', backgroundColor: '#fff' }} />
             {legenda && (
                 <p style={{ fontSize: '7px', color: '#555', marginTop: '4px', lineHeight: '1.1', overflowWrap: 'anywhere', whiteSpace: 'normal' }}>{legenda}</p>
             )}
@@ -270,7 +270,7 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                                         {linhaIdx === 0 && (
                                                             item.descricao ? <div style={{ fontSize: '9px', color: '#666', fontStyle: 'italic', margin: '4px 4px 3px 4px' }}>{item.descricao}</div> : null
                                                         )}
-                                                        <div className="photo-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 250px)', gridAutoRows: 'auto', gap: '0px', maxWidth: '100%', overflow: 'visible', justifyItems: 'start', justifyContent: 'start', alignItems: 'start', gridAutoFlow: 'row' }}>
+                                                        <div className="photo-grid">
                                                             {linha.map((foto, fotoIdx) => (
                                                                 <FotoInspecao key={`${idx}-${linhaIdx}-${fotoIdx}`} url={foto.url} legenda={foto.legenda} />
                                                             ))}
@@ -300,7 +300,7 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                         {fotosValidas.length > 0 && chunkFotos(fotosValidas, 3).map((linha, linhaIdx) => (
                                             <tr key={`${idx}-fotos-${linhaIdx}`} className="photo-row" style={{ pageBreakInside: 'avoid', breakInside: 'avoid', pageBreakBefore: 'auto' }}>
                                                 <td colSpan="5" className="border border-black p-0" style={{ verticalAlign: 'top' }}>
-                                                    <div className="photo-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 250px)', gridAutoRows: 'auto', gap: '0px', maxWidth: '100%', overflow: 'visible', justifyItems: 'start', justifyContent: 'start', alignItems: 'start', gridAutoFlow: 'row' }}>
+                                                    <div className="photo-grid">
                                                         {linha.map((foto, fotoIdx) => (
                                                             <FotoInspecao key={`${idx}-${linhaIdx}-${fotoIdx}`} url={foto.url} legenda={foto.legenda} />
                                                         ))}
@@ -434,8 +434,8 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 headerHeightPx: 80,
                 footerHeightPx: 45,
                 pagePaddingPx: 12,
-                // Keep photo estimate aligned with rendered photo box (250px) to avoid early breaks.
-                photoMaxHeightPx: 250,
+                // Keep estimate aligned with print photo box height.
+                photoMaxHeightPx: 140,
                 maxPhotosPerItem: 3,
                 itemBufferPx: 10,
                 // Conservative values were creating large blank areas before breaking.
@@ -535,6 +535,27 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     background: white; 
                     overflow: visible;
                 }
+
+                .photo-grid {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 8px;
+                    width: 100%;
+                    align-items: flex-start;
+                }
+
+                .photo-item {
+                    flex: 0 0 calc((100% - 16px) / 3);
+                    max-width: calc((100% - 16px) / 3);
+                    break-inside: avoid;
+                    page-break-inside: avoid;
+                }
+
+                .photo-image {
+                    break-inside: avoid;
+                    page-break-inside: avoid;
+                    border-radius: 4px;
+                }
                 
                 @media screen { 
                     .report-page { 
@@ -616,7 +637,26 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     thead { display: table-header-group; }
                     tr { page-break-inside: avoid; }
                     .photo-row { page-break-inside: avoid !important; break-inside: avoid !important; }
-                    .photo-grid { page-break-inside: avoid !important; break-inside: avoid !important; }
+                    .photo-grid {
+                        display: flex !important;
+                        flex-wrap: wrap !important;
+                        gap: 8px !important;
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
+                    }
+                    .photo-item {
+                        flex: 0 0 calc((100% - 16px) / 3) !important;
+                        max-width: calc((100% - 16px) / 3) !important;
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
+                    }
+                    .photo-image {
+                        width: 100% !important;
+                        height: 120px !important;
+                        object-fit: cover !important;
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
+                    }
                 }
                 
                 @media screen {
