@@ -56,30 +56,30 @@ export function apiUrl(path = "") {
 // Função para construir URLs de uploads/imagens
 export function getUploadUrl(filePath) {
   if (!filePath) return null;
+  // Garante que filePath é uma string
+  if (typeof filePath !== 'string') return null;
 
   // Recalcula API_BASE para pegar hostname atual
   const currentApiBase = getApiBase();
 
-  // Log SEMPRE para debug em produção
-  console.log('[getUploadUrl] Input:', filePath, '| API Base:', currentApiBase);
-
-  // Se já é URL completa, retorna como está
+  // Se já é URL completa, verifica se é localhost e reescreve para produção
   if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
-    console.log('[getUploadUrl] → Already full URL, returning as-is');
+    // Reescreve URLs localhost para o servidor atual
+    if (/https?:\/\/localhost(:\d+)?/.test(filePath)) {
+      const urlPath = filePath.replace(/https?:\/\/localhost(:\d+)?/, '');
+      return `${currentApiBase}${urlPath}`;
+    }
     return filePath;
   }
 
   // Suporte a imagens locais offline (DataURL / blob URL)
   if (filePath.startsWith('data:') || filePath.startsWith('blob:')) {
-    console.log('[getUploadUrl] → Local data/blob URL, returning as-is');
     return filePath;
   }
 
   // Se é um caminho de API (/api/files/123), usa diretamente
   if (filePath.startsWith('/api/')) {
-    const fullUrl = `${currentApiBase}${filePath}`;
-    console.log('[getUploadUrl] → API path converted to:', fullUrl);
-    return fullUrl;
+    return `${currentApiBase}${filePath}`;
   }
 
   // Remove barra inicial
@@ -87,13 +87,9 @@ export function getUploadUrl(filePath) {
 
   // Se é um caminho antigo de uploads (uploads/xxxxx.jpg)
   if (cleanPath.startsWith('uploads/')) {
-    const fullUrl = `${currentApiBase}/${cleanPath}`;
-    console.log('[getUploadUrl] → Uploads path converted to:', fullUrl);
-    return fullUrl;
+    return `${currentApiBase}/${cleanPath}`;
   }
 
   // Senão, adiciona 'uploads/' (fallback para compatibilidade)
-  const fullUrl = `${currentApiBase}/uploads/${cleanPath}`;
-  console.log('[getUploadUrl] → Fallback path converted to:', fullUrl);
-  return fullUrl;
+  return `${currentApiBase}/uploads/${cleanPath}`;
 }

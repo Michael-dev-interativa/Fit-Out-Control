@@ -122,8 +122,13 @@ export default function Layout({ children }) {
 
         const rawUrls = itens.flatMap((emp) => {
           const list = [];
-          if (emp?.foto_empreendimento) list.push(emp.foto_empreendimento);
-          if (Array.isArray(emp?.fotos_empreendimento)) list.push(...emp.fotos_empreendimento);
+          if (emp?.foto_empreendimento && typeof emp.foto_empreendimento === 'string') list.push(emp.foto_empreendimento);
+          if (Array.isArray(emp?.fotos_empreendimento)) {
+            emp.fotos_empreendimento.forEach((f) => {
+              if (f && typeof f === 'string') list.push(f);
+              else if (f && typeof f === 'object' && typeof f.url === 'string') list.push(f.url);
+            });
+          }
           return list;
         });
 
