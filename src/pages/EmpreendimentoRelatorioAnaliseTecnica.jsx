@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { createPageUrl } from '@/utils';
+import { Empreendimento, RelatorioAnaliseTecnica } from '@/api/entities';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Plus, FileText, Edit, Trash2, Eye, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -29,31 +29,40 @@ export default function EmpreendimentoRelatorioAnaliseTecnica({ theme }) {
   const isDark = theme === 'dark';
 
   useEffect(() => {
-    if (!empreendimentoId) return;
+    if (!empreendimentoId) {
+      navigate(createPageUrl('Empreendimentos'));
+      return;
+    }
     loadData();
   }, [empreendimentoId]);
 
   const loadData = async () => {
-    setLoading(true);
-    const [emp, rels] = await Promise.all([
-      base44.entities.Empreendimento.get(empreendimentoId),
-      base44.entities.RelatorioAnaliseTecnica.filter({ id_empreendimento: empreendimentoId }, '-created_date'),
-    ]);
-    setEmpreendimento(emp);
-    setRelatorios(rels);
-    setLoading(false);
+    try {
+      setLoading(true);
+      const [emp, rels] = await Promise.all([
+        Empreendimento.get(empreendimentoId),
+        RelatorioAnaliseTecnica.filter({ id_empreendimento: empreendimentoId }, '-created_at'),
+      ]);
+      setEmpreendimento(emp);
+      setRelatorios(rels || []);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async (id) => {
     if (!confirm('Deseja excluir este relatório?')) return;
-    setDeletingId(id);
-    await base44.entities.RelatorioAnaliseTecnica.delete(id);
-    setRelatorios(prev => prev.filter(r => r.id !== id));
-    setDeletingId(null);
+    try {
+      setDeletingId(id);
+      await RelatorioAnaliseTecnica.delete(id);
+      setRelatorios(prev => prev.filter(r => r.id !== id));
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const handleNew = () => {
-    navigate(`/NovoRelatorioAnaliseTecnica?empreendimentoId=${empreendimentoId}`);
+    navigate(createPageUrl(`NovaEmissaoAnalise?empreendimentoId=${empreendimentoId}`));
   };
 
   const contarRespostas = (projetos) => {
@@ -129,10 +138,10 @@ export default function EmpreendimentoRelatorioAnaliseTecnica({ theme }) {
                         {contarRespostas(rel.projetos)}
                       </span>
                     )}
-                    <Button size="icon" variant="ghost" title="Visualizar" onClick={() => navigate(`/VisualizarRelatorioAnaliseTecnica?id=${rel.id}`)}>
+                    <Button size="icon" variant="ghost" title="Visualizar" onClick={() => navigate(createPageUrl(`VisualizarRelatorioAnaliseTecnica?id=${rel.id}`))}>
                       <Eye className="w-4 h-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" title="Editar" onClick={() => navigate(`/EditarRelatorioAnaliseTecnica?id=${rel.id}&empreendimentoId=${empreendimentoId}`)}>
+                    <Button size="icon" variant="ghost" title="Editar" onClick={() => navigate(createPageUrl(`EditarRelatorioAnaliseTecnica?id=${rel.id}&empreendimentoId=${empreendimentoId}`))}>
                       <Edit className="w-4 h-4" />
                     </Button>
                     <Button size="icon" variant="ghost" className="text-red-500 hover:text-red-700" title="Excluir"

@@ -17,6 +17,9 @@ const UnidadeRegistros = lazy(() => import("./UnidadeRegistros"));
 const NovaEmissao = lazy(() => import("./NovaEmissao"));
 const UnidadeAnalises = lazy(() => import("./UnidadeAnalises"));
 const NovaEmissaoAnalise = lazy(() => import("./NovaEmissaoAnalise"));
+const EmpreendimentoRelatorioAnaliseTecnica = lazy(() => import("./EmpreendimentoRelatorioAnaliseTecnica"));
+const EditarRelatorioAnaliseTecnica = lazy(() => import("./EditarRelatorioAnaliseTecnica"));
+const VisualizarRelatorioAnaliseTecnica = lazy(() => import("./VisualizarRelatorioAnaliseTecnica"));
 const UnidadeKickOff = lazy(() => import("./UnidadeKickOff"));
 const NovaEmissaoVistoria = lazy(() => import("./NovaEmissaoVistoria"));
 const RelatorioVistoria = lazy(() => import("./RelatorioVistoria"));
@@ -195,6 +198,12 @@ const PAGES = {
     UnidadeAnalises: UnidadeAnalises,
 
     NovaEmissaoAnalise: NovaEmissaoAnalise,
+
+    EmpreendimentoRelatorioAnaliseTecnica: EmpreendimentoRelatorioAnaliseTecnica,
+
+    EditarRelatorioAnaliseTecnica: EditarRelatorioAnaliseTecnica,
+
+    VisualizarRelatorioAnaliseTecnica: VisualizarRelatorioAnaliseTecnica,
 
     UnidadeKickOff: UnidadeKickOff,
 
@@ -440,6 +449,13 @@ function PagesContent() {
                     <Route path="/UnidadeAnalises" element={<UnidadeAnalises />} />
 
                     <Route path="/NovaEmissaoAnalise" element={<NovaEmissaoAnalise />} />
+                    <Route path="/NovoRelatorioAnaliseTecnica" element={<NovaEmissaoAnalise />} />
+
+                    <Route path="/EmpreendimentoRelatorioAnaliseTecnica" element={<EmpreendimentoRelatorioAnaliseTecnica />} />
+
+                    <Route path="/EditarRelatorioAnaliseTecnica" element={<EditarRelatorioAnaliseTecnica />} />
+
+                    <Route path="/VisualizarRelatorioAnaliseTecnica" element={<VisualizarRelatorioAnaliseTecnica />} />
 
                     <Route path="/UnidadeKickOff" element={<UnidadeKickOff />} />
 

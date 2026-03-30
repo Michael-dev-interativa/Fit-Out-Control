@@ -234,6 +234,7 @@ export const TermoDeAceite = makeEntity('termos-aceite');
 // Respostas de vistoria são expostas como vistorias
 export const RespostaVistoria = makeEntity('vistorias');
 export const RelatorioSemanal = makeEntity('relatorios-semanais');
+export const RelatorioAnaliseTecnica = makeEntity('relatorios-analise-tecnica');
 export const RelatorioPrimeirosServicos = makeEntity('relatorios-primeiros-servicos');
 export const AprovacaoAmostra = makeEntity('aprovacoes-amostra');
 export const VistoriaTerminalidade = makeEntity('vistorias-terminalidade');
@@ -287,6 +288,7 @@ try {
   base44.entities.AtaReuniao = AtaReuniao;
   // Mapear entidades relacionadas a inspeções para compatibilidade com código legado
   base44.entities.Empreendimento = Empreendimento;
+  base44.entities.RelatorioAnaliseTecnica = RelatorioAnaliseTecnica;
   base44.entities.InspecaoEletrica = InspecaoEletrica;
   base44.entities.InspecaoArCondicionado = InspecaoArCondicionado;
   base44.entities.InspecaoHidrantes = InspecaoHidrantes;

@@ -4381,6 +4381,205 @@ app.delete('/api/relatorios-primeiros-servicos/:id', async (req, res) => {
   }
 });
 
+// ---- Relatorios Analise Tecnica ----
+function mapRAT(row) {
+  return {
+    id: row.id,
+    id_empreendimento: row.id_empreendimento,
+    id_unidade: row.id_unidade,
+    numero_os: row.numero_os,
+    metragem: row.metragem,
+    edificio_pavimento: row.edificio_pavimento,
+    nome_arquivo: row.nome_arquivo,
+    data_emissao: row.data_emissao,
+    fase_emissao: row.fase_emissao,
+    revisoes: row.revisoes,
+    lista_arquivos: row.lista_arquivos,
+    projetos: row.projetos,
+    instalacoes_eletricas: row.instalacoes_eletricas,
+    instalacoes_hidraulicas: row.instalacoes_hidraulicas,
+    projeto_legal_bombeiro: row.projeto_legal_bombeiro,
+    instalacoes_hvac: row.instalacoes_hvac,
+    conclusao: row.conclusao,
+    nota_geral: row.nota_geral,
+    titulo_capa: row.titulo_capa,
+    subtitulo_capa: row.subtitulo_capa,
+    texto_rodape_capa: row.texto_rodape_capa,
+    status_relatorio: row.status_relatorio,
+    consultor_responsavel: row.consultor_responsavel,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+function buildOrderClauseRAT(order) {
+  if (!order) return 'ORDER BY created_at DESC';
+  const field = String(order).replace(/^[-+]/, '');
+  const dir = String(order).startsWith('-') ? 'DESC' : 'ASC';
+  const allowed = new Set(['created_at', 'updated_at', 'data_emissao', 'id']);
+  const col = field === 'created_date' ? 'created_at' : field;
+  return `ORDER BY ${allowed.has(col) ? col : 'created_at'} ${dir}`;
+}
+
+app.get('/api/relatorios-analise-tecnica', async (req, res) => {
+  try {
+    const p = requirePool();
+    const { id_empreendimento, id_unidade, status_relatorio, order } = req.query;
+    const where = [];
+    const params = [];
+    if (id_empreendimento) {
+      where.push('id_empreendimento = $' + (params.length + 1));
+      params.push(Number(id_empreendimento));
+    }
+    if (id_unidade) {
+      where.push('id_unidade = $' + (params.length + 1));
+      params.push(Number(id_unidade));
+    }
+    if (status_relatorio) {
+      where.push('status_relatorio = $' + (params.length + 1));
+      params.push(String(status_relatorio));
+    }
+    const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+    const orderClause = buildOrderClauseRAT(typeof order === 'string' ? order : undefined);
+    const { rows } = await p.query(`SELECT * FROM public.relatorios_analise_tecnica ${whereClause} ${orderClause}`, params);
+    res.json(rows.map(mapRAT));
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.get('/api/relatorios-analise-tecnica/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const { rows } = await p.query('SELECT * FROM public.relatorios_analise_tecnica WHERE id = $1', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapRAT(rows[0]));
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.post('/api/relatorios-analise-tecnica', async (req, res) => {
+  try {
+    const p = requirePool();
+    const b = req.body || {};
+    const sql = `INSERT INTO public.relatorios_analise_tecnica(
+      id_empreendimento, id_unidade, numero_os, metragem, edificio_pavimento, nome_arquivo,
+      data_emissao, fase_emissao, revisoes, lista_arquivos, projetos, instalacoes_eletricas,
+      instalacoes_hidraulicas, projeto_legal_bombeiro, instalacoes_hvac, conclusao, nota_geral,
+      titulo_capa, subtitulo_capa, texto_rodape_capa, status_relatorio, consultor_responsavel
+    ) VALUES(
+      $1, $2, $3, $4, $5, $6,
+      $7, $8, $9, $10, $11, $12,
+      $13, $14, $15, $16, $17,
+      $18, $19, $20, $21, $22
+    ) RETURNING *`;
+    const params = [
+      b.id_empreendimento,
+      b.id_unidade ?? null,
+      b.numero_os ?? null,
+      b.metragem ?? null,
+      b.edificio_pavimento ?? null,
+      b.nome_arquivo ?? null,
+      b.data_emissao ?? null,
+      b.fase_emissao ?? null,
+      b.revisoes ?? [],
+      b.lista_arquivos ?? [],
+      b.projetos ?? [],
+      b.instalacoes_eletricas ?? [],
+      b.instalacoes_hidraulicas ?? [],
+      b.projeto_legal_bombeiro ?? [],
+      b.instalacoes_hvac ?? [],
+      b.conclusao ?? [],
+      b.nota_geral ?? null,
+      b.titulo_capa ?? null,
+      b.subtitulo_capa ?? null,
+      b.texto_rodape_capa ?? null,
+      b.status_relatorio ?? 'Rascunho',
+      b.consultor_responsavel ?? null,
+    ];
+    const { rows } = await p.query(sql, params);
+    res.status(201).json(mapRAT(rows[0]));
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.put('/api/relatorios-analise-tecnica/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const b = req.body || {};
+    const sql = `UPDATE public.relatorios_analise_tecnica SET
+      id_empreendimento = COALESCE($1, id_empreendimento),
+      id_unidade = COALESCE($2, id_unidade),
+      numero_os = COALESCE($3, numero_os),
+      metragem = COALESCE($4, metragem),
+      edificio_pavimento = COALESCE($5, edificio_pavimento),
+      nome_arquivo = COALESCE($6, nome_arquivo),
+      data_emissao = COALESCE($7, data_emissao),
+      fase_emissao = COALESCE($8, fase_emissao),
+      revisoes = COALESCE($9, revisoes),
+      lista_arquivos = COALESCE($10, lista_arquivos),
+      projetos = COALESCE($11, projetos),
+      instalacoes_eletricas = COALESCE($12, instalacoes_eletricas),
+      instalacoes_hidraulicas = COALESCE($13, instalacoes_hidraulicas),
+      projeto_legal_bombeiro = COALESCE($14, projeto_legal_bombeiro),
+      instalacoes_hvac = COALESCE($15, instalacoes_hvac),
+      conclusao = COALESCE($16, conclusao),
+      nota_geral = COALESCE($17, nota_geral),
+      titulo_capa = COALESCE($18, titulo_capa),
+      subtitulo_capa = COALESCE($19, subtitulo_capa),
+      texto_rodape_capa = COALESCE($20, texto_rodape_capa),
+      status_relatorio = COALESCE($21, status_relatorio),
+      consultor_responsavel = COALESCE($22, consultor_responsavel)
+    WHERE id = $23 RETURNING *`;
+    const params = [
+      b.id_empreendimento ?? null,
+      b.id_unidade ?? null,
+      b.numero_os ?? null,
+      b.metragem ?? null,
+      b.edificio_pavimento ?? null,
+      b.nome_arquivo ?? null,
+      b.data_emissao ?? null,
+      b.fase_emissao ?? null,
+      b.revisoes ?? null,
+      b.lista_arquivos ?? null,
+      b.projetos ?? null,
+      b.instalacoes_eletricas ?? null,
+      b.instalacoes_hidraulicas ?? null,
+      b.projeto_legal_bombeiro ?? null,
+      b.instalacoes_hvac ?? null,
+      b.conclusao ?? null,
+      b.nota_geral ?? null,
+      b.titulo_capa ?? null,
+      b.subtitulo_capa ?? null,
+      b.texto_rodape_capa ?? null,
+      b.status_relatorio ?? null,
+      b.consultor_responsavel ?? null,
+      id,
+    ];
+    const { rows } = await p.query(sql, params);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapRAT(rows[0]));
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.delete('/api/relatorios-analise-tecnica/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const { rowCount } = await p.query('DELETE FROM public.relatorios_analise_tecnica WHERE id = $1', [id]);
+    if (!rowCount) return res.status(404).json({ error: 'not_found' });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
 // ---- Aprovacoes de Amostra ----
 function mapAmostraRow(row) {
   return {

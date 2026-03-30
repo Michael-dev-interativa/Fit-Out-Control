@@ -95,6 +95,34 @@ CREATE TABLE IF NOT EXISTS public.diarios_obra (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS public.relatorios_analise_tecnica (
+    id SERIAL PRIMARY KEY,
+    id_empreendimento INTEGER REFERENCES public.empreendimentos(id) ON DELETE CASCADE,
+    id_unidade INTEGER REFERENCES public.unidades_empreendimento(id) ON DELETE SET NULL,
+    numero_os VARCHAR(100),
+    metragem VARCHAR(100),
+    edificio_pavimento TEXT,
+    nome_arquivo VARCHAR(255),
+    data_emissao DATE,
+    fase_emissao VARCHAR(100),
+    revisoes JSONB,
+    lista_arquivos JSONB,
+    projetos JSONB,
+    instalacoes_eletricas JSONB,
+    instalacoes_hidraulicas JSONB,
+    projeto_legal_bombeiro JSONB,
+    instalacoes_hvac JSONB,
+    conclusao JSONB,
+    nota_geral TEXT,
+    titulo_capa TEXT,
+    subtitulo_capa TEXT,
+    texto_rodape_capa TEXT,
+    status_relatorio VARCHAR(100) DEFAULT 'Rascunho',
+    consultor_responsavel VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 
 CREATE TABLE IF NOT EXISTS public.formularios_vistoria (
     id SERIAL PRIMARY KEY,
