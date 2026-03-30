@@ -54,7 +54,7 @@ const EmpreendimentoPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
-  const empreendimentoId = queryParams.get('empreendimentoId');
+  const empreendimentoId = queryParams.get('empreendimentoId') || queryParams.get('id');
 
   const [empreendimento, setEmpreendimento] = useState(null);
   const [unidades, setUnidades] = useState([]);
