@@ -2389,6 +2389,73 @@ function mapInspecaoEletricaRow(row) {
   };
 }
 
+function mapLegacyInspecaoEletricaRow(row) {
+  const ele = row.inspecao_eletrica && typeof row.inspecao_eletrica === 'object' ? row.inspecao_eletrica : {};
+  return {
+    id: row.id,
+    id_empreendimento: row.id_empreendimento,
+    data_inspecao: formatDateForAPI(row.data_inspecao),
+    titulo_capa: ele.titulo_capa ?? null,
+    subtitulo_capa: ele.subtitulo_capa ?? null,
+    texto_rodape_capa: ele.texto_rodape_capa ?? null,
+    titulo_inspecao: ele.titulo_inspecao ?? null,
+    descricao_inspecao: ele.descricao_inspecao ?? null,
+    titulo_relatorio: row.titulo_relatorio ?? ele.titulo_relatorio ?? null,
+    subtitulo_relatorio: row.subtitulo_relatorio ?? ele.subtitulo_relatorio ?? null,
+    cliente: row.cliente ?? ele.cliente ?? null,
+    revisao: row.revisao ?? ele.revisao ?? null,
+    eng_responsavel: row.eng_responsavel ?? ele.eng_responsavel ?? null,
+    nome_arquivo: row.nome_arquivo ?? ele.nome_arquivo ?? null,
+    titulo_secao_inspecao: row.titulo_secao_inspecao ?? ele.titulo_secao_inspecao ?? null,
+    label_local: ele.label_local ?? null,
+    itens_documentacao: row.itens_documentacao ?? ele.itens_documentacao ?? [],
+    comentarios_documentacao: row.comentarios_documentacao ?? ele.comentarios_documentacao ?? null,
+    locais: row.locais ?? ele.locais ?? [],
+    distribuicao_eletrica: ele.distribuicao_eletrica ?? [],
+    observacoes_gerais: row.observacoes_gerais ?? ele.observacoes_gerais ?? null,
+    conclusao: ele.conclusao ?? row.conclusao ?? row.conclusao_r02 ?? row.conclusao_r01 ?? null,
+    conclusao_r01: ele.conclusao_r01 ?? row.conclusao_r01 ?? null,
+    conclusao_r02: ele.conclusao_r02 ?? row.conclusao_r02 ?? null,
+    assinaturas: row.assinaturas ?? ele.assinaturas ?? [],
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    legacy_source: 'inspecoes_ar_condicionado',
+  };
+}
+
+function isLikelyLegacyInspecaoEletrica(row) {
+  if (!row) return false;
+  const ele = row.inspecao_eletrica;
+  if (ele && typeof ele === 'object' && !Array.isArray(ele) && Object.keys(ele).length > 0) return true;
+  const titulo = String(row.titulo_relatorio || '').toLowerCase();
+  const secao = String(row.titulo_secao_inspecao || '').toLowerCase();
+  const arquivo = String(row.nome_arquivo || '').toLowerCase();
+  return titulo.includes('elétrica') || titulo.includes('eletrica') || secao.includes('quadro') || arquivo.startsWith('iele');
+}
+
+function sortInspecoesEletrica(rows, order) {
+  const orderValue = typeof order === 'string' && order.trim() ? order.trim() : '-data_inspecao';
+  const desc = orderValue.startsWith('-');
+  const field = desc ? orderValue.slice(1) : orderValue;
+  const direction = desc ? -1 : 1;
+
+  return [...rows].sort((left, right) => {
+    const a = left?.[field] ?? left?.created_at ?? null;
+    const b = right?.[field] ?? right?.created_at ?? null;
+    if (a === b) return 0;
+    if (a == null) return 1;
+    if (b == null) return -1;
+
+    const aTime = Date.parse(a);
+    const bTime = Date.parse(b);
+    if (!Number.isNaN(aTime) && !Number.isNaN(bTime)) {
+      return (aTime - bTime) * direction;
+    }
+
+    return String(a).localeCompare(String(b), 'pt-BR', { numeric: true }) * direction;
+  });
+}
+
 app.get('/api/inspecoes-eletrica', async (req, res) => {
   try {
     await ensureInspecaoEletricaSchema();
@@ -2401,7 +2468,16 @@ app.get('/api/inspecoes-eletrica', async (req, res) => {
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
     const sql = `SELECT * FROM public.inspecoes_eletrica ${whereClause} ${orderClause}`;
     const { rows } = await p.query(sql, params);
-    res.json(rows.map(mapInspecaoEletricaRow));
+
+    const legacySql = `SELECT * FROM public.inspecoes_ar_condicionado ${whereClause} ${orderClause}`;
+    const { rows: legacyRows } = await p.query(legacySql, params);
+
+    const merged = [
+      ...rows.map(mapInspecaoEletricaRow),
+      ...legacyRows.filter(isLikelyLegacyInspecaoEletrica).map(mapLegacyInspecaoEletricaRow),
+    ];
+
+    res.json(sortInspecoesEletrica(merged, typeof order === 'string' ? order : undefined));
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (shouldReturnEmptyOnDbError(err)) return res.json([]);
@@ -2415,8 +2491,16 @@ app.get('/api/inspecoes-eletrica/:id', async (req, res) => {
     const p = requirePool();
     const id = Number(req.params.id);
     const { rows } = await p.query('SELECT * FROM public.inspecoes_eletrica WHERE id = $1', [id]);
-    if (!rows.length) return res.status(404).json({ error: 'not_found' });
-    res.json(mapInspecaoEletricaRow(rows[0]));
+    if (rows.length) {
+      return res.json(mapInspecaoEletricaRow(rows[0]));
+    }
+
+    const { rows: legacyRows } = await p.query('SELECT * FROM public.inspecoes_ar_condicionado WHERE id = $1', [id]);
+    if (legacyRows.length && isLikelyLegacyInspecaoEletrica(legacyRows[0])) {
+      return res.json(mapLegacyInspecaoEletricaRow(legacyRows[0]));
+    }
+
+    return res.status(404).json({ error: 'not_found' });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     res.status(500).json({ error: msg });
@@ -2493,6 +2577,75 @@ app.put('/api/inspecoes-eletrica/:id', async (req, res) => {
     const p = requirePool();
     const id = Number(req.params.id);
     const b = req.body || {};
+
+    const { rows: existingRows } = await p.query('SELECT id FROM public.inspecoes_eletrica WHERE id = $1', [id]);
+    if (!existingRows.length) {
+      const { rows: legacyRows } = await p.query('SELECT * FROM public.inspecoes_ar_condicionado WHERE id = $1', [id]);
+      if (!legacyRows.length || !isLikelyLegacyInspecaoEletrica(legacyRows[0])) {
+        return res.status(404).json({ error: 'not_found' });
+      }
+
+      const currentLegacy = legacyRows[0].inspecao_eletrica && typeof legacyRows[0].inspecao_eletrica === 'object'
+        ? legacyRows[0].inspecao_eletrica
+        : {};
+      const mergedLegacy = {
+        ...currentLegacy,
+        titulo_capa: b.titulo_capa ?? currentLegacy.titulo_capa ?? null,
+        subtitulo_capa: b.subtitulo_capa ?? currentLegacy.subtitulo_capa ?? null,
+        texto_rodape_capa: b.texto_rodape_capa ?? currentLegacy.texto_rodape_capa ?? null,
+        titulo_inspecao: b.titulo_inspecao ?? currentLegacy.titulo_inspecao ?? null,
+        descricao_inspecao: b.descricao_inspecao ?? currentLegacy.descricao_inspecao ?? null,
+        label_local: b.label_local ?? currentLegacy.label_local ?? null,
+        distribuicao_eletrica: b.distribuicao_eletrica ?? currentLegacy.distribuicao_eletrica ?? [],
+        conclusao: b.conclusao ?? currentLegacy.conclusao ?? null,
+        conclusao_r01: b.conclusao_r01 ?? currentLegacy.conclusao_r01 ?? null,
+        conclusao_r02: b.conclusao_r02 ?? currentLegacy.conclusao_r02 ?? null,
+      };
+
+      const legacySql = `UPDATE public.inspecoes_ar_condicionado SET
+        id_empreendimento = COALESCE($1, id_empreendimento),
+        data_inspecao = $2,
+        titulo_secao_inspecao = $3,
+        titulo_relatorio = $4,
+        subtitulo_relatorio = $5,
+        cliente = $6,
+        revisao = $7,
+        eng_responsavel = $8,
+        nome_arquivo = $9,
+        itens_documentacao = $10::jsonb,
+        comentarios_documentacao = $11,
+        locais = $12::jsonb,
+        observacoes_gerais = $13,
+        inspecao_eletrica = $14::jsonb,
+        conclusao_r01 = $15,
+        conclusao_r02 = $16,
+        assinaturas = $17::jsonb,
+        updated_at = now()
+      WHERE id = $18 RETURNING *`;
+      const legacyParams = [
+        (b.id_empreendimento !== undefined && b.id_empreendimento !== null) ? Number(b.id_empreendimento) : null,
+        normalizeDate(b.data_inspecao) ?? null,
+        b.titulo_secao_inspecao ?? null,
+        b.titulo_relatorio ?? null,
+        b.subtitulo_relatorio ?? null,
+        b.cliente ?? null,
+        b.revisao ?? null,
+        b.eng_responsavel ?? null,
+        b.nome_arquivo ?? null,
+        toJson(b.itens_documentacao ?? []),
+        b.comentarios_documentacao ?? null,
+        toJson(b.locais ?? []),
+        b.observacoes_gerais ?? null,
+        toJson(mergedLegacy),
+        b.conclusao_r01 ?? mergedLegacy.conclusao_r01 ?? null,
+        b.conclusao_r02 ?? mergedLegacy.conclusao_r02 ?? null,
+        toJson(b.assinaturas ?? []),
+        id,
+      ];
+      const { rows: updatedLegacyRows } = await p.query(legacySql, legacyParams);
+      return res.json(mapLegacyInspecaoEletricaRow(updatedLegacyRows[0]));
+    }
+
     const sql = `UPDATE public.inspecoes_eletrica SET
       id_empreendimento = COALESCE($1, id_empreendimento),
       data_inspecao = $2,
@@ -2564,8 +2717,15 @@ app.delete('/api/inspecoes-eletrica/:id', async (req, res) => {
     const p = requirePool();
     const id = Number(req.params.id);
     const { rowCount } = await p.query('DELETE FROM public.inspecoes_eletrica WHERE id = $1', [id]);
-    if (!rowCount) return res.status(404).json({ error: 'not_found' });
-    res.json({ ok: true });
+    if (rowCount) {
+      return res.json({ ok: true });
+    }
+
+    const { rows: legacyRows } = await p.query('SELECT * FROM public.inspecoes_ar_condicionado WHERE id = $1', [id]);
+    if (!legacyRows.length || !isLikelyLegacyInspecaoEletrica(legacyRows[0])) return res.status(404).json({ error: 'not_found' });
+
+    await p.query('DELETE FROM public.inspecoes_ar_condicionado WHERE id = $1', [id]);
+    return res.json({ ok: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     res.status(500).json({ error: msg });
