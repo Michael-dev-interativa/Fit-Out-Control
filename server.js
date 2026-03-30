@@ -1554,6 +1554,79 @@ app.delete('/api/inspecoes-hidrantes/:id', async (req, res) => {
 });
 
 // ===== Inspeções Hidráulica =====
+let inspecaoHidraulicaSchemaEnsured = false;
+
+async function ensureInspecaoHidraulicaSchema() {
+  if (inspecaoHidraulicaSchemaEnsured) return;
+
+  const p = requirePool();
+  await p.query(`
+    CREATE TABLE IF NOT EXISTS public.inspecoes_hidraulica (
+      id BIGSERIAL PRIMARY KEY,
+      id_empreendimento BIGINT NOT NULL REFERENCES public.empreendimentos(id) ON DELETE CASCADE,
+      data_inspecao DATE,
+      titulo_capa TEXT,
+      subtitulo_capa TEXT,
+      texto_rodape_capa TEXT,
+      titulo_relatorio TEXT,
+      subtitulo_relatorio TEXT,
+      cliente TEXT,
+      revisao TEXT,
+      eng_responsavel TEXT,
+      nome_arquivo TEXT,
+      itens_documentacao JSONB,
+      comentarios_documentacao TEXT,
+      locais JSONB,
+      observacoes_gerais TEXT,
+      conclusao_r01 TEXT,
+      conclusao_r02 TEXT,
+      assinaturas JSONB,
+      created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+      updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+    )
+  `);
+  await p.query(`ALTER TABLE public.inspecoes_hidraulica ADD COLUMN IF NOT EXISTS data_inspecao DATE`);
+  await p.query(`ALTER TABLE public.inspecoes_hidraulica ADD COLUMN IF NOT EXISTS titulo_capa TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_hidraulica ADD COLUMN IF NOT EXISTS subtitulo_capa TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_hidraulica ADD COLUMN IF NOT EXISTS texto_rodape_capa TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_hidraulica ADD COLUMN IF NOT EXISTS titulo_relatorio TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_hidraulica ADD COLUMN IF NOT EXISTS subtitulo_relatorio TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_hidraulica ADD COLUMN IF NOT EXISTS cliente TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_hidraulica ADD COLUMN IF NOT EXISTS revisao TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_hidraulica ADD COLUMN IF NOT EXISTS eng_responsavel TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_hidraulica ADD COLUMN IF NOT EXISTS nome_arquivo TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_hidraulica ADD COLUMN IF NOT EXISTS itens_documentacao JSONB`);
+  await p.query(`ALTER TABLE public.inspecoes_hidraulica ADD COLUMN IF NOT EXISTS comentarios_documentacao TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_hidraulica ADD COLUMN IF NOT EXISTS locais JSONB`);
+  await p.query(`ALTER TABLE public.inspecoes_hidraulica ADD COLUMN IF NOT EXISTS observacoes_gerais TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_hidraulica ADD COLUMN IF NOT EXISTS conclusao_r01 TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_hidraulica ADD COLUMN IF NOT EXISTS conclusao_r02 TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_hidraulica ADD COLUMN IF NOT EXISTS assinaturas JSONB`);
+  await p.query(`ALTER TABLE public.inspecoes_hidraulica ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now() NOT NULL`);
+  await p.query(`ALTER TABLE public.inspecoes_hidraulica ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now() NOT NULL`);
+  await p.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'inspecoes_hidraulica_id_empreendimento_fkey'
+      ) THEN
+        ALTER TABLE public.inspecoes_hidraulica
+        ADD CONSTRAINT inspecoes_hidraulica_id_empreendimento_fkey
+        FOREIGN KEY (id_empreendimento) REFERENCES public.empreendimentos(id) ON DELETE CASCADE;
+      END IF;
+    END $$;
+  `);
+  await p.query('DROP TRIGGER IF EXISTS inspecoes_hidraulica_set_updated_at ON public.inspecoes_hidraulica');
+  await p.query('CREATE TRIGGER inspecoes_hidraulica_set_updated_at BEFORE UPDATE ON public.inspecoes_hidraulica FOR EACH ROW EXECUTE FUNCTION public.set_updated_at()');
+  await p.query('CREATE INDEX IF NOT EXISTS idx_inspecoes_hidraulica_empreendimento ON public.inspecoes_hidraulica (id_empreendimento)');
+  await p.query('CREATE INDEX IF NOT EXISTS idx_inspecoes_hidraulica_data ON public.inspecoes_hidraulica (data_inspecao)');
+  await p.query('CREATE INDEX IF NOT EXISTS idx_inspecoes_hidraulica_revisao ON public.inspecoes_hidraulica (revisao)');
+
+  inspecaoHidraulicaSchemaEnsured = true;
+}
+
 function mapInspecaoHidraulicaRow(row) {
   return {
     id: row.id,
@@ -1583,6 +1656,7 @@ function mapInspecaoHidraulicaRow(row) {
 // Listar/filtrar
 app.get('/api/inspecoes-hidraulica', async (req, res) => {
   try {
+    await ensureInspecaoHidraulicaSchema();
     const p = requirePool();
     const { id_empreendimento, order } = req.query;
     const where = [];
@@ -1603,6 +1677,7 @@ app.get('/api/inspecoes-hidraulica', async (req, res) => {
 // Obter por ID
 app.get('/api/inspecoes-hidraulica/:id', async (req, res) => {
   try {
+    await ensureInspecaoHidraulicaSchema();
     const p = requirePool();
     const id = Number(req.params.id);
     const { rows } = await p.query('SELECT * FROM public.inspecoes_hidraulica WHERE id = $1', [id]);
@@ -1617,6 +1692,7 @@ app.get('/api/inspecoes-hidraulica/:id', async (req, res) => {
 // Criar
 app.post('/api/inspecoes-hidraulica', async (req, res) => {
   try {
+    await ensureInspecaoHidraulicaSchema();
     const p = requirePool();
     const b = req.body || {};
     if (!b.id_empreendimento) {
@@ -1642,7 +1718,7 @@ app.post('/api/inspecoes-hidraulica', async (req, res) => {
     ) RETURNING *`;
     const params = [
       empId,
-      normalizeDate(b.data_inspecao) ?? null,
+      normalizeDate(b.data_inspecao) ?? new Date().toISOString().slice(0, 10),
       b.titulo_capa ?? null,
       b.subtitulo_capa ?? null,
       b.texto_rodape_capa ?? null,
@@ -1674,12 +1750,13 @@ app.post('/api/inspecoes-hidraulica', async (req, res) => {
 // Atualizar
 app.put('/api/inspecoes-hidraulica/:id', async (req, res) => {
   try {
+    await ensureInspecaoHidraulicaSchema();
     const p = requirePool();
     const id = Number(req.params.id);
     const b = req.body || {};
     const sql = `UPDATE public.inspecoes_hidraulica SET
       id_empreendimento = COALESCE($1, id_empreendimento),
-      data_inspecao = $2,
+      data_inspecao = COALESCE($2, data_inspecao),
       titulo_capa = $3,
       subtitulo_capa = $4,
       texto_rodape_capa = $5,
@@ -1733,6 +1810,7 @@ app.put('/api/inspecoes-hidraulica/:id', async (req, res) => {
 // Remover
 app.delete('/api/inspecoes-hidraulica/:id', async (req, res) => {
   try {
+    await ensureInspecaoHidraulicaSchema();
     const p = requirePool();
     const id = Number(req.params.id);
     const { rowCount } = await p.query('DELETE FROM public.inspecoes_hidraulica WHERE id = $1', [id]);
