@@ -12,7 +12,7 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'fitout_offline';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // v2: adicionado shadow_records store
 const CACHE_STORE = 'api_cache';
 const QUEUE_STORE = 'sync_queue';
 const SHADOW_STORE = 'shadow_records';
