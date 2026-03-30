@@ -271,14 +271,16 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                         <React.Fragment key={idx}>
                                             {linhasDeFotos.map((linha, linhaIdx) => (
                                                 <tr key={`${idx}-linha-${linhaIdx}`} className="photo-row" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                                    <td colSpan="5" className="photo-cell border border-black p-0" style={{ verticalAlign: 'top' }}>
+                                                    <td colSpan="5" className="photo-cell border border-black" style={{ verticalAlign: 'top', padding: '8px' }}>
                                                         {linhaIdx === 0 && (
                                                             item.descricao ? <div style={{ fontSize: '9px', color: '#666', fontStyle: 'italic', margin: '4px 4px 3px 4px' }}>{item.descricao}</div> : null
                                                         )}
-                                                        <div className="imagens-container">
-                                                            {linha.map((foto, fotoIdx) => (
-                                                                <FotoInspecao key={`${idx}-${linhaIdx}-${fotoIdx}`} foto={foto} />
-                                                            ))}
+                                                        <div className="photo-inner-wrap">
+                                                            <div className="imagens-container">
+                                                                {linha.map((foto, fotoIdx) => (
+                                                                    <FotoInspecao key={`${idx}-${linhaIdx}-${fotoIdx}`} foto={foto} />
+                                                                ))}
+                                                            </div>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -304,11 +306,13 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                         </tr>
                                         {fotosValidas.length > 0 && chunkFotos(fotosValidas, 3).map((linha, linhaIdx) => (
                                             <tr key={`${idx}-fotos-${linhaIdx}`} className="photo-row" style={{ pageBreakInside: 'avoid', breakInside: 'avoid', pageBreakBefore: 'auto' }}>
-                                                <td colSpan="5" className="photo-cell border border-black p-0" style={{ verticalAlign: 'top' }}>
-                                                    <div className="imagens-container">
-                                                        {linha.map((foto, fotoIdx) => (
-                                                            <FotoInspecao key={`${idx}-${linhaIdx}-${fotoIdx}`} foto={foto} />
-                                                        ))}
+                                                <td colSpan="5" className="photo-cell border border-black" style={{ verticalAlign: 'top', padding: '8px' }}>
+                                                    <div className="photo-inner-wrap">
+                                                        <div className="imagens-container">
+                                                            {linha.map((foto, fotoIdx) => (
+                                                                <FotoInspecao key={`${idx}-${linhaIdx}-${fotoIdx}`} foto={foto} />
+                                                            ))}
+                                                        </div>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -554,6 +558,12 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 .photo-cell {
                     padding: 6px !important;
                     background: #fff;
+                    box-sizing: border-box;
+                }
+
+                .photo-inner-wrap {
+                    padding: 2px;
+                    background: #fff;
                 }
 
                 .imagem-box {
@@ -659,6 +669,11 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     .photo-row { page-break-inside: avoid !important; break-inside: avoid !important; }
                     .photo-cell {
                         padding: 6px !important;
+                        background: #fff !important;
+                        box-sizing: border-box !important;
+                    }
+                    .photo-inner-wrap {
+                        padding: 2px !important;
                         background: #fff !important;
                     }
                     .imagens-container {
