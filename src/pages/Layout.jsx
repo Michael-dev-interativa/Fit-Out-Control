@@ -578,11 +578,7 @@ export default function Layout({ children }) {
                   <span>Offline pronto</span>
                 </div>
               )}
-              {!isOffline && precacheStatus === 'error' && (
-                <div className="flex items-center gap-1 bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full border border-red-300">
-                  <span>Falha no pre-cache</span>
-                </div>
-              )}
+
                 <div className={`p-3 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
                   <p className={`font-medium text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{user.full_name}</p>
                   <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{user.email}</p>
