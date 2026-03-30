@@ -33,6 +33,28 @@ const emptyComentario = () => ({
   imagens: [],
 });
 
+const toDateInputValue = (value) => {
+  if (!value) return '';
+  const s = String(value);
+  return s.includes('T') ? s.slice(0, 10) : s;
+};
+
+const normalizeRelatorioDates = (data) => {
+  if (!data) return data;
+  return {
+    ...data,
+    data_emissao: toDateInputValue(data.data_emissao),
+    revisoes: (data.revisoes || []).map((rev) => ({
+      ...rev,
+      data: toDateInputValue(rev?.data),
+    })),
+    lista_arquivos: (data.lista_arquivos || []).map((arq) => ({
+      ...arq,
+      data_cadastro: toDateInputValue(arq?.data_cadastro),
+    })),
+  };
+};
+
 export default function EditarRelatorioAnaliseTecnica({ theme }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -49,7 +71,7 @@ export default function EditarRelatorioAnaliseTecnica({ theme }) {
   useEffect(() => {
     if (!id) return;
     base44.entities.RelatorioAnaliseTecnica.get(id).then(data => {
-      setForm(data);
+      setForm(normalizeRelatorioDates(data));
       setLoading(false);
     });
   }, [id]);
@@ -169,7 +191,7 @@ export default function EditarRelatorioAnaliseTecnica({ theme }) {
             <div><Label>Metragem (m²)</Label><Input value={form.metragem || ''} onChange={e => setField('metragem', e.target.value)} /></div>
             <div className="col-span-2"><Label>Edifício / Pavimento</Label><Input value={form.edificio_pavimento || ''} onChange={e => setField('edificio_pavimento', e.target.value)} /></div>
             <div className="col-span-2"><Label>Nome do Arquivo</Label><Input value={form.nome_arquivo || ''} onChange={e => setField('nome_arquivo', e.target.value)} /></div>
-            <div><Label>Data de Emissão</Label><Input type="date" value={form.data_emissao || ''} onChange={e => setField('data_emissao', e.target.value)} /></div>
+            <div><Label>Data de Emissão</Label><Input type="date" value={toDateInputValue(form.data_emissao)} onChange={e => setField('data_emissao', e.target.value)} /></div>
             <div><Label>Fase de Emissão</Label><Input value={form.fase_emissao || ''} onChange={e => setField('fase_emissao', e.target.value)} placeholder="Ex: 1ª Emissão" /></div>
           </div>
         </div>
@@ -185,7 +207,7 @@ export default function EditarRelatorioAnaliseTecnica({ theme }) {
               <div><Label>Rev.</Label><Input value={rev.rev} onChange={e => updateRevisao(i, 'rev', e.target.value)} /></div>
               <div><Label>Descrição</Label><Input value={rev.descricao} onChange={e => updateRevisao(i, 'descricao', e.target.value)} /></div>
               <div className="flex gap-2 items-end">
-                <div className="flex-1"><Label>Data</Label><Input type="date" value={rev.data} onChange={e => updateRevisao(i, 'data', e.target.value)} /></div>
+                <div className="flex-1"><Label>Data</Label><Input type="date" value={toDateInputValue(rev.data)} onChange={e => updateRevisao(i, 'data', e.target.value)} /></div>
                 <Button size="icon" variant="ghost" className="text-red-500 h-9 w-9 mb-0" onClick={() => removeRevisao(i)}><Trash2 className="w-4 h-4" /></Button>
               </div>
             </div>
@@ -218,7 +240,7 @@ export default function EditarRelatorioAnaliseTecnica({ theme }) {
                       <td className="border px-1 py-1"><Input className="border-0 bg-transparent h-7 text-xs p-1" value={arq.descricao} onChange={e => updateArquivo(i, 'descricao', e.target.value)} /></td>
                       <td className="border px-1 py-1"><Input className="border-0 bg-transparent h-7 text-xs p-1" value={arq.arquivo} onChange={e => updateArquivo(i, 'arquivo', e.target.value)} /></td>
                       <td className="border px-1 py-1"><Input className="border-0 bg-transparent h-7 text-xs p-1" value={arq.ref} onChange={e => updateArquivo(i, 'ref', e.target.value)} /></td>
-                      <td className="border px-1 py-1"><Input type="date" className="border-0 bg-transparent h-7 text-xs p-1" value={arq.data_cadastro} onChange={e => updateArquivo(i, 'data_cadastro', e.target.value)} /></td>
+                      <td className="border px-1 py-1"><Input type="date" className="border-0 bg-transparent h-7 text-xs p-1" value={toDateInputValue(arq.data_cadastro)} onChange={e => updateArquivo(i, 'data_cadastro', e.target.value)} /></td>
                       <td className="border px-1 py-1 text-center">
                         <Button size="icon" variant="ghost" className="text-red-500 h-6 w-6" onClick={() => removeArquivo(i)}><Trash2 className="w-3 h-3" /></Button>
                       </td>
