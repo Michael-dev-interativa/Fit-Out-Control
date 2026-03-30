@@ -81,7 +81,7 @@ export default function EmpreendimentoInspecaoEletrica({ language: initialLangua
                     <p className={`${isDark ? 'text-gray-400' : 'text-gray-600'} mt-1`}>{empreendimento?.nome_empreendimento}</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button onClick={() => navigate(createPageUrl(`Empreendimento?id=${empreendimentoId}`))}>
+                    <Button onClick={() => navigate(createPageUrl(`Empreendimento?empreendimentoId=${empreendimentoId}`))}>
                         <ArrowLeft className="w-4 h-4 mr-2" />
                         {t.back}
                     </Button>
