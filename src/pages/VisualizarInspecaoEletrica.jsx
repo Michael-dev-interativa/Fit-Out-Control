@@ -201,10 +201,15 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
     );
 };
 
-const FotoInspecao = ({ url, legenda }) => {
+const FotoInspecao = ({ foto }) => {
+    const url = foto?.url;
+    const legenda = foto?.legenda;
+    const objectFit = foto?.objectFit || foto?.fit || 'contain';
+    const objectPosition = foto?.objectPosition || foto?.posicao || 'center center';
+
     return (
         <div className="imagem-box" style={{ textAlign: 'left', marginBottom: '0px', boxSizing: 'border-box' }}>
-            <img src={url} alt={legenda || 'Foto da inspeção'} />
+            <img src={url} alt={legenda || 'Foto da inspeção'} style={{ objectFit, objectPosition }} />
             {legenda && (
                 <p style={{ fontSize: '7px', color: '#555', marginTop: '4px', lineHeight: '1.1', overflowWrap: 'anywhere', whiteSpace: 'normal' }}>{legenda}</p>
             )}
@@ -272,7 +277,7 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                                         )}
                                                         <div className="imagens-container">
                                                             {linha.map((foto, fotoIdx) => (
-                                                                <FotoInspecao key={`${idx}-${linhaIdx}-${fotoIdx}`} url={foto.url} legenda={foto.legenda} />
+                                                                <FotoInspecao key={`${idx}-${linhaIdx}-${fotoIdx}`} foto={foto} />
                                                             ))}
                                                         </div>
                                                     </td>
@@ -302,7 +307,7 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
                                                 <td colSpan="5" className="border border-black p-0" style={{ verticalAlign: 'top' }}>
                                                     <div className="imagens-container">
                                                         {linha.map((foto, fotoIdx) => (
-                                                            <FotoInspecao key={`${idx}-${linhaIdx}-${fotoIdx}`} url={foto.url} legenda={foto.legenda} />
+                                                            <FotoInspecao key={`${idx}-${linhaIdx}-${fotoIdx}`} foto={foto} />
                                                         ))}
                                                     </div>
                                                 </td>
@@ -559,7 +564,9 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 .imagem-box img {
                     width: 100%;
                     height: 100%;
-                    object-fit: cover;
+                    object-fit: contain;
+                    object-position: center center;
+                    background: #f0f0f0;
                     border-radius: 6px;
                     break-inside: avoid;
                     page-break-inside: avoid;
@@ -664,7 +671,9 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     .imagem-box img {
                         width: 100% !important;
                         height: 100% !important;
-                        object-fit: cover !important;
+                        object-fit: contain !important;
+                        object-position: center center !important;
+                        background: #f0f0f0 !important;
                         border-radius: 6px !important;
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
