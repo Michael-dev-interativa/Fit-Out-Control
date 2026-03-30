@@ -85,7 +85,7 @@ export default function EmpreendimentoInspecaoHidrantes({ language: initialLangu
                     <h2 className="text-lg font-semibold">{t.title}</h2>
                 </div>
                 <div>
-                    <Button onClick={() => navigate(createPageUrl(`NovoInspecaoHidrantes?empreendimentoId=${empreendimentoId}`))}>
+                    <Button onClick={() => navigate(createPageUrl(`NovaInspecaoHidrantes?empreendimentoId=${empreendimentoId}`))}>
                         <Plus className="w-4 h-4 mr-2" />
                         {t.add}
                     </Button>
