@@ -5,8 +5,9 @@ import { Empreendimento, UnidadeEmpreendimento, RelatorioAnaliseTecnica } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Loader2, Save } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, Save, Trash2 } from 'lucide-react';
 
 const emptyProjeto = () => ({
   item: '',
@@ -14,6 +15,18 @@ const emptyProjeto = () => ({
   descricao: '',
   situacao: 'PD',
   comentarios: [],
+});
+
+const emptyArquivo = () => ({
+  disciplina: '',
+  descricao: '',
+  arquivo: '',
+  ref: '0',
+  data_cadastro: new Date().toISOString().slice(0, 10),
+  status: 'PD',
+  comentario_tecnico: '',
+  resposta_cliente: '',
+  status_resposta: 'Pendente',
 });
 
 const emptyForm = ({ empreendimentoId, unidadeId }) => ({
@@ -28,18 +41,18 @@ const emptyForm = ({ empreendimentoId, unidadeId }) => ({
   revisoes: [
     {
       rev: '0',
-      descricao: 'Emissao inicial',
+      descricao: '',
       data: new Date().toISOString().slice(0, 10),
     },
   ],
-  lista_arquivos: [],
+  lista_arquivos: [emptyArquivo()],
   projetos: [emptyProjeto()],
   instalacoes_eletricas: [],
   instalacoes_hidraulicas: [],
   projeto_legal_bombeiro: [],
   instalacoes_hvac: [],
   conclusao: [],
-  nota_geral: '',
+  nota_geral: 'Conforme informado, toda e qualquer dimensionamento indicado em projetos é de inteira responsabilidade da licitante e seu respectivo projetista. A análise técnica da Interativa visa avaliar as interferências que podem fazer causar desconformidades das instalações.',
   titulo_capa: 'RELATORIO',
   subtitulo_capa: 'Analise Tecnica',
   texto_rodape_capa: '',
@@ -97,6 +110,21 @@ export default function NovaEmissaoAnalise() {
   }, [empreendimentoId, unidadeIdFromQuery]);
 
   const setField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  const addRevisao = () => setField('revisoes', [...(form.revisoes || []), { rev: String(form.revisoes?.length || 0), descricao: '', data: new Date().toISOString().slice(0, 10) }]);
+  const updateRevisao = (index, key, value) => {
+    const updated = [...(form.revisoes || [])];
+    updated[index] = { ...updated[index], [key]: value };
+    setField('revisoes', updated);
+  };
+  const removeRevisao = (index) => setField('revisoes', (form.revisoes || []).filter((_, idx) => idx !== index));
+
+  const addArquivo = () => setField('lista_arquivos', [...(form.lista_arquivos || []), emptyArquivo()]);
+  const updateArquivo = (index, key, value) => {
+    const updated = [...(form.lista_arquivos || [])];
+    updated[index] = { ...updated[index], [key]: value };
+    setField('lista_arquivos', updated);
+  };
+  const removeArquivo = (index) => setField('lista_arquivos', (form.lista_arquivos || []).filter((_, idx) => idx !== index));
 
   const handleCreate = async () => {
     if (!form.id_empreendimento) {
@@ -152,86 +180,159 @@ export default function NovaEmissaoAnalise() {
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Nova Emissao de Analise Tecnica</h1>
-            <p className="text-sm text-gray-500">Crie o relatorio e continue na tela de edicao completa.</p>
+            <h1 className="text-2xl font-bold">Novo Relatório de Análise Técnica</h1>
+            <p className="text-sm text-gray-500">Preencha os dados iniciais e continue na tela de edição completa.</p>
           </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Dados Iniciais</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {loading ? (
+        {loading ? (
+          <Card>
+            <CardContent className="py-8">
               <div className="flex items-center gap-2 text-sm text-gray-500">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Carregando empreendimento e unidades...
               </div>
-            ) : (
-              <>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle>Dados Gerais</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label>Empreendimento</Label>
-                    <Input value={empreendimento?.nome_empreendimento || ''} disabled />
+                    <Label>OS</Label>
+                    <Input placeholder="Ex: AUTOPEL-12" value={form.numero_os || ''} onChange={(e) => setField('numero_os', e.target.value)} />
                   </div>
                   <div>
-                    <Label>Unidade</Label>
-                    <select
-                      value={form.id_unidade || 'none'}
-                      onChange={(e) => setField('id_unidade', e.target.value === 'none' ? '' : e.target.value)}
-                      className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 text-sm"
-                    >
-                      <option value="none">Sem unidade</option>
-                      {unidades.map((u) => (
-                        <option key={u.id} value={String(u.id)}>
-                          {u.unidade_empreendimento}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <Label>Numero OS</Label>
-                    <Input value={form.numero_os || ''} onChange={(e) => setField('numero_os', e.target.value)} />
-                  </div>
-                  <div>
-                    <Label>Metragem</Label>
-                    <Input value={form.metragem || ''} onChange={(e) => setField('metragem', e.target.value)} />
+                    <Label>Metragem (m²)</Label>
+                    <Input placeholder="Ex: 795" value={form.metragem || ''} onChange={(e) => setField('metragem', e.target.value)} />
                   </div>
                   <div className="md:col-span-2">
-                    <Label>Edificio / Pavimento</Label>
-                    <Input value={form.edificio_pavimento || ''} onChange={(e) => setField('edificio_pavimento', e.target.value)} />
+                    <Label>Edifício / Pavimento</Label>
+                    <Input placeholder="Ex: Edifício Citadel - 12º pavimento" value={form.edificio_pavimento || ''} onChange={(e) => setField('edificio_pavimento', e.target.value)} />
                   </div>
                   <div className="md:col-span-2">
                     <Label>Nome do Arquivo</Label>
-                    <Input value={form.nome_arquivo || ''} onChange={(e) => setField('nome_arquivo', e.target.value)} />
+                    <Input placeholder="Ex: AUTOPEL_12-RITOR-CONS-001-R00" value={form.nome_arquivo || ''} onChange={(e) => setField('nome_arquivo', e.target.value)} />
                   </div>
                   <div>
-                    <Label>Data de Emissao</Label>
+                    <Label>Data de Emissão</Label>
                     <Input type="date" value={form.data_emissao || ''} onChange={(e) => setField('data_emissao', e.target.value)} />
                   </div>
                   <div>
-                    <Label>Fase de Emissao</Label>
+                    <Label>Fase de Emissão</Label>
                     <Input value={form.fase_emissao || ''} onChange={(e) => setField('fase_emissao', e.target.value)} />
                   </div>
-                  <div className="md:col-span-2">
-                    <Label>Consultor Responsavel</Label>
-                    <Input value={form.consultor_responsavel || ''} onChange={(e) => setField('consultor_responsavel', e.target.value)} />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <CardTitle>Revisões</CardTitle>
+                <Button size="sm" variant="outline" onClick={addRevisao}>
+                  <Plus className="w-4 h-4 mr-1" />Adicionar
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {(form.revisoes || []).map((rev, index) => (
+                  <div key={`rev-${index}`} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                    <div>
+                      <Label>Rev.</Label>
+                      <Input value={rev.rev || ''} onChange={(e) => updateRevisao(index, 'rev', e.target.value)} />
+                    </div>
+                    <div>
+                      <Label>Descrição</Label>
+                      <Input value={rev.descricao || ''} onChange={(e) => updateRevisao(index, 'descricao', e.target.value)} />
+                    </div>
+                    <div className="flex gap-2 items-end">
+                      <div className="flex-1">
+                        <Label>Data</Label>
+                        <Input type="date" value={rev.data || ''} onChange={(e) => updateRevisao(index, 'data', e.target.value)} />
+                      </div>
+                      <Button size="icon" variant="ghost" className="text-red-500" onClick={() => removeRevisao(index)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                ))}
+              </CardContent>
+            </Card>
 
-                {error && <p className="text-sm text-red-600">{error}</p>}
-
-                <div className="flex justify-end gap-3 pt-2">
-                  <Button variant="outline" onClick={goBack}>Voltar</Button>
-                  <Button onClick={handleCreate} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white">
-                    <Save className="w-4 h-4 mr-2" />
-                    {saving ? 'Criando...' : 'Criar Relatorio'}
-                  </Button>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <CardTitle>Lista Mestra de Arquivos Analisados</CardTitle>
+                <Button size="sm" variant="outline" onClick={addArquivo}>
+                  <Plus className="w-4 h-4 mr-1" />Adicionar
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border-collapse">
+                    <thead>
+                      <tr className="bg-gray-100 text-gray-700">
+                        <th className="border px-2 py-2 text-left w-24">DES</th>
+                        <th className="border px-2 py-2 text-left">DESCRIÇÃO</th>
+                        <th className="border px-2 py-2 text-left">ARQUIVO</th>
+                        <th className="border px-2 py-2 text-left w-20">REV</th>
+                        <th className="border px-2 py-2 text-left w-40">DATA DE CADASTRO</th>
+                        <th className="border px-2 py-2 text-left w-24">STATUS</th>
+                        <th className="border px-2 py-2 text-left min-w-48">COMENTÁRIO TÉCNICO</th>
+                        <th className="border px-2 py-2 w-10"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(form.lista_arquivos || []).map((arquivo, index) => (
+                        <tr key={`arquivo-${index}`}>
+                          <td className="border px-1 py-1"><Input className="border-0 bg-transparent h-8 text-xs p-1" value={arquivo.disciplina || ''} onChange={(e) => updateArquivo(index, 'disciplina', e.target.value)} /></td>
+                          <td className="border px-1 py-1"><Input className="border-0 bg-transparent h-8 text-xs p-1" value={arquivo.descricao || ''} onChange={(e) => updateArquivo(index, 'descricao', e.target.value)} /></td>
+                          <td className="border px-1 py-1"><Input className="border-0 bg-transparent h-8 text-xs p-1" value={arquivo.arquivo || ''} onChange={(e) => updateArquivo(index, 'arquivo', e.target.value)} /></td>
+                          <td className="border px-1 py-1"><Input className="border-0 bg-transparent h-8 text-xs p-1" value={arquivo.ref || ''} onChange={(e) => updateArquivo(index, 'ref', e.target.value)} /></td>
+                          <td className="border px-1 py-1"><Input type="date" className="border-0 bg-transparent h-8 text-xs p-1" value={arquivo.data_cadastro || ''} onChange={(e) => updateArquivo(index, 'data_cadastro', e.target.value)} /></td>
+                          <td className="border px-1 py-1">
+                            <select className="w-full h-8 rounded-md border-0 bg-transparent text-xs" value={arquivo.status || 'PD'} onChange={(e) => updateArquivo(index, 'status', e.target.value)}>
+                              <option value="PD">PD</option>
+                              <option value="OK">OK</option>
+                              <option value="IN">IN</option>
+                            </select>
+                          </td>
+                          <td className="border px-1 py-1"><Input className="border-0 bg-transparent h-8 text-xs p-1" placeholder="Observação técnica..." value={arquivo.comentario_tecnico || ''} onChange={(e) => updateArquivo(index, 'comentario_tecnico', e.target.value)} /></td>
+                          <td className="border px-1 py-1 text-center">
+                            <Button size="icon" variant="ghost" className="text-red-500 h-8 w-8" onClick={() => removeArquivo(index)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Nota Geral</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Textarea rows={4} value={form.nota_geral || ''} onChange={(e) => setField('nota_geral', e.target.value)} />
+              </CardContent>
+            </Card>
+
+            {error && <p className="text-sm text-red-600">{error}</p>}
+
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="outline" onClick={goBack}>Cancelar</Button>
+              <Button onClick={handleCreate} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white">
+                <Save className="w-4 h-4 mr-2" />
+                {saving ? 'Salvando...' : 'Salvar e Continuar'}
+              </Button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
