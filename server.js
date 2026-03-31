@@ -127,6 +127,24 @@ const apiLimiter = rateLimit({
   }
 });
 
+// Read-heavy screens can trigger many GETs in parallel; keep a higher cap for read routes.
+const apiReadLimiter = rateLimit({
+  windowMs: RATE_WINDOW_MS,
+  max: process.env.RATE_LIMIT_READ_MAX ? parseInt(process.env.RATE_LIMIT_READ_MAX, 10) : 2000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: keyGeneratorFn,
+  handler: (req, res) => {
+    try {
+      console.warn(`[RATE LIMIT][READ] ip=${req.ip} user=${req.user ? req.user.sub : 'anon'} method=${req.method} url=${req.originalUrl}`);
+    } catch (e) {
+      console.warn('[RATE LIMIT][READ] hit, could not log details');
+    }
+    res.set('Retry-After', Math.ceil(RATE_WINDOW_MS / 1000));
+    return res.status(429).json({ error: 'rate_limited', message: 'Too many requests (read)' });
+  }
+});
+
 // CORS: restrict by allowed origins set in env `ALLOWED_ORIGINS` (comma separated)
 const ALLOWED_ORIGINS_ENV = process.env.ALLOWED_ORIGINS;
 const ALLOWED_ORIGINS = ALLOWED_ORIGINS_ENV
@@ -195,9 +213,13 @@ app.use('/api/auth', authLimiter);
 // Global API limiter — but skip auth routes (they use authLimiter)
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/auth')) return next();
+  if (!req.path.startsWith('/api/')) return next();
   const importKey = process.env.IMPORT_API_KEY;
   const importHeader = req.header('x-import-key');
   if (importKey && importHeader && importHeader === importKey) return next();
+  if (req.method === 'GET' || req.method === 'HEAD') {
+    return apiReadLimiter(req, res, next);
+  }
   return apiLimiter(req, res, next);
 });
 
