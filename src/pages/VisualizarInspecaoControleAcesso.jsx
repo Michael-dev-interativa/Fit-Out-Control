@@ -102,6 +102,32 @@ const CoverPage = ({ relatorio, empreendimento }) => {
     );
 };
 
+const FotoInspecao = ({ foto }) => {
+    const fotoUrl = typeof foto === 'string' ? foto : foto?.url;
+    const legenda = typeof foto === 'string' ? '' : (foto?.legenda || '');
+    const resolvedUrl = getUploadUrl(fotoUrl) || fotoUrl;
+    const compressedUrl = useCompressedImage(resolvedUrl, 900, 0.75);
+
+    if (!resolvedUrl) return null;
+
+    return (
+        <div className="border border-gray-200 rounded overflow-hidden bg-white">
+            <img
+                src={compressedUrl}
+                alt={legenda || 'Foto da inspecao'}
+                className="w-full h-40 object-cover"
+                loading="lazy"
+                onError={(e) => {
+                    if (e.currentTarget.src !== resolvedUrl) {
+                        e.currentTarget.src = resolvedUrl;
+                    }
+                }}
+            />
+            {legenda && <div className="p-1 text-[10px] text-gray-600 border-t border-gray-100">{legenda}</div>}
+        </div>
+    );
+};
+
 const ProjetoEquipamentosPage = ({ relatorio }) => {
     const labels = relatorio.info_sistema_labels || {};
     return (
@@ -260,14 +286,29 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, tituloS
                                     );
                                 }
 
+                                const fotosItem = Array.isArray(item.fotos) ? item.fotos.filter(Boolean) : [];
+
                                 return (
-                                    <tr key={idx}>
-                                        <td className="border border-black p-1 text-xs" style={{ width: '40%', wordWrap: 'break-word', wordBreak: 'break-word', verticalAlign: 'top' }}>{item.descricao}</td>
-                                        <td className="border border-black p-1 text-center text-xs" style={{ width: '8%', verticalAlign: 'top' }}>{item.resultado === 'OK' ? '☑' : '☐'}</td>
-                                        <td className="border border-black p-1 text-center text-xs" style={{ width: '8%', verticalAlign: 'top' }}>{item.resultado === 'N/OK' || item.resultado === 'Não' ? '☑' : '☐'}</td>
-                                        <td className="border border-black p-1 text-center text-xs" style={{ width: '8%', verticalAlign: 'top' }}>{item.resultado === 'NA' ? '☑' : '☐'}</td>
-                                        <td className="border border-black p-1 text-xs" style={{ width: '36%', wordWrap: 'break-word', wordBreak: 'break-word', verticalAlign: 'top' }}>{item.observacoes || ''}</td>
-                                    </tr>
+                                    <React.Fragment key={idx}>
+                                        <tr>
+                                            <td className="border border-black p-1 text-xs" style={{ width: '40%', wordWrap: 'break-word', wordBreak: 'break-word', verticalAlign: 'top' }}>{item.descricao}</td>
+                                            <td className="border border-black p-1 text-center text-xs" style={{ width: '8%', verticalAlign: 'top' }}>{item.resultado === 'OK' ? '☑' : '☐'}</td>
+                                            <td className="border border-black p-1 text-center text-xs" style={{ width: '8%', verticalAlign: 'top' }}>{item.resultado === 'N/OK' || item.resultado === 'Não' ? '☑' : '☐'}</td>
+                                            <td className="border border-black p-1 text-center text-xs" style={{ width: '8%', verticalAlign: 'top' }}>{item.resultado === 'NA' ? '☑' : '☐'}</td>
+                                            <td className="border border-black p-1 text-xs" style={{ width: '36%', wordWrap: 'break-word', wordBreak: 'break-word', verticalAlign: 'top' }}>{item.observacoes || ''}</td>
+                                        </tr>
+                                        {fotosItem.length > 0 && (
+                                            <tr>
+                                                <td colSpan="5" className="border border-black p-2">
+                                                    <div className="grid grid-cols-3 gap-2">
+                                                        {fotosItem.map((foto, fotoIdx) => (
+                                                            <FotoInspecao key={fotoIdx} foto={foto} />
+                                                        ))}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </React.Fragment>
                                 );
                             })}
                         </tbody>
@@ -367,6 +408,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 const isComentario = item.tipo === 'comentario' || item.isComentarioGeral;
                 const comentarioText = item.texto || item.comentarios || '';
                 const observacoesText = item.observacoes || '';
+                const fotosCount = Array.isArray(item.fotos) ? item.fotos.length : 0;
 
                 if (isComentario) {
                     const estimatedLines = Math.ceil(comentarioText.length / 120);
@@ -379,6 +421,10 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     localWeight += 1.0;
                 } else {
                     localWeight += 0.6;
+                }
+
+                if (fotosCount > 0) {
+                    localWeight += Math.ceil(fotosCount / 3) * 0.9;
                 }
             });
 
