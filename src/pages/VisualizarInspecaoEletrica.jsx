@@ -204,7 +204,7 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
 const FotoInspecao = ({ foto }) => {
     const url = foto?.url;
     const legenda = foto?.legenda;
-    const objectFit = foto?.objectFit || foto?.fit || 'cover';
+    const objectFit = 'cover';
     const objectPosition = foto?.objectPosition || foto?.posicao || 'center center';
 
     return (
