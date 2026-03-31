@@ -133,12 +133,26 @@ const CompressedPhoto = ({ url, legenda }) => {
 
 // Img com fallback para evitar erros quando CDN/Supabase retorna 404
 const placeholderDataUrl = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="80"><rect fill="%23f3f4f6" width="100%" height="100%"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23666" font-size="14">Imagem indisponível</text></svg>';
-const SafeImg = ({ src, alt, ...props }) => {
+const SafeImg = ({ src, alt, errorMode = 'placeholder', ...props }) => {
   const [s, setS] = useState(src);
   useEffect(() => {
     setS(src);
   }, [src]);
-  return <img src={s} alt={alt} onError={() => setS(placeholderDataUrl)} {...props} />;
+  if (!s) return null;
+  return (
+    <img
+      src={s}
+      alt={alt}
+      onError={() => {
+        if (errorMode === 'hide') {
+          setS(null);
+          return;
+        }
+        setS(placeholderDataUrl);
+      }}
+      {...props}
+    />
+  );
 };
 
 
@@ -848,6 +862,7 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
           <SafeImg
             src={logoInterativaUrl}
             alt="Logo Interativa"
+            errorMode="hide"
             style={{
               width: '100%',
               height: '100%',
@@ -907,6 +922,7 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
           <SafeImg
             src={logoInterativaBrancoUrl}
             alt="Logo Interativa"
+            errorMode="hide"
             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
           />
         </div>
