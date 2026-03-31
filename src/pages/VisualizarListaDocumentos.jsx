@@ -33,13 +33,17 @@ const useCompressedImage = (imageUrl, maxWidth = 800, quality = 0.7) => {
       return;
     }
 
+    let mounted = true;
+    let sourceObjectUrl = null;
+    let compressedObjectUrl = null;
+
     const compressImage = async () => {
       try {
         const response = await fetch(imageUrl);
         const blob = await response.blob();
 
         const img = new Image();
-        const objectUrl = URL.createObjectURL(blob);
+        sourceObjectUrl = URL.createObjectURL(blob);
 
         img.onload = () => {
           const canvas = document.createElement('canvas');
@@ -57,26 +61,47 @@ const useCompressedImage = (imageUrl, maxWidth = 800, quality = 0.7) => {
 
           canvas.toBlob(
             (compressedBlob) => {
-              const compressed = URL.createObjectURL(compressedBlob);
-              setCompressedUrl(compressed);
+              if (!compressedBlob) {
+                if (mounted) setCompressedUrl(imageUrl);
+                return;
+              }
+              compressedObjectUrl = URL.createObjectURL(compressedBlob);
+              if (mounted) setCompressedUrl(compressedObjectUrl);
               console.log(`Imagem comprimida para impressão: ${(blob.size / 1024).toFixed(2)}KB -> ${(compressedBlob.size / 1024).toFixed(2)}KB`);
             },
             'image/jpeg',
             quality
           );
 
-          URL.revokeObjectURL(objectUrl);
+          if (sourceObjectUrl) {
+            URL.revokeObjectURL(sourceObjectUrl);
+            sourceObjectUrl = null;
+          }
         };
 
-        img.src = objectUrl;
+        img.onerror = () => {
+          if (mounted) setCompressedUrl(imageUrl);
+          if (sourceObjectUrl) {
+            URL.revokeObjectURL(sourceObjectUrl);
+            sourceObjectUrl = null;
+          }
+        };
+
+        img.src = sourceObjectUrl;
       } catch (error) {
         console.error('Erro ao comprimir imagem:', error);
-        // Não reatribuir a URL original quando ela falhar (pode ser blob: ou causar erro de CORS).
-        setCompressedUrl(null);
+        // Mantém a URL original para evitar "Imagem indisponível" durante navegação.
+        if (mounted) setCompressedUrl(imageUrl);
       }
     };
 
     compressImage();
+
+    return () => {
+      mounted = false;
+      if (sourceObjectUrl) URL.revokeObjectURL(sourceObjectUrl);
+      if (compressedObjectUrl) URL.revokeObjectURL(compressedObjectUrl);
+    };
   }, [imageUrl, maxWidth, quality]);
 
   return compressedUrl;
@@ -110,6 +135,9 @@ const CompressedPhoto = ({ url, legenda }) => {
 const placeholderDataUrl = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="80"><rect fill="%23f3f4f6" width="100%" height="100%"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23666" font-size="14">Imagem indisponível</text></svg>';
 const SafeImg = ({ src, alt, ...props }) => {
   const [s, setS] = useState(src);
+  useEffect(() => {
+    setS(src);
+  }, [src]);
   return <img src={s} alt={alt} onError={() => setS(placeholderDataUrl)} {...props} />;
 };
 
