@@ -6,6 +6,7 @@ import { Loader2, Printer, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AssinaturasPage } from '@/components/relatorios/AssinaturasSection';
+import { paginateLocalItemsForPrinting } from '@/lib/reportPagination';
 
 const isValidId = (id) => id && typeof id === 'string' && id.length > 0;
 
@@ -362,63 +363,22 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
   const hasAssinaturas = relatorio.assinaturas && relatorio.assinaturas.length > 0 &&
     relatorio.assinaturas.some(ass => ass.assinatura_imagem && ass.assinatura_imagem.trim() !== '');
 
-  const MAX_FOTOS_PER_ITEM = 6;
-  const MAX_WEIGHT_PER_PAGE = 12;
-
-  const paginateLocalItems = (local) => {
-    const allItems = [...(local.itens_inspecao || [])];
-    if (local.comentarios) {
-      allItems.push({ tipo: 'comentario', texto: local.comentarios });
-    }
-
-    let currentSlice = [];
-    let slices = [];
-
-    const calculateItemWeight = (item) => {
-      if (item.tipo === 'comentario') return 1;
-      if (item.fotos && item.fotos.length > 0) return 1 + (Math.ceil(item.fotos.length / 3) * 3);
-      return 1;
-    };
-    const calculateSliceWeight = (slice) => slice.reduce((acc, p) => acc + calculateItemWeight(p), 0);
-
-    allItems.forEach((item) => {
-      if (item.tipo !== 'comentario' && item.fotos && item.fotos.length > MAX_FOTOS_PER_ITEM) {
-        const fotosChunks = [];
-        for (let i = 0; i < item.fotos.length; i += MAX_FOTOS_PER_ITEM) {
-          fotosChunks.push(item.fotos.slice(i, i + MAX_FOTOS_PER_ITEM));
-        }
-        const firstItemPart = { ...item, fotos: fotosChunks[0] };
-        const weight = calculateItemWeight(firstItemPart);
-        const currentWeight = calculateSliceWeight(currentSlice);
-        if (currentSlice.length > 0 && currentWeight + weight > MAX_WEIGHT_PER_PAGE) {
-          slices.push([...currentSlice]);
-          currentSlice = [];
-        }
-        currentSlice.push(firstItemPart);
-        for (let i = 1; i < fotosChunks.length; i++) {
-          if (currentSlice.length > 0) { slices.push([...currentSlice]); currentSlice = []; }
-          currentSlice.push({ ...item, descricao: `(Continuação) ${item.descricao}`, fotos: fotosChunks[i], showOnlyPhotos: true });
-        }
-      } else {
-        const weight = calculateItemWeight(item);
-        const currentWeight = calculateSliceWeight(currentSlice);
-        if (currentSlice.length > 0 && currentWeight + weight > MAX_WEIGHT_PER_PAGE) {
-          slices.push([...currentSlice]);
-          currentSlice = [item];
-        } else {
-          currentSlice.push(item);
-        }
-      }
-    });
-
-    if (currentSlice.length > 0) slices.push(currentSlice);
-
-    return slices.map((slice, sliceIdx) => ({
-      local,
-      items: slice,
-      isFirst: sliceIdx === 0,
-    }));
-  };
+  const paginateLocalItems = (local) => paginateLocalItemsForPrinting(local, {
+    pageHeightPx: 1122,
+    headerHeightPx: 80,
+    footerHeightPx: 45,
+    pagePaddingPx: 12,
+    footerGuardPx: 16,
+    breakBeforeLimitPx: 20,
+    itemBufferPx: 10,
+    photoMaxHeightPx: 250,
+    maxPhotosPerItem: 6,
+    splitPhotoRows: true,
+    photoChunkSize: 3,
+  }).map((page) => ({
+    ...page,
+    isFirst: page.isFirstPageOfLocal,
+  }));
 
   const contentPages = (relatorio.locais && relatorio.locais.length > 0)
     ? relatorio.locais.flatMap((local) => paginateLocalItems(local))

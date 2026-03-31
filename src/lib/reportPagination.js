@@ -1,3 +1,93 @@
+export function chunkItems(items = [], chunkSize = 1) {
+  const safeChunkSize = Math.max(1, Number(chunkSize) || 1);
+  const safeItems = Array.isArray(items) ? items : [];
+  const chunks = [];
+
+  for (let i = 0; i < safeItems.length; i += safeChunkSize) {
+    chunks.push(safeItems.slice(i, i + safeChunkSize));
+  }
+
+  return chunks;
+}
+
+export function paginateItemsByCount(items = [], opts = {}) {
+  const safeItems = Array.isArray(items) ? items : [];
+  if (safeItems.length === 0) return [];
+
+  const firstPageCount = Math.max(1, Number(opts.firstPageCount ?? opts.perPageCount ?? safeItems.length) || safeItems.length);
+  const perPageCount = Math.max(1, Number(opts.perPageCount ?? firstPageCount) || firstPageCount);
+
+  const pages = [];
+  let cursor = 0;
+
+  const firstItems = safeItems.slice(cursor, cursor + firstPageCount);
+  if (firstItems.length > 0) {
+    pages.push(firstItems);
+    cursor += firstPageCount;
+  }
+
+  while (cursor < safeItems.length) {
+    pages.push(safeItems.slice(cursor, cursor + perPageCount));
+    cursor += perPageCount;
+  }
+
+  return pages;
+}
+
+export function paginateBlocksForPrinting(blocks = [], opts = {}) {
+  const safeBlocks = Array.isArray(blocks) ? blocks.filter(Boolean) : [];
+  if (safeBlocks.length === 0) return [];
+
+  const PAGE_HEIGHT_PX = opts.pageHeightPx || 1122;
+  const HEADER_HEIGHT_PX = opts.headerHeightPx || 80;
+  const FOOTER_HEIGHT_PX = opts.footerHeightPx || 45;
+  const PAGE_PADDING_PX = opts.pagePaddingPx || 8;
+  const FOOTER_GUARD_PX = opts.footerGuardPx || 16;
+  const BREAK_BEFORE_LIMIT_PX = opts.breakBeforeLimitPx || 24;
+  const FIRST_PAGE_EXTRA_HEIGHT_PX = opts.firstPageExtraHeightPx || 0;
+  const LEGACY_SAFETY_MARGIN_PX = opts.safetyMarginPx || 0;
+  const DEFAULT_BLOCK_HEIGHT_PX = opts.defaultBlockHeightPx || 80;
+  const MEASURE_BLOCK = typeof opts.measureBlockHeight === 'function'
+    ? opts.measureBlockHeight
+    : (block) => Number(block?.estimatedHeightPx) || DEFAULT_BLOCK_HEIGHT_PX;
+
+  const getUsableHeight = (isFirstPage) => {
+    const base = PAGE_HEIGHT_PX - HEADER_HEIGHT_PX - FOOTER_HEIGHT_PX - PAGE_PADDING_PX - LEGACY_SAFETY_MARGIN_PX;
+    if (!isFirstPage) return base;
+    return Math.max(120, base - FIRST_PAGE_EXTRA_HEIGHT_PX);
+  };
+
+  const getBottomLimit = (isFirstPage) => Math.max(120, getUsableHeight(isFirstPage) - FOOTER_GUARD_PX);
+
+  const pages = [];
+  let currentPage = [];
+  let currentHeight = 0;
+
+  safeBlocks.forEach((block, index) => {
+    const isFirstPage = pages.length === 0;
+    const bottomLimit = getBottomLimit(isFirstPage);
+    const blockHeight = Math.max(24, Number(MEASURE_BLOCK(block, { index, isFirstPage, currentPage, currentHeight })) || DEFAULT_BLOCK_HEIGHT_PX);
+    const projectedHeight = currentHeight + blockHeight;
+    const remainingAfterProjection = bottomLimit - projectedHeight;
+    const forceBreak = currentPage.length > 0 && (projectedHeight > bottomLimit || remainingAfterProjection < BREAK_BEFORE_LIMIT_PX || block.breakBefore === true);
+
+    if (forceBreak) {
+      pages.push(currentPage);
+      currentPage = [];
+      currentHeight = 0;
+    }
+
+    currentPage.push(block);
+    currentHeight += blockHeight;
+  });
+
+  if (currentPage.length > 0) {
+    pages.push(currentPage);
+  }
+
+  return pages;
+}
+
 export function paginateLocalItemsForPrinting(local, opts = {}) {
   const pages = [];
 
@@ -115,11 +205,11 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
     // Split in render blocks (text row + photo rows) to fit the remaining page space more precisely.
     if (SPLIT_PHOTO_ROWS && fotos.length > 0 && !originalItem.showOnlyPhotos) {
       allItems.push({ ...originalItem, fotos: [] });
-      for (let i = 0; i < fotos.length; i += PHOTO_CHUNK_SIZE) {
+      for (const photoChunk of chunkItems(fotos, PHOTO_CHUNK_SIZE)) {
         allItems.push({
           ...originalItem,
           descricao: '',
-          fotos: fotos.slice(i, i + PHOTO_CHUNK_SIZE),
+          fotos: photoChunk,
           showOnlyPhotos: true,
         });
       }
@@ -130,11 +220,11 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
       const firstChunk = fotos.slice(0, MAX_PHOTOS_PER_ITEM);
       allItems.push({ ...originalItem, fotos: firstChunk });
 
-      for (let i = MAX_PHOTOS_PER_ITEM; i < fotos.length; i += MAX_PHOTOS_PER_ITEM) {
+      for (const photoChunk of chunkItems(fotos.slice(MAX_PHOTOS_PER_ITEM), MAX_PHOTOS_PER_ITEM)) {
         allItems.push({
           ...originalItem,
           descricao: `(Continuação) ${originalItem.descricao || ''}`.trim(),
-          fotos: fotos.slice(i, i + MAX_PHOTOS_PER_ITEM),
+          fotos: photoChunk,
           showOnlyPhotos: true,
         });
       }

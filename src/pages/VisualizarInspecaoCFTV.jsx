@@ -7,6 +7,7 @@ import { Loader2, Printer, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AssinaturasPage } from '@/components/relatorios/AssinaturasSection';
+import { paginateItemsByCount } from '@/lib/reportPagination';
 
 const isValidId = (id) => id && typeof id === 'string' && id.length > 0;
 
@@ -301,18 +302,12 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
     const hasDocumentacao = relatorio.itens_documentacao && relatorio.itens_documentacao.length > 0;
 
     const paginateCameras = (pavimento) => {
-        const pages = [];
-        const camerasPerPage = 8;
         const cameras = pavimento.cameras || [];
-
-        for (let i = 0; i < cameras.length; i += camerasPerPage) {
-            pages.push({
-                pavimento: pavimento,
-                cameras: cameras.slice(i, i + camerasPerPage)
-            });
-        }
-
-        return pages.length > 0 ? pages : [{ pavimento, cameras: [] }];
+        const pages = paginateItemsByCount(cameras, { perPageCount: 8 });
+        return (pages.length > 0 ? pages : [[]]).map((cameraSlice) => ({
+            pavimento,
+            cameras: cameraSlice,
+        }));
     };
 
     const hasSistemaInfo = relatorio.info_sistema || relatorio.info_cameras;

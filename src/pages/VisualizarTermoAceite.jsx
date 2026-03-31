@@ -7,6 +7,7 @@ import { pt } from 'date-fns/locale';
 import { ArrowLeft, Loader2, AlertTriangle, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import EnviarEmailDialog from '@/components/relatorios/EnviarEmailDialog';
+import { chunkItems } from '@/lib/reportPagination';
 
 // Standardized colors as per request
 const redColor = '#CE2D2D';
@@ -958,10 +959,7 @@ const paginateContent = (allItems, observacoesSecoesProcessadas, termo, unidade,
     const maxFotosPorItem = getMaxFotosPorItem(originalItem.globalIndex);
 
     if (itemPhotoCount > maxFotosPorItem) {
-      const fotosChunks = [];
-      for (let j = 0; j < originalItem.foto.length; j += maxFotosPorItem) {
-        fotosChunks.push(originalItem.foto.slice(j, j + maxFotosPorItem));
-      }
+      const fotosChunks = chunkItems(originalItem.foto, maxFotosPorItem);
 
       const firstItemPart = { ...originalItem, foto: fotosChunks[0], uniqueId: `${originalItem.uniqueId}-part1` };
       const weight = calculateItemWeight(firstItemPart);

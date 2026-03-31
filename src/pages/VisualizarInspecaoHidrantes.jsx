@@ -6,6 +6,7 @@ import { Loader2, Printer, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AssinaturasPage } from '@/components/relatorios/AssinaturasSection';
+import { paginateLocalItemsForPrinting } from '@/lib/reportPagination';
 
 const isValidId = (id) => id && typeof id === 'string' && id.length > 0;
 
@@ -397,86 +398,22 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
     const hasAssinaturas = relatorio.assinaturas && relatorio.assinaturas.length > 0 &&
         relatorio.assinaturas.some(ass => ass.assinatura_imagem && ass.assinatura_imagem.trim() !== '');
 
-    const MAX_FOTOS_PER_ITEM = 12;
-    const MAX_WEIGHT_PER_PAGE = 15;
-
-    const paginateLocalItems = (local) => {
-        const allItems = [...(local.itens_inspecao || [])];
-        let currentSlice = [];
-        let slices = [];
-
-        allItems.forEach((item) => {
-            const isComentario = item.tipo === 'comentario';
-
-            if (!isComentario && item.fotos && item.fotos.length > MAX_FOTOS_PER_ITEM) {
-                const fotosChunks = [];
-                for (let i = 0; i < item.fotos.length; i += MAX_FOTOS_PER_ITEM) {
-                    fotosChunks.push(item.fotos.slice(i, i + MAX_FOTOS_PER_ITEM));
-                }
-
-                const firstItemPart = { ...item, fotos: fotosChunks[0] };
-                const weight = 1 + (Math.ceil(fotosChunks[0].length / 3) * 3);
-                const currentWeight = currentSlice.reduce((acc, p) => {
-                    if (p.tipo === 'comentario') return acc + 1;
-                    if (p.fotos && p.fotos.length > 0) {
-                        return acc + 1 + (Math.ceil(p.fotos.length / 3) * 3);
-                    }
-                    return acc + 1;
-                }, 0);
-
-                if (currentSlice.length > 0 && currentWeight + weight > MAX_WEIGHT_PER_PAGE) {
-                    slices.push([...currentSlice]);
-                    currentSlice = [];
-                }
-                currentSlice.push(firstItemPart);
-
-                for (let i = 1; i < fotosChunks.length; i++) {
-                    if (currentSlice.length > 0) {
-                        slices.push([...currentSlice]);
-                        currentSlice = [];
-                    }
-                    currentSlice.push({
-                        ...item,
-                        descricao: `(Continuação) ${item.descricao}`,
-                        fotos: fotosChunks[i],
-                        showOnlyPhotos: true
-                    });
-                }
-            } else {
-                let weight = 1;
-                if (isComentario) {
-                    weight = 1;
-                } else if (item.fotos && item.fotos.length > 0) {
-                    weight = 1 + (Math.ceil(item.fotos.length / 3) * 3);
-                }
-
-                const currentWeight = currentSlice.reduce((acc, p) => {
-                    if (p.tipo === 'comentario') return acc + 1;
-                    if (p.fotos && p.fotos.length > 0) {
-                        return acc + 1 + (Math.ceil(p.fotos.length / 3) * 3);
-                    }
-                    return acc + 1;
-                }, 0);
-
-                if (currentSlice.length > 0 && currentWeight + weight > MAX_WEIGHT_PER_PAGE) {
-                    slices.push([...currentSlice]);
-                    currentSlice = [];
-                }
-                currentSlice.push(item);
-            }
-        });
-
-        if (currentSlice.length > 0) {
-            slices.push(currentSlice);
-        }
-
-        return slices.map((slice, sliceIdx) => ({
-            local,
-            items: slice,
-            isFirstPageOfLocal: sliceIdx === 0,
-            isLastPageOfLocal: sliceIdx === slices.length - 1
-        }));
-    };
+    const paginateLocalItems = (local) => paginateLocalItemsForPrinting(local, {
+        pageHeightPx: 1122,
+        headerHeightPx: 80,
+        footerHeightPx: 45,
+        pagePaddingPx: 12,
+        footerGuardPx: 18,
+        breakBeforeLimitPx: 18,
+        itemBufferPx: 10,
+        photoMaxHeightPx: 250,
+        maxPhotosPerItem: 12,
+        splitPhotoRows: true,
+        photoChunkSize: 3,
+    }).map((page, sliceIdx, allPages) => ({
+        ...page,
+        isLastPageOfLocal: sliceIdx === allPages.length - 1,
+    }));
 
     const contentPages = (relatorio.locais && relatorio.locais.length > 0)
         ? relatorio.locais.flatMap((local) => paginateLocalItems(local))
@@ -623,7 +560,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                                 local={page.local}
                                 itensSlice={page.items}
                                 showHeader={page.isFirstPageOfLocal || isFirstPage}
-                                showComments={isLastPageOfThisLocal}
+                                showComments={false}
                                 showTableHeader={true}
                                 showObservacoes={false}
                                 observacoes={relatorio.observacoes_gerais}

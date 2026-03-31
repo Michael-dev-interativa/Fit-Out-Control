@@ -11,6 +11,7 @@ import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft, Printer, AlertTriangle } from 'lucide-react';
+import { chunkItems } from '@/lib/reportPagination';
 
 const redColor = '#CE2D2D';
 const blueColor = '#2A3E84';
@@ -499,9 +500,8 @@ const paginateDiarioContent = (diario, empreendimento, unidade, t) => {
 
     // Subsequent pages: Photos
     const photos = diario.fotos || [];
-    const photosPerPage = 4; // Ajuste conforme necessário
-    for (let i = 0; i < photos.length; i += photosPerPage) {
-        const photoChunk = photos.slice(i, i + photosPerPage);
+        const photosPerPage = 4;
+        for (const photoChunk of chunkItems(photos, photosPerPage)) {
         pages.push({ content: <PhotoPage photos={photoChunk} />, isFlow: false });
     }
 

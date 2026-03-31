@@ -4,6 +4,7 @@ import { createPageUrl } from '@/utils';
 import { RDO, Empreendimento, ListaDocumentosReport } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Printer } from 'lucide-react';
+import { chunkItems, paginateBlocksForPrinting } from '@/lib/reportPagination';
 
 // Função para formatar dia da semana
 const formatarDiaSemana = (data) => {
@@ -513,10 +514,7 @@ const paginateContent = (documento, empreendimento, t) => {
   let lastPhotoGroupSize = 0;
 
   if (hasFotos) {
-    const fotoGroups = [];
-    for (let i = 0; i < documento.fotos.length; i += 6) {
-      fotoGroups.push(documento.fotos.slice(i, i + 6));
-    }
+    const fotoGroups = chunkItems(documento.fotos, 6);
     lastPhotoGroupSize = fotoGroups[fotoGroups.length - 1].length;
 
     fotoGroups.forEach((fotos, groupIdx) => {
@@ -642,27 +640,16 @@ const paginateContent = (documento, empreendimento, t) => {
   }
 
   // Dividir seções em páginas
-  let currentPageSections = [];
-  let currentPageWeight = 0;
-
-  sections.forEach((section, index) => {
-    // Se adicionar esta seção ultrapassar o limite E já tem conteúdo na página, criar nova página
-    if (currentPageWeight + section.weight > MAX_WEIGHT_PER_PAGE && currentPageSections.length > 0) {
-      pages.push([...currentPageSections]);
-      currentPageSections = [];
-      currentPageWeight = 0;
-    }
-
-    currentPageSections.push(section);
-    currentPageWeight += section.weight;
+  return paginateBlocksForPrinting(sections, {
+    pageHeightPx: 1122,
+    headerHeightPx: 80,
+    footerHeightPx: 60,
+    pagePaddingPx: 20,
+    footerGuardPx: 20,
+    breakBeforeLimitPx: 20,
+    defaultBlockHeightPx: 100,
+    measureBlockHeight: (section) => (section.weight || 1) * 100,
   });
-
-  // Adicionar última página se houver seções restantes
-  if (currentPageSections.length > 0) {
-    pages.push(currentPageSections);
-  }
-
-  return pages;
 };
 
 export default function VisualizarListaDocumentos({ language: initialLanguage, theme: initialTheme }) {

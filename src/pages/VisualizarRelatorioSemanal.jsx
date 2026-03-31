@@ -9,6 +9,7 @@ import { Loader2, ArrowLeft, Printer, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { chunkItems } from '@/lib/reportPagination';
 
 // UTILS E HOOKS REUTILIZADOS
 const isValidId = (id) => id && typeof id === 'string' && id.length > 0;
@@ -300,8 +301,7 @@ const paginateContent = (relatorio, empreendimento) => {
 
     const photos = relatorio.fotos || [];
     const photosPerPage = 4;
-    for (let i = 0; i < photos.length; i += photosPerPage) {
-        const photoChunk = photos.slice(i, i + photosPerPage);
+    for (const photoChunk of chunkItems(photos, photosPerPage)) {
         pages.push({ type: 'content', content: <PhotoPage photos={photoChunk} /> });
     }
 

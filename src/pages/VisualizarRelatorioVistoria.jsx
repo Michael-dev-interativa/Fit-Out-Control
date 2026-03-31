@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import EnviarEmailDialog from '@/components/relatorios/EnviarEmailDialog';
+import { chunkItems } from '@/lib/reportPagination';
 
 // Standardized colors as per request
 const redColor = '#CE2D2D';
@@ -900,10 +901,7 @@ const paginateContent = (allItems, observacoesSecoesProcessadas, vistoria, unida
 
     // Dividir item se tiver mais de MAX_FOTOS_PER_ITEM fotos
     if (itemPhotoCount > MAX_FOTOS_PER_ITEM) {
-      const fotosChunks = [];
-      for (let j = 0; j < originalItem.foto.length; j += MAX_FOTOS_PER_ITEM) {
-        fotosChunks.push(originalItem.foto.slice(j, j + MAX_FOTOS_PER_ITEM));
-      }
+      const fotosChunks = chunkItems(originalItem.foto, MAX_FOTOS_PER_ITEM);
 
       const firstItemPart = { ...originalItem, foto: fotosChunks[0], uniqueId: `${originalItem.uniqueId}-part1` };
       const weight = calculateItemWeight(firstItemPart);

@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft, Printer, AlertTriangle, CheckSquare, Square } from 'lucide-react';
+import { chunkItems } from '@/lib/reportPagination';
 
 const redColor = '#CE2D2D';
 
@@ -261,10 +262,7 @@ const paginateAmostraContent = (relatorio, empreendimento) => {
     }
 
     // Separa as fotos restantes em blocos
-    const photoChunks = [];
-    for (let i = 0; i < remainingPhotos.length; i += photosOnSubsequentPagesCount) {
-        photoChunks.push(remainingPhotos.slice(i, i + photosOnSubsequentPagesCount));
-    }
+    const photoChunks = chunkItems(remainingPhotos, photosOnSubsequentPagesCount);
 
     // Combina o último bloco de fotos com a página de aprovação
     const lastPhotoChunk = photoChunks.pop();

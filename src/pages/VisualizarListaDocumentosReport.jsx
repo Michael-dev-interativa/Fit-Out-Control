@@ -4,6 +4,7 @@ import { createPageUrl } from '@/utils';
 import { ListaDocumentosReport, Empreendimento } from '@/api/entities';
 import { ArrowLeft, Loader2, AlertTriangle, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { paginateItemsByCount } from '@/lib/reportPagination';
 
 const redColor = '#CE2D2D';
 
@@ -498,12 +499,12 @@ export default function VisualizarListaDocumentosReport() {
         {documento?.documentos && documento.documentos.length > 0 && (
           (() => {
             const paginasConteudo = [];
-            const totalPages = 1 + Math.ceil(documento.documentos.length / 10);
-            for (let i = 0; i < documento.documentos.length; i += 10) {
-              const documentosPagina = documento.documentos.slice(i, i + 10);
-              const isFirstPage = i === 0;
-              const isLastPage = (i + 10) >= documento.documentos.length;
-              const pageNumber = 2 + Math.floor(i / 10);
+                const documentosPaginas = paginateItemsByCount(documento.documentos, { perPageCount: 10 });
+                const totalPages = 1 + documentosPaginas.length;
+                documentosPaginas.forEach((documentosPagina, pageIndex) => {
+                  const isFirstPage = pageIndex === 0;
+                  const isLastPage = pageIndex === documentosPaginas.length - 1;
+                  const pageNumber = 2 + pageIndex;
 
               paginasConteudo.push(
                 <ReportPage
@@ -517,7 +518,7 @@ export default function VisualizarListaDocumentosReport() {
                   <ContentPage documento={documento} documentosPagina={documentosPagina} isFirstPage={isFirstPage} isLastPage={isLastPage} />
                 </ReportPage>
               );
-            }
+            });
             return paginasConteudo;
           })()
         )}

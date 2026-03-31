@@ -7,6 +7,7 @@ import { Loader2, Printer, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AssinaturasPage } from '@/components/relatorios/AssinaturasSection';
+import { paginateLocalItemsForPrinting } from '@/lib/reportPagination';
 
 const isValidId = (id) => id && typeof id === 'string' && id.length > 0;
 
@@ -226,27 +227,55 @@ const InstalacaoPage = ({ itens_instalacao, comentarios_instalacao, showHeader =
                     </tr>
                 </thead>
                 <tbody>
-                    {(itens_instalacao || []).map((item, idx) => (
-                        <React.Fragment key={idx}>
-                            <tr>
-                                <td className="border border-black p-1" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.item_verificacao}</td>
-                                <td className="border border-black p-1 text-center">{item.resultado === 'OK' ? '☑' : '☐'}</td>
-                                <td className="border border-black p-1 text-center">{item.resultado === 'NA' ? '☑' : '☐'}</td>
-                                <td className="border border-black p-1" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.comentario || ''}</td>
-                            </tr>
-                            {item.fotos && item.fotos.length > 0 && (
-                                <tr>
-                                    <td colSpan="4" className="border border-black p-1">
-                                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(item.fotos.length, 3)}, 1fr)`, gap: '4px', maxWidth: '100%' }}>
-                                            {item.fotos.map((foto, fotoIdx) => (
+                    {(itens_instalacao || []).map((item, idx) => {
+                        const isComentario = item.tipo === 'comentario' || item.isComentarioGeral;
+
+                        if (isComentario) {
+                            return (
+                                <tr key={idx} className="bg-gray-50">
+                                    <td className="border border-black p-1 font-bold">Comentários:</td>
+                                    <td colSpan="3" className="border border-black p-1 whitespace-pre-wrap" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.texto || item.comentarios || ''}</td>
+                                </tr>
+                            );
+                        }
+
+                        if (item.showOnlyPhotos) {
+                            return (
+                                <tr key={idx}>
+                                    <td colSpan="4" className="border border-black p-1 pt-3">
+                                        <div className="text-xs text-gray-600 italic mb-2">{item.descricao}</div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min((item.fotos || []).length || 1, 3)}, 1fr)`, gap: '4px', maxWidth: '100%' }}>
+                                            {(item.fotos || []).map((foto, fotoIdx) => (
                                                 <FotoInstalacao key={fotoIdx} url={foto.url} legenda={foto.legenda} />
                                             ))}
                                         </div>
                                     </td>
                                 </tr>
-                            )}
-                        </React.Fragment>
-                    ))}
+                            );
+                        }
+
+                        return (
+                            <React.Fragment key={idx}>
+                                <tr>
+                                    <td className="border border-black p-1" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.item_verificacao || item.descricao}</td>
+                                    <td className="border border-black p-1 text-center">{item.resultado === 'OK' ? '☑' : '☐'}</td>
+                                    <td className="border border-black p-1 text-center">{item.resultado === 'NA' ? '☑' : '☐'}</td>
+                                    <td className="border border-black p-1" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.comentario || item.observacoes || ''}</td>
+                                </tr>
+                                {item.fotos && item.fotos.length > 0 && (
+                                    <tr>
+                                        <td colSpan="4" className="border border-black p-1">
+                                            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(item.fotos.length, 3)}, 1fr)`, gap: '4px', maxWidth: '100%' }}>
+                                                {item.fotos.map((foto, fotoIdx) => (
+                                                    <FotoInstalacao key={fotoIdx} url={foto.url} legenda={foto.legenda} />
+                                                ))}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
+                            </React.Fragment>
+                        );
+                    })}
                 </tbody>
             </table>
             {comentarios_instalacao && (
@@ -388,33 +417,30 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
     }
 
     // Paginar itens de instalação
-    const paginateInstallationItems = (items) => {
-        const pages = [];
-        const MAX_WEIGHT_PER_PAGE = 10;
-        let currentItems = [];
-        let currentWeight = 0;
-
-        const getItemWeight = (item) => {
-            const photoRows = Math.max(1, Math.ceil(((item.fotos || []).length || 0) / 3));
-            return 1 + (((item.fotos || []).length || 0) > 0 ? photoRows * 2 : 0);
+    const paginateInstallationItems = (instalacao) => {
+        const localLike = {
+            itens_inspecao: (instalacao?.itens || []).map((item) => ({
+                descricao: item.item_verificacao,
+                resultado: item.resultado,
+                observacoes: item.comentario || '',
+                fotos: Array.isArray(item.fotos) ? item.fotos : [],
+            })),
+            comentarios: instalacao?.comentarios || '',
         };
 
-        (items || []).forEach((item) => {
-            const itemWeight = getItemWeight(item);
-            if (currentItems.length > 0 && currentWeight + itemWeight > MAX_WEIGHT_PER_PAGE) {
-                pages.push(currentItems);
-                currentItems = [];
-                currentWeight = 0;
-            }
-
-            currentItems.push(item);
-            currentWeight += itemWeight;
+        return paginateLocalItemsForPrinting(localLike, {
+            pageHeightPx: 1122,
+            headerHeightPx: 80,
+            footerHeightPx: 45,
+            pagePaddingPx: 12,
+            footerGuardPx: 16,
+            breakBeforeLimitPx: 20,
+            itemBufferPx: 8,
+            photoMaxHeightPx: 170,
+            maxPhotosPerItem: 6,
+            splitPhotoRows: true,
+            photoChunkSize: 3,
         });
-
-        if (currentItems.length > 0) {
-            pages.push(currentItems);
-        }
-        return pages.length > 0 ? pages : [[]];
     };
 
     // Construir páginas de conteúdo seguindo a ordem definida
@@ -430,13 +456,13 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
         } else if (secao.tipo === 'instalacao') {
             const instalacao = instalacoes[secao.indice];
             if (instalacao && instalacao.itens && instalacao.itens.length > 0) {
-                const paginatedItems = paginateInstallationItems(instalacao.itens);
-                paginatedItems.forEach((pageItems, pageIndex) => {
+                const paginatedItems = paginateInstallationItems(instalacao);
+                paginatedItems.forEach((pageData, pageIndex) => {
                     contentPages.push([{
                         type: 'instalacao',
-                        items: pageItems,
-                        comentarios: pageIndex === paginatedItems.length - 1 ? instalacao.comentarios : null,
-                        showHeader: pageIndex === 0
+                        items: pageData.items,
+                        comentarios: pageData.items.some((item) => item.tipo === 'comentario' || item.isComentarioGeral) ? null : (pageIndex === paginatedItems.length - 1 ? instalacao.comentarios : null),
+                        showHeader: pageData.isFirstPageOfLocal
                     }]);
                 });
             }

@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createPageUrl } from '@/utils';
 import { AssinaturasPage } from '@/components/relatorios/AssinaturasSection';
+import { paginateBlocksForPrinting } from '@/lib/reportPagination';
 
 const isValidId = (id) => id && typeof id === 'string' && id.length > 0;
 
@@ -123,21 +124,29 @@ const ContentPage = ({ ata, empreendimento }) => {
   );
 };
 
-const ItensDiscutidosPage = ({ secao }) => {
+const ItensDiscutidosPage = ({ secao, secoes }) => {
+  const secoesParaRenderizar = Array.isArray(secoes) ? secoes : (secao ? [secao] : []);
+
   return (
     <div className="p-6 space-y-4 text-sm">
       <h3 className="font-bold mb-4 text-base border-b-2 border-gray-300 pb-2">ITENS DISCUTIDOS</h3>
-      {secao.titulo_secao && (
-        <h4 className="font-bold text-sm mb-3 border-l-4 border-blue-600 pl-2">{secao.titulo_secao}</h4>
-      )}
-      <div className="space-y-2">
-        {secao.itens?.map((item, itemIndex) => (
-          <div key={itemIndex} className="p-3 rounded bg-gray-50 text-xs">
-            {item.titulo_item && (
-              <p className="font-semibold mb-1">{item.titulo_item}:</p>
+      <div className="space-y-5">
+        {secoesParaRenderizar.map((secaoAtual, secaoIndex) => (
+          <section key={secaoIndex} className="space-y-2">
+            {secaoAtual.titulo_secao && (
+              <h4 className="font-bold text-sm mb-3 border-l-4 border-blue-600 pl-2">{secaoAtual.titulo_secao}</h4>
             )}
-            <p className="whitespace-pre-wrap text-gray-700">{item.descricao}</p>
-          </div>
+            <div className="space-y-2">
+              {secaoAtual.itens?.map((item, itemIndex) => (
+                <div key={itemIndex} className="p-3 rounded bg-gray-50 text-xs">
+                  {item.titulo_item && (
+                    <p className="font-semibold mb-1">{item.titulo_item}:</p>
+                  )}
+                  <p className="whitespace-pre-wrap text-gray-700">{item.descricao}</p>
+                </div>
+              ))}
+            </div>
+          </section>
         ))}
       </div>
     </div>
@@ -177,11 +186,30 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, ata, empreendiment
 const ReportContent = ({ ata, empreendimento, navigate }) => {
   const [isPrintingMode, setIsPrintingMode] = useState(false);
 
-  const numSecoesItens = ata.itens_discutidos && ata.itens_discutidos.length > 0 ? ata.itens_discutidos.length : 0;
+  const itensDiscutidosPages = paginateBlocksForPrinting(
+    (ata.itens_discutidos || []).map((secao, index) => {
+      const itens = Array.isArray(secao?.itens) ? secao.itens : [];
+      const textLength = itens.reduce((acc, item) => acc + String(item?.titulo_item || '').length + String(item?.descricao || '').length, 0);
+      return {
+        secao,
+        order: index,
+        estimatedHeightPx: 72 + (itens.length * 58) + Math.ceil(textLength / 180) * 18,
+      };
+    }),
+    {
+      pageHeightPx: 1122,
+      headerHeightPx: 80,
+      footerHeightPx: 45,
+      pagePaddingPx: 16,
+      footerGuardPx: 20,
+      breakBeforeLimitPx: 32,
+      defaultBlockHeightPx: 180,
+    }
+  );
   const hasAssinaturas = ata.assinaturas && ata.assinaturas.length > 0 &&
     ata.assinaturas.some(ass => (ass.nome && ass.nome.trim() !== '') || (ass.parte && ass.parte.trim() !== '') || (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== ''));
 
-  const totalPages = 1 + numSecoesItens + (hasAssinaturas ? 1 : 0);
+  const totalPages = 1 + itensDiscutidosPages.length + (hasAssinaturas ? 1 : 0);
 
   const handlePrint = async () => {
     setIsPrintingMode(true);
@@ -212,9 +240,9 @@ const ReportContent = ({ ata, empreendimento, navigate }) => {
         </ReportPageLayout>
 
         {/* Page 3+: Itens Discutidos - one per page */}
-        {ata?.itens_discutidos && ata.itens_discutidos.map((secao, secaoIndex) => (
+        {itensDiscutidosPages.map((pageBlocks, secaoIndex) => (
           <ReportPageLayout key={secaoIndex} pageNumber={currentPage++} totalPages={totalPages} ata={ata} empreendimento={empreendimento} pdfMode={isPrintingMode}>
-            <ItensDiscutidosPage secao={secao} />
+            <ItensDiscutidosPage secoes={pageBlocks.map((block) => block.secao)} />
           </ReportPageLayout>
         ))}
 
