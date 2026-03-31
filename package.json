@@ -16,6 +16,7 @@
     "sync:render": "node scripts/sync-local-to-render.js",
     "sync:local": "node scripts/sync-render-to-local.js",
     "import:rdos": "node scripts/import-rdos.js",
+    "import:inspecao-eletrica": "node scripts/import-inspecao-eletrica.js",
     "compress-uploads": "node scripts/compress-uploads.js"
   },
   "dependencies": {
