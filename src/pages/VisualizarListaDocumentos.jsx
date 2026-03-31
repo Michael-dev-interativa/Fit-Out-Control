@@ -795,12 +795,7 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
       return;
     }
 
-    if (documentoSource === 'rdo') {
-      navigate(createPageUrl(`EmpreendimentoDiariosObra?empreendimentoId=${empId}`));
-      return;
-    }
-
-    navigate(createPageUrl(`EmpreendimentoListaDocumentosReport?empreendimentoId=${empId}`));
+    navigate(createPageUrl(`EmpreendimentoDiariosObra?empreendimentoId=${empId}`));
   };
 
   if (loading || !documento) {
