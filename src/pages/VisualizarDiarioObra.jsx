@@ -11,7 +11,7 @@ import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft, Printer, AlertTriangle } from 'lucide-react';
-import { chunkItems } from '@/lib/reportPagination';
+import { paginateBlocksForPrinting, paginateItemsByCount } from '@/lib/reportPagination';
 
 const redColor = '#CE2D2D';
 const blueColor = '#2A3E84';
@@ -490,18 +490,42 @@ const paginateDiarioContent = (diario, empreendimento, unidade, t) => {
     // Page 1: Cover
     pages.push({ content: <CoverPage diario={diario} empreendimento={empreendimento} unidade={unidade} t={t} />, isFlow: false });
 
-    // Page 2: Content (Diário)
-    pages.push({ content: <DiarioContentPage diario={diario} empreendimento={empreendimento} unidade={unidade} t={t} />, isFlow: false });
+    const contentBlocks = [
+        {
+            id: 'diario-content',
+            estimatedHeightPx: 940,
+            content: <DiarioContentPage diario={diario} empreendimento={empreendimento} unidade={unidade} t={t} />,
+            isFlow: false,
+        },
+        {
+            id: 'anexos-controle',
+            estimatedHeightPx: 980,
+            content: <AnexosEControlePage diario={diario} empreendimento={empreendimento} unidade={unidade} />,
+            isFlow: false,
+        },
+    ];
 
-    // Page 3: Anexos e Controle (Ocorrências + Chuva + Vistos)
-    // Changed isFlow to false so that the internal "footer" (Controle de Chuva e Vistos Part)
-    // sticks to the bottom of the page if the content fits, instead of flowing.
-    pages.push({ content: <AnexosEControlePage diario={diario} empreendimento={empreendimento} unidade={unidade} />, isFlow: false });
+    const contentPages = paginateBlocksForPrinting(contentBlocks, {
+        pageHeightPx: 1122,
+        headerHeightPx: 80,
+        footerHeightPx: 45,
+        pagePaddingPx: 8,
+        footerGuardPx: 16,
+        breakBeforeLimitPx: 24,
+        defaultBlockHeightPx: 900,
+        measureBlockHeight: (block) => Number(block?.estimatedHeightPx) || 900,
+    });
+
+    contentPages.forEach((pageBlocks) => {
+        pageBlocks.forEach((block) => {
+            pages.push({ content: block.content, isFlow: block.isFlow === true });
+        });
+    });
 
     // Subsequent pages: Photos
     const photos = diario.fotos || [];
-        const photosPerPage = 4;
-        for (const photoChunk of chunkItems(photos, photosPerPage)) {
+    const photoPages = paginateItemsByCount(photos, { firstPageCount: 4, perPageCount: 4 });
+    for (const photoChunk of photoPages) {
         pages.push({ content: <PhotoPage photos={photoChunk} />, isFlow: false });
     }
 
