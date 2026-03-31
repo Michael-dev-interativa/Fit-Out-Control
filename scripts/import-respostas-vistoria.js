@@ -4,6 +4,7 @@ import { parse } from 'csv-parse/sync';
 
 const API_URL = process.env.API_URL || 'https://backend-fitout.onrender.com';
 const IMPORT_API_KEY = process.env.IMPORT_API_KEY || '';
+const CREATE_MISSING_UNITS = (process.env.CREATE_MISSING_UNITS || 'false').toLowerCase() === 'true';
 const DEFAULT_CSV = 'C:/Users/Michael Rocha/Desktop/import/RespostaVistoria.csv';
 const DEFAULT_EMPREENDIMENTOS_CSV = 'C:/Users/Michael Rocha/Desktop/import/Empreendimento.csv';
 const DEFAULT_UNIDADES_CSV = 'C:/Users/Michael Rocha/Desktop/import/UnidadeEmpreendimento.csv';
@@ -36,7 +37,16 @@ function fixText(value) {
 }
 
 function normalize(s) {
-  return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  const fixed = maybeFixMojibake(String(s || ''));
+  return fixed
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[º°]/g, 'o')
+    .replace(/[ª]/g, 'a')
+    .replace(/�/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
 }
 
 function toNumeric(value) {
@@ -214,6 +224,13 @@ async function buildUnidadesMap(unidadesCsvPath, empMap, neededLegacyIds) {
       if (partial) {
         resolved.set(legacyId, partial.id);
       } else {
+        if (!CREATE_MISSING_UNITS) {
+          notFound += 1;
+          if (notFound <= 10) {
+            console.log(`   ⚠️  Unidade sem match (sem auto-criacao): "${nome}" (legacyId=${legacyId}, emp=${legacyEmpId})`);
+          }
+          continue;
+        }
         // Se não existir no banco, criar unidade automaticamente para manter FK válida.
         try {
           const createdUnit = await apiPost('/api/unidades-empreendimento', {
@@ -307,6 +324,7 @@ async function main() {
 
   console.log(`CSV: ${csvPath}`);
   console.log(`API: ${API_URL}\n`);
+  console.log(`Criar unidades faltantes: ${CREATE_MISSING_UNITS ? 'sim' : 'nao'}\n`);
 
   const records = parseCsv(csvPath, ',');
   console.log(`Total de registros: ${records.length}\n`);
