@@ -204,7 +204,7 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
 const FotoInspecao = ({ foto }) => {
     const url = foto?.url;
     const legenda = foto?.legenda;
-    const objectFit = foto?.objectFit || foto?.fit || 'contain';
+    const objectFit = foto?.objectFit || foto?.fit || 'cover';
     const objectPosition = foto?.objectPosition || foto?.posicao || 'center center';
 
     return (
@@ -570,7 +570,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     flex: 0 0 calc(100% / 3);
                     max-width: calc(100% / 3);
                     width: calc(100% / 3);
-                    height: 180px;
+                    height: 205px;
                     overflow: hidden;
                     break-inside: avoid;
                     page-break-inside: avoid;
@@ -579,10 +579,10 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 .imagem-box img {
                     width: 100%;
                     height: 100%;
-                    object-fit: contain;
+                    object-fit: cover;
                     object-position: center center;
                     background: #f0f0f0;
-                    border-radius: 6px;
+                    border-radius: 0;
                     break-inside: avoid;
                     page-break-inside: avoid;
                 }
@@ -687,7 +687,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                         flex: 0 0 calc(100% / 3) !important;
                         max-width: calc(100% / 3) !important;
                         width: calc(100% / 3) !important;
-                        height: 180px !important;
+                        height: 205px !important;
                         overflow: hidden !important;
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
@@ -695,10 +695,10 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     .imagem-box img {
                         width: 100% !important;
                         height: 100% !important;
-                        object-fit: contain !important;
+                        object-fit: cover !important;
                         object-position: center center !important;
                         background: #f0f0f0 !important;
-                        border-radius: 6px !important;
+                        border-radius: 0 !important;
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
                     }
