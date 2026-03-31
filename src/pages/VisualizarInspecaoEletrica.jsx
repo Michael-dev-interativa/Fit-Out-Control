@@ -681,7 +681,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                         display: flex !important;
                         flex-wrap: wrap !important;
                         gap: 6px !important;
-                        justify-content: space-between !important;
+                        justify-content: flex-start !important;
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
                     }
