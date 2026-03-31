@@ -4383,6 +4383,74 @@ app.delete('/api/lista-documentos-report/:id', async (req, res) => {
 });
 
 // ---- Ata de Reunião (tabela própria: public.atas_reuniao) ----
+let ataReuniaoSchemaEnsured = false;
+
+async function ensureAtaReuniaoSchema() {
+  if (ataReuniaoSchemaEnsured) return;
+
+  const p = requirePool();
+  await p.query(`
+    CREATE TABLE IF NOT EXISTS public.atas_reuniao (
+      id BIGSERIAL PRIMARY KEY,
+      id_empreendimento BIGINT NOT NULL REFERENCES public.empreendimentos(id) ON DELETE CASCADE,
+      titulo_reuniao TEXT,
+      subtitulo_reuniao TEXT,
+      data_reuniao DATE,
+      hora_inicio TEXT,
+      hora_termino TEXT,
+      local_reuniao TEXT,
+      tipo_reuniao TEXT,
+      edificio TEXT,
+      nome_arquivo TEXT,
+      locatario TEXT,
+      titulo_capa TEXT,
+      subtitulo_capa TEXT,
+      texto_rodape_capa TEXT,
+      participantes JSONB,
+      informacoes_obra JSONB,
+      itens_discutidos JSONB,
+      observacoes TEXT,
+      arquivo_ata TEXT,
+      responsavel_reuniao TEXT,
+      assinaturas JSONB,
+      status TEXT,
+      created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+      updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+    )
+  `);
+
+  await p.query(`ALTER TABLE public.atas_reuniao ADD COLUMN IF NOT EXISTS titulo_reuniao TEXT`);
+  await p.query(`ALTER TABLE public.atas_reuniao ADD COLUMN IF NOT EXISTS subtitulo_reuniao TEXT`);
+  await p.query(`ALTER TABLE public.atas_reuniao ADD COLUMN IF NOT EXISTS data_reuniao DATE`);
+  await p.query(`ALTER TABLE public.atas_reuniao ADD COLUMN IF NOT EXISTS hora_inicio TEXT`);
+  await p.query(`ALTER TABLE public.atas_reuniao ADD COLUMN IF NOT EXISTS hora_termino TEXT`);
+  await p.query(`ALTER TABLE public.atas_reuniao ADD COLUMN IF NOT EXISTS local_reuniao TEXT`);
+  await p.query(`ALTER TABLE public.atas_reuniao ADD COLUMN IF NOT EXISTS tipo_reuniao TEXT`);
+  await p.query(`ALTER TABLE public.atas_reuniao ADD COLUMN IF NOT EXISTS edificio TEXT`);
+  await p.query(`ALTER TABLE public.atas_reuniao ADD COLUMN IF NOT EXISTS nome_arquivo TEXT`);
+  await p.query(`ALTER TABLE public.atas_reuniao ADD COLUMN IF NOT EXISTS locatario TEXT`);
+  await p.query(`ALTER TABLE public.atas_reuniao ADD COLUMN IF NOT EXISTS titulo_capa TEXT`);
+  await p.query(`ALTER TABLE public.atas_reuniao ADD COLUMN IF NOT EXISTS subtitulo_capa TEXT`);
+  await p.query(`ALTER TABLE public.atas_reuniao ADD COLUMN IF NOT EXISTS texto_rodape_capa TEXT`);
+  await p.query(`ALTER TABLE public.atas_reuniao ADD COLUMN IF NOT EXISTS participantes JSONB`);
+  await p.query(`ALTER TABLE public.atas_reuniao ADD COLUMN IF NOT EXISTS informacoes_obra JSONB`);
+  await p.query(`ALTER TABLE public.atas_reuniao ADD COLUMN IF NOT EXISTS itens_discutidos JSONB`);
+  await p.query(`ALTER TABLE public.atas_reuniao ADD COLUMN IF NOT EXISTS observacoes TEXT`);
+  await p.query(`ALTER TABLE public.atas_reuniao ADD COLUMN IF NOT EXISTS arquivo_ata TEXT`);
+  await p.query(`ALTER TABLE public.atas_reuniao ADD COLUMN IF NOT EXISTS responsavel_reuniao TEXT`);
+  await p.query(`ALTER TABLE public.atas_reuniao ADD COLUMN IF NOT EXISTS assinaturas JSONB`);
+  await p.query(`ALTER TABLE public.atas_reuniao ADD COLUMN IF NOT EXISTS status TEXT`);
+  await p.query(`ALTER TABLE public.atas_reuniao ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now() NOT NULL`);
+  await p.query(`ALTER TABLE public.atas_reuniao ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now() NOT NULL`);
+
+  await p.query('DROP TRIGGER IF EXISTS atas_reuniao_set_updated_at ON public.atas_reuniao');
+  await p.query('CREATE TRIGGER atas_reuniao_set_updated_at BEFORE UPDATE ON public.atas_reuniao FOR EACH ROW EXECUTE FUNCTION public.set_updated_at()');
+  await p.query('CREATE INDEX IF NOT EXISTS idx_atas_reuniao_empreendimento ON public.atas_reuniao (id_empreendimento)');
+  await p.query('CREATE INDEX IF NOT EXISTS idx_atas_reuniao_data ON public.atas_reuniao (data_reuniao)');
+
+  ataReuniaoSchemaEnsured = true;
+}
+
 function mapAtaReuniao(row) {
   return {
     id: row.id,
@@ -4390,6 +4458,14 @@ function mapAtaReuniao(row) {
     titulo_reuniao: row.titulo_reuniao,
     subtitulo_reuniao: row.subtitulo_reuniao,
     data_reuniao: row.data_reuniao,
+    hora_inicio: row.hora_inicio || null,
+    hora_termino: row.hora_termino || null,
+    local_reuniao: row.local_reuniao || null,
+    tipo_reuniao: row.tipo_reuniao || null,
+    observacoes: row.observacoes || null,
+    arquivo_ata: row.arquivo_ata || null,
+    responsavel_reuniao: row.responsavel_reuniao || null,
+    status: row.status || null,
     participantes: row.participantes || [],
     informacoes_obra: row.informacoes_obra || [],
     itens_discutidos: row.itens_discutidos || [],
@@ -4407,6 +4483,7 @@ function mapAtaReuniao(row) {
 
 app.get('/api/ata-reuniao', async (req, res) => {
   try {
+    await ensureAtaReuniaoSchema();
     const p = requirePool();
     const { id_empreendimento, order } = req.query;
     const where = [];
@@ -4426,6 +4503,7 @@ app.get('/api/ata-reuniao', async (req, res) => {
 
 app.get('/api/ata-reuniao/:id', async (req, res) => {
   try {
+    await ensureAtaReuniaoSchema();
     const p = requirePool();
     const id = Number(req.params.id);
     const { rows } = await p.query('SELECT * FROM public.atas_reuniao WHERE id = $1', [id]);
@@ -4441,30 +4519,41 @@ app.get('/api/ata-reuniao/:id', async (req, res) => {
 
 app.post('/api/ata-reuniao', async (req, res) => {
   try {
+    await ensureAtaReuniaoSchema();
     const p = requirePool();
     const b = req.body || {};
     const sql = `INSERT INTO public.atas_reuniao(
       id_empreendimento, titulo_reuniao, subtitulo_reuniao, data_reuniao,
-      participantes, informacoes_obra, itens_discutidos, assinaturas,
-      nome_arquivo, texto_rodape_capa, edificio, locatario, titulo_capa, subtitulo_capa
+      hora_inicio, hora_termino, local_reuniao, tipo_reuniao,
+      edificio, nome_arquivo, locatario, titulo_capa, subtitulo_capa, texto_rodape_capa,
+      participantes, informacoes_obra, itens_discutidos, observacoes,
+      arquivo_ata, responsavel_reuniao, assinaturas, status
     ) VALUES(
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22
     ) RETURNING * `;
     const params = [
       b.id_empreendimento ?? null,
       b.titulo_reuniao ?? null,
       b.subtitulo_reuniao ?? null,
       normalizeDate(b.data_reuniao) ?? null,
-      toJson(b.participantes),
-      toJson(b.informacoes_obra),
-      toJson(b.itens_discutidos),
-      toJson(b.assinaturas),
-      b.nome_arquivo ?? null,
-      b.texto_rodape_capa ?? null,
+      b.hora_inicio ?? null,
+      b.hora_termino ?? null,
+      b.local_reuniao ?? null,
+      b.tipo_reuniao ?? null,
       b.edificio ?? null,
+      b.nome_arquivo ?? null,
       b.locatario ?? null,
       b.titulo_capa ?? null,
       b.subtitulo_capa ?? null,
+      b.texto_rodape_capa ?? null,
+      toJson(b.participantes),
+      toJson(b.informacoes_obra),
+      toJson(b.itens_discutidos),
+      b.observacoes ?? null,
+      b.arquivo_ata ?? null,
+      b.responsavel_reuniao ?? null,
+      toJson(b.assinaturas),
+      b.status ?? null,
     ];
     const { rows } = await p.query(sql, params);
     res.status(201).json(mapAtaReuniao(rows[0]));
@@ -4478,6 +4567,7 @@ app.post('/api/ata-reuniao', async (req, res) => {
 
 app.put('/api/ata-reuniao/:id', async (req, res) => {
   try {
+    await ensureAtaReuniaoSchema();
     const p = requirePool();
     const id = Number(req.params.id);
     const b = req.body || {};
@@ -4486,32 +4576,48 @@ app.put('/api/ata-reuniao/:id', async (req, res) => {
       titulo_reuniao = COALESCE($2, titulo_reuniao),
       subtitulo_reuniao = COALESCE($3, subtitulo_reuniao),
       data_reuniao = COALESCE($4, data_reuniao),
-      participantes = COALESCE($5, participantes),
-      informacoes_obra = COALESCE($6, informacoes_obra),
-      itens_discutidos = COALESCE($7, itens_discutidos),
-      assinaturas = COALESCE($8, assinaturas),
-      nome_arquivo = COALESCE($9, nome_arquivo),
-      texto_rodape_capa = COALESCE($10, texto_rodape_capa),
-      edificio = COALESCE($11, edificio),
-      locatario = COALESCE($12, locatario),
-      titulo_capa = COALESCE($13, titulo_capa),
-      subtitulo_capa = COALESCE($14, subtitulo_capa)
-    WHERE id = $15 RETURNING * `;
+      hora_inicio = COALESCE($5, hora_inicio),
+      hora_termino = COALESCE($6, hora_termino),
+      local_reuniao = COALESCE($7, local_reuniao),
+      tipo_reuniao = COALESCE($8, tipo_reuniao),
+      edificio = COALESCE($9, edificio),
+      nome_arquivo = COALESCE($10, nome_arquivo),
+      locatario = COALESCE($11, locatario),
+      titulo_capa = COALESCE($12, titulo_capa),
+      subtitulo_capa = COALESCE($13, subtitulo_capa),
+      texto_rodape_capa = COALESCE($14, texto_rodape_capa),
+      participantes = COALESCE($15, participantes),
+      informacoes_obra = COALESCE($16, informacoes_obra),
+      itens_discutidos = COALESCE($17, itens_discutidos),
+      observacoes = COALESCE($18, observacoes),
+      arquivo_ata = COALESCE($19, arquivo_ata),
+      responsavel_reuniao = COALESCE($20, responsavel_reuniao),
+      assinaturas = COALESCE($21, assinaturas),
+      status = COALESCE($22, status)
+    WHERE id = $23 RETURNING * `;
     const params = [
       b.id_empreendimento ?? null,
       b.titulo_reuniao ?? null,
       b.subtitulo_reuniao ?? null,
       normalizeDate(b.data_reuniao) ?? null,
-      toJson(b.participantes),
-      toJson(b.informacoes_obra),
-      toJson(b.itens_discutidos),
-      toJson(b.assinaturas),
-      b.nome_arquivo ?? null,
-      b.texto_rodape_capa ?? null,
+      b.hora_inicio ?? null,
+      b.hora_termino ?? null,
+      b.local_reuniao ?? null,
+      b.tipo_reuniao ?? null,
       b.edificio ?? null,
+      b.nome_arquivo ?? null,
       b.locatario ?? null,
       b.titulo_capa ?? null,
       b.subtitulo_capa ?? null,
+      b.texto_rodape_capa ?? null,
+      toJson(b.participantes),
+      toJson(b.informacoes_obra),
+      toJson(b.itens_discutidos),
+      b.observacoes ?? null,
+      b.arquivo_ata ?? null,
+      b.responsavel_reuniao ?? null,
+      toJson(b.assinaturas),
+      b.status ?? null,
       id,
     ];
     const { rows } = await p.query(sql, params);
@@ -4527,6 +4633,7 @@ app.put('/api/ata-reuniao/:id', async (req, res) => {
 
 app.delete('/api/ata-reuniao/:id', async (req, res) => {
   try {
+    await ensureAtaReuniaoSchema();
     const p = requirePool();
     const id = Number(req.params.id);
     const { rowCount } = await p.query('DELETE FROM public.atas_reuniao WHERE id = $1', [id]);

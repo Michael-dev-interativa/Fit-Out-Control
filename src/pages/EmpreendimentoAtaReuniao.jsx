@@ -36,8 +36,15 @@ export default function NovaAtaReuniao() {
     locatario: '',
     local_reuniao: '',
     data_reuniao: new Date().toISOString().split('T')[0],
+    hora_inicio: '',
+    hora_termino: '',
+    tipo_reuniao: '',
     titulo_reuniao: '',
     subtitulo_reuniao: '',
+    observacoes: '',
+    arquivo_ata: '',
+    responsavel_reuniao: '',
+    status: 'Pendente',
     participantes: [{ nome: '', empresa: '' }],
     informacoes_obra: [{ nome: '', email: '', tipo: '', observacoes: '', data_envio_projetos: '', data_ocupacao: '' }],
     itens_discutidos: [{ titulo_secao: '', itens: [{ titulo_item: '', descricao: '' }] }],
@@ -227,7 +234,7 @@ export default function NovaAtaReuniao() {
       const me = await User.me();
       const dataToSubmit = {
         ...formData,
-        responsavel_reuniao: me?.email || null
+        responsavel_reuniao: formData.responsavel_reuniao || me?.email || null
       };
       if (editing && ataId) {
         await AtaReuniao.update(ataId, dataToSubmit);
@@ -322,6 +329,29 @@ export default function NovaAtaReuniao() {
             <div className="space-y-2"><Label>Locatário</Label><Input value={formData.locatario} onChange={e => handleInputChange('locatario', e.target.value)} /></div>
             <div className="space-y-2"><Label>Local da Reunião</Label><Input value={formData.local_reuniao} onChange={e => handleInputChange('local_reuniao', e.target.value)} placeholder="Ex: Sala de Reuniões - Bloco A" required /></div>
             <div className="space-y-2"><Label>Data da Reunião</Label><Input type="date" value={formData.data_reuniao} onChange={e => handleInputChange('data_reuniao', e.target.value)} required /></div>
+            <div className="space-y-2"><Label>Hora de Início</Label><Input type="time" value={formData.hora_inicio} onChange={e => handleInputChange('hora_inicio', e.target.value)} /></div>
+            <div className="space-y-2"><Label>Hora de Término</Label><Input type="time" value={formData.hora_termino} onChange={e => handleInputChange('hora_termino', e.target.value)} /></div>
+            <div className="space-y-2">
+              <Label>Tipo de Reunião</Label>
+              <Select value={formData.tipo_reuniao || undefined} onValueChange={(value) => handleInputChange('tipo_reuniao', value)}>
+                <SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
+                <SelectContent>
+                  {tipoReuniao.map((tipo) => (<SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={formData.status || undefined} onValueChange={(value) => handleInputChange('status', value)}>
+                <SelectTrigger><SelectValue placeholder="Selecione o status" /></SelectTrigger>
+                <SelectContent>
+                  {statusOptions.map((status) => (<SelectItem key={status} value={status}>{status}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2"><Label>Responsável da Reunião</Label><Input value={formData.responsavel_reuniao} onChange={e => handleInputChange('responsavel_reuniao', e.target.value)} placeholder="Nome ou email do responsável" /></div>
+            <div className="space-y-2"><Label>Arquivo da Ata (URL)</Label><Input value={formData.arquivo_ata} onChange={e => handleInputChange('arquivo_ata', e.target.value)} placeholder="https://.../ata.pdf" /></div>
+            <div className="space-y-2 md:col-span-2"><Label>Observações</Label><Textarea value={formData.observacoes} onChange={e => handleInputChange('observacoes', e.target.value)} placeholder="Observações gerais da reunião" rows={3} /></div>
           </CardContent>
         </Card>
 
