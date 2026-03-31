@@ -195,6 +195,9 @@ app.use('/api/auth', authLimiter);
 // Global API limiter — but skip auth routes (they use authLimiter)
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/auth')) return next();
+  const importKey = process.env.IMPORT_API_KEY;
+  const importHeader = req.header('x-import-key');
+  if (importKey && importHeader && importHeader === importKey) return next();
   return apiLimiter(req, res, next);
 });
 
@@ -5714,7 +5717,28 @@ app.post('/api/unidades-empreendimento', async (req, res) => {
       id_empreendimento, unidade_empreendimento, cliente_unidade, metragem_unidade, escopo_unidade, contatos
     ) VALUES($1, $2, $3, $4, $5, $6:: jsonb) RETURNING * `;
     const params = [idEmp, nomeUnidade, cliente, metragem, escopo, toJson(contatos)];
-    const { rows } = await p.query(sql, params);
+    let rows;
+    try {
+      const result = await p.query(sql, params);
+      rows = result.rows;
+    } catch (insertErr) {
+      const code = insertErr && typeof insertErr === 'object' && 'code' in insertErr ? insertErr.code : undefined;
+      const msg = insertErr instanceof Error ? insertErr.message : String(insertErr);
+      const isPkSeqMismatch = code === '23505' && msg.includes('unidades_empreendimento_pkey');
+      if (!isPkSeqMismatch) throw insertErr;
+
+      // Corrige sequence quando estiver atrás do MAX(id) e tenta novamente uma vez.
+      await p.query(`
+        SELECT setval(
+          pg_get_serial_sequence('public.unidades_empreendimento', 'id'),
+          COALESCE((SELECT MAX(id) FROM public.unidades_empreendimento), 1),
+          true
+        )
+      `);
+
+      const retry = await p.query(sql, params);
+      rows = retry.rows;
+    }
     res.status(201).json(mapUnidadeRow(rows[0]));
   } catch (err) {
     if (shouldReturnEmptyOnDbError(err)) {

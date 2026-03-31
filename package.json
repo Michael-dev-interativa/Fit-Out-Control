@@ -21,6 +21,7 @@
     "import:lista-documentos-report": "node scripts/import-lista-documentos-report.js",
     "import:atas-reuniao": "node scripts/import-atas-reuniao.js",
     "import:unidades-empreendimento": "node scripts/import-unidades-empreendimento.js",
+    "import:respostas-vistoria": "node scripts/import-respostas-vistoria.js",
     "compress-uploads": "node scripts/compress-uploads.js"
   },
   "dependencies": {
