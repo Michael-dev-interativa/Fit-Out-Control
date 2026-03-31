@@ -102,8 +102,53 @@ const CoverPage = ({ relatorio, empreendimento }) => {
     );
 };
 
+const getItemFotos = (item) => {
+    const sources = [item?.fotos, item?.imagens, item?.photos, item?.anexos].filter((v) => v !== undefined && v !== null);
+
+    const normalize = (raw) => {
+        if (!raw) return [];
+
+        if (Array.isArray(raw)) {
+            return raw.flatMap(normalize).filter(Boolean);
+        }
+
+        if (typeof raw === 'string') {
+            const trimmed = raw.trim();
+            if (!trimmed) return [];
+
+            if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+                try {
+                    return normalize(JSON.parse(trimmed));
+                } catch {
+                    return [];
+                }
+            }
+
+            if (trimmed.startsWith('http') || trimmed.startsWith('/api/') || trimmed.startsWith('/uploads/') || trimmed.startsWith('uploads/')) {
+                return [{ url: trimmed, legenda: '' }];
+            }
+            return [];
+        }
+
+        if (typeof raw === 'object') {
+            if (raw.url || raw.path || raw.file_url || raw.filePath || raw.src) {
+                return [{
+                    url: raw.url || raw.path || raw.file_url || raw.filePath || raw.src,
+                    legenda: raw.legenda || raw.caption || raw.nome || ''
+                }];
+            }
+            return Object.values(raw).flatMap(normalize).filter(Boolean);
+        }
+
+        return [];
+    };
+
+    const result = sources.flatMap(normalize).filter((foto) => foto && (foto.url || foto.path || foto.file_url || foto.filePath || foto.src));
+    return result;
+};
+
 const FotoInspecao = ({ foto }) => {
-    const fotoUrl = typeof foto === 'string' ? foto : foto?.url;
+    const fotoUrl = typeof foto === 'string' ? foto : (foto?.url || foto?.path || foto?.file_url || foto?.filePath || foto?.src);
     const legenda = typeof foto === 'string' ? '' : (foto?.legenda || '');
     const resolvedUrl = getUploadUrl(fotoUrl) || fotoUrl;
     const compressedUrl = useCompressedImage(resolvedUrl, 900, 0.75);
@@ -286,7 +331,7 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, tituloS
                                     );
                                 }
 
-                                const fotosItem = Array.isArray(item.fotos) ? item.fotos.filter(Boolean) : [];
+                                const fotosItem = getItemFotos(item);
 
                                 return (
                                     <React.Fragment key={idx}>
@@ -408,7 +453,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 const isComentario = item.tipo === 'comentario' || item.isComentarioGeral;
                 const comentarioText = item.texto || item.comentarios || '';
                 const observacoesText = item.observacoes || '';
-                const fotosCount = Array.isArray(item.fotos) ? item.fotos.length : 0;
+                const fotosCount = getItemFotos(item).length;
 
                 if (isComentario) {
                     const estimatedLines = Math.ceil(comentarioText.length / 120);
