@@ -7,6 +7,7 @@ import { Loader2, Printer, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AssinaturasPage } from '@/components/relatorios/AssinaturasSection';
+import { paginateLocalItemsForPrinting } from '@/lib/reportPagination';
 
 const isValidId = (id) => id && typeof id === 'string' && id.length > 0;
 
@@ -287,6 +288,13 @@ const DocumentacaoPage = ({ itens }) => {
 const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, tituloSecao, labelLocalGlobal }) => {
     const titulo = local.titulo_secao || tituloSecao || 'Testes Funcionais - Sistema de Controle de Acesso';
     const displayItems = items;
+    const chunkFotos = (fotos, size = 3) => {
+        const chunks = [];
+        for (let i = 0; i < fotos.length; i += size) {
+            chunks.push(fotos.slice(i, i + size));
+        }
+        return chunks;
+    };
 
     // Usa o label do local específico, ou o global, ou o padrão
     const labelLocalCustom = local.label_local || labelLocalGlobal;
@@ -332,6 +340,25 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, tituloS
                                 }
 
                                 const fotosItem = getItemFotos(item);
+                                const linhasFotos = chunkFotos(fotosItem, 3);
+
+                                if (item.showOnlyPhotos) {
+                                    return (
+                                        <React.Fragment key={idx}>
+                                            {linhasFotos.map((linha, linhaIdx) => (
+                                                <tr key={`${idx}-only-photos-${linhaIdx}`}>
+                                                    <td colSpan="5" className="border border-black p-2">
+                                                        <div className="grid grid-cols-3 gap-2">
+                                                            {linha.map((foto, fotoIdx) => (
+                                                                <FotoInspecao key={`${idx}-only-photos-${linhaIdx}-${fotoIdx}`} foto={foto} />
+                                                            ))}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </React.Fragment>
+                                    );
+                                }
 
                                 return (
                                     <React.Fragment key={idx}>
@@ -342,17 +369,17 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, tituloS
                                             <td className="border border-black p-1 text-center text-xs" style={{ width: '8%', verticalAlign: 'top' }}>{item.resultado === 'NA' ? '☑' : '☐'}</td>
                                             <td className="border border-black p-1 text-xs" style={{ width: '36%', wordWrap: 'break-word', wordBreak: 'break-word', verticalAlign: 'top' }}>{item.observacoes || ''}</td>
                                         </tr>
-                                        {fotosItem.length > 0 && (
-                                            <tr>
+                                        {linhasFotos.map((linha, linhaIdx) => (
+                                            <tr key={`${idx}-fotos-${linhaIdx}`}>
                                                 <td colSpan="5" className="border border-black p-2">
                                                     <div className="grid grid-cols-3 gap-2">
-                                                        {fotosItem.map((foto, fotoIdx) => (
-                                                            <FotoInspecao key={fotoIdx} foto={foto} />
+                                                        {linha.map((foto, fotoIdx) => (
+                                                            <FotoInspecao key={`${idx}-fotos-${linhaIdx}-${fotoIdx}`} foto={foto} />
                                                         ))}
                                                     </div>
                                                 </td>
                                             </tr>
-                                        )}
+                                        ))}
                                     </React.Fragment>
                                 );
                             })}
@@ -432,79 +459,26 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
 
     const combineEquipamentosWithDoc = hasEquipamentos && hasDocumentacao && (equipRowCount + docItemsCount + 1) < 35;
 
-    const paginateAllLocals = (locais, firstPageLimit = 24) => {
-        const pages = [];
-        const maxItemsPerPage = 45;
-        const maxLocalsPerPage = 3; // Máximo de 3 tabelas por página
-
-        let currentPageLocals = [];
-        let currentPageWeight = 0;
-        let currentPageCapacity = firstPageLimit;
-
-        locais.forEach((local) => {
-            const allItems = [...(local.itens_inspecao || [])];
-            if (local.comentarios) {
-                allItems.push({ tipo: 'comentario', comentarios: local.comentarios, isComentarioGeral: true });
-            }
-
-            // Calcular peso do local
-            let localWeight = 1.5; // Header weight
-            allItems.forEach((item) => {
-                const isComentario = item.tipo === 'comentario' || item.isComentarioGeral;
-                const comentarioText = item.texto || item.comentarios || '';
-                const observacoesText = item.observacoes || '';
-                const fotosCount = getItemFotos(item).length;
-
-                if (isComentario) {
-                    const estimatedLines = Math.ceil(comentarioText.length / 120);
-                    localWeight += Math.max(1, estimatedLines / 5);
-                } else if (observacoesText.length > 300) {
-                    localWeight += 1.5;
-                } else if (observacoesText.length > 200) {
-                    localWeight += 1.2;
-                } else if (observacoesText.length > 100) {
-                    localWeight += 1.0;
-                } else {
-                    localWeight += 0.6;
-                }
-
-                if (fotosCount > 0) {
-                    localWeight += Math.ceil(fotosCount / 3) * 0.9;
-                }
-            });
-
-            // Quebra página se: exceder peso OU já tiver 3 locais na página
-            const shouldBreakPage = (currentPageWeight + localWeight > currentPageCapacity) ||
-                (currentPageLocals.length >= maxLocalsPerPage);
-
-            if (shouldBreakPage && currentPageLocals.length > 0) {
-                pages.push({ locals: currentPageLocals });
-                currentPageLocals = [];
-                currentPageWeight = 0;
-                currentPageCapacity = maxItemsPerPage;
-            }
-
-            currentPageLocals.push({
-                local: local,
-                items: allItems,
-                isFirstPageOfLocal: true
-            });
-            currentPageWeight += localWeight;
-        });
-
-        // Adiciona última página
-        if (currentPageLocals.length > 0) {
-            pages.push({ locals: currentPageLocals });
-        }
-
-        return pages;
-    };
+    const paginateLocalItems = (local, opts) => paginateLocalItemsForPrinting(local, opts);
 
     const combineDocWithContent = hasDocumentacao && docItemsCount <= 12 && !combineEquipamentosWithDoc;
 
     const firstPageItemLimit = combineDocWithContent ? Math.max(10, 20 - docItemsCount) : 12;
 
-    const contentPages = paginateAllLocals(relatorio.locais, firstPageItemLimit);
+    const contentPages = (relatorio.locais && relatorio.locais.length > 0)
+        ? relatorio.locais.flatMap((local) =>
+            paginateLocalItems(local, {
+                firstPageMaxItems: firstPageItemLimit,
+                splitPhotoRows: true,
+                photoChunkSize: 3,
+                photoMaxHeightPx: 150,
+                breakBeforeLimitPx: 18,
+                footerGuardPx: 20,
+                firstPageExtraHeightPx: combineDocWithContent ? 180 : 0,
+                itemBufferPx: 10,
+            })
+        )
+        : [];
 
     const hasAssinaturas = relatorio.assinaturas && relatorio.assinaturas.length > 0 &&
         relatorio.assinaturas.some(ass => (ass.nome && ass.nome.trim() !== '') || (ass.parte && ass.parte.trim() !== '') || (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== ''));
@@ -562,17 +536,14 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                             {shouldCombineWithDoc && hasDocumentacao && (
                                 <DocumentacaoPage itens={relatorio.itens_documentacao} />
                             )}
-                            {page.locals.map((localData, localIdx) => (
-                                <ContentPage
-                                    key={localIdx}
-                                    local={localData.local}
-                                    items={localData.items}
-                                    isFirstPageOfLocal={localData.isFirstPageOfLocal}
-                                    combineWithDoc={shouldCombineWithDoc}
-                                    tituloSecao={relatorio.titulo_secao_inspecao}
-                                    labelLocalGlobal={relatorio.label_local}
-                                />
-                            ))}
+                            <ContentPage
+                                local={page.local}
+                                items={page.items}
+                                isFirstPageOfLocal={page.isFirstPageOfLocal}
+                                combineWithDoc={shouldCombineWithDoc}
+                                tituloSecao={relatorio.titulo_secao_inspecao}
+                                labelLocalGlobal={relatorio.label_local}
+                            />
                         </ReportPageLayout>
                     );
                 })}
