@@ -551,6 +551,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     gap: 6px;
                     width: 100%;
                     align-items: flex-start;
+                    justify-content: space-between;
                     break-inside: avoid;
                     page-break-inside: avoid;
                 }
@@ -567,9 +568,9 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 }
 
                 .imagem-box {
-                    flex: 0 0 calc((100% - 12px) / 3);
-                    max-width: calc((100% - 12px) / 3);
-                    width: calc((100% - 12px) / 3);
+                    flex: 0 0 calc((100% - 18px) / 3);
+                    max-width: calc((100% - 18px) / 3);
+                    width: calc((100% - 18px) / 3);
                     height: 205px;
                     overflow: hidden;
                     break-inside: avoid;
@@ -680,13 +681,14 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                         display: flex !important;
                         flex-wrap: wrap !important;
                         gap: 6px !important;
+                        justify-content: space-between !important;
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
                     }
                     .imagem-box {
-                        flex: 0 0 calc((100% - 12px) / 3) !important;
-                        max-width: calc((100% - 12px) / 3) !important;
-                        width: calc((100% - 12px) / 3) !important;
+                        flex: 0 0 calc((100% - 18px) / 3) !important;
+                        max-width: calc((100% - 18px) / 3) !important;
+                        width: calc((100% - 18px) / 3) !important;
                         height: 205px !important;
                         overflow: hidden !important;
                         page-break-inside: avoid !important;
