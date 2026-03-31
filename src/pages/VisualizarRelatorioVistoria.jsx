@@ -94,6 +94,71 @@ const toRoman = (num) => {
 
 const isValidId = (id) => id && String(id).trim() !== '' && !['null', 'undefined'].includes(String(id).toLowerCase());
 
+function buildFallbackFormFromRespostas(vistoriaData) {
+  let respostas = vistoriaData?.respostas;
+  if (!respostas) return null;
+
+  if (typeof respostas === 'string') {
+    try {
+      respostas = JSON.parse(respostas);
+    } catch {
+      return null;
+    }
+  }
+
+  if (!respostas || typeof respostas !== 'object') return null;
+
+  const mapSecoes = new Map();
+
+  Object.entries(respostas).forEach(([key, value]) => {
+    const m = key.match(/^secao_(\d+)_pergunta_(\d+)$/);
+    if (!m) return;
+
+    const secaoIndex = Number(m[1]);
+    const perguntaIndex = Number(m[2]);
+    if (Number.isNaN(secaoIndex) || Number.isNaN(perguntaIndex)) return;
+
+    if (!mapSecoes.has(secaoIndex)) mapSecoes.set(secaoIndex, new Map());
+
+    const respostaValue = (value && typeof value === 'object' && 'resposta' in value)
+      ? value.resposta
+      : value;
+
+    let tipo = 'text';
+    if (typeof respostaValue === 'string' && respostaValue.startsWith('data:image')) {
+      tipo = 'signature';
+    } else if (typeof respostaValue === 'string' && /^\d{4}-\d{2}-\d{2}/.test(respostaValue)) {
+      tipo = 'date';
+    }
+
+    mapSecoes.get(secaoIndex).set(perguntaIndex, {
+      pergunta: `Pergunta ${perguntaIndex + 1}`,
+      tipo,
+      opcoes: [],
+    });
+  });
+
+  if (!mapSecoes.size) return null;
+
+  const secoes = [...mapSecoes.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([secaoIndex, perguntasMap]) => ({
+      nome_secao: `Seção ${secaoIndex + 1}`,
+      perguntas: [...perguntasMap.entries()]
+        .sort((a, b) => a[0] - b[0])
+        .map(([, pergunta]) => pergunta),
+    }))
+    .filter(secao => Array.isArray(secao.perguntas) && secao.perguntas.length > 0);
+
+  if (!secoes.length) return null;
+
+  return {
+    nome_formulario: vistoriaData?.nome_vistoria || 'Vistoria',
+    consultor_responsavel: vistoriaData?.consultor_responsavel || null,
+    secoes,
+  };
+}
+
 const colorMapping = {
   green: 'bg-green-100 text-green-800',
   red: 'bg-red-100 text-red-800',
@@ -1782,6 +1847,14 @@ export default function VisualizarRelatorioVistoria() {
             secoes: vistoriaData.estrutura_formulario,
             consultor_responsavel: vistoriaData.consultor_responsavel
           };
+        }
+
+        if (!loadedForm) {
+          const fallbackForm = buildFallbackFormFromRespostas(vistoriaData);
+          if (fallbackForm && Array.isArray(fallbackForm.secoes) && fallbackForm.secoes.length > 0) {
+            console.warn('⚠ Usando estrutura de fallback reconstruída a partir das respostas.');
+            loadedForm = fallbackForm;
+          }
         }
 
         if (loadedForm && loadedForm.secoes && Array.isArray(loadedForm.secoes) && loadedForm.secoes.length > 0) {
