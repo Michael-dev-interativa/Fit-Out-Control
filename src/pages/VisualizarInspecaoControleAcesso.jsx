@@ -151,17 +151,19 @@ const getItemFotos = (item) => {
 const FotoInspecao = ({ foto }) => {
     const fotoUrl = typeof foto === 'string' ? foto : (foto?.url || foto?.path || foto?.file_url || foto?.filePath || foto?.src);
     const legenda = typeof foto === 'string' ? '' : (foto?.legenda || '');
+    const objectFit = typeof foto === 'string' ? 'contain' : (foto?.objectFit || foto?.fit || 'contain');
+    const objectPosition = typeof foto === 'string' ? 'center center' : (foto?.objectPosition || foto?.posicao || 'center center');
     const resolvedUrl = getUploadUrl(fotoUrl) || fotoUrl;
     const compressedUrl = useCompressedImage(resolvedUrl, 900, 0.75);
 
     if (!resolvedUrl) return null;
 
     return (
-        <div className="border border-gray-200 rounded overflow-hidden bg-white">
+        <div className="imagem-box" style={{ textAlign: 'left', marginBottom: '0px', boxSizing: 'border-box' }}>
             <img
                 src={compressedUrl}
                 alt={legenda || 'Foto da inspecao'}
-                className="w-full h-40 object-cover"
+                style={{ objectFit, objectPosition }}
                 loading="lazy"
                 onError={(e) => {
                     if (e.currentTarget.src !== resolvedUrl) {
@@ -169,7 +171,7 @@ const FotoInspecao = ({ foto }) => {
                     }
                 }}
             />
-            {legenda && <div className="p-1 text-[10px] text-gray-600 border-t border-gray-100">{legenda}</div>}
+            {legenda && <p style={{ fontSize: '7px', color: '#555', marginTop: '4px', lineHeight: '1.1', overflowWrap: 'anywhere', whiteSpace: 'normal' }}>{legenda}</p>}
         </div>
     );
 };
@@ -346,12 +348,14 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, tituloS
                                     return (
                                         <React.Fragment key={idx}>
                                             {linhasFotos.map((linha, linhaIdx) => (
-                                                <tr key={`${idx}-only-photos-${linhaIdx}`}>
-                                                    <td colSpan="5" className="border border-black p-2">
-                                                        <div className="grid grid-cols-3 gap-2">
+                                                <tr key={`${idx}-only-photos-${linhaIdx}`} className="photo-row" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                                    <td colSpan="5" className="border border-black p-2 photo-cell">
+                                                        <div className="photo-inner-wrap">
+                                                            <div className="imagens-container">
                                                             {linha.map((foto, fotoIdx) => (
                                                                 <FotoInspecao key={`${idx}-only-photos-${linhaIdx}-${fotoIdx}`} foto={foto} />
                                                             ))}
+                                                            </div>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -370,12 +374,14 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, tituloS
                                             <td className="border border-black p-1 text-xs" style={{ width: '36%', wordWrap: 'break-word', wordBreak: 'break-word', verticalAlign: 'top' }}>{item.observacoes || ''}</td>
                                         </tr>
                                         {linhasFotos.map((linha, linhaIdx) => (
-                                            <tr key={`${idx}-fotos-${linhaIdx}`}>
-                                                <td colSpan="5" className="border border-black p-2">
-                                                    <div className="grid grid-cols-3 gap-2">
+                                            <tr key={`${idx}-fotos-${linhaIdx}`} className="photo-row" style={{ pageBreakInside: 'avoid', breakInside: 'avoid', pageBreakBefore: 'auto' }}>
+                                                <td colSpan="5" className="border border-black p-2 photo-cell">
+                                                    <div className="photo-inner-wrap">
+                                                        <div className="imagens-container">
                                                         {linha.map((foto, fotoIdx) => (
                                                             <FotoInspecao key={`${idx}-fotos-${linhaIdx}-${fotoIdx}`} foto={foto} />
                                                         ))}
+                                                        </div>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -570,6 +576,45 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     print-color-adjust: exact !important;
                     color-adjust: exact !important;
                 }
+
+                .photo-cell {
+                    padding: 0;
+                    background: #fff;
+                    box-sizing: border-box;
+                }
+
+                .photo-inner-wrap {
+                    padding: 0;
+                    background: #fff;
+                }
+
+                .imagens-container {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 0;
+                    width: 100%;
+                }
+
+                .imagem-box {
+                    flex: 0 0 calc(100% / 3);
+                    max-width: calc(100% / 3);
+                    width: calc(100% / 3);
+                    height: 180px;
+                    overflow: hidden;
+                    break-inside: avoid;
+                    page-break-inside: avoid;
+                }
+
+                .imagem-box img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: contain;
+                    object-position: center center;
+                    background: #f0f0f0;
+                    border-radius: 6px;
+                    break-inside: avoid;
+                    page-break-inside: avoid;
+                }
                 
                 @page { size: A4 portrait; margin: 0; }
                 
@@ -645,8 +690,45 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     .report-page:last-child { page-break-after: auto; }
                     
                     img { max-width: 100%; }
-                    table { page-break-inside: auto; }
+                    table { page-break-inside: auto; border-collapse: collapse; }
+                    thead { display: table-header-group; }
                     tr { page-break-inside: avoid; }
+                    .photo-row { page-break-inside: avoid !important; break-inside: avoid !important; }
+                    .photo-cell {
+                        padding: 0 !important;
+                        background: #fff !important;
+                        box-sizing: border-box !important;
+                    }
+                    .photo-inner-wrap {
+                        padding: 0 !important;
+                        background: #fff !important;
+                    }
+                    .imagens-container {
+                        display: flex !important;
+                        flex-wrap: wrap !important;
+                        gap: 0 !important;
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
+                    }
+                    .imagem-box {
+                        flex: 0 0 calc(100% / 3) !important;
+                        max-width: calc(100% / 3) !important;
+                        width: calc(100% / 3) !important;
+                        height: 180px !important;
+                        overflow: hidden !important;
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
+                    }
+                    .imagem-box img {
+                        width: 100% !important;
+                        height: 100% !important;
+                        object-fit: contain !important;
+                        object-position: center center !important;
+                        background: #f0f0f0 !important;
+                        border-radius: 6px !important;
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
+                    }
                 }
                 
                 @media screen {
