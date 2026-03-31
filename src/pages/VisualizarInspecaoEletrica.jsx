@@ -672,27 +672,32 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                         padding: 0 !important;
                         background: #fff !important;
                         box-sizing: border-box !important;
+                        overflow: hidden !important;
                     }
                     .photo-inner-wrap {
                         padding: 0 !important;
                         background: #fff !important;
+                        width: 100% !important;
+                        overflow: hidden !important;
                     }
                     .imagens-container {
-                        display: flex !important;
-                        flex-wrap: wrap !important;
+                        display: grid !important;
+                        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
                         gap: 6px !important;
-                        justify-content: flex-start !important;
+                        width: 100% !important;
+                        max-width: 100% !important;
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
+                        box-sizing: border-box !important;
                     }
                     .imagem-box {
-                        flex: 0 0 calc((100% - 30px) / 3) !important;
-                        max-width: calc((100% - 30px) / 3) !important;
-                        width: calc((100% - 30px) / 3) !important;
+                        width: 100% !important;
+                        max-width: 100% !important;
                         height: 205px !important;
                         overflow: hidden !important;
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
+                        box-sizing: border-box !important;
                     }
                     .imagem-box img {
                         width: 100% !important;
