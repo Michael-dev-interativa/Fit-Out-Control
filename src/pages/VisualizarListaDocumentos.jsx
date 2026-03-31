@@ -704,6 +704,7 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
   const [empreendimento, setEmpreendimento] = useState(null);
   const [loading, setLoading] = useState(true);
   const [language, setLanguage] = useState(initialLanguage || 'pt');
+  const [documentoSource, setDocumentoSource] = useState('rdo');
 
   const t = translations[language];
 
@@ -728,6 +729,7 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
         const docData = await RDO.get(documentoId);
         if (docData && docData.id) {
           console.log('VisualizarListaDocumentos: carregado via RDO:', documentoId);
+          setDocumentoSource('rdo');
           setDocumento(docData);
           if (docData.id_empreendimento) {
             const empData = await Empreendimento.get(docData.id_empreendimento);
@@ -760,6 +762,7 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
         const report = await ListaDocumentosReport.get(documentoId);
         if (report && report.id) {
           console.log('VisualizarListaDocumentos: carregado via ListaDocumentosReport:', documentoId);
+          setDocumentoSource('lista-documentos-report');
           setDocumento(report);
           if (report.id_empreendimento) {
             const empData = await Empreendimento.get(report.id_empreendimento);
@@ -783,6 +786,21 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleBack = () => {
+    const empId = documento?.id_empreendimento;
+    if (!empId) {
+      navigate(-1);
+      return;
+    }
+
+    if (documentoSource === 'rdo') {
+      navigate(createPageUrl(`EmpreendimentoDiariosObra?empreendimentoId=${empId}`));
+      return;
+    }
+
+    navigate(createPageUrl(`EmpreendimentoListaDocumentosReport?empreendimentoId=${empId}`));
   };
 
   if (loading || !documento) {
@@ -813,7 +831,7 @@ export default function VisualizarListaDocumentos({ language: initialLanguage, t
         <div className="flex justify-between items-center max-w-7xl mx-auto">
           <Button
             variant="outline"
-            onClick={() => navigate(createPageUrl(`EmpreendimentoListaDocumentos?empreendimentoId=${documento.id_empreendimento}`))}
+            onClick={handleBack}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             {t.backToList}
