@@ -155,7 +155,7 @@ const CoverPage = ({ documento, empreendimento }) => {
         <img
           src={logoInterativaUrl}
           alt="Logo Interativa"
-          onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="80"><rect fill="%23f3f4f6" width="100%" height="100%"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23666" font-size="14">Imagem indisponível</text></svg>'; }}
+          onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.style.display = 'none'; }}
           style={{
             width: '100%',
             height: '100%',
@@ -215,7 +215,7 @@ const CoverPage = ({ documento, empreendimento }) => {
         <img
           src={logoInterativaBrancoUrl}
           alt="Logo Interativa"
-          onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="80"><rect fill="%23f3f4f6" width="100%" height="100%"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23666" font-size="14">Imagem indisponível</text></svg>'; }}
+          onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.style.display = 'none'; }}
           style={{ width: '100%', height: '100%', objectFit: 'contain' }}
         />
       </div>
