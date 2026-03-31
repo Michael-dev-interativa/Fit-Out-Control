@@ -163,7 +163,15 @@ const FotoInspecao = ({ foto }) => {
             <img
                 src={compressedUrl}
                 alt={legenda || 'Foto da inspecao'}
-                style={{ objectFit, objectPosition }}
+                style={{
+                    width: 'auto',
+                    height: 'auto',
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    objectFit,
+                    objectPosition,
+                    display: 'block'
+                }}
                 loading="lazy"
                 onError={(e) => {
                     if (e.currentTarget.src !== resolvedUrl) {
@@ -589,25 +597,29 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 }
 
                 .imagens-container {
-                    display: flex;
-                    flex-wrap: wrap;
+                    display: grid;
+                    grid-template-columns: repeat(3, minmax(0, 1fr));
                     gap: 0;
                     width: 100%;
                 }
 
                 .imagem-box {
-                    flex: 0 0 calc(100% / 3);
-                    max-width: calc(100% / 3);
-                    width: calc(100% / 3);
+                    width: 100%;
                     height: 180px;
                     overflow: hidden;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
                     break-inside: avoid;
                     page-break-inside: avoid;
+                    line-height: 0;
                 }
 
                 .imagem-box img {
-                    width: 100%;
-                    height: 100%;
+                    width: auto;
+                    height: auto;
+                    max-width: 100%;
+                    max-height: 100%;
                     object-fit: contain;
                     object-position: center center;
                     background: #f0f0f0;
@@ -704,28 +716,33 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                         background: #fff !important;
                     }
                     .imagens-container {
-                        display: flex !important;
-                        flex-wrap: wrap !important;
+                        display: grid !important;
+                        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
                         gap: 0 !important;
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
                     }
                     .imagem-box {
-                        flex: 0 0 calc(100% / 3) !important;
-                        max-width: calc(100% / 3) !important;
-                        width: calc(100% / 3) !important;
+                        width: 100% !important;
                         height: 180px !important;
                         overflow: hidden !important;
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        line-height: 0 !important;
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
                     }
                     .imagem-box img {
-                        width: 100% !important;
-                        height: 100% !important;
+                        width: auto !important;
+                        height: auto !important;
+                        max-width: 100% !important;
+                        max-height: 100% !important;
                         object-fit: contain !important;
                         object-position: center center !important;
                         background: #f0f0f0 !important;
                         border-radius: 6px !important;
+                        display: block !important;
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
                     }
