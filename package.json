@@ -19,6 +19,8 @@
     "import:rdos-csv": "node scripts/import-rdos-from-csv.js",
     "import:inspecao-eletrica": "node scripts/import-inspecao-eletrica.js",
     "import:lista-documentos-report": "node scripts/import-lista-documentos-report.js",
+    "import:atas-reuniao": "node scripts/import-atas-reuniao.js",
+    "import:unidades-empreendimento": "node scripts/import-unidades-empreendimento.js",
     "compress-uploads": "node scripts/compress-uploads.js"
   },
   "dependencies": {

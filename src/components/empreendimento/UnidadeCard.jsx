@@ -21,7 +21,7 @@ const translations = {
 };
 
 export default function UnidadeCard({ unidade, stats, empreendimentoId, language, theme }) {
-  const t = translations[language];
+  const t = translations[language] ?? translations.pt;
   const isDark = theme === 'dark';
 
   const isValidId = (id) => {
