@@ -1467,7 +1467,45 @@ app.post('/api/relatorios-saida', async (req, res) => {
     const { rows } = await p.query(sql, params);
     res.status(201).json(mapRelatorioSaidaRow(rows[0]));
   } catch (err) {
+    const code = err && typeof err === 'object' && 'code' in err ? err.code : undefined;
+    const detail = err && typeof err === 'object' && 'detail' in err ? err.detail : undefined;
+    const constraint = err && typeof err === 'object' && 'constraint' in err ? err.constraint : undefined;
+    if (code === '23503') {
+      return res.status(400).json({
+        error: 'foreign_key_violation',
+        message: 'id_unidade ou id_empreendimento nao existe na base.',
+        code,
+        detail,
+        constraint,
+      });
+    }
+    if (code === '23502') {
+      return res.status(400).json({
+        error: 'not_null_violation',
+        message: 'Campo obrigatorio ausente no payload.',
+        code,
+        detail,
+        constraint,
+      });
+    }
+    if (code === '42703') {
+      return res.status(500).json({
+        error: 'schema_mismatch',
+        message: 'Banco de dados sem coluna esperada para relatorios_saida. Execute migracao/deploy do backend.',
+        code,
+        detail,
+        constraint,
+      });
+    }
+    if (code === '42P01') {
+      return res.status(500).json({
+        error: 'missing_table',
+        message: 'Tabela relatorios_saida nao existe no banco. Execute migracao/deploy do backend.',
+        code,
+      });
+    }
     const msg = err instanceof Error ? err.message : String(err);
+    console.error('[/api/relatorios-saida POST] unexpected error', { code, detail, constraint, msg });
     res.status(500).json({ error: msg });
   }
 });
