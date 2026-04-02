@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { UnidadeEmpreendimento } from "@/api/entities";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, Eye } from "lucide-react";
+import { Building2, Eye, Loader2, Trash2 } from "lucide-react";
 import StatusChart from "./StatusChart";
 import EditarUnidadeDialog from "./EditarUnidadeDialog";
 
@@ -11,18 +12,27 @@ const translations = {
   pt: {
     area: "Área",
     access: "Acessar",
-    client: "Cliente"
+    client: "Cliente",
+    delete: "Excluir",
+    deleting: "Excluindo...",
+    deleteConfirm: "Deseja excluir esta unidade? Esta ação não pode ser desfeita.",
+    deleteError: "Não foi possível excluir a unidade."
   },
   en: {
     area: "Area",
     access: "Access",
-    client: "Client"
+    client: "Client",
+    delete: "Delete",
+    deleting: "Deleting...",
+    deleteConfirm: "Do you want to delete this unit? This action cannot be undone.",
+    deleteError: "Could not delete the unit."
   }
 };
 
 export default function UnidadeCard({ unidade, stats, empreendimentoId, language, theme }) {
   const t = translations[language] ?? translations.pt;
   const isDark = theme === 'dark';
+  const [deleting, setDeleting] = useState(false);
 
   const isValidId = (id) => {
     if (id === null || id === undefined) return false;
@@ -61,6 +71,22 @@ export default function UnidadeCard({ unidade, stats, empreendimentoId, language
     }
   };
 
+  const handleDeleteClick = async () => {
+    if (!isValidId(unidade?.id)) return;
+    if (!window.confirm(t.deleteConfirm)) return;
+
+    try {
+      setDeleting(true);
+      await UnidadeEmpreendimento.delete(unidade.id);
+      window.location.reload();
+    } catch (error) {
+      console.error("Erro ao excluir unidade:", error);
+      window.alert(t.deleteError);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <Card className={`flex flex-col h-full ${isDark ? 'bg-gray-800 border-gray-700' : ''}`}>
       <CardHeader>
@@ -92,6 +118,17 @@ export default function UnidadeCard({ unidade, stats, empreendimentoId, language
             disabled={!isLinkValid}
           >
             <Eye className="w-4 h-4 mr-2" />
+
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleDeleteClick}
+          disabled={!isValidId(unidade?.id) || deleting}
+          className={`px-3 ${isDark ? 'border-red-800 text-red-300 hover:bg-red-950' : 'text-red-600 hover:text-red-700'}`}
+          title={t.delete}
+        >
+          {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+        </Button>
             {t.access}
           </Button>
         </Link>
