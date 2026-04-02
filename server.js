@@ -5732,6 +5732,26 @@ app.get('/api/empreendimentos', async (req, res) => {
       }
     }
 
+    async function ensureProjetosOriginaisSchema() {
+      try {
+        const p = requirePool();
+        await p.query(`
+          CREATE TABLE IF NOT EXISTS public.projetos_originais (
+            id BIGSERIAL PRIMARY KEY,
+            id_empreendimento BIGINT NOT NULL REFERENCES public.empreendimentos(id) ON DELETE CASCADE,
+            nome_projeto TEXT,
+            disciplina_projeto TEXT,
+            arquivo_projeto TEXT,
+            descricao_projeto TEXT,
+            created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+          )
+        `);
+      } catch (err) {
+        console.warn('[projetos-originais] Falha ao garantir schema:', err instanceof Error ? err.message : String(err));
+      }
+    }
+
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
     const { rows } = await p.query(`SELECT * FROM public.empreendimentos ${whereClause} ${orderClause} `, params);
@@ -5770,6 +5790,144 @@ app.get('/api/empreendimentos/:id', async (req, res) => {
 });
 
 app.post('/api/empreendimentos', async (req, res) => {
+
+function mapProjetoOriginal(row) {
+  return {
+    id: row.id,
+    id_empreendimento: row.id_empreendimento,
+    nome_projeto: row.nome_projeto,
+    disciplina_projeto: row.disciplina_projeto,
+    arquivo_projeto: row.arquivo_projeto,
+    descricao_projeto: row.descricao_projeto,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+app.get('/api/projetos-originais', async (req, res) => {
+  try {
+    await ensureProjetosOriginaisSchema();
+    const p = requirePool();
+    const { id_empreendimento, order } = req.query;
+    const where = [];
+    const params = [];
+
+    if (id_empreendimento) {
+      where.push('id_empreendimento = $' + (params.length + 1));
+      params.push(Number(id_empreendimento));
+    }
+
+    const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+    const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
+    const { rows } = await p.query(`SELECT * FROM public.projetos_originais ${whereClause} ${orderClause}`, params);
+    res.json(rows.map(mapProjetoOriginal));
+  } catch (err) {
+    if (shouldReturnEmptyOnDbError(err)) {
+      return res.json([]);
+    }
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.get('/api/projetos-originais/:id', async (req, res) => {
+  try {
+    await ensureProjetosOriginaisSchema();
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const { rows } = await p.query('SELECT * FROM public.projetos_originais WHERE id = $1', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapProjetoOriginal(rows[0]));
+  } catch (err) {
+    if (shouldReturnEmptyOnDbError(err)) {
+      return res.status(404).json({ error: 'not_found' });
+    }
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.post('/api/projetos-originais', async (req, res) => {
+  try {
+    await ensureProjetosOriginaisSchema();
+    const p = requirePool();
+    const b = req.body || {};
+
+    if (!b.id_empreendimento) {
+      return res.status(400).json({ error: 'id_empreendimento_required' });
+    }
+
+    const sql = `INSERT INTO public.projetos_originais(
+      id_empreendimento, nome_projeto, disciplina_projeto, arquivo_projeto, descricao_projeto
+    ) VALUES($1,$2,$3,$4,$5) RETURNING *`;
+
+    const params = [
+      Number(b.id_empreendimento),
+      b.nome_projeto ?? null,
+      b.disciplina_projeto ?? null,
+      b.arquivo_projeto ?? null,
+      b.descricao_projeto ?? null,
+    ];
+
+    const { rows } = await p.query(sql, params);
+    res.status(201).json(mapProjetoOriginal(rows[0]));
+  } catch (err) {
+    if (shouldReturnEmptyOnDbError(err)) {
+      return res.status(500).json({ error: 'database_unavailable' });
+    }
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.put('/api/projetos-originais/:id', async (req, res) => {
+  try {
+    await ensureProjetosOriginaisSchema();
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const b = req.body || {};
+
+    const sql = `UPDATE public.projetos_originais SET
+      id_empreendimento = COALESCE($1, id_empreendimento),
+      nome_projeto = COALESCE($2, nome_projeto),
+      disciplina_projeto = COALESCE($3, disciplina_projeto),
+      arquivo_projeto = COALESCE($4, arquivo_projeto),
+      descricao_projeto = COALESCE($5, descricao_projeto),
+      updated_at = now()
+    WHERE id = $6 RETURNING *`;
+
+    const params = [
+      b.id_empreendimento ? Number(b.id_empreendimento) : null,
+      b.nome_projeto ?? null,
+      b.disciplina_projeto ?? null,
+      b.arquivo_projeto ?? null,
+      b.descricao_projeto ?? null,
+      id,
+    ];
+
+    const { rows } = await p.query(sql, params);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapProjetoOriginal(rows[0]));
+  } catch (err) {
+    if (shouldReturnEmptyOnDbError(err)) {
+      return res.status(404).json({ error: 'not_found' });
+    }
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.delete('/api/projetos-originais/:id', async (req, res) => {
+  try {
+    await ensureProjetosOriginaisSchema();
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const { rowCount } = await p.query('DELETE FROM public.projetos_originais WHERE id = $1', [id]);
+    if (!rowCount) return res.status(404).json({ error: 'not_found' });
+    res.json({ ok: true });
+  } catch (err) {
+    if (shouldReturnEmptyOnDbError(err)) {
+      return res.status(404).json({ error: 'not_found' });
+    }
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
   try {
     const p = requirePool();
     const b = req.body || {};
