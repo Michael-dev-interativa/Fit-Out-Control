@@ -108,7 +108,7 @@ const CompressedPhoto = ({ url, legenda }) => {
   useEffect(() => { if (url && url.startsWith('http')) compressImage(url, 1200, 0.9).then(setCompressed); }, [url]);
   return (
     <div className="text-center">
-      <div className="photo-container" style={{ width: '100%', height: '280px', border: '1px solid #ddd', borderRadius: '4px', padding: '8px', backgroundColor: '#f9fafb', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="photo-container" style={{ width: '100%', height: '220px', border: '1px solid #ddd', borderRadius: '4px', padding: '8px', backgroundColor: '#f9fafb', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <img src={compressed} alt={legenda || ''} className="photo-img" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }} />
       </div>
       {legenda && <p className="text-xs mt-1 font-medium text-black" style={{ marginTop: '4px' }}>{legenda}</p>}
@@ -336,12 +336,38 @@ const CHECKLIST_KEYS = [
 ];
 
 const paginateSaidaContent = (sections) => {
+  const MAX_PHOTOS_PER_ITEM_WITH_TEXT = 4;
+  const MAX_PHOTOS_PER_PHOTO_ONLY_ITEM = 4;
   const MAX_CHUNK_HEIGHT = 620;
   const SECTION_HEADER_H = 50;
   const blocks = [];
 
   (sections || []).forEach((section) => {
-    const items = Array.isArray(section?.items) ? section.items : [];
+    const sourceItems = Array.isArray(section?.items) ? section.items : [];
+    const items = [];
+
+    // Split long photo lists into continuation blocks to avoid overflow in a single table row.
+    sourceItems.forEach((item) => {
+      const fotos = Array.isArray(item?.fotos) ? item.fotos.filter(Boolean) : [];
+      if (fotos.length <= MAX_PHOTOS_PER_ITEM_WITH_TEXT) {
+        items.push(item);
+        return;
+      }
+
+      items.push({ ...item, fotos: fotos.slice(0, MAX_PHOTOS_PER_ITEM_WITH_TEXT) });
+
+      for (let i = MAX_PHOTOS_PER_ITEM_WITH_TEXT; i < fotos.length; i += MAX_PHOTOS_PER_PHOTO_ONLY_ITEM) {
+        items.push({
+          ...item,
+          resposta: '-',
+          observacao: '',
+          assinatura: null,
+          fotos: fotos.slice(i, i + MAX_PHOTOS_PER_PHOTO_ONLY_ITEM),
+          pergunta: `${item.pergunta} (continuação)`,
+        });
+      }
+    });
+
     if (!section?.secaoName || items.length === 0) return;
 
     // Keep declaration block together to preserve signature grid layout.
