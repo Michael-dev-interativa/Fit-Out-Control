@@ -59,16 +59,16 @@ const pwaPlugin = VitePWA({
     ],
   },
   manifest: {
-    name: 'Fit Out Control',
-    short_name: 'FitOut',
+    name: 'Interativa Fitout',
+    short_name: 'Interativa',
     description: 'Gestão de Ativos e Inspeções',
     theme_color: '#2563eb',
-    background_color: '#ffffff',
+    background_color: '#000000',
     display: 'standalone',
     start_url: '/',
     icons: [
-      { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { src: '/icon-192.png?v=20260402', sizes: '192x192', type: 'image/png' },
+      { src: '/icon-512.png?v=20260402', sizes: '512x512', type: 'image/png' },
     ],
   },
 });
