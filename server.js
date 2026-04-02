@@ -307,6 +307,76 @@ if (pool) {
     }
   })();
 
+  // Ensure relatorios_saida has all expected columns in legacy databases.
+  (async () => {
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS public.relatorios_saida (
+          id BIGSERIAL PRIMARY KEY,
+          id_formulario BIGINT REFERENCES public.formularios_vistoria(id) ON DELETE SET NULL,
+          id_unidade BIGINT NOT NULL REFERENCES public.unidades_empreendimento(id) ON DELETE CASCADE,
+          id_empreendimento BIGINT NOT NULL REFERENCES public.empreendimentos(id) ON DELETE CASCADE,
+          estrutura_formulario JSONB,
+          nome_relatorio TEXT NOT NULL,
+          nome_arquivo TEXT,
+          data_saida DATE,
+          data_relatorio DATE,
+          consultor_responsavel TEXT,
+          locatario TEXT,
+          endereco_capa TEXT,
+          subtitulo_capa TEXT,
+          unidade_exibicao TEXT,
+          representantes TEXT,
+          texto_os_proposta TEXT,
+          revisao TEXT,
+          respostas JSONB,
+          fotos_secoes JSONB,
+          status_saida TEXT DEFAULT 'Em Andamento',
+          observacoes_secoes JSONB,
+          checklist_inicial JSONB,
+          descricao_geral_adequacoes JSONB,
+          detalhamento_adequacoes JSONB,
+          declaracoes JSONB,
+          assinaturas JSONB,
+          created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+          updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+        )
+      `);
+
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS id_formulario BIGINT`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS id_unidade BIGINT`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS id_empreendimento BIGINT`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS estrutura_formulario JSONB`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS nome_relatorio TEXT`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS nome_arquivo TEXT`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS data_saida DATE`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS data_relatorio DATE`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS consultor_responsavel TEXT`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS locatario TEXT`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS endereco_capa TEXT`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS subtitulo_capa TEXT`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS unidade_exibicao TEXT`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS representantes TEXT`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS texto_os_proposta TEXT`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS revisao TEXT`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS respostas JSONB`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS fotos_secoes JSONB`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS status_saida TEXT DEFAULT 'Em Andamento'`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS observacoes_secoes JSONB`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS checklist_inicial JSONB`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS descricao_geral_adequacoes JSONB`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS detalhamento_adequacoes JSONB`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS declaracoes JSONB`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS assinaturas JSONB`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now()`);
+
+      console.log('[DB] ensured relatorios_saida schema columns exist');
+    } catch (err) {
+      try { console.warn('[DB] could not ensure relatorios_saida schema:', err && (err.message || String(err))); } catch (e) { }
+    }
+  })();
+
   (async () => {
     try {
       await pool.query(`
@@ -1347,6 +1417,17 @@ app.post('/api/relatorios-saida', async (req, res) => {
   try {
     const p = requirePool();
     const b = req.body || {};
+    const idUnidade = Number(b.id_unidade);
+    const idEmpreendimento = Number(b.id_empreendimento);
+    const nomeRelatorio = String(b.nome_relatorio || '').trim();
+
+    if (!Number.isFinite(idUnidade) || !Number.isFinite(idEmpreendimento) || !nomeRelatorio) {
+      return res.status(400).json({
+        error: 'invalid_payload',
+        message: 'Campos obrigatorios: id_unidade, id_empreendimento e nome_relatorio.'
+      });
+    }
+
     const sql = `INSERT INTO public.relatorios_saida (
       id_formulario, id_unidade, id_empreendimento, estrutura_formulario, nome_relatorio, nome_arquivo,
       data_saida, data_relatorio, consultor_responsavel, locatario, endereco_capa, subtitulo_capa,
@@ -1358,10 +1439,10 @@ app.post('/api/relatorios-saida', async (req, res) => {
     ) RETURNING *`;
     const params = [
       b.id_formulario ?? null,
-      b.id_unidade ?? null,
-      b.id_empreendimento ?? null,
+      idUnidade,
+      idEmpreendimento,
       toJson(b.estrutura_formulario ?? null),
-      b.nome_relatorio ?? null,
+      nomeRelatorio,
       b.nome_arquivo ?? null,
       normalizeDate(b.data_saida) ?? null,
       normalizeDate(b.data_relatorio) ?? null,
