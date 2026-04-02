@@ -6528,7 +6528,15 @@ app.delete('/api/usuarios/:id', async (req, res) => {
       const p = requirePool();
       await p.query('BEGIN');
       try {
-        await p.query('DELETE FROM public.usuarios_empreendimentos WHERE user_id = $1', [id]);
+        try {
+          await p.query('DELETE FROM public.usuarios_empreendimentos WHERE user_id = $1', [id]);
+        } catch (linkErr) {
+          const code = linkErr && typeof linkErr === 'object' && 'code' in linkErr ? linkErr.code : undefined;
+          const msg = linkErr instanceof Error ? linkErr.message : String(linkErr);
+          const missingLinkTable = code === '42P01' || msg.toLowerCase().includes('usuarios_empreendimentos') && msg.toLowerCase().includes('does not exist');
+          if (!missingLinkTable) throw linkErr;
+          console.warn('[/api/usuarios DELETE] usuarios_empreendimentos table missing; continuing delete from usuarios');
+        }
         const { rowCount } = await p.query('DELETE FROM public.usuarios WHERE id = $1', [id]);
         if (!rowCount) {
           await p.query('ROLLBACK');
