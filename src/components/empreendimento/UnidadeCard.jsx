@@ -111,8 +111,8 @@ export default function UnidadeCard({ unidade, stats, empreendimentoId, language
         {stats && <StatusChart stats={stats} theme={theme} />}
       </CardContent>
 
-      <CardFooter className="flex items-center gap-2">
-        <Link to={linkToUnidade} className="flex-1 min-w-0" onClick={handleAccessClick}>
+      <CardFooter className="grid grid-cols-[1fr_auto_auto] items-center gap-2">
+        <Link to={linkToUnidade} className="block min-w-0" onClick={handleAccessClick}>
           <Button
             className="w-full bg-blue-600 hover:bg-blue-700"
             disabled={!isLinkValid}
@@ -125,9 +125,10 @@ export default function UnidadeCard({ unidade, stats, empreendimentoId, language
         <Button
           type="button"
           variant="outline"
+          size="icon"
           onClick={handleDeleteClick}
           disabled={!isValidId(unidade?.id) || deleting}
-          className={`shrink-0 px-3 ${isDark ? 'border-red-800 text-red-300 hover:bg-red-950' : 'text-red-600 hover:text-red-700'}`}
+          className={`shrink-0 ${isDark ? 'border-red-800 text-red-300 hover:bg-red-950' : 'text-red-600 hover:text-red-700'}`}
           title={t.delete}
         >
           {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
