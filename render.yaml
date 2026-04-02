@@ -16,14 +16,15 @@ services:
           property: connectionString
     healthCheckPath: /api/health
 
-  # Frontend - Web Service com Express
-  - type: web
-    name: fitout-frontend
-    runtime: node
+  # Frontend - Static Site com rewrite para SPA
+  - type: static
+    name: front-fitout
     buildCommand: npm install --include=dev && npm run build
-    startCommand: npm run start:frontend
+    staticPublishPath: ./dist
     envVars:
       - key: VITE_API_URL
         value: https://backend-fitout.onrender.com
-      - key: NODE_ENV
-        value: production
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
