@@ -87,10 +87,46 @@ Interativa Engenharia`,
   }
 };
 
+// Helper function to safely extract email from contatos (JSONB can be object, array, or string)
+const extractEmailFromContatos = (contatos) => {
+  if (!contatos) return '';
+  
+  // If it's a string, assume comma-separated
+  if (typeof contatos === 'string') {
+    return contatos.split(',')[0]?.trim() || '';
+  }
+  
+  // If it's an array
+  if (Array.isArray(contatos)) {
+    if (contatos.length === 0) return '';
+    // Array of strings
+    if (typeof contatos[0] === 'string') {
+      return contatos[0].trim();
+    }
+    // Array of objects (e.g., [{email: '...'}, ...])
+    if (typeof contatos[0] === 'object' && contatos[0].email) {
+      return contatos[0].email.trim();
+    }
+    // Array of objects with other email field names
+    if (typeof contatos[0] === 'object') {
+      const emailValue = contatos[0].email || contatos[0].email_address || contatos[0].EMAIL || contatos[0].EMAIL_ADDRESS || '';
+      return typeof emailValue === 'string' ? emailValue.trim() : '';
+    }
+  }
+  
+  // If it's an object
+  if (typeof contatos === 'object') {
+    const emailValue = contatos.email || contatos.email_address || contatos.EMAIL || contatos.EMAIL_ADDRESS || '';
+    return typeof emailValue === 'string' ? emailValue.trim() : '';
+  }
+  
+  return '';
+};
+
 export default function EnviarEmailDialog({ vistoria, unidade, empreendimento, reportUrl, theme = 'light' }) {
   const [open, setOpen] = useState(false);
   const [destinatarios, setDestinatarios] = useState(() => {
-    const initialEmail = unidade?.contatos ? unidade.contatos.split(',')[0]?.trim() : '';
+    const initialEmail = extractEmailFromContatos(unidade?.contatos);
     return initialEmail ? [initialEmail] : [];
   });
   const [novoEmail, setNovoEmail] = useState('');
@@ -111,8 +147,8 @@ export default function EnviarEmailDialog({ vistoria, unidade, empreendimento, r
       setErrorMessage('');
       setNovoEmail(''); // Clear new email input
 
-      // Initialize destinatarios
-      const initialEmail = unidade?.contatos ? unidade.contatos.split(',')[0]?.trim() : '';
+      // Initialize destinatarios using safe email extraction
+      const initialEmail = extractEmailFromContatos(unidade?.contatos);
       setDestinatarios(initialEmail ? [initialEmail] : []);
       
       // Set default subject

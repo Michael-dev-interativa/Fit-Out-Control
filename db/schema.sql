@@ -416,6 +416,57 @@ CREATE INDEX IF NOT EXISTS idx_respostas_vistoria_vistoria
 CREATE INDEX IF NOT EXISTS idx_respostas_vistoria_relatorio
   ON public.respostas_vistoria (data_relatorio);
 
+-- Tabela: relatorios_saida
+CREATE TABLE IF NOT EXISTS public.relatorios_saida (
+  id BIGSERIAL PRIMARY KEY,
+  id_formulario BIGINT REFERENCES public.formularios_vistoria(id) ON DELETE SET NULL,
+  id_unidade BIGINT NOT NULL REFERENCES public.unidades_empreendimento(id) ON DELETE CASCADE,
+  id_empreendimento BIGINT NOT NULL REFERENCES public.empreendimentos(id) ON DELETE CASCADE,
+  estrutura_formulario JSONB,
+  nome_relatorio TEXT NOT NULL,
+  nome_arquivo TEXT,
+  data_saida DATE,
+  data_relatorio DATE,
+  consultor_responsavel TEXT,
+  locatario TEXT,
+  endereco_capa TEXT,
+  subtitulo_capa TEXT,
+  unidade_exibicao TEXT,
+  representantes TEXT,
+  texto_os_proposta TEXT,
+  revisao TEXT,
+  respostas JSONB,
+  fotos_secoes JSONB,
+  status_saida TEXT DEFAULT 'Em Andamento',
+  observacoes_secoes JSONB,
+  checklist_inicial JSONB,
+  descricao_geral_adequacoes JSONB,
+  detalhamento_adequacoes JSONB,
+  declaracoes JSONB,
+  assinaturas JSONB,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+DROP TRIGGER IF EXISTS relatorios_saida_set_updated_at ON public.relatorios_saida;
+CREATE TRIGGER relatorios_saida_set_updated_at
+BEFORE UPDATE ON public.relatorios_saida
+FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+-- Índices úteis
+CREATE INDEX IF NOT EXISTS idx_relatorios_saida_formulario
+  ON public.relatorios_saida (id_formulario);
+CREATE INDEX IF NOT EXISTS idx_relatorios_saida_unidade
+  ON public.relatorios_saida (id_unidade);
+CREATE INDEX IF NOT EXISTS idx_relatorios_saida_empreendimento
+  ON public.relatorios_saida (id_empreendimento);
+CREATE INDEX IF NOT EXISTS idx_relatorios_saida_status
+  ON public.relatorios_saida (status_saida);
+CREATE INDEX IF NOT EXISTS idx_relatorios_saida_data_saida
+  ON public.relatorios_saida (data_saida);
+CREATE INDEX IF NOT EXISTS idx_relatorios_saida_data_relatorio
+  ON public.relatorios_saida (data_relatorio);
+
 -- Tabela: manuais_gerais
 CREATE TABLE IF NOT EXISTS public.manuais_gerais (
   id BIGSERIAL PRIMARY KEY,

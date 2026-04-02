@@ -160,6 +160,38 @@ CREATE TABLE IF NOT EXISTS public.respostas_vistoria (
 );
 
 
+CREATE TABLE IF NOT EXISTS public.relatorios_saida (
+    id SERIAL PRIMARY KEY,
+    id_formulario INTEGER REFERENCES public.formularios_vistoria(id) ON DELETE SET NULL,
+    id_unidade INTEGER NOT NULL REFERENCES public.unidades_empreendimento(id) ON DELETE CASCADE,
+    id_empreendimento INTEGER NOT NULL REFERENCES public.empreendimentos(id) ON DELETE CASCADE,
+    estrutura_formulario JSONB,
+    nome_relatorio VARCHAR(255) NOT NULL,
+    nome_arquivo VARCHAR(255),
+    data_saida DATE,
+    data_relatorio DATE,
+    consultor_responsavel VARCHAR(255),
+    locatario VARCHAR(255),
+    endereco_capa TEXT,
+    subtitulo_capa VARCHAR(255),
+    unidade_exibicao VARCHAR(255),
+    representantes TEXT,
+    texto_os_proposta TEXT,
+    revisao VARCHAR(50),
+    respostas JSONB,
+    fotos_secoes JSONB,
+    status_saida VARCHAR(50) DEFAULT 'Em Andamento',
+    observacoes_secoes JSONB,
+    checklist_inicial JSONB,
+    descricao_geral_adequacoes JSONB,
+    detalhamento_adequacoes JSONB,
+    declaracoes JSONB,
+    assinaturas JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
 CREATE TABLE IF NOT EXISTS public.vistorias_terminalidade (
     id SERIAL PRIMARY KEY,
     id_empreendimento INTEGER REFERENCES public.empreendimentos(id) ON DELETE CASCADE,

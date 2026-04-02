@@ -1112,6 +1112,39 @@ function mapTermoRow(row) {
   };
 }
 
+function mapRelatorioSaidaRow(row) {
+  return {
+    id: row.id,
+    id_formulario: row.id_formulario,
+    id_unidade: row.id_unidade,
+    id_empreendimento: row.id_empreendimento,
+    estrutura_formulario: row.estrutura_formulario,
+    nome_relatorio: row.nome_relatorio,
+    nome_arquivo: row.nome_arquivo,
+    data_saida: formatDateForAPI(row.data_saida),
+    data_relatorio: formatDateForAPI(row.data_relatorio),
+    consultor_responsavel: row.consultor_responsavel,
+    locatario: row.locatario,
+    endereco_capa: row.endereco_capa,
+    subtitulo_capa: row.subtitulo_capa,
+    unidade_exibicao: row.unidade_exibicao,
+    representantes: row.representantes,
+    texto_os_proposta: row.texto_os_proposta,
+    revisao: row.revisao,
+    respostas: row.respostas,
+    fotos_secoes: row.fotos_secoes,
+    status_saida: row.status_saida,
+    observacoes_secoes: row.observacoes_secoes,
+    checklist_inicial: row.checklist_inicial,
+    descricao_geral_adequacoes: row.descricao_geral_adequacoes,
+    detalhamento_adequacoes: row.detalhamento_adequacoes,
+    declaracoes: row.declaracoes,
+    assinaturas: row.assinaturas,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
 // CRUD routes for termos de aceite
 app.get('/api/termos-aceite', async (req, res) => {
   try {
@@ -1268,6 +1301,173 @@ app.delete('/api/termos-aceite/:id', async (req, res) => {
     console.log('[/api/termos-aceite DELETE] rows returned:', rows ? rows.length : 0);
     if (!rows.length) return res.status(404).json({ error: 'not_found' });
     return res.status(200).json({ ok: true, deleted: mapTermoRow(rows[0]) });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: msg });
+  }
+});
+
+// CRUD routes for relatorios de saida
+app.get('/api/relatorios-saida', async (req, res) => {
+  try {
+    const p = requirePool();
+    const { id, id_unidade, id_empreendimento, status_saida, order } = req.query;
+    const where = [];
+    const params = [];
+    if (id) { where.push('id = $' + (params.length + 1)); params.push(Number(id)); }
+    if (id_unidade) { where.push('id_unidade = $' + (params.length + 1)); params.push(Number(id_unidade)); }
+    if (id_empreendimento) { where.push('id_empreendimento = $' + (params.length + 1)); params.push(Number(id_empreendimento)); }
+    if (status_saida) { where.push('status_saida = $' + (params.length + 1)); params.push(String(status_saida)); }
+    const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+    const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
+    const sql = `SELECT * FROM public.relatorios_saida ${whereClause} ${orderClause}`;
+    const { rows } = await p.query(sql, params);
+    res.json(rows.map(mapRelatorioSaidaRow));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (shouldReturnEmptyOnDbError(err)) return res.json([]);
+    res.status(500).json({ error: msg });
+  }
+});
+
+app.get('/api/relatorios-saida/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const { rows } = await p.query('SELECT * FROM public.relatorios_saida WHERE id = $1', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapRelatorioSaidaRow(rows[0]));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: msg });
+  }
+});
+
+app.post('/api/relatorios-saida', async (req, res) => {
+  try {
+    const p = requirePool();
+    const b = req.body || {};
+    const sql = `INSERT INTO public.relatorios_saida (
+      id_formulario, id_unidade, id_empreendimento, estrutura_formulario, nome_relatorio, nome_arquivo,
+      data_saida, data_relatorio, consultor_responsavel, locatario, endereco_capa, subtitulo_capa,
+      unidade_exibicao, representantes, texto_os_proposta, revisao, respostas, fotos_secoes,
+      status_saida, observacoes_secoes, checklist_inicial, descricao_geral_adequacoes,
+      detalhamento_adequacoes, declaracoes, assinaturas
+    ) VALUES (
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25
+    ) RETURNING *`;
+    const params = [
+      b.id_formulario ?? null,
+      b.id_unidade ?? null,
+      b.id_empreendimento ?? null,
+      toJson(b.estrutura_formulario ?? null),
+      b.nome_relatorio ?? null,
+      b.nome_arquivo ?? null,
+      normalizeDate(b.data_saida) ?? null,
+      normalizeDate(b.data_relatorio) ?? null,
+      b.consultor_responsavel ?? null,
+      b.locatario ?? null,
+      b.endereco_capa ?? null,
+      b.subtitulo_capa ?? null,
+      b.unidade_exibicao ?? null,
+      b.representantes ?? null,
+      b.texto_os_proposta ?? null,
+      b.revisao ?? null,
+      toJson(b.respostas ?? {}),
+      toJson(b.fotos_secoes ?? {}),
+      b.status_saida ?? 'Em Andamento',
+      toJson(b.observacoes_secoes ?? {}),
+      toJson(b.checklist_inicial ?? {}),
+      toJson(b.descricao_geral_adequacoes ?? {}),
+      toJson(b.detalhamento_adequacoes ?? {}),
+      toJson(b.declaracoes ?? {}),
+      toJson(b.assinaturas ?? []),
+    ];
+    const { rows } = await p.query(sql, params);
+    res.status(201).json(mapRelatorioSaidaRow(rows[0]));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: msg });
+  }
+});
+
+app.put('/api/relatorios-saida/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const b = req.body || {};
+    const sql = `UPDATE public.relatorios_saida SET
+      id_formulario = COALESCE($1, id_formulario),
+      id_unidade = COALESCE($2, id_unidade),
+      id_empreendimento = COALESCE($3, id_empreendimento),
+      estrutura_formulario = COALESCE($4, estrutura_formulario),
+      nome_relatorio = COALESCE($5, nome_relatorio),
+      nome_arquivo = COALESCE($6, nome_arquivo),
+      data_saida = $7,
+      data_relatorio = $8,
+      consultor_responsavel = COALESCE($9, consultor_responsavel),
+      locatario = COALESCE($10, locatario),
+      endereco_capa = COALESCE($11, endereco_capa),
+      subtitulo_capa = COALESCE($12, subtitulo_capa),
+      unidade_exibicao = COALESCE($13, unidade_exibicao),
+      representantes = COALESCE($14, representantes),
+      texto_os_proposta = COALESCE($15, texto_os_proposta),
+      revisao = COALESCE($16, revisao),
+      respostas = COALESCE($17, respostas),
+      fotos_secoes = COALESCE($18, fotos_secoes),
+      status_saida = COALESCE($19, status_saida),
+      observacoes_secoes = COALESCE($20, observacoes_secoes),
+      checklist_inicial = COALESCE($21, checklist_inicial),
+      descricao_geral_adequacoes = COALESCE($22, descricao_geral_adequacoes),
+      detalhamento_adequacoes = COALESCE($23, detalhamento_adequacoes),
+      declaracoes = COALESCE($24, declaracoes),
+      assinaturas = COALESCE($25, assinaturas),
+      updated_at = now()
+    WHERE id = $26 RETURNING *`;
+    const params = [
+      b.id_formulario ?? null,
+      b.id_unidade ?? null,
+      b.id_empreendimento ?? null,
+      toJson(b.estrutura_formulario ?? null),
+      b.nome_relatorio ?? null,
+      b.nome_arquivo ?? null,
+      normalizeDate(b.data_saida) ?? null,
+      normalizeDate(b.data_relatorio) ?? null,
+      b.consultor_responsavel ?? null,
+      b.locatario ?? null,
+      b.endereco_capa ?? null,
+      b.subtitulo_capa ?? null,
+      b.unidade_exibicao ?? null,
+      b.representantes ?? null,
+      b.texto_os_proposta ?? null,
+      b.revisao ?? null,
+      toJson(b.respostas ?? null),
+      toJson(b.fotos_secoes ?? null),
+      b.status_saida ?? null,
+      toJson(b.observacoes_secoes ?? null),
+      toJson(b.checklist_inicial ?? null),
+      toJson(b.descricao_geral_adequacoes ?? null),
+      toJson(b.detalhamento_adequacoes ?? null),
+      toJson(b.declaracoes ?? null),
+      toJson(b.assinaturas ?? null),
+      id,
+    ];
+    const { rows } = await p.query(sql, params);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapRelatorioSaidaRow(rows[0]));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: msg });
+  }
+});
+
+app.delete('/api/relatorios-saida/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const { rows } = await p.query('DELETE FROM public.relatorios_saida WHERE id = $1 RETURNING *', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    return res.status(200).json({ ok: true, deleted: mapRelatorioSaidaRow(rows[0]) });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     res.status(500).json({ error: msg });
