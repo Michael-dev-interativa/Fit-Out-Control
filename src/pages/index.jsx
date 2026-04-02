@@ -63,6 +63,9 @@ const NovoRelatorioSemanal = lazy(() => import("./NovoRelatorioSemanal"));
 const EmpreendimentoPrimeirosServicos = lazy(() => import("./EmpreendimentoPrimeirosServicos"));
 
 const EmpreendimentoTermosAceite = lazy(() => import("./EmpreendimentoTermosAceite"));
+const EmpreendimentoRelatoriosSaida = lazy(() => import("./EmpreendimentoRelatoriosSaida"));
+const PreencherRelatorioSaida = lazy(() => import("./PreencherRelatorioSaida"));
+const VisualizarRelatorioSaida = lazy(() => import("./VisualizarRelatorioSaida"));
 
 const NovoRelatorioPrimeirosServicos = lazy(() => import("./NovoRelatorioPrimeirosServicos"));
 
@@ -280,6 +283,9 @@ const PAGES = {
     EmpreendimentoPrimeirosServicos: EmpreendimentoPrimeirosServicos,
 
     EmpreendimentoTermosAceite: EmpreendimentoTermosAceite,
+    EmpreendimentoRelatoriosSaida: EmpreendimentoRelatoriosSaida,
+    PreencherRelatorioSaida: PreencherRelatorioSaida,
+    VisualizarRelatorioSaida: VisualizarRelatorioSaida,
 
     NovoRelatorioPrimeirosServicos: NovoRelatorioPrimeirosServicos,
 
@@ -521,6 +527,9 @@ function PagesContent() {
                     <Route path="/empreendimentoatasreuniao" element={<EmpreendimentoAtasReuniao />} />
                     <Route path="/EmpreendimentoTermosAceite" element={<EmpreendimentoTermosAceite />} />
                     <Route path="/empreendimentotermosaceite" element={<EmpreendimentoTermosAceite />} />
+                    <Route path="/EmpreendimentoRelatoriosSaida" element={<EmpreendimentoRelatoriosSaida />} />
+                    <Route path="/PreencherRelatorioSaida" element={<PreencherRelatorioSaida />} />
+                    <Route path="/VisualizarRelatorioSaida" element={<VisualizarRelatorioSaida />} />
                     <Route path="/VisualizarAtaReuniao" element={<VisualizarAtaReuniao />} />
                     <Route path="/visualizaratareuniao" element={<VisualizarAtaReuniao />} />
 
