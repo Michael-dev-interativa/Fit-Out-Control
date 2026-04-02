@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ArrowLeft, Loader2, AlertTriangle, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { paginateBlocksForPrinting } from '@/lib/reportPagination';
 
 const isValidId = (id) => id && String(id).trim() !== '' && !['null', 'undefined'].includes(String(id).toLowerCase());
 
@@ -334,171 +335,77 @@ const CHECKLIST_KEYS = [
   { pergunta: 'Pavimento deverá ser retornado em "conjunto", sendo que as instalações devem ser adequadas para não atravessarem a parede de divisão?', key: 'retorno_conjunto' },
 ];
 
-const SECTION_HEADER_H = 44;
-const PAGE_USABLE_H = 950;
-const FOOTER_GUARD = 40;
-
 const paginateSaidaContent = (sections) => {
-  const pages = [];
-  const PAGE_HEIGHT_PX = 1122; // A4 297mm @ 96dpi
-  const HEADER_HEIGHT_PX = 60;
-  const FOOTER_HEIGHT_PX = 50;
-  const PAGE_PADDING_PX = 32;  // px-4 each side = 16*2
-  const SAFETY_BUFFER = 60;    // extra buffer to prevent overflow
-  const FIRST_PAGE_OFFSET = 155; // espaço DADOS na primeira página (header azul ~40 + grid 2col ~115)
+  const MAX_CHUNK_HEIGHT = 620;
+  const SECTION_HEADER_H = 50;
+  const blocks = [];
 
-  const getUsableHeight = (isFirstPage) => {
-    const base = PAGE_HEIGHT_PX - HEADER_HEIGHT_PX - FOOTER_HEIGHT_PX - PAGE_PADDING_PX - SAFETY_BUFFER;
-    return isFirstPage ? Math.max(200, base - FIRST_PAGE_OFFSET) : base;
-  };
+  (sections || []).forEach((section) => {
+    const items = Array.isArray(section?.items) ? section.items : [];
+    if (!section?.secaoName || items.length === 0) return;
 
-  const supportsDOM = typeof document !== 'undefined' && document.body;
-
-  // Mede altura REAL do item usando DOM (reproduz markup exato da ContentPage)
-  const measureItemHeight = (item) => {
-    if (!supportsDOM) {
-      // Fallback estimado conservador
-      let h = 50;
-      h += Math.ceil((item.pergunta?.length || 0) / 80) * 16;
-      h += Math.ceil((item.resposta?.length || 0) / 100) * 16;
-      if (item.observacao?.trim()) h += 30 + Math.ceil(item.observacao.length / 80) * 16;
-      if (item.fotos?.length) h += Math.ceil(item.fotos.length / 2) * 340; // 300px foto + 40px legenda/gap
-      if (item.assinatura) h += 80;
-      return h + 20; // buffer extra
-    }
-
-    try {
-      const tempDiv = document.createElement('div');
-      tempDiv.style.position = 'absolute';
-      tempDiv.style.visibility = 'hidden';
-      tempDiv.style.width = '680px';
-      tempDiv.style.boxSizing = 'border-box';
-      tempDiv.style.fontFamily = 'Inter, Poppins, sans-serif';
-      tempDiv.style.fontSize = '12px';
-      tempDiv.style.lineHeight = '1.4';
-
-      const esc = (s) => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      let inner = '<table style="width:100%;border-collapse:collapse;">';
-      inner += `<tr style="background:#f3f4f6"><td style="padding:6px 8px;border:1px solid #d1d5db;font-weight:600;">${esc(item.pergunta)}</td></tr>`;
-      
-      let respCell = '';
-      if (item.assinatura) {
-        respCell = `<img src="${esc(item.assinatura)}" style="max-height:64px;" />`;
-      } else if (item.resposta && item.resposta !== '-') {
-        respCell = `<span style="white-space:pre-wrap;word-break:break-word;">${esc(item.resposta)}</span>`;
-      }
-      if (item.observacao?.trim()) {
-        respCell += `<div style="margin-top:6px;padding:4px 6px;background:#f0f8ff;font-size:11px;"><strong>Comentário:</strong> ${esc(item.observacao)}</div>`;
-      }
-      if (item.fotos?.length) {
-        respCell += `<div style="margin-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">`;
-        item.fotos.forEach(() => { respCell += `<div style="height:300px;background:#eee;border:1px solid #ddd;"></div>`; });
-        respCell += `</div>`;
-      }
-      
-      inner += `<tr><td style="padding:6px 8px;border:1px solid #d1d5db;">${respCell}</td></tr></table>`;
-      tempDiv.innerHTML = inner;
-      document.body.appendChild(tempDiv);
-      const height = tempDiv.offsetHeight + 12; // buffer 12px extra para segurança
-      document.body.removeChild(tempDiv);
-      return height;
-    } catch (e) {
-      return 100; // fallback seguro
-    }
-  };
-
-  // Pré-processar: dividir itens com muitas fotos
-  const MAX_PHOTOS_PER_ITEM_WITH_TEXT = 4;
-  const MAX_PHOTOS_PER_PHOTOS_ONLY_PAGE = 6; // grid 2 colunas cabe mais que 3
-  const processedSections = [];
-
-  for (const section of sections) {
-    if (!section.items || section.items.length === 0) continue;
-    const allItems = [];
-    
-    for (const item of section.items) {
-      if (item.fotos && item.fotos.length > MAX_PHOTOS_PER_ITEM_WITH_TEXT) {
-        // Primeiro bloco: item + primeiras fotos
-        allItems.push({ ...item, fotos: item.fotos.slice(0, MAX_PHOTOS_PER_ITEM_WITH_TEXT) });
-        // Blocos seguintes: só fotos
-        let offset = MAX_PHOTOS_PER_ITEM_WITH_TEXT;
-        while (offset < item.fotos.length) {
-          allItems.push({
-            pergunta: item.pergunta,
-            resposta: '-',
-            assinatura: null,
-            observacao: '',
-            fotos: item.fotos.slice(offset, offset + MAX_PHOTOS_PER_PHOTOS_ONLY_PAGE),
-            isPhotoOnly: true
-          });
-          offset += MAX_PHOTOS_PER_PHOTOS_ONLY_PAGE;
-        }
-      } else {
-        allItems.push(item);
-      }
-    }
-    processedSections.push({ secaoName: section.secaoName, items: allItems });
-  }
-
-  let currentPage = [];
-  let currentHeight = 0;
-  let isFirstPage = true;
-
-  for (const section of processedSections) {
-    const sectionHeaderH = 50;
-    const usableHeight = getUsableHeight(isFirstPage);
-
-    // Quebra página se header da seção não cabe
-    if (currentHeight > 0 && currentHeight + sectionHeaderH > usableHeight) {
-      pages.push(currentPage);
-      currentPage = [];
-      currentHeight = 0;
-      isFirstPage = false;
-    }
-
-    // Always account for section header height (bug fix: was only added when page was empty)
-    currentHeight += sectionHeaderH;
-
-    // DECLARAÇÕES: keep whole section together, never split
+    // Keep declaration block together to preserve signature grid layout.
     if (section.secaoName === 'DECLARAÇÕES (1º VISTORIA)') {
-      // sectionHeaderH already added above; estimate compact grid height
-      const decTextH = 50;   // declarative text row
-      const decGridH = 300;  // 3 rows of 2-col signature grid ~100px each
-      const totalH = decTextH + decGridH; // ~350px content only
-      if (currentHeight + totalH > usableHeight) {
-        pages.push(currentPage);
-        currentPage = [];
-        currentHeight = sectionHeaderH;
-        isFirstPage = false;
-      }
-      currentPage.push({ secaoName: section.secaoName, items: section.items });
-      currentHeight += totalH;
-      continue;
+      blocks.push({
+        secaoName: section.secaoName,
+        items,
+        estimatedHeightPx: 420,
+        keepTogether: true,
+      });
+      return;
     }
 
-    const sectionItems = [];
-    for (const item of section.items) {
-      let itemHeight = 0;
-      try { itemHeight = measureItemHeight(item); } catch (e) { itemHeight = 100; }
+    let chunk = [];
+    let chunkHeight = 0;
 
-      if (currentHeight + itemHeight > usableHeight && sectionItems.length > 0) {
-        currentPage.push({ secaoName: section.secaoName, items: [...sectionItems] });
-        pages.push(currentPage);
-        currentPage = [];
-        currentHeight = sectionHeaderH;
-        sectionItems.length = 0;
-        isFirstPage = false;
+    items.forEach((item) => {
+      const itemHeight = Math.max(40, Number(measureItemHeight(item)) || 100);
+
+      if (chunk.length > 0 && chunkHeight + itemHeight > MAX_CHUNK_HEIGHT) {
+        blocks.push({
+          secaoName: section.secaoName,
+          items: chunk,
+          estimatedHeightPx: SECTION_HEADER_H + chunkHeight + 12,
+        });
+        chunk = [];
+        chunkHeight = 0;
       }
 
-      sectionItems.push(item);
-      currentHeight += itemHeight;
+      chunk.push(item);
+      chunkHeight += itemHeight;
+    });
+
+    if (chunk.length > 0) {
+      blocks.push({
+        secaoName: section.secaoName,
+        items: chunk,
+        estimatedHeightPx: SECTION_HEADER_H + chunkHeight + 12,
+      });
     }
+  });
 
-    if (sectionItems.length > 0) currentPage.push({ secaoName: section.secaoName, items: sectionItems });
-  }
+  const pages = paginateBlocksForPrinting(blocks, {
+    pageHeightPx: 1122,
+    headerHeightPx: 60,
+    footerHeightPx: 50,
+    pagePaddingPx: 32,
+    footerGuardPx: 24,
+    breakBeforeLimitPx: 20,
+    // First content page shares space with DadosPage.
+    firstPageExtraHeightPx: 155,
+    defaultBlockHeightPx: 180,
+    measureBlockHeight: (block) => {
+      if (block?.keepTogether) return block.estimatedHeightPx || 420;
+      return Number(block?.estimatedHeightPx) || 180;
+    },
+  });
 
-  if (currentPage.length > 0) pages.push(currentPage);
-  return pages;
+  return pages.map((pageBlocks) =>
+    (pageBlocks || []).map((block) => ({
+      secaoName: block.secaoName,
+      items: block.items,
+    }))
+  );
 };
 
 const measureItemHeight = (item) => {
