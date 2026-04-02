@@ -67,8 +67,8 @@ const pwaPlugin = VitePWA({
     display: 'standalone',
     start_url: '/',
     icons: [
-      { src: '/icon-192.png?v=20260402', sizes: '192x192', type: 'image/png' },
-      { src: '/icon-512.png?v=20260402', sizes: '512x512', type: 'image/png' },
+      { src: '/icon-192.png?v=20260402b', sizes: '192x192', type: 'image/png' },
+      { src: '/icon-512.png?v=20260402b', sizes: '512x512', type: 'image/png' },
     ],
   },
 });
