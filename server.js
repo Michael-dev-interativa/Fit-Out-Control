@@ -5732,26 +5732,6 @@ app.get('/api/empreendimentos', async (req, res) => {
       }
     }
 
-    async function ensureProjetosOriginaisSchema() {
-      try {
-        const p = requirePool();
-        await p.query(`
-          CREATE TABLE IF NOT EXISTS public.projetos_originais (
-            id BIGSERIAL PRIMARY KEY,
-            id_empreendimento BIGINT NOT NULL REFERENCES public.empreendimentos(id) ON DELETE CASCADE,
-            nome_projeto TEXT,
-            disciplina_projeto TEXT,
-            arquivo_projeto TEXT,
-            descricao_projeto TEXT,
-            created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
-            updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
-          )
-        `);
-      } catch (err) {
-        console.warn('[projetos-originais] Falha ao garantir schema:', err instanceof Error ? err.message : String(err));
-      }
-    }
-
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
     const { rows } = await p.query(`SELECT * FROM public.empreendimentos ${whereClause} ${orderClause} `, params);
@@ -5789,7 +5769,25 @@ app.get('/api/empreendimentos/:id', async (req, res) => {
   }
 });
 
-app.post('/api/empreendimentos', async (req, res) => {
+async function ensureProjetosOriginaisSchema() {
+  try {
+    const p = requirePool();
+    await p.query(`
+      CREATE TABLE IF NOT EXISTS public.projetos_originais (
+        id BIGSERIAL PRIMARY KEY,
+        id_empreendimento BIGINT NOT NULL REFERENCES public.empreendimentos(id) ON DELETE CASCADE,
+        nome_projeto TEXT,
+        disciplina_projeto TEXT,
+        arquivo_projeto TEXT,
+        descricao_projeto TEXT,
+        created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+        updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+      )
+    `);
+  } catch (err) {
+    console.warn('[projetos-originais] Falha ao garantir schema:', err instanceof Error ? err.message : String(err));
+  }
+}
 
 function mapProjetoOriginal(row) {
   return {
@@ -5928,6 +5926,8 @@ app.delete('/api/projetos-originais/:id', async (req, res) => {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
   }
 });
+
+app.post('/api/empreendimentos', async (req, res) => {
   try {
     const p = requirePool();
     const b = req.body || {};
@@ -5956,6 +5956,16 @@ app.delete('/api/projetos-originais/:id', async (req, res) => {
     if (existing.rows.length) {
       return res.status(409).json({ error: 'duplicate_empreendimento', existing: mapEmpreendimentoRow(existing.rows[0]) });
     }
+
+    // Mantém a sequence em sincronia para evitar 23505 em ambientes com inserts manuais.
+    await p.query(`
+      SELECT setval(
+        pg_get_serial_sequence('public.empreendimentos', 'id'),
+        COALESCE((SELECT MAX(id) FROM public.empreendimentos), 1),
+        true
+      )
+    `);
+
     const sql = `INSERT INTO public.empreendimentos(
       nome_empreendimento, cli_empreendimento, endereco_empreendimento, foto_empreendimento, os_number, sigla_obra,
       data_inicio_contrato, termino_obra_previsto, data_sem_entrega, data_termino_contrato,

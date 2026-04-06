@@ -4,6 +4,7 @@ import { UploadFile } from "@/api/integrations";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -44,6 +45,7 @@ const disciplinaOptions = [
 export default function ProjetosOriginaisDialog({ open, onOpenChange, empreendimentoId, language = 'pt', theme = 'light' }) {
   const [projetos, setProjetos] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -66,11 +68,14 @@ export default function ProjetosOriginaisDialog({ open, onOpenChange, empreendim
 
   const loadProjetos = async () => {
     setLoading(true);
+    setLoadError("");
     try {
       const data = await ProjetoOriginal.filter({ id_empreendimento: empreendimentoId }, "-created_date");
       setProjetos(data);
     } catch (error) {
       console.error("Erro ao carregar projetos:", error);
+      setProjetos([]);
+      setLoadError("Nao foi possivel carregar os projetos originais agora. Se o backend acabou de ser atualizado, aguarde o redeploy e tente novamente.");
     }
     setLoading(false);
   };
@@ -132,6 +137,7 @@ export default function ProjetosOriginaisDialog({ open, onOpenChange, empreendim
   const handleDelete = async (projetoId) => {
     try {
       await ProjetoOriginal.delete(projetoId);
+      setLoadError("");
       loadProjetos();
     } catch (error) {
       console.error("Erro ao excluir projeto:", error);
@@ -160,9 +166,18 @@ export default function ProjetosOriginaisDialog({ open, onOpenChange, empreendim
             <FolderOpen className="w-5 h-5" />
             Projetos Originais
           </DialogTitle>
+          <DialogDescription className={isDark ? 'text-gray-400' : ''}>
+            Gerencie os projetos originais e os arquivos de referencia do empreendimento.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
+          {loadError && (
+            <div className={`rounded-md border px-4 py-3 text-sm ${isDark ? 'border-amber-800 bg-amber-950/40 text-amber-200' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+              {loadError}
+            </div>
+          )}
+
           <div className="flex justify-between items-center">
             <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
               Gerencie os projetos originais do empreendimento
@@ -329,19 +344,22 @@ export default function ProjetosOriginaisDialog({ open, onOpenChange, empreendim
                               {projeto.descricao_projeto}
                             </p>
                           )}
-                          <p className={`text-xs mt-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                            Adicionado em {(() => {
-                              const dateStr = projeto.created_date.includes('Z') ? projeto.created_date : projeto.created_date + 'Z';
-                              return new Date(dateStr).toLocaleString('pt-BR', { 
-                                day: '2-digit', 
-                                month: '2-digit', 
-                                year: 'numeric', 
-                                hour: '2-digit', 
-                                minute: '2-digit',
-                                timeZone: 'America/Sao_Paulo'
-                              }).replace(',', ' às');
-                            })()}
-                          </p>
+                          {projeto.created_at && (
+                            <p className={`text-xs mt-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                              Adicionado em {(() => {
+                                const rawDate = projeto.created_at;
+                                const dateStr = rawDate.includes('Z') ? rawDate : rawDate + 'Z';
+                                return new Date(dateStr).toLocaleString('pt-BR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  timeZone: 'America/Sao_Paulo'
+                                }).replace(',', ' às');
+                              })()}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
