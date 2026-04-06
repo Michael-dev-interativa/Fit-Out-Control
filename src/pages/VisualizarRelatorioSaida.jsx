@@ -256,7 +256,7 @@ const ContentPage = ({ sections }) => (
                   item.resposta === 'Conforme' ? 'bg-green-100 text-green-800' :
                   item.resposta === 'Pendente' ? 'bg-red-100 text-red-800' :
                   item.resposta && item.resposta !== '-' ? 'bg-gray-100 text-gray-700' : null;
-                const hasDetails = (item.observacao && item.observacao.trim() !== '') || (item.fotos && item.fotos.length > 0);
+                const hasDetails = item.fotos && item.fotos.length > 0;
                 return (
                   <div key={idx} className="border-b border-gray-300 last:border-b-0">
                     <div className="p-2 bg-gray-50 flex items-center justify-between" style={{ borderBottom: hasDetails ? '1px solid #e5e7eb' : 'none' }}>
@@ -267,12 +267,6 @@ const ContentPage = ({ sections }) => (
                     </div>
                     {hasDetails && (
                       <div className="p-2 bg-white">
-                        {item.observacao && item.observacao.trim() !== '' && (
-                          <div className="p-1 rounded mb-2" style={{ backgroundColor: '#f0f8ff' }}>
-                            <strong className="text-xs text-gray-700">Comentário:</strong>
-                            <p className="text-xs text-gray-600 whitespace-pre-wrap mt-1">{item.observacao}</p>
-                          </div>
-                        )}
                         {item.fotos && item.fotos.length > 0 && (
                           <div>
                             <strong className="text-xs text-gray-700 block mb-2">Registro Fotográfico:</strong>
@@ -684,8 +678,8 @@ const processData = (relatorio, formulario) => {
       const situacaoAtual = areaDetData?.situacao_atual;
       const situacaoAdequada = areaDetData?.situacao_adequada;
       const hasDescText = descText && String(descText).trim() !== '';
-      const hasSituacaoAtual = situacaoAtual && (situacaoAtual.status || situacaoAtual.fotos?.length > 0 || situacaoAtual.comentario);
-      const hasSituacaoAdequada = situacaoAdequada && (situacaoAdequada.status || situacaoAdequada.fotos?.length > 0 || situacaoAdequada.comentario);
+      const hasSituacaoAtual = situacaoAtual && (situacaoAtual.status || situacaoAtual.fotos?.length > 0);
+      const hasSituacaoAdequada = situacaoAdequada && (situacaoAdequada.status || situacaoAdequada.fotos?.length > 0);
 
       const tituloArea = areaDetData?.titulo ? String(areaDetData.titulo).trim() : '';
       const hasTitulo = tituloArea !== '';
@@ -707,7 +701,7 @@ const processData = (relatorio, formulario) => {
           pergunta: 'SITUAÇÃO ATUAL',
           resposta: situacaoAtual.status || '-',
           assinatura: null,
-          observacao: situacaoAtual.comentario || '',
+          observacao: '',
           fotos: situacaoAtual.fotos || [],
           tipo: 'situacao',
         });
@@ -717,7 +711,7 @@ const processData = (relatorio, formulario) => {
           pergunta: 'SITUAÇÃO ADEQUADA',
           resposta: situacaoAdequada.status || '-',
           assinatura: null,
-          observacao: situacaoAdequada.comentario || '',
+          observacao: '',
           fotos: situacaoAdequada.fotos || [],
           tipo: 'situacao',
         });

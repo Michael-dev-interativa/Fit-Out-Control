@@ -1638,16 +1638,6 @@ export default function PreencherRelatorioSaida({ language = 'pt', theme = 'ligh
                                       </button>
                                     )}
                                   </div>
-                                  <Textarea
-                                    placeholder="Comentário"
-                                    value={itemData.comentario || ''}
-                                    onChange={(e) => setDetalhamentoAdequacoes(prev => ({
-                                      ...prev,
-                                      [areaKey]: { ...prev[areaKey], [item.key]: { ...itemData, comentario: e.target.value } }
-                                    }))}
-                                    className={`mt-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}`}
-                                    rows={2}
-                                  />
                                    <div className={`p-3 rounded-lg border ${isDark ? 'border-gray-600 bg-gray-700/30' : 'border-gray-200 bg-gray-50'}`}>
                                      <div className="flex items-center justify-between mb-2">
                                        <h5 className={`text-sm font-medium flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
