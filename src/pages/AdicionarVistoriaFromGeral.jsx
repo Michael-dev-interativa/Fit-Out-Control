@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { RegistroGeral } from "@/api/entities";
+import { VistoriaObraPadrao } from "@/entities/VistoriaObraPadrao";
 import { VO_unidade } from "@/api/entities";
 import { DisciplinaGeral } from "@/api/entities";
 import { Button } from "@/components/ui/button";
@@ -31,11 +31,13 @@ export default function AdicionarVistoriaFromGeral() {
         loadData();
     }, []);
 
+    const normalizeText = (value) => String(value || '').trim().toLowerCase();
+
     const loadData = async () => {
         setLoading(true);
         try {
             const [geraisData, disciplinasData, vistoriasExistentes] = await Promise.all([
-                RegistroGeral.filter({ tipo_registro: "Vistoria de Obras" }),
+                VistoriaObraPadrao.list(),
                 DisciplinaGeral.list("prefixo_disciplina"),
                 VO_unidade.filter({ id_unidade: unidadeId })
             ]);
@@ -46,10 +48,10 @@ export default function AdicionarVistoriaFromGeral() {
             }, {});
             setDisciplinaPrefixMap(prefixMap);
 
-            const existingItems = new Set(vistoriasExistentes.map(v => `${prefixMap[v.disciplina_vo]}.${v.numeracao}`));
+            const existingItems = new Set(vistoriasExistentes.map(v => `${normalizeText(v.disciplina_vo)}::${normalizeText(v.descricao_vo)}`));
 
             const availableItems = geraisData.filter(g => {
-                const itemIdentifier = `${prefixMap[g.disciplina]}.${g.numeracao}`;
+                const itemIdentifier = `${normalizeText(g.disciplina)}::${normalizeText(g.descricao_registro)}`;
                 return !existingItems.has(itemIdentifier);
             });
 

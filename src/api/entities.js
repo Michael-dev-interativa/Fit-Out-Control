@@ -271,6 +271,96 @@ export const UsuarioEmpreendimentos = {
 export const RegistroUnidade = makeEntity('registros-unidade');
 export const DocumentosUnidade = makeEntity('documentos-unidade');
 export const RegistroGeral = makeEntity('registros-gerais');
+const TIPO_REGISTRO_VISTORIA_OBRA = 'Vistoria de Obras';
+const withTipoVistoriaObra = (criteria = {}) => ({
+  ...(criteria || {}),
+  tipo_registro: TIPO_REGISTRO_VISTORIA_OBRA,
+});
+const VISTORIA_OBRA_PADRAO_FORM_NAME = 'Vistoria de Obra Padrão';
+const normalizeText = (value = '') => String(value)
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .trim();
+
+const VISTORIA_OBRA_SKIP_SECTIONS = new Set([
+  'ASSINATURAS',
+]);
+
+function mapFormularioToVistoriaObraItens(formulario) {
+  const secoes = Array.isArray(formulario?.secoes) ? formulario.secoes : [];
+  const mapped = [];
+
+  secoes.forEach((secao, secaoIdx) => {
+    const disciplina = String(secao?.nome_secao || '').trim();
+    if (!disciplina || VISTORIA_OBRA_SKIP_SECTIONS.has(disciplina.toUpperCase())) return;
+
+    const perguntas = Array.isArray(secao?.perguntas) ? secao.perguntas : [];
+    let numeracao = 1;
+
+    perguntas.forEach((perg, pergIdx) => {
+      const textoPergunta = String(perg?.pergunta || '').trim();
+      if (!textoPergunta) return;
+
+      mapped.push({
+        id: `${formulario?.id || 'form'}:${secaoIdx}:${pergIdx}`,
+        tipo_registro: TIPO_REGISTRO_VISTORIA_OBRA,
+        disciplina,
+        numeracao: numeracao++,
+        descricao_registro: textoPergunta,
+        emissao_registro: formulario?.updated_date || formulario?.created_date || new Date().toISOString(),
+        id_formulario: formulario?.id || null,
+        nome_formulario: formulario?.nome_formulario || VISTORIA_OBRA_PADRAO_FORM_NAME,
+      });
+    });
+  });
+
+  return mapped;
+}
+
+async function loadVistoriaObraPadraoItens(order) {
+  const forms = await FormularioVistoria.list(order);
+  const list = Array.isArray(forms) ? forms : [];
+
+  const exact = list.find((f) => normalizeText(f?.nome_formulario) === normalizeText(VISTORIA_OBRA_PADRAO_FORM_NAME));
+  const loose = list.find((f) => {
+    const n = normalizeText(f?.nome_formulario);
+    return n.includes('vistoria de obra') && n.includes('padrao');
+  });
+
+  const selected = exact || loose || null;
+  if (!selected) return [];
+
+  return mapFormularioToVistoriaObraItens(selected);
+}
+
+export const VistoriaObraPadrao = {
+  async list(order) {
+    return loadVistoriaObraPadraoItens(order);
+  },
+  async filter(criteria = {}, order) {
+    const items = await loadVistoriaObraPadraoItens(order);
+    const filters = criteria || {};
+
+    return items.filter((item) => Object.entries(filters).every(([key, value]) => {
+      if (value === undefined || value === null || value === '') return true;
+      return String(item?.[key] ?? '').toLowerCase().includes(String(value).toLowerCase());
+    }));
+  },
+  async get(id) {
+    const items = await loadVistoriaObraPadraoItens();
+    return items.find((item) => String(item.id) === String(id)) || null;
+  },
+  async create(data = {}) {
+    return RegistroGeral.create(withTipoVistoriaObra(data));
+  },
+  async update(id, data = {}) {
+    return RegistroGeral.update(id, withTipoVistoriaObra(data));
+  },
+  async delete(id) {
+    return RegistroGeral.delete(id);
+  },
+};
 export const DisciplinaGeral = makeEntity('disciplinas-gerais');
 export const ProjetoOriginal = makeEntity('projetos-originais');
 export const ManualGeral = makeEntity('manuais-gerais');
@@ -291,6 +381,7 @@ try {
   base44.entities.Empreendimento = Empreendimento;
   base44.entities.UnidadeEmpreendimento = UnidadeEmpreendimento;
   base44.entities.FormularioVistoria = FormularioVistoria;
+  base44.entities.VistoriaObraPadrao = VistoriaObraPadrao;
   base44.entities.RelatorioSaida = RelatorioSaida;
   base44.entities.RelatorioAnaliseTecnica = RelatorioAnaliseTecnica;
   base44.entities.InspecaoEletrica = InspecaoEletrica;
