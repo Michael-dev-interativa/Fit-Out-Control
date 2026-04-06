@@ -412,7 +412,8 @@ const extractSaidaGalleryPhotos = (relatorio) => {
 };
 
 const QRCodesPage = ({ relatorio, photosCount }) => {
-  const galleryUrl = `${resolvePublicAppOrigin()}${createPageUrl(`GaleriaRelatorioSaida?relatorioId=${relatorio?.id}`)}`;
+  const galleryRoute = createPageUrl(`GaleriaRelatorioSaida?relatorioId=${relatorio?.id}`);
+  const galleryUrl = `${resolvePublicAppOrigin()}/#${galleryRoute}`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(galleryUrl)}`;
 
   return (
