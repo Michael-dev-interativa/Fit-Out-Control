@@ -9,10 +9,15 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import compression from 'compression';
+import { fileURLToPath } from 'url';
 // sharp will be imported dynamically when needed to avoid startup failure if not installed
 
 
 dotenv.config();
+
+// ESM polyfill for __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -6900,6 +6905,19 @@ app.get('/api/admin/db-tables', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
   }
+});
+
+// ---- Servir frontend estático (SPA) ----
+const distPath = path.join(__dirname, 'dist');
+app.use(express.static(distPath));
+
+// Fallback para SPA: redirecionar qualquer rota não-API para index.html (React Router vai lidar)
+app.get('*', (req, res) => {
+  // Não redirecionar se for uma rota de API que não foi tratada
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'not_found', path: req.path });
+  }
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 // ---- Iniciar servidor ----
