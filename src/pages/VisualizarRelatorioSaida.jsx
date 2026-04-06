@@ -230,6 +230,56 @@ const ContentPage = ({ sections }) => (
             </div>
           ) : secaoName === 'DECLARAÇÕES (1º VISTORIA)' ? (
             <DeclaracoesGrid items={items} />
+          ) : secaoName === 'DETALHAMENTO DAS ADEQUAÇÕES' ? (
+            <div className="border border-gray-300 rounded mb-3 text-xs overflow-hidden">
+              {items.map((item, idx) => {
+                if (item.tipo === 'descricao_geral') {
+                  return (
+                    <div key={idx} className="border-b border-gray-300 last:border-b-0">
+                      <div className="p-2 font-bold text-gray-800" style={{ backgroundColor: '#e8edf3' }}>{item.pergunta}</div>
+                      {item.resposta && item.resposta !== '-' && (
+                        <div className="p-2 bg-white text-gray-700 whitespace-pre-wrap" style={{ borderTop: '1px solid #d1d5db' }}>{item.resposta}</div>
+                      )}
+                    </div>
+                  );
+                }
+                const statusColor =
+                  item.resposta === 'Conforme' ? 'bg-green-100 text-green-800' :
+                  item.resposta === 'Pendente' ? 'bg-red-100 text-red-800' :
+                  item.resposta && item.resposta !== '-' ? 'bg-gray-100 text-gray-700' : null;
+                const hasDetails = (item.observacao && item.observacao.trim() !== '') || (item.fotos && item.fotos.length > 0);
+                return (
+                  <div key={idx} className="border-b border-gray-300 last:border-b-0">
+                    <div className="p-2 bg-gray-50 flex items-center justify-between" style={{ borderBottom: hasDetails ? '1px solid #e5e7eb' : 'none' }}>
+                      <span className="font-semibold text-gray-700">{item.pergunta}</span>
+                      {item.resposta && item.resposta !== '-' && statusColor && (
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold flex-shrink-0 ml-2 ${statusColor}`}>{item.resposta}</span>
+                      )}
+                    </div>
+                    {hasDetails && (
+                      <div className="p-2 bg-white">
+                        {item.observacao && item.observacao.trim() !== '' && (
+                          <div className="p-1 rounded mb-2" style={{ backgroundColor: '#f0f8ff' }}>
+                            <strong className="text-xs text-gray-700">Comentário:</strong>
+                            <p className="text-xs text-gray-600 whitespace-pre-wrap mt-1">{item.observacao}</p>
+                          </div>
+                        )}
+                        {item.fotos && item.fotos.length > 0 && (
+                          <div>
+                            <strong className="text-xs text-gray-700 block mb-2">Registro Fotográfico:</strong>
+                            <div className="grid grid-cols-2 gap-3">
+                              {item.fotos.map((foto, fIdx) => (
+                                <CompressedPhoto key={fIdx} url={typeof foto === 'string' ? foto : foto.url} legenda={foto.legenda} />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           ) : (
             <table className="w-full border-collapse border border-gray-300 text-xs mb-3">
               <tbody>
@@ -615,49 +665,53 @@ const processData = (relatorio, formulario) => {
     if (items.length > 0) allSections.push({ secaoName: secao.nome_secao, items });
   });
 
-  // 4. ADD DESCRIÇÃO GERAL DAS ADEQUAÇÕES
-  if (descricaoGeralData && Object.keys(descricaoGeralData).length > 0) {
-    const descItems = [];
+  // 4. ADD MERGED ADEQUAÇÕES (DESCRIÇÃO GERAL + DETALHAMENTO)
+  {
+    const mergedItems = [];
     for (let i = 1; i <= 15; i++) {
-      const texto = descricaoGeralData[`area_${i}`];
-      if (texto && texto.trim() !== '') {
-        descItems.push({
+      const areaKey = `area_${i}`;
+      const descText = descricaoGeralData?.[areaKey];
+      const areaDetData = detalhamentoData?.[areaKey];
+      const situacaoAtual = areaDetData?.situacao_atual;
+      const situacaoAdequada = areaDetData?.situacao_adequada;
+      const hasDescText = descText && String(descText).trim() !== '';
+      const hasSituacaoAtual = situacaoAtual && (situacaoAtual.status || situacaoAtual.fotos?.length > 0 || situacaoAtual.comentario);
+      const hasSituacaoAdequada = situacaoAdequada && (situacaoAdequada.status || situacaoAdequada.fotos?.length > 0 || situacaoAdequada.comentario);
+
+      if (!hasDescText && !hasSituacaoAtual && !hasSituacaoAdequada) continue;
+
+      if (hasDescText) {
+        mergedItems.push({
           pergunta: `ÁREA ${i} CONFORME PLANTA`,
-          resposta: texto,
+          resposta: String(descText),
           assinatura: null,
           observacao: '',
-          fotos: []
+          fotos: [],
+          tipo: 'descricao_geral',
+        });
+      }
+      if (hasSituacaoAtual) {
+        mergedItems.push({
+          pergunta: 'SITUAÇÃO ATUAL',
+          resposta: situacaoAtual.status || '-',
+          assinatura: null,
+          observacao: situacaoAtual.comentario || '',
+          fotos: situacaoAtual.fotos || [],
+          tipo: 'situacao',
+        });
+      }
+      if (hasSituacaoAdequada) {
+        mergedItems.push({
+          pergunta: 'SITUAÇÃO ADEQUADA',
+          resposta: situacaoAdequada.status || '-',
+          assinatura: null,
+          observacao: situacaoAdequada.comentario || '',
+          fotos: situacaoAdequada.fotos || [],
+          tipo: 'situacao',
         });
       }
     }
-    if (descItems.length > 0) allSections.push({ secaoName: 'DESCRIÇÃO GERAL DAS ADEQUAÇÕES', items: descItems });
-  }
-
-  // 5. ADD DETALHAMENTO DAS ADEQUAÇÕES
-  if (detalhamentoData && Object.keys(detalhamentoData).length > 0) {
-    const detItems = [];
-    for (let i = 1; i <= 15; i++) {
-      const areaKey = `area_${i}`;
-      const areaData = detalhamentoData[areaKey];
-      if (!areaData) continue;
-      const items = [
-        { label: `ÁREA ${i} CONFORME PLANTA`, key: 'conforme_planta' },
-        { label: `SITUAÇÃO ATUAL`, key: 'situacao_atual' },
-        { label: `SITUAÇÃO ADEQUADA`, key: 'situacao_adequada' }
-      ];
-      items.forEach(item => {
-        const itemData = areaData[item.key];
-        if (!itemData) return;
-        detItems.push({
-          pergunta: item.label,
-          resposta: itemData.status || '-',
-          assinatura: null,
-          observacao: itemData.comentario || '',
-          fotos: itemData.fotos || []
-        });
-      });
-    }
-    if (detItems.length > 0) allSections.push({ secaoName: 'DETALHAMENTO DAS ADEQUAÇÕES', items: detItems });
+    if (mergedItems.length > 0) allSections.push({ secaoName: 'DETALHAMENTO DAS ADEQUAÇÕES', items: mergedItems });
   }
 
   // 6. ADD DECLARAÇÕES (always last)
