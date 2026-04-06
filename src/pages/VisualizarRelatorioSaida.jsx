@@ -298,7 +298,6 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
         <div className="flex justify-between items-center border-b border-gray-200 bg-white" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: HEADER, zIndex: 100, padding: '4px 8px' }}>
           <img src={logo} alt="Logo" style={{ height: '32px', maxWidth: '120px', objectFit: 'contain' }} />
           <div className="text-right" style={{ flex: 1, paddingLeft: '8px' }}>
-            <h2 className="text-[10px] font-bold text-gray-800 uppercase truncate">{relatorio?.nome_relatorio || 'RELATÓRIO DE SAÍDA'}</h2>
             <p className="text-[9px] text-gray-600 truncate">{empreendimento?.nome_empreendimento} - {relatorio?.locatario}</p>
             <p className="text-[9px] font-medium text-gray-800">{relatorio?.data_saida ? format(new Date(relatorio.data_saida), 'dd/MM/yyyy', { locale: ptBR }) : ''}</p>
           </div>
