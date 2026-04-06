@@ -179,19 +179,19 @@ const ContentPage = ({ sections }) => (
             <div className="border border-gray-300 rounded mb-3 text-xs overflow-hidden">
               {items.map((item, idx) => (
                 <div key={idx} className="border-b border-gray-300 last:border-b-0">
-                  <div className="p-3 bg-gray-50 font-semibold text-gray-700 border-b border-gray-300 flex items-center justify-between">
-                    <span>{item.pergunta}</span>
+                  <div className="p-3 bg-gray-50 border-b border-gray-300">
+                    <p className="font-semibold text-gray-700 mb-2">{item.pergunta}</p>
                     {item.resposta && item.resposta !== '-' && ['Sim', 'Não'].includes(item.resposta) && (
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ml-2 flex-shrink-0 ${
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
                         item.resposta === 'Sim' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>{item.resposta}</span>
                     )}
                   </div>
-                  <div className="p-3">
-                    {item.observacao && item.observacao.trim() !== '' && (
+                  {item.observacao && item.observacao.trim() !== '' && (
+                    <div className="p-3">
                       <p className="text-gray-600" style={{ fontStyle: 'italic' }}>{item.observacao}</p>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
