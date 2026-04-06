@@ -351,6 +351,22 @@ const estimateDadosPageHeightPx = (relatorio) => {
   return Math.min(340, height);
 };
 
+const measureChecklistInicialItemHeight = (item) => {
+  let height = 58; // pergunta (linha branca)
+
+  if (item?.resposta && item.resposta !== '-' && ['Sim', 'Não'].includes(item.resposta)) {
+    height += 44; // resposta (linha cinza + badge)
+  }
+
+  if (item?.observacao && item.observacao.trim() !== '') {
+    const obsLines = Math.max(1, Math.ceil(String(item.observacao).length / 95));
+    height += 24 + (obsLines * 16);
+  }
+
+  // Buffer para bordas/margens e variações de fonte no print.
+  return height + 12;
+};
+
 const paginateSaidaContent = (sections, opts = {}) => {
   const MAX_PHOTOS_PER_ITEM_WITH_TEXT = 4;
   const MAX_PHOTOS_PER_PHOTO_ONLY_ITEM = 4;
@@ -395,11 +411,17 @@ const paginateSaidaContent = (sections, opts = {}) => {
       return;
     }
 
+    const isInitialChecklistSection = section.secaoName === 'CHECK-LIST INICIAL DE VISTORIA';
+
     items.forEach((item) => {
+      const estimatedHeight = isInitialChecklistSection
+        ? measureChecklistInicialItemHeight(item)
+        : measureItemHeight(item);
+
       blocks.push({
         secaoName: section.secaoName,
         items: [item],
-        estimatedHeightPx: Math.max(40, Number(measureItemHeight(item)) || 100),
+        estimatedHeightPx: Math.max(56, Number(estimatedHeight) || 100),
       });
     });
   });
