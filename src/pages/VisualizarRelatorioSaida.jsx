@@ -60,9 +60,6 @@ const CoverPage = ({ relatorio, empreendimento, unidade }) => {
         <span className="font-normal" style={{ fontSize: '60px', fontFamily: "'Inter', sans-serif", color: 'white' }}>{year}</span>
       </div>
       <div className="absolute z-30" style={{ top: '8%', right: '8%', width: '50%', textAlign: 'right' }}>
-        {relatorio?.nome_relatorio && (
-          <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: '24px', fontWeight: '600', color: '#000000', lineHeight: '1.2', marginBottom: '8px' }}>{relatorio.nome_relatorio}</h1>
-        )}
         <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: '64px', fontWeight: 'bold', color: '#394557', lineHeight: '1.1' }}>RELATÓRIO</h1>
         <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '29.5px', color: redColor, letterSpacing: '4px' }}>{relatorio?.subtitulo_capa || 'SAÍDA DE LOCATÁRIO'}</h2>
       </div>
@@ -335,11 +332,26 @@ const CHECKLIST_KEYS = [
   { pergunta: 'Pavimento deverá ser retornado em "conjunto", sendo que as instalações devem ser adequadas para não atravessarem a parede de divisão?', key: 'retorno_conjunto' },
 ];
 
-const paginateSaidaContent = (sections) => {
+const SECTION_HEADER_HEIGHT_PX = 50;
+const SECTION_CONTENT_PADDING_PX = 12;
+
+const estimateDadosPageHeightPx = (relatorio) => {
+  let height = 220;
+
+  if (relatorio?.representantes) {
+    height += 22 + (Math.ceil(String(relatorio.representantes).length / 110) * 16);
+  }
+
+  if (relatorio?.texto_os_proposta) {
+    height += 22 + (Math.ceil(String(relatorio.texto_os_proposta).length / 110) * 16);
+  }
+
+  return Math.min(340, height);
+};
+
+const paginateSaidaContent = (sections, opts = {}) => {
   const MAX_PHOTOS_PER_ITEM_WITH_TEXT = 4;
   const MAX_PHOTOS_PER_PHOTO_ONLY_ITEM = 4;
-  const MAX_CHUNK_HEIGHT = 620;
-  const SECTION_HEADER_H = 50;
   const blocks = [];
 
   (sections || []).forEach((section) => {
@@ -381,33 +393,13 @@ const paginateSaidaContent = (sections) => {
       return;
     }
 
-    let chunk = [];
-    let chunkHeight = 0;
-
     items.forEach((item) => {
-      const itemHeight = Math.max(40, Number(measureItemHeight(item)) || 100);
-
-      if (chunk.length > 0 && chunkHeight + itemHeight > MAX_CHUNK_HEIGHT) {
-        blocks.push({
-          secaoName: section.secaoName,
-          items: chunk,
-          estimatedHeightPx: SECTION_HEADER_H + chunkHeight + 12,
-        });
-        chunk = [];
-        chunkHeight = 0;
-      }
-
-      chunk.push(item);
-      chunkHeight += itemHeight;
-    });
-
-    if (chunk.length > 0) {
       blocks.push({
         secaoName: section.secaoName,
-        items: chunk,
-        estimatedHeightPx: SECTION_HEADER_H + chunkHeight + 12,
+        items: [item],
+        estimatedHeightPx: Math.max(40, Number(measureItemHeight(item)) || 100),
       });
-    }
+    });
   });
 
   const pages = paginateBlocksForPrinting(blocks, {
@@ -418,20 +410,38 @@ const paginateSaidaContent = (sections) => {
     footerGuardPx: 24,
     breakBeforeLimitPx: 20,
     // First content page shares space with DadosPage.
-    firstPageExtraHeightPx: 155,
+    firstPageExtraHeightPx: opts.firstPageExtraHeightPx ?? 155,
     defaultBlockHeightPx: 180,
-    measureBlockHeight: (block) => {
+    measureBlockHeight: (block, { currentPage = [] } = {}) => {
       if (block?.keepTogether) return block.estimatedHeightPx || 420;
-      return Number(block?.estimatedHeightPx) || 180;
+
+      const previousBlock = currentPage[currentPage.length - 1];
+      const startsSectionOnPage = !previousBlock || previousBlock.secaoName !== block.secaoName;
+      const headerHeight = startsSectionOnPage ? SECTION_HEADER_HEIGHT_PX : 0;
+      const paddingHeight = startsSectionOnPage ? SECTION_CONTENT_PADDING_PX : 0;
+
+      return headerHeight + paddingHeight + (Number(block?.estimatedHeightPx) || 180);
     },
   });
 
-  return pages.map((pageBlocks) =>
-    (pageBlocks || []).map((block) => ({
-      secaoName: block.secaoName,
-      items: block.items,
-    }))
-  );
+  return pages.map((pageBlocks) => {
+    const groupedSections = [];
+
+    (pageBlocks || []).forEach((block) => {
+      const lastSection = groupedSections[groupedSections.length - 1];
+      if (lastSection && lastSection.secaoName === block.secaoName) {
+        lastSection.items.push(...(block.items || []));
+        return;
+      }
+
+      groupedSections.push({
+        secaoName: block.secaoName,
+        items: [...(block.items || [])],
+      });
+    });
+
+    return groupedSections;
+  });
 };
 
 const measureItemHeight = (item) => {
@@ -444,7 +454,7 @@ const measureItemHeight = (item) => {
     h += Math.ceil((item.pergunta?.length || 0) / 80) * 16;
     h += Math.ceil((item.resposta?.length || 0) / 80) * 16;
     if (item.observacao?.trim()) h += 30 + Math.ceil(item.observacao.length / 80) * 16;
-    if (item.fotos?.length) h += Math.ceil(item.fotos.length / 2) * 160;
+    if (item.fotos?.length) h += Math.ceil(item.fotos.length / 2) * 244;
     if (item.assinatura) h += 70;
     return h;
   }
@@ -460,11 +470,11 @@ const measureItemHeight = (item) => {
     respCell = `<span style="white-space:pre-wrap;word-break:break-word">${esc(item.resposta)}</span>`;
   }
   if (item.observacao?.trim()) {
-    respCell += `<div style="margin-top:6px;padding:4px 6px;background:#f0f8ff;font-size:11px;"><strong>Commentário:</strong> ${esc(item.observacao)}</div>`;
+    respCell += `<div style="margin-top:6px;padding:4px 6px;background:#f0f8ff;font-size:11px;"><strong>Comentário:</strong> ${esc(item.observacao)}</div>`;
   }
   if (item.fotos?.length) {
     respCell += `<div style="margin-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">`;
-    item.fotos.forEach(() => { respCell += `<div style="height:300px;background:#eee;"></div>`; });
+    item.fotos.forEach(() => { respCell += `<div style="height:236px;background:#eee;"></div>`; });
     respCell += `</div>`;
   }
   inner += `<tr><td style="padding:6px 8px;border:1px solid #d1d5db;">${respCell}</td></tr>`;
@@ -711,7 +721,9 @@ export default function VisualizarRelatorioSaida() {
     if (!relatorio || !formulario) return;
     const timer = setTimeout(() => {
       const allSections = processData(relatorio, formulario);
-      setContentPages(paginateSaidaContent(allSections));
+      setContentPages(paginateSaidaContent(allSections, {
+        firstPageExtraHeightPx: estimateDadosPageHeightPx(relatorio),
+      }));
     }, 100);
     return () => clearTimeout(timer);
   }, [relatorio, formulario]);

@@ -58,23 +58,31 @@ export function paginateBlocksForPrinting(blocks = [], opts = {}) {
   };
 
   const getBottomLimit = (isFirstPage) => Math.max(120, getUsableHeight(isFirstPage) - FOOTER_GUARD_PX);
+  const getMeasuredBlockHeight = (block, index, isFirstPage, currentPage, currentHeight) => Math.max(
+    24,
+    Number(MEASURE_BLOCK(block, { index, isFirstPage, currentPage, currentHeight })) || DEFAULT_BLOCK_HEIGHT_PX,
+  );
 
   const pages = [];
   let currentPage = [];
   let currentHeight = 0;
 
   safeBlocks.forEach((block, index) => {
-    const isFirstPage = pages.length === 0;
-    const bottomLimit = getBottomLimit(isFirstPage);
-    const blockHeight = Math.max(24, Number(MEASURE_BLOCK(block, { index, isFirstPage, currentPage, currentHeight })) || DEFAULT_BLOCK_HEIGHT_PX);
-    const projectedHeight = currentHeight + blockHeight;
-    const remainingAfterProjection = bottomLimit - projectedHeight;
+    let isFirstPage = pages.length === 0;
+    let bottomLimit = getBottomLimit(isFirstPage);
+    let blockHeight = getMeasuredBlockHeight(block, index, isFirstPage, currentPage, currentHeight);
+    let projectedHeight = currentHeight + blockHeight;
+    let remainingAfterProjection = bottomLimit - projectedHeight;
     const forceBreak = currentPage.length > 0 && (projectedHeight > bottomLimit || remainingAfterProjection < BREAK_BEFORE_LIMIT_PX || block.breakBefore === true);
 
     if (forceBreak) {
       pages.push(currentPage);
       currentPage = [];
       currentHeight = 0;
+
+      isFirstPage = pages.length === 0;
+      bottomLimit = getBottomLimit(isFirstPage);
+      blockHeight = getMeasuredBlockHeight(block, index, isFirstPage, currentPage, currentHeight);
     }
 
     currentPage.push(block);
