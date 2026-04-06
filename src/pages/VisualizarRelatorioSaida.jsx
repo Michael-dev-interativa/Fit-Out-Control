@@ -6,6 +6,7 @@ import { ptBR } from 'date-fns/locale';
 import { ArrowLeft, Loader2, AlertTriangle, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { paginateBlocksForPrinting } from '@/lib/reportPagination';
+import { createPageUrl } from '@/utils';
 
 const isValidId = (id) => id && String(id).trim() !== '' && !['null', 'undefined'].includes(String(id).toLowerCase());
 
@@ -343,6 +344,74 @@ const ContentPage = ({ sections }) => (
     })}
   </div>
 );
+
+const extractSaidaGalleryPhotos = (relatorio) => {
+  if (!relatorio) return [];
+
+  const photos = [];
+
+  let fotosSecoes = relatorio.fotos_secoes;
+  if (typeof fotosSecoes === 'string') {
+    try { fotosSecoes = JSON.parse(fotosSecoes); } catch { fotosSecoes = {}; }
+  }
+  if (fotosSecoes && typeof fotosSecoes === 'object') {
+    Object.values(fotosSecoes).forEach((fotos) => {
+      if (!Array.isArray(fotos)) return;
+      fotos.forEach((foto) => {
+        const url = typeof foto === 'string' ? foto : foto?.url;
+        if (!url) return;
+        photos.push({ url, legenda: typeof foto === 'object' ? foto?.legenda || '' : '' });
+      });
+    });
+  }
+
+  let detalhamento = relatorio.detalhamento_adequacoes;
+  if (typeof detalhamento === 'string') {
+    try { detalhamento = JSON.parse(detalhamento); } catch { detalhamento = {}; }
+  }
+  if (detalhamento && typeof detalhamento === 'object') {
+    Object.values(detalhamento).forEach((areaData) => {
+      ['situacao_atual', 'situacao_adequada'].forEach((key) => {
+        const fotos = areaData?.[key]?.fotos;
+        if (!Array.isArray(fotos)) return;
+        fotos.forEach((foto) => {
+          const url = typeof foto === 'string' ? foto : foto?.url;
+          if (!url) return;
+          photos.push({ url, legenda: typeof foto === 'object' ? foto?.legenda || '' : '' });
+        });
+      });
+    });
+  }
+
+  return photos;
+};
+
+const QRCodesPage = ({ relatorio, photosCount }) => {
+  const galleryUrl = `${window.location.origin}${createPageUrl(`GaleriaRelatorioSaida?relatorioId=${relatorio?.id}`)}`;
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(galleryUrl)}`;
+
+  return (
+    <div className="p-8 flex flex-col items-center justify-center h-full">
+      <h2 className="text-2xl font-bold text-gray-800 mb-8 text-center">Galeria de Imagens do Relatório</h2>
+
+      <div className="text-center bg-white p-8 rounded-lg shadow-lg border-2 border-gray-200 max-w-md">
+        <img src={qrCodeUrl} alt="QR Code - Galeria de Imagens" className="w-72 h-72 mx-auto mb-6 rounded-lg border" />
+
+        <h2 className="text-2xl font-bold mb-2">Acesse a Galeria Completa</h2>
+        <p className="text-gray-600 mb-6 border-b pb-4">{photosCount} imagens do relatório</p>
+
+        <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6">
+          <p><strong>Escaneie o QR Code</strong> para acessar a galeria completa com todas as imagens do relatório em alta resolução.</p>
+        </div>
+
+        <div className="bg-gray-50 p-3 rounded-lg text-left">
+          <p className="text-xs font-semibold text-gray-700 mb-2">Link da galeria:</p>
+          <p className="text-xs text-gray-600 break-all">{galleryUrl}</p>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreendimento }) => {
   const logo = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png");
@@ -812,7 +881,10 @@ export default function VisualizarRelatorioSaida() {
     return () => clearTimeout(timer);
   }, [relatorio, formulario]);
 
-  const totalPages = 1 + Math.max(1, contentPages.length); // cover + (dados+content[0]) + content[1..n]
+  const galleryPhotos = extractSaidaGalleryPhotos(relatorio);
+  const hasGalleryPhotos = galleryPhotos.length > 0;
+  const contentPageCount = Math.max(1, contentPages.length);
+  const totalPages = 1 + contentPageCount + (hasGalleryPhotos ? 1 : 0); // cover + content + optional QR page
 
   const handlePrint = async () => {
     await new Promise(r => setTimeout(r, 50));
@@ -862,6 +934,17 @@ export default function VisualizarRelatorioSaida() {
             <ContentPage sections={sections} />
           </ReportPageLayout>
         ))}
+
+        {hasGalleryPhotos && (
+          <ReportPageLayout
+            pageNumber={2 + contentPageCount}
+            totalPages={totalPages}
+            relatorio={relatorio}
+            empreendimento={empreendimento}
+          >
+            <QRCodesPage relatorio={relatorio} photosCount={galleryPhotos.length} />
+          </ReportPageLayout>
+        )}
       </div>
 
       <style>{`
