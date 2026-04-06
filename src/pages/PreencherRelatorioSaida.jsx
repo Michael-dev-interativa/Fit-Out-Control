@@ -1558,28 +1558,6 @@ export default function PreencherRelatorioSaida({ language = 'pt', theme = 'ligh
                           </div>
                   {secao.nome_secao?.toUpperCase().includes('DOCUMENTAÇÃO') && (
                    <>
-                   <div className={`p-4 rounded-lg border-2 border-blue-200 ${isDark ? 'bg-gray-700/50' : 'bg-blue-50'}`}>
-                     <h3 className={`text-lg font-semibold mb-4 flex items-center gap-2 ${isDark ? 'text-white' : ''}`}>
-                       <ListChecks className="w-5 h-5" /> DESCRIÇÃO GERAL DAS ADEQUAÇÕES
-                     </h3>
-                     <div className="space-y-4">
-                       {Array.from({ length: 15 }, (_, i) => i + 1).map((areaNum) => (
-                         <div key={`desc_area_${areaNum}`} className="space-y-2">
-                           <Label className={`block font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>ÁREA {areaNum} CONFORME PLANTA</Label>
-                           <Textarea
-                             placeholder={`Descrição geral da área ${areaNum}...`}
-                             value={descricaoGeralAdequacoes[`area_${areaNum}`] || ''}
-                             onChange={(e) => setDescricaoGeralAdequacoes(prev => ({
-                               ...prev,
-                               [`area_${areaNum}`]: e.target.value
-                             }))}
-                             className={`${isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}`}
-                             rows={3}
-                           />
-                         </div>
-                       ))}
-                     </div>
-                   </div>
                   <div className={`p-4 rounded-lg border-2 border-green-200 ${isDark ? 'bg-gray-700/50' : 'bg-green-50'}`}>
                     <h3 className={`text-lg font-semibold mb-4 flex items-center gap-2 ${isDark ? 'text-white' : ''}`}>
                       <ListChecks className="w-5 h-5" /> DETALHAMENTO DAS ADEQUAÇÕES
