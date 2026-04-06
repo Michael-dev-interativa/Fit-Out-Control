@@ -24,6 +24,8 @@ services:
     envVars:
       - key: VITE_API_URL
         value: https://backend-fitout.onrender.com
+      - key: VITE_PUBLIC_APP_URL
+        value: https://front-fitout.onrender.com
     routes:
       - type: rewrite
         source: /*

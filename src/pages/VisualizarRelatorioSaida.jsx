@@ -13,6 +13,31 @@ const isValidId = (id) => id && String(id).trim() !== '' && !['null', 'undefined
 const blueColor = '#2A3E84';
 const redColor = '#CE2D2D';
 
+const resolvePublicAppOrigin = () => {
+  const fallbackPublicOrigin = 'https://front-fitout.onrender.com';
+
+  const envOrigin = import.meta.env.VITE_PUBLIC_APP_URL;
+  if (typeof envOrigin === 'string' && envOrigin.trim() !== '') {
+    return envOrigin.replace(/\/$/, '');
+  }
+
+  const currentOrigin = window.location.origin;
+  const host = window.location.hostname || '';
+
+  const isLocalOrPrivateHost =
+    host === 'localhost' ||
+    host === '127.0.0.1' ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(host);
+
+  if (currentOrigin.includes('backend-fitout.onrender.com') || isLocalOrPrivateHost) {
+    return fallbackPublicOrigin;
+  }
+
+  return currentOrigin;
+};
+
 const compressImage = (url, maxWidth = 800, quality = 0.7) => {
   return new Promise((resolve) => {
     if (!url || typeof url !== 'string' || url.startsWith('data:image')) { resolve(url); return; }
@@ -387,7 +412,7 @@ const extractSaidaGalleryPhotos = (relatorio) => {
 };
 
 const QRCodesPage = ({ relatorio, photosCount }) => {
-  const galleryUrl = `${window.location.origin}${createPageUrl(`GaleriaRelatorioSaida?relatorioId=${relatorio?.id}`)}`;
+  const galleryUrl = `${resolvePublicAppOrigin()}${createPageUrl(`GaleriaRelatorioSaida?relatorioId=${relatorio?.id}`)}`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(galleryUrl)}`;
 
   return (
