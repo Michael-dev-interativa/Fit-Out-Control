@@ -1580,67 +1580,96 @@ export default function PreencherRelatorioSaida({ language = 'pt', theme = 'ligh
                        ))}
                      </div>
                    </div>
-                   <div className={`p-4 rounded-lg border-2 border-green-200 ${isDark ? 'bg-gray-700/50' : 'bg-green-50'}`}>
-                     <h3 className={`text-lg font-semibold mb-4 flex items-center gap-2 ${isDark ? 'text-white' : ''}`}>
-                       <ListChecks className="w-5 h-5" /> DETALHAMENTO DAS ADEQUAÇÕES
-                     </h3>
-                     <div className="space-y-4">
-                       {Array.from({ length: 15 }, (_, i) => i + 1).map((areaNum) => {
-                         const areaKey = `area_${areaNum}`;
-                         const areaData = detalhamentoAdequacoes[areaKey] || {};
-                         const items = [
-                           { label: `ÁREA ${areaNum} CONFORME PLANTA`, key: 'conforme_planta' },
-                           { label: `SITUAÇÃO ATUAL`, key: 'situacao_atual' },
-                           { label: `SITUAÇÃO ADEQUADA`, key: 'situacao_adequada' }
-                         ];
-                         return (
-                           <div key={areaKey} className={`p-4 rounded-lg border ${isDark ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
-                             {items.map((item) => {
-                               const itemData = areaData[item.key] || { status: '', comentario: '', fotos: [] };
-                               const photoKey = `${areaKey}_${item.key}_fotos`;
-                               const currentPhotos = itemData.fotos || [];
-                               const isUploading = uploadingPhotos[photoKey];
-                               return (
-                                 <div key={item.key} className="space-y-3 mb-3">
-                                   <Label className={`block font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{item.label}</Label>
-                                   <div className="flex items-center gap-2">
-                                     <div className="flex-1">
-                                       <Select
-                                         value={itemData.status || ''}
-                                         onValueChange={(v) => setDetalhamentoAdequacoes(prev => ({
-                                           ...prev,
-                                           [areaKey]: { ...prev[areaKey], [item.key]: { ...itemData, status: v } }
-                                         }))}
-                                       >
-                                         <SelectTrigger className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}>
-                                           <SelectValue placeholder={t.chooseOption} />
-                                         </SelectTrigger>
-                                         <SelectContent>
-                                           <SelectItem value="Conforme"><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800">Conforme</span></SelectItem>
-                                           <SelectItem value="Pendente"><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-800">Pendente</span></SelectItem>
-                                           <SelectItem value="N/A"><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-700">N/A</span></SelectItem>
-                                         </SelectContent>
-                                       </Select>
-                                     </div>
-                                     {itemData.status && (
-                                       <button type="button" onClick={() => setDetalhamentoAdequacoes(prev => ({
-                                         ...prev,
-                                         [areaKey]: { ...prev[areaKey], [item.key]: { ...itemData, status: '' } }
-                                       }))} className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600">
-                                         <X className="w-4 h-4" />
-                                       </button>
-                                     )}
-                                   </div>
-                                   <Textarea
-                                     placeholder="Comentário"
-                                     value={itemData.comentario || ''}
-                                     onChange={(e) => setDetalhamentoAdequacoes(prev => ({
-                                       ...prev,
-                                       [areaKey]: { ...prev[areaKey], [item.key]: { ...itemData, comentario: e.target.value } }
-                                     }))}
-                                     className={`mt-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}`}
-                                     rows={2}
-                                   />
+                  <div className={`p-4 rounded-lg border-2 border-green-200 ${isDark ? 'bg-gray-700/50' : 'bg-green-50'}`}>
+                    <h3 className={`text-lg font-semibold mb-4 flex items-center gap-2 ${isDark ? 'text-white' : ''}`}>
+                      <ListChecks className="w-5 h-5" /> DETALHAMENTO DAS ADEQUAÇÕES
+                    </h3>
+                    <div className="space-y-4">
+                      {Array.from({ length: 15 }, (_, i) => i + 1).map((areaNum) => {
+                        const areaKey = `area_${areaNum}`;
+                        const areaData = detalhamentoAdequacoes[areaKey] || {};
+                        const situacaoItems = [
+                          { label: 'SITUAÇÃO ATUAL', key: 'situacao_atual' },
+                          { label: 'SITUAÇÃO ADEQUADA', key: 'situacao_adequada' }
+                        ];
+                        return (
+                          <div key={areaKey} className={`p-4 rounded-lg border ${isDark ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
+                            {/* ÁREA X CONFORME PLANTA header */}
+                            <p className={`font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-800'}`}>ÁREA {areaNum} CONFORME PLANTA</p>
+                            {/* Título da Área */}
+                            <div className="space-y-1 mb-3">
+                              <Label className={`block text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Título da Área</Label>
+                              <Input
+                                placeholder={`Ex: HALL DOS ELEVADORES`}
+                                value={areaData.titulo || ''}
+                                onChange={(e) => setDetalhamentoAdequacoes(prev => ({
+                                  ...prev,
+                                  [areaKey]: { ...prev[areaKey], titulo: e.target.value }
+                                }))}
+                                className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}
+                              />
+                            </div>
+                            {/* Comentário Geral */}
+                            <div className="space-y-1 mb-4">
+                              <Label className={`block text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Comentário Geral</Label>
+                              <Textarea
+                                placeholder={`Descrição geral da área ${areaNum}...`}
+                                value={descricaoGeralAdequacoes[areaKey] || ''}
+                                onChange={(e) => setDescricaoGeralAdequacoes(prev => ({
+                                  ...prev,
+                                  [areaKey]: e.target.value
+                                }))}
+                                className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}
+                                rows={3}
+                              />
+                            </div>
+                            {/* SITUAÇÃO ATUAL + SITUAÇÃO ADEQUADA */}
+                            {situacaoItems.map((item) => {
+                              const itemData = areaData[item.key] || { status: '', comentario: '', fotos: [] };
+                              const photoKey = `${areaKey}_${item.key}_fotos`;
+                              const currentPhotos = itemData.fotos || [];
+                              const isUploading = uploadingPhotos[photoKey];
+                              return (
+                                <div key={item.key} className="space-y-3 mb-3">
+                                  <Label className={`block font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{item.label}</Label>
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex-1">
+                                      <Select
+                                        value={itemData.status || ''}
+                                        onValueChange={(v) => setDetalhamentoAdequacoes(prev => ({
+                                          ...prev,
+                                          [areaKey]: { ...prev[areaKey], [item.key]: { ...itemData, status: v } }
+                                        }))}
+                                      >
+                                        <SelectTrigger className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}>
+                                          <SelectValue placeholder={t.chooseOption} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="Conforme"><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800">Conforme</span></SelectItem>
+                                          <SelectItem value="Pendente"><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-800">Pendente</span></SelectItem>
+                                          <SelectItem value="N/A"><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-700">N/A</span></SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    {itemData.status && (
+                                      <button type="button" onClick={() => setDetalhamentoAdequacoes(prev => ({
+                                        ...prev,
+                                        [areaKey]: { ...prev[areaKey], [item.key]: { ...itemData, status: '' } }
+                                      }))} className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600">
+                                        <X className="w-4 h-4" />
+                                      </button>
+                                    )}
+                                  </div>
+                                  <Textarea
+                                    placeholder="Comentário"
+                                    value={itemData.comentario || ''}
+                                    onChange={(e) => setDetalhamentoAdequacoes(prev => ({
+                                      ...prev,
+                                      [areaKey]: { ...prev[areaKey], [item.key]: { ...itemData, comentario: e.target.value } }
+                                    }))}
+                                    className={`mt-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}`}
+                                    rows={2}
+                                  />
                                    <div className={`p-3 rounded-lg border ${isDark ? 'border-gray-600 bg-gray-700/30' : 'border-gray-200 bg-gray-50'}`}>
                                      <div className="flex items-center justify-between mb-2">
                                        <h5 className={`text-sm font-medium flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>

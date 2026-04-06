@@ -237,8 +237,17 @@ const ContentPage = ({ sections }) => (
                   return (
                     <div key={idx} className="border-b border-gray-300 last:border-b-0">
                       <div className="p-2 font-bold text-gray-800" style={{ backgroundColor: '#e8edf3' }}>{item.pergunta}</div>
-                      {item.resposta && item.resposta !== '-' && (
-                        <div className="p-2 bg-white text-gray-700 whitespace-pre-wrap" style={{ borderTop: '1px solid #d1d5db' }}>{item.resposta}</div>
+                      {item.titulo && item.titulo !== '' && (
+                        <div className="px-3 pt-2 pb-1">
+                          <p className="text-xs text-gray-500 font-medium mb-0.5">Título da Área</p>
+                          <p className="text-sm font-semibold text-gray-800">{item.titulo}</p>
+                        </div>
+                      )}
+                      {item.resposta && item.resposta.trim() !== '' && (
+                        <div className="px-3 pt-1 pb-2" style={{ borderTop: (item.titulo && item.titulo !== '') ? '1px solid #e5e7eb' : 'none' }}>
+                          <p className="text-xs text-gray-500 font-medium mb-0.5">Comentário Geral</p>
+                          <p className="text-xs text-gray-700 whitespace-pre-wrap">{item.resposta}</p>
+                        </div>
                       )}
                     </div>
                   );
@@ -678,18 +687,21 @@ const processData = (relatorio, formulario) => {
       const hasSituacaoAtual = situacaoAtual && (situacaoAtual.status || situacaoAtual.fotos?.length > 0 || situacaoAtual.comentario);
       const hasSituacaoAdequada = situacaoAdequada && (situacaoAdequada.status || situacaoAdequada.fotos?.length > 0 || situacaoAdequada.comentario);
 
-      if (!hasDescText && !hasSituacaoAtual && !hasSituacaoAdequada) continue;
+      const tituloArea = areaDetData?.titulo ? String(areaDetData.titulo).trim() : '';
+      const hasTitulo = tituloArea !== '';
 
-      if (hasDescText) {
-        mergedItems.push({
-          pergunta: `ÁREA ${i} CONFORME PLANTA`,
-          resposta: String(descText),
-          assinatura: null,
-          observacao: '',
-          fotos: [],
-          tipo: 'descricao_geral',
-        });
-      }
+      if (!hasDescText && !hasTitulo && !hasSituacaoAtual && !hasSituacaoAdequada) continue;
+
+      mergedItems.push({
+        pergunta: `ÁREA ${i} CONFORME PLANTA`,
+        resposta: String(descText || ''),
+        titulo: tituloArea,
+        assinatura: null,
+        observacao: '',
+        fotos: [],
+        tipo: 'descricao_geral',
+      });
+
       if (hasSituacaoAtual) {
         mergedItems.push({
           pergunta: 'SITUAÇÃO ATUAL',
