@@ -329,12 +329,6 @@ export default function Layout({ children }) {
         adminOnly: true
       },
       {
-        title: t.forms,
-        url: createPageUrl("GerenciarFormularios"),
-        icon: FileText,
-        adminOnly: true
-      },
-      {
         title: t.standardActivities,
         url: createPageUrl("AtividadesPadrao"),
         icon: ListChecks,
