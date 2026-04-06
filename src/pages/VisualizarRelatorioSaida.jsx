@@ -179,19 +179,19 @@ const ContentPage = ({ sections }) => (
             <div className="border border-gray-300 rounded mb-3 text-xs overflow-hidden">
               {items.map((item, idx) => (
                 <div key={idx} className="border-b border-gray-300 last:border-b-0">
-                  <div className="p-3 bg-gray-50 border-b border-gray-300">
-                    <p className="font-semibold text-gray-700 mb-2">{item.pergunta}</p>
-                    {item.resposta && item.resposta !== '-' && ['Sim', 'Não'].includes(item.resposta) && (
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-gray-500 font-medium">Resposta:</span>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
-                          item.resposta === 'Sim' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>{item.resposta}</span>
-                      </div>
-                    )}
+                  <div className="p-3 bg-white">
+                    <p className="font-semibold text-gray-700">{item.pergunta}</p>
                   </div>
+                  {item.resposta && item.resposta !== '-' && ['Sim', 'Não'].includes(item.resposta) && (
+                    <div className="p-3 bg-gray-100 border-t border-gray-300 flex items-center gap-2">
+                      <span className="text-xs text-gray-500 font-medium">Resposta:</span>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
+                        item.resposta === 'Sim' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>{item.resposta}</span>
+                    </div>
+                  )}
                   {item.observacao && item.observacao.trim() !== '' && (
-                    <div className="p-3">
+                    <div className="p-3 bg-gray-50 border-t border-gray-200">
                       <p className="text-gray-600" style={{ fontStyle: 'italic' }}>{item.observacao}</p>
                     </div>
                   )}
