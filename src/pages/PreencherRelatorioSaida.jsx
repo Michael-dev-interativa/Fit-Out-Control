@@ -164,6 +164,7 @@ const translations = {
     generalInfo: "Informações Gerais do Relatório",
     reportNamePlaceholder: "Ex: Saída Locatário - Janeiro 2026",
     exitDate: "Data da 1ª Vistoria",
+    secondInspectionDate: "Data da 2ª Vistoria",
     reportDate: "Data do Envio do Relatório",
     chooseOption: "Escolha uma opção...",
     fillField: "Preencha este campo",
@@ -212,6 +213,7 @@ const translations = {
     generalInfo: "General Report Information",
     reportNamePlaceholder: "Ex: Tenant Exit - January 2026",
     exitDate: "Date of 1st Inspection",
+    secondInspectionDate: "Date of 2nd Inspection",
     reportDate: "Report Send Date",
     chooseOption: "Choose an option...",
     fillField: "Fill this field",
@@ -607,6 +609,7 @@ export default function PreencherRelatorioSaida({ language = 'pt', theme = 'ligh
   const [nomeArquivo, setNomeArquivo] = useState('');
   const [consultorResponsavel, setConsultorResponsavel] = useState('');
   const [dataSaida, setDataSaida] = useState(new Date().toISOString().substring(0, 10));
+  const [dataSegundaVistoria, setDataSegundaVistoria] = useState('');
   const [dataRelatorio, setDataRelatorio] = useState(new Date().toISOString().substring(0, 10));
   const [locatario, setLocatario] = useState('');
   const [subtituloCapa, setSubtituloCapa] = useState('SAÍDA DE LOCATÁRIO');
@@ -702,6 +705,9 @@ export default function PreencherRelatorioSaida({ language = 'pt', theme = 'ligh
       setConsultorResponsavel(relatorioData.consultor_responsavel || '');
       if (relatorioData.data_saida) {
         setDataSaida(new Date(relatorioData.data_saida).toISOString().substring(0, 10)); 
+      }
+      if (relatorioData.data_segunda_vistoria) {
+        setDataSegundaVistoria(new Date(relatorioData.data_segunda_vistoria).toISOString().substring(0, 10));
       }
       if (relatorioData.data_relatorio) {
         setDataRelatorio(new Date(relatorioData.data_relatorio).toISOString().substring(0, 10));
@@ -1064,6 +1070,7 @@ export default function PreencherRelatorioSaida({ language = 'pt', theme = 'ligh
         return d.toISOString();
       };
       const dataSaidaIso = parseDateSafe(dataSaida);
+      const dataSegundaVistoriaIso = parseDateSafe(dataSegundaVistoria);
       const dataRelatorioIso = parseDateSafe(dataRelatorio);
 
       const dataToSave = {
@@ -1074,6 +1081,7 @@ export default function PreencherRelatorioSaida({ language = 'pt', theme = 'ligh
         nome_relatorio: nomeRelatorio,
         nome_arquivo: nomeArquivo,
         data_saida: dataSaidaIso,
+        data_segunda_vistoria: dataSegundaVistoriaIso,
         data_relatorio: dataRelatorioIso,
         consultor_responsavel: consultorResponsavel,
         locatario: locatario,
@@ -1480,15 +1488,27 @@ export default function PreencherRelatorioSaida({ language = 'pt', theme = 'ligh
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="data_saida" className={isDark ? 'text-gray-300' : ''}>{t.exitDate}</Label>
-                <Input
-                  id="data_saida"
-                  type="date"
-                  value={dataSaida}
-                  onChange={(e) => setDataSaida(e.target.value)}
-                  className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}
-                />
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="data_saida" className={isDark ? 'text-gray-300' : ''}>{t.exitDate}</Label>
+                  <Input
+                    id="data_saida"
+                    type="date"
+                    value={dataSaida}
+                    onChange={(e) => setDataSaida(e.target.value)}
+                    className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="data_segunda_vistoria" className={isDark ? 'text-gray-300' : ''}>{t.secondInspectionDate}</Label>
+                  <Input
+                    id="data_segunda_vistoria"
+                    type="date"
+                    value={dataSegundaVistoria}
+                    onChange={(e) => setDataSegundaVistoria(e.target.value)}
+                    className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="data_relatorio" className={isDark ? 'text-gray-300' : ''}>{t.reportDate}</Label>

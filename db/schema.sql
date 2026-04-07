@@ -426,6 +426,7 @@ CREATE TABLE IF NOT EXISTS public.relatorios_saida (
   nome_relatorio TEXT NOT NULL,
   nome_arquivo TEXT,
   data_saida DATE,
+  data_segunda_vistoria DATE,
   data_relatorio DATE,
   consultor_responsavel TEXT,
   locatario TEXT,

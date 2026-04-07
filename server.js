@@ -326,6 +326,7 @@ if (pool) {
           nome_relatorio TEXT NOT NULL,
           nome_arquivo TEXT,
           data_saida DATE,
+          data_segunda_vistoria DATE,
           data_relatorio DATE,
           consultor_responsavel TEXT,
           locatario TEXT,
@@ -356,6 +357,7 @@ if (pool) {
       await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS nome_relatorio TEXT`);
       await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS nome_arquivo TEXT`);
       await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS data_saida DATE`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS data_segunda_vistoria DATE`);
       await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS data_relatorio DATE`);
       await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS consultor_responsavel TEXT`);
       await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS locatario TEXT`);
@@ -1198,6 +1200,7 @@ function mapRelatorioSaidaRow(row) {
     nome_relatorio: row.nome_relatorio,
     nome_arquivo: row.nome_arquivo,
     data_saida: formatDateForAPI(row.data_saida),
+    data_segunda_vistoria: formatDateForAPI(row.data_segunda_vistoria),
     data_relatorio: formatDateForAPI(row.data_relatorio),
     consultor_responsavel: row.consultor_responsavel,
     locatario: row.locatario,
@@ -1436,12 +1439,12 @@ app.post('/api/relatorios-saida', async (req, res) => {
 
     const sql = `INSERT INTO public.relatorios_saida (
       id_formulario, id_unidade, id_empreendimento, estrutura_formulario, nome_relatorio, nome_arquivo,
-      data_saida, data_relatorio, consultor_responsavel, locatario, endereco_capa, subtitulo_capa,
+      data_saida, data_segunda_vistoria, data_relatorio, consultor_responsavel, locatario, endereco_capa, subtitulo_capa,
       unidade_exibicao, representantes, texto_os_proposta, revisao, respostas, fotos_secoes,
       status_saida, observacoes_secoes, checklist_inicial, descricao_geral_adequacoes,
       detalhamento_adequacoes, declaracoes, assinaturas
     ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26
     ) RETURNING *`;
     const params = [
       b.id_formulario ?? null,
@@ -1451,6 +1454,7 @@ app.post('/api/relatorios-saida', async (req, res) => {
       nomeRelatorio,
       b.nome_arquivo ?? null,
       normalizeDate(b.data_saida) ?? null,
+      normalizeDate(b.data_segunda_vistoria) ?? null,
       normalizeDate(b.data_relatorio) ?? null,
       b.consultor_responsavel ?? null,
       b.locatario ?? null,
@@ -1529,26 +1533,27 @@ app.put('/api/relatorios-saida/:id', async (req, res) => {
       nome_relatorio = COALESCE($5, nome_relatorio),
       nome_arquivo = COALESCE($6, nome_arquivo),
       data_saida = $7,
-      data_relatorio = $8,
-      consultor_responsavel = COALESCE($9, consultor_responsavel),
-      locatario = COALESCE($10, locatario),
-      endereco_capa = COALESCE($11, endereco_capa),
-      subtitulo_capa = COALESCE($12, subtitulo_capa),
-      unidade_exibicao = COALESCE($13, unidade_exibicao),
-      representantes = COALESCE($14, representantes),
-      texto_os_proposta = COALESCE($15, texto_os_proposta),
-      revisao = COALESCE($16, revisao),
-      respostas = COALESCE($17, respostas),
-      fotos_secoes = COALESCE($18, fotos_secoes),
-      status_saida = COALESCE($19, status_saida),
-      observacoes_secoes = COALESCE($20, observacoes_secoes),
-      checklist_inicial = COALESCE($21, checklist_inicial),
-      descricao_geral_adequacoes = COALESCE($22, descricao_geral_adequacoes),
-      detalhamento_adequacoes = COALESCE($23, detalhamento_adequacoes),
-      declaracoes = COALESCE($24, declaracoes),
-      assinaturas = COALESCE($25, assinaturas),
+      data_segunda_vistoria = $8,
+      data_relatorio = $9,
+      consultor_responsavel = COALESCE($10, consultor_responsavel),
+      locatario = COALESCE($11, locatario),
+      endereco_capa = COALESCE($12, endereco_capa),
+      subtitulo_capa = COALESCE($13, subtitulo_capa),
+      unidade_exibicao = COALESCE($14, unidade_exibicao),
+      representantes = COALESCE($15, representantes),
+      texto_os_proposta = COALESCE($16, texto_os_proposta),
+      revisao = COALESCE($17, revisao),
+      respostas = COALESCE($18, respostas),
+      fotos_secoes = COALESCE($19, fotos_secoes),
+      status_saida = COALESCE($20, status_saida),
+      observacoes_secoes = COALESCE($21, observacoes_secoes),
+      checklist_inicial = COALESCE($22, checklist_inicial),
+      descricao_geral_adequacoes = COALESCE($23, descricao_geral_adequacoes),
+      detalhamento_adequacoes = COALESCE($24, detalhamento_adequacoes),
+      declaracoes = COALESCE($25, declaracoes),
+      assinaturas = COALESCE($26, assinaturas),
       updated_at = now()
-    WHERE id = $26 RETURNING *`;
+    WHERE id = $27 RETURNING *`;
     const params = [
       b.id_formulario ?? null,
       b.id_unidade ?? null,
@@ -1557,6 +1562,7 @@ app.put('/api/relatorios-saida/:id', async (req, res) => {
       b.nome_relatorio ?? null,
       b.nome_arquivo ?? null,
       normalizeDate(b.data_saida) ?? null,
+      normalizeDate(b.data_segunda_vistoria) ?? null,
       normalizeDate(b.data_relatorio) ?? null,
       b.consultor_responsavel ?? null,
       b.locatario ?? null,
