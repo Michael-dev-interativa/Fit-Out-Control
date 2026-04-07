@@ -5730,7 +5730,9 @@ function mapEmpreendimentoRow(row) {
     ano_entrega: row.ano_entrega != null ? Number(row.ano_entrega) : null,
     idade_imovel: row.idade_imovel != null ? Number(row.idade_imovel) : null,
     quantidade_pavimentos: row.quantidade_pavimentos != null ? Number(row.quantidade_pavimentos) : null,
-    quantidade_conjuntos: row.quantidade_conjuntos != null ? Number(row.quantidade_conjuntos) : null,
+    quantidade_conjuntos: row.quantidade_conjuntos != null
+      ? Number(row.quantidade_conjuntos)
+      : (row.quantidade_conjunto != null ? Number(row.quantidade_conjunto) : null),
     texto_capa_rodape: row.texto_capa_rodape ?? null,
     logo_responsavel: row.logo_responsavel ?? null,
     contatos_proprietario: parseJsonSafe(row.contatos_proprietario, []),
@@ -6114,7 +6116,7 @@ app.put('/api/empreendimentos/:id', async (req, res) => {
     ano_entrega = COALESCE($15, ano_entrega),
     idade_imovel = COALESCE($16, idade_imovel),
     quantidade_pavimentos = COALESCE($17, quantidade_pavimentos),
-    quantidade_conjuntos = COALESCE($18, quantidade_conjuntos),
+    quantidade_conjunto = COALESCE($18, quantidade_conjunto),
     texto_capa_rodape = COALESCE($19, texto_capa_rodape),
     logo_responsavel = COALESCE($20, logo_responsavel),
     bm_contato = COALESCE($21, bm_contato),
