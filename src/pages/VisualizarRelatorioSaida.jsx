@@ -130,14 +130,21 @@ const DadosPage = ({ relatorio, empreendimento, unidade }) => (
     <div className="text-base font-bold text-white p-3 rounded-md text-center mb-4" style={{ backgroundColor: blueColor }}>DADOS DO EMPREENDIMENTO E VISTORIA</div>
     <div className="grid grid-cols-2 gap-x-8 gap-y-4 p-4 text-sm border rounded-md">
       <div><p className="font-semibold text-gray-700">Empreendimento:</p><span>{empreendimento?.nome_empreendimento || '-'}</span></div>
-      <div><p className="font-semibold text-gray-700">Endereço:</p><span>{empreendimento?.endereco_empreendimento || '-'}</span></div>
+      <div><p className="font-semibold text-gray-700">Endereço:</p><span>{relatorio?.endereco_capa || empreendimento?.endereco_empreendimento || '-'}</span></div>
       <div><p className="font-semibold text-gray-700">Unidade:</p><span>{unidade?.unidade_empreendimento || '-'}</span></div>
       <div><p className="font-semibold text-gray-700">Locatário:</p><span>{relatorio?.locatario || '-'}</span></div>
       <div><p className="font-semibold text-gray-700">Data da 1ª Vistoria:</p><span>{relatorio?.data_saida ? format(new Date(relatorio.data_saida), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span></div>
-      <div><p className="font-semibold text-gray-700">Data da 2ª Vistoria:</p><span>{relatorio?.data_relatorio ? format(new Date(relatorio.data_relatorio), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span></div>
+      <div><p className="font-semibold text-gray-700">Data do Envio do Relatório:</p><span>{relatorio?.data_relatorio ? format(new Date(relatorio.data_relatorio), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span></div>
       <div><p className="font-semibold text-gray-700">Consultor:</p><span>{relatorio?.consultor_responsavel || '-'}</span></div>
       <div><p className="font-semibold text-gray-700">Revisão:</p><span>{relatorio?.revisao || '-'}</span></div>
-      {relatorio?.representantes && <div className="col-span-2"><p className="font-semibold text-gray-700">Representantes:</p><span>{relatorio.representantes}</span></div>}
+      {relatorio?.representantes && (
+        <div className="col-span-2">
+          <p className="font-semibold text-gray-700">Representantes:</p>
+          {relatorio.representantes.split(',').map((nome, i) => (
+            <span key={i} className="block">{nome.trim()}</span>
+          ))}
+        </div>
+      )}
       {relatorio?.texto_os_proposta && <div className="col-span-2"><p className="font-semibold text-gray-700">OS / Proposta:</p><span>{relatorio.texto_os_proposta}</span></div>}
     </div>
   </div>
