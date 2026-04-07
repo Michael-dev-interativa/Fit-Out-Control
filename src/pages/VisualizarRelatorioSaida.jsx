@@ -929,20 +929,18 @@ export default function VisualizarRelatorioSaida() {
   const contentPageCount = Math.max(1, contentPages.length);
   const totalPages = 1 + contentPageCount + (hasGalleryPhotos ? 1 : 0); // cover + content + optional QR page
 
-  const handlePrint = async () => {
+  useEffect(() => {
+    if (!relatorio) return;
     const previousTitle = document.title;
-    const nextTitle = resolvePdfFileName(relatorio);
-    document.title = nextTitle;
-
-    const restoreTitle = () => {
+    document.title = resolvePdfFileName(relatorio);
+    return () => {
       document.title = previousTitle;
     };
+  }, [relatorio]);
 
-    window.addEventListener('afterprint', restoreTitle, { once: true });
+  const handlePrint = async () => {
     await new Promise(r => setTimeout(r, 50));
     window.print();
-    // Fallback for browsers that do not emit afterprint reliably.
-    setTimeout(restoreTitle, 2000);
   };
 
   if (loading) return (
