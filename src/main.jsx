@@ -10,6 +10,28 @@ if (typeof window !== 'undefined' && !window.location.hash && window.location.pa
     window.location.replace(target);
 }
 
+// One-time cache migration: clears stale SW caches from older deployments.
+if (import.meta.env && import.meta.env.PROD && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    const swMigrationKey = 'fitout-sw-reset-2026-04-07';
+    window.addEventListener('load', async () => {
+        try {
+            if (localStorage.getItem(swMigrationKey) === 'done') return;
+
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            if (registrations.length === 0) {
+                localStorage.setItem(swMigrationKey, 'done');
+                return;
+            }
+
+            await Promise.all(registrations.map((registration) => registration.unregister()));
+            localStorage.setItem(swMigrationKey, 'done');
+            window.location.reload();
+        } catch {
+            // Ignore migration failures and continue app bootstrap.
+        }
+    });
+}
+
 // Silence verbose console methods in production to reduce bundle noise
 if (import.meta.env && import.meta.env.PROD) {
     // preserve warn/error
