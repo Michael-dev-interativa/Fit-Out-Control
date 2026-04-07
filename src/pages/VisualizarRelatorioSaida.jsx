@@ -140,7 +140,7 @@ const DadosPage = ({ relatorio, empreendimento, unidade }) => (
       {relatorio?.representantes && (
         <div className="col-span-2">
           <p className="font-semibold text-gray-700">Representantes:</p>
-          {relatorio.representantes.split(',').map((nome, i) => (
+          {relatorio.representantes.split(/\r?\n|,/).map((nome) => nome.trim()).filter(Boolean).map((nome, i) => (
             <span key={i} className="block">{nome.trim()}</span>
           ))}
         </div>

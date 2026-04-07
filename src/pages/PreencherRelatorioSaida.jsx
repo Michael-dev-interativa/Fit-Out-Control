@@ -1468,11 +1468,12 @@ export default function PreencherRelatorioSaida({ language = 'pt', theme = 'ligh
               </div>
               <div className="space-y-2">
                 <Label htmlFor="representantes" className={isDark ? 'text-gray-300' : ''}>{t.representatives}</Label>
-                <Input
+                <Textarea
                   id="representantes"
                   value={representantes}
                   onChange={(e) => setRepresentantes(e.target.value)}
-                  placeholder="Nomes dos representantes..."
+                  placeholder={"Digite um nome por linha\nEx:\nThais Motta - SYN\nBreno Goncalves - SYN"}
+                  rows={4}
                   className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}
                 />
               </div>
