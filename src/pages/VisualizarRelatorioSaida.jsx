@@ -283,7 +283,7 @@ const ContentPage = ({ sections }) => (
             <div className="border border-gray-300 rounded mb-3 text-xs overflow-hidden">
               <div className="p-2 font-bold text-gray-800" style={{ backgroundColor: '#e8edf3' }}>Considerações</div>
               <div className="p-3" style={{ minHeight: '120px' }}>
-                <p className="text-gray-800 whitespace-pre-wrap">{items?.[0]?.resposta || ''}</p>
+                <p className="text-gray-800 whitespace-pre-wrap break-words" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{items?.[0]?.resposta || ''}</p>
               </div>
             </div>
           ) : secaoName.includes('DECLARAÇÕES') ? (

@@ -1897,7 +1897,8 @@ export default function PreencherRelatorioSaida({ language = 'pt', theme = 'ligh
                           onChange={(e) => setConsideracoesFinais(e.target.value)}
                           placeholder={"Digite as considerações finais, uma por linha\nEx:\n- Item 1\n- Item 2\n- Item 3"}
                           rows={6}
-                          className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}
+                          className={isDark ? 'bg-gray-700 border-gray-600 text-white break-words' : 'break-words'}
+                          style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
                         />
                         </CardContent>
                         </Card>
