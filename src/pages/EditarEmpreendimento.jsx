@@ -81,6 +81,8 @@ export default function EditarEmpreendimento() {
                         fotos_empreendimento: data.fotos_empreendimento || [],
                         contatos_proprietario: data.contatos_proprietario || [],
                         informacoes_tecnicas: data.informacoes_tecnicas || [],
+                        cli_empreendimento: data.cli_empreendimento ?? data.cliente ?? '',
+                        endereco_empreendimento: data.endereco_empreendimento ?? data.endereco ?? '',
                         // Initialize existing contract fields if they don't exist
                         os_number: data.os_number || '',
                         prazo_contratual_dias: data.prazo_contratual_dias || '',
@@ -94,6 +96,12 @@ export default function EditarEmpreendimento() {
                         data_sem_entrega: correctDate(data.data_sem_entrega),
                         valor_contratual: data.valor_contratual || '',
                         ano_entrega: data.ano_entrega || '',
+                        idade_imovel: data.idade_imovel || '',
+                        quantidade_pavimentos: data.quantidade_pavimentos || '',
+                        quantidade_conjuntos: data.quantidade_conjuntos || '',
+                        bm_contato: typeof data.bm_contato === 'string' ? data.bm_contato : (data.bm_contato ? JSON.stringify(data.bm_contato) : ''),
+                        mantenedor_contato: typeof data.mantenedor_contato === 'string' ? data.mantenedor_contato : (data.mantenedor_contato ? JSON.stringify(data.mantenedor_contato) : ''),
+                        projetistas_contatos: typeof data.projetistas_contatos === 'string' ? data.projetistas_contatos : (data.projetistas_contatos ? JSON.stringify(data.projetistas_contatos) : ''),
                     });
                 } else {
                     setError(`Empreendimento com ID "${empreendimentoId}" não encontrado.`);
