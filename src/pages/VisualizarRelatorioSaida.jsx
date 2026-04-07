@@ -13,6 +13,23 @@ const isValidId = (id) => id && String(id).trim() !== '' && !['null', 'undefined
 const blueColor = '#2A3E84';
 const redColor = '#CE2D2D';
 
+const sanitizeFileName = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  // Remove invalid Windows filename chars and normalize spaces.
+  return raw
+    .replace(/[\\/:*?"<>|]/g, '_')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 120);
+};
+
+const resolvePdfFileName = (relatorio) => {
+  const fallback = relatorio?.id ? `RS-${String(relatorio.id).slice(-4)}` : 'relatorio-saida';
+  const base = sanitizeFileName(relatorio?.nome_arquivo) || fallback;
+  return base.toLowerCase().endsWith('.pdf') ? base : `${base}.pdf`;
+};
+
 const resolvePublicAppOrigin = () => {
   const fallbackPublicOrigin = 'https://front-fitout.onrender.com';
 
@@ -913,8 +930,19 @@ export default function VisualizarRelatorioSaida() {
   const totalPages = 1 + contentPageCount + (hasGalleryPhotos ? 1 : 0); // cover + content + optional QR page
 
   const handlePrint = async () => {
+    const previousTitle = document.title;
+    const nextTitle = resolvePdfFileName(relatorio);
+    document.title = nextTitle;
+
+    const restoreTitle = () => {
+      document.title = previousTitle;
+    };
+
+    window.addEventListener('afterprint', restoreTitle, { once: true });
     await new Promise(r => setTimeout(r, 50));
     window.print();
+    // Fallback for browsers that do not emit afterprint reliably.
+    setTimeout(restoreTitle, 2000);
   };
 
   if (loading) return (

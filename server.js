@@ -99,7 +99,8 @@ app.options('/api/files/*', (req, res) => {
 });
 
 // Security middleware
-app.use(helmet());
+// Disable CSP here because Vite index.html includes inline scripts used by the frontend shell.
+app.use(helmet({ contentSecurityPolicy: false }));
 
 // Rate limiting for API endpoints
 const RATE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
@@ -6910,6 +6911,13 @@ app.get('/api/admin/db-tables', async (req, res) => {
 // ---- Servir frontend estático (SPA) ----
 const distPath = path.join(__dirname, 'dist');
 app.use(express.static(distPath));
+
+// Backward compatibility: old QR codes may point to backend host.
+// Redirect them to the public frontend using hash routing (works even without SPA rewrites).
+app.get('/GaleriaRelatorioSaida', (req, res) => {
+  const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  return res.redirect(302, `https://front-fitout.onrender.com/#/GaleriaRelatorioSaida${query}`);
+});
 
 // Fallback para SPA: redirecionar qualquer rota não-API para index.html (React Router vai lidar)
 app.get('*', (req, res) => {
