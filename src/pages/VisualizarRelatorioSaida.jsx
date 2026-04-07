@@ -587,7 +587,7 @@ const paginateSaidaContent = (sections, opts = {}) => {
 
     const isInitialChecklistSection = section.secaoName === 'CHECK-LIST INICIAL DE VISTORIA';
 
-    items.forEach((item) => {
+    items.forEach((item, itemIndex) => {
       const estimatedHeight = isInitialChecklistSection
         ? measureChecklistInicialItemHeight(item)
         : measureItemHeight(item);
@@ -596,6 +596,7 @@ const paginateSaidaContent = (sections, opts = {}) => {
         secaoName: section.secaoName,
         items: [item],
         estimatedHeightPx: Math.max(56, Number(estimatedHeight) || 100),
+        breakBefore: isInitialChecklistSection && itemIndex === 0,
       });
     });
   });
