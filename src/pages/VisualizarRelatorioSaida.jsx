@@ -104,7 +104,7 @@ const CoverPage = ({ relatorio, empreendimento, unidade }) => {
       </div>
       <div className="absolute z-30" style={{ top: '8%', right: '8%', width: '50%', textAlign: 'right' }}>
         <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: '64px', fontWeight: 'bold', color: '#394557', lineHeight: '1.1' }}>LAUDO</h1>
-        <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '29.5px', color: redColor, letterSpacing: '4px' }}>{relatorio?.subtitulo_capa || 'SÁIDE DE LOCATÁRIO'}</h2>
+        <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '29.5px', color: redColor, letterSpacing: '4px' }}>{relatorio?.subtitulo_capa || 'SAÍDA DE LOCATÁRIO'}</h2>
       </div>
       <div className="absolute z-30" style={{ top: '50%', right: '2%', width: '40%', textAlign: 'center' }}>
         <h1 className="font-black uppercase" style={{ fontSize: '28px', fontFamily: "'Inter', sans-serif", color: 'black' }}>{relatorio?.locatario || unidade?.cliente_unidade || 'Locatário'}</h1>

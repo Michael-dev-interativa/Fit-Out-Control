@@ -609,7 +609,7 @@ export default function PreencherRelatorioSaida({ language = 'pt', theme = 'ligh
   const [dataSaida, setDataSaida] = useState(new Date().toISOString().substring(0, 10));
   const [dataRelatorio, setDataRelatorio] = useState(new Date().toISOString().substring(0, 10));
   const [locatario, setLocatario] = useState('');
-  const [subtituloCapa, setSubtituloCapa] = useState('SÁIDE DE LOCATÁRIO');
+  const [subtituloCapa, setSubtituloCapa] = useState('SAÍDA DE LOCATÁRIO');
   const [enderecoCapa, setEnderecoCapa] = useState('');
   const [representantes, setRepresentantes] = useState('');
   const [statusSaida, setStatusSaida] = useState('Em Andamento');
@@ -707,7 +707,7 @@ export default function PreencherRelatorioSaida({ language = 'pt', theme = 'ligh
         setDataRelatorio(new Date(relatorioData.data_relatorio).toISOString().substring(0, 10));
       }
       setLocatario(relatorioData.locatario || '');
-      setSubtituloCapa(relatorioData.subtitulo_capa || 'SÁIDE DE LOCATÁRIO');
+      setSubtituloCapa(relatorioData.subtitulo_capa || 'SAÍDA DE LOCATÁRIO');
       setEnderecoCapa(relatorioData.endereco_capa || '');
       setUnidadeExibicao(relatorioData.unidade_exibicao || '');
       setRepresentantes(relatorioData.representantes || '');
@@ -1929,7 +1929,7 @@ export default function PreencherRelatorioSaida({ language = 'pt', theme = 'ligh
                         open={editCoverOpen}
                         onOpenChange={setEditCoverOpen}
                         data={{
-                        subtitulo: subtituloCapa || 'SÁIDE DE LOCATÁRIO',
+                        subtitulo: subtituloCapa || 'SAÍDA DE LOCATÁRIO',
                         locatario: locatario || '',
                         unidade: unidade?.unidade_empreendimento || '',
                         endereco: enderecoCapa || ''
