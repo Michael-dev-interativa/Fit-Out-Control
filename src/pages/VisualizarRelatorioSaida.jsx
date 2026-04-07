@@ -279,7 +279,7 @@ const ContentPage = ({ sections }) => (
                   );
                 })}
             </div>
-          ) : secaoName === 'DECLARAÇÕES (1º VISTORIA)' ? (
+          ) : secaoName.includes('DECLARAÇÕES') ? (
             <DeclaracoesGrid items={items} />
           ) : secaoName === 'DETALHAMENTO DAS ADEQUAÇÕES' ? (
             <div className="border border-gray-300 rounded mb-3 text-xs overflow-hidden">
@@ -575,7 +575,7 @@ const paginateSaidaContent = (sections, opts = {}) => {
     if (!section?.secaoName || items.length === 0) return;
 
     // Keep declaration block together to preserve signature grid layout.
-    if (section.secaoName === 'DECLARAÇÕES (1º VISTORIA)') {
+    if (section.secaoName?.includes('DECLARAÇÕES')) {
       blocks.push({
         secaoName: section.secaoName,
         items,
@@ -842,6 +842,20 @@ const processData = (relatorio, formulario) => {
     if (mergedItems.length > 0) allSections.push({ secaoName: 'DETALHAMENTO DAS ADEQUAÇÕES', items: mergedItems });
   }
 
+  // 5. ADD CONSIDERAÇÕES FINAIS (before declarations)
+  if (relatorio?.consideracoes_finais && String(relatorio.consideracoes_finais).trim() !== '') {
+    allSections.push({
+      secaoName: '4 - CONSIDERAÇÕES FINAIS',
+      items: [{
+        pergunta: 'Considerações',
+        resposta: String(relatorio.consideracoes_finais),
+        assinatura: null,
+        observacao: '',
+        fotos: [],
+      }],
+    });
+  }
+
   // 6. ADD DECLARAÇÕES (always last)
   let declaracoesData = relatorio.declaracoes;
   if (typeof declaracoesData === 'string') { try { declaracoesData = JSON.parse(declaracoesData); } catch { declaracoesData = null; } }
@@ -867,7 +881,7 @@ const processData = (relatorio, formulario) => {
         isSignatureBlock: true
       });
     });
-    allSections.push({ secaoName: 'DECLARAÇÕES (1º VISTORIA)', items: decItems });
+    allSections.push({ secaoName: '5 - DECLARAÇÕES (1º VISTORIA)', items: decItems });
   }
 
   return allSections;

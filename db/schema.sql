@@ -444,6 +444,7 @@ CREATE TABLE IF NOT EXISTS public.relatorios_saida (
   descricao_geral_adequacoes JSONB,
   detalhamento_adequacoes JSONB,
   declaracoes JSONB,
+  consideracoes_finais TEXT,
   assinaturas JSONB,
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT now() NOT NULL

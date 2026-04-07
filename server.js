@@ -344,6 +344,7 @@ if (pool) {
           descricao_geral_adequacoes JSONB,
           detalhamento_adequacoes JSONB,
           declaracoes JSONB,
+          consideracoes_finais TEXT,
           assinaturas JSONB,
           created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
           updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
@@ -375,6 +376,7 @@ if (pool) {
       await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS descricao_geral_adequacoes JSONB`);
       await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS detalhamento_adequacoes JSONB`);
       await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS declaracoes JSONB`);
+      await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS consideracoes_finais TEXT`);
       await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS assinaturas JSONB`);
       await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()`);
       await pool.query(`ALTER TABLE IF EXISTS public.relatorios_saida ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now()`);
@@ -1218,6 +1220,7 @@ function mapRelatorioSaidaRow(row) {
     descricao_geral_adequacoes: row.descricao_geral_adequacoes,
     detalhamento_adequacoes: row.detalhamento_adequacoes,
     declaracoes: row.declaracoes,
+    consideracoes_finais: row.consideracoes_finais,
     assinaturas: row.assinaturas,
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -1442,9 +1445,9 @@ app.post('/api/relatorios-saida', async (req, res) => {
       data_saida, data_segunda_vistoria, data_relatorio, consultor_responsavel, locatario, endereco_capa, subtitulo_capa,
       unidade_exibicao, representantes, texto_os_proposta, revisao, respostas, fotos_secoes,
       status_saida, observacoes_secoes, checklist_inicial, descricao_geral_adequacoes,
-      detalhamento_adequacoes, declaracoes, assinaturas
+      detalhamento_adequacoes, declaracoes, consideracoes_finais, assinaturas
     ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27
     ) RETURNING *`;
     const params = [
       b.id_formulario ?? null,
@@ -1472,6 +1475,7 @@ app.post('/api/relatorios-saida', async (req, res) => {
       toJson(b.descricao_geral_adequacoes ?? {}),
       toJson(b.detalhamento_adequacoes ?? {}),
       toJson(b.declaracoes ?? {}),
+      b.consideracoes_finais ?? null,
       toJson(b.assinaturas ?? []),
     ];
     const { rows } = await p.query(sql, params);
@@ -1551,9 +1555,10 @@ app.put('/api/relatorios-saida/:id', async (req, res) => {
       descricao_geral_adequacoes = COALESCE($23, descricao_geral_adequacoes),
       detalhamento_adequacoes = COALESCE($24, detalhamento_adequacoes),
       declaracoes = COALESCE($25, declaracoes),
-      assinaturas = COALESCE($26, assinaturas),
+      consideracoes_finais = COALESCE($26, consideracoes_finais),
+      assinaturas = COALESCE($27, assinaturas),
       updated_at = now()
-    WHERE id = $27 RETURNING *`;
+    WHERE id = $28 RETURNING *`;
     const params = [
       b.id_formulario ?? null,
       b.id_unidade ?? null,
@@ -1580,6 +1585,7 @@ app.put('/api/relatorios-saida/:id', async (req, res) => {
       toJson(b.descricao_geral_adequacoes ?? null),
       toJson(b.detalhamento_adequacoes ?? null),
       toJson(b.declaracoes ?? null),
+      b.consideracoes_finais ?? null,
       toJson(b.assinaturas ?? null),
       id,
     ];

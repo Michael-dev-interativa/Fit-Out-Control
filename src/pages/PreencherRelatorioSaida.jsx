@@ -166,6 +166,7 @@ const translations = {
     exitDate: "Data da 1ª Vistoria",
     secondInspectionDate: "Data da 2ª Vistoria",
     reportDate: "Data do Envio do Relatório",
+    finalConsiderations: "4 - CONSIDERAÇÕES FINAIS",
     chooseOption: "Escolha uma opção...",
     fillField: "Preencha este campo",
     signature: "Assinatura",
@@ -215,6 +216,7 @@ const translations = {
     exitDate: "Date of 1st Inspection",
     secondInspectionDate: "Date of 2nd Inspection",
     reportDate: "Report Send Date",
+    finalConsiderations: "4 - FINAL CONSIDERATIONS",
     chooseOption: "Choose an option...",
     fillField: "Fill this field",
     signature: "Signature",
@@ -621,6 +623,7 @@ export default function PreencherRelatorioSaida({ language = 'pt', theme = 'ligh
   const [textoOsProposta, setTextoOsProposta] = useState('');
   const [checklistInicial, setChecklistInicial] = useState({});
   const [declaracoes, setDeclaracoes] = useState({});
+  const [consideracoesFinais, setConsideracoesFinais] = useState('');
   const [editCoverOpen, setEditCoverOpen] = useState(false);
 
   const handleDetalhamentoPhotoUpload = async (areaKey, itemKey, files) => {
@@ -723,6 +726,7 @@ export default function PreencherRelatorioSaida({ language = 'pt', theme = 'ligh
       setRevisao(relatorioData.revisao || '');
       setChecklistInicial(relatorioData.checklist_inicial || {});
       setDeclaracoes(relatorioData.declaracoes || {});
+      setConsideracoesFinais(relatorioData.consideracoes_finais || '');
       setDetalhamentoAdequacoes(relatorioData.detalhamento_adequacoes || {});
       setDescricaoGeralAdequacoes(relatorioData.descricao_geral_adequacoes || {});
 
@@ -1097,6 +1101,7 @@ export default function PreencherRelatorioSaida({ language = 'pt', theme = 'ligh
         revisao: revisao,
         checklist_inicial: checklistInicial,
         declaracoes: declaracoes,
+        consideracoes_finais: consideracoesFinais,
         detalhamento_adequacoes: detalhamentoAdequacoes,
         descricao_geral_adequacoes: descricaoGeralAdequacoes,
       };
@@ -1883,7 +1888,26 @@ export default function PreencherRelatorioSaida({ language = 'pt', theme = 'ligh
                         <Card className={isDark ? 'bg-gray-800' : ''}>
                         <CardHeader>
                         <CardTitle className={`flex items-center gap-2 ${isDark ? 'text-white' : ''}`}>
-                        DECLARAÇÕES (1º VISTORIA)
+                        {t.finalConsiderations}
+                        </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                        <Textarea
+                          value={consideracoesFinais}
+                          onChange={(e) => setConsideracoesFinais(e.target.value)}
+                          placeholder={"Digite as considerações finais, uma por linha\nEx:\n- Item 1\n- Item 2\n- Item 3"}
+                          rows={6}
+                          className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}
+                        />
+                        </CardContent>
+                        </Card>
+                        )}
+
+                        {formulario && (
+                        <Card className={isDark ? 'bg-gray-800' : ''}>
+                        <CardHeader>
+                        <CardTitle className={`flex items-center gap-2 ${isDark ? 'text-white' : ''}`}>
+                        5 - DECLARAÇÕES (1º VISTORIA)
                         </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
