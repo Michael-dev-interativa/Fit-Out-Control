@@ -870,17 +870,19 @@ const processData = (relatorio, formulario) => {
     if (mergedItems.length > 0) allSections.push({ secaoName: 'DETALHAMENTO DAS ADEQUAÇÕES', items: mergedItems });
   }
 
-  // 5. ADD CONSIDERAÇÕES FINAIS (before declarations) - always visible.
-  allSections.push({
-    secaoName: '4 - CONSIDERAÇÕES FINAIS',
-    items: [{
-      pergunta: 'Considerações',
-      resposta: String(relatorio?.consideracoes_finais || ''),
-      assinatura: null,
-      observacao: '',
-      fotos: [],
-    }],
-  });
+  // 5. ADD CONSIDERAÇÕES FINAIS (before declarations) only when filled.
+  if (relatorio?.consideracoes_finais && String(relatorio.consideracoes_finais).trim() !== '') {
+    allSections.push({
+      secaoName: '4 - CONSIDERAÇÕES FINAIS',
+      items: [{
+        pergunta: 'Considerações',
+        resposta: String(relatorio.consideracoes_finais),
+        assinatura: null,
+        observacao: '',
+        fotos: [],
+      }],
+    });
+  }
 
   // 6. ADD DECLARAÇÕES (always last)
   let declaracoesData = relatorio.declaracoes;
