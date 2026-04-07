@@ -133,11 +133,11 @@ const DadosPage = ({ relatorio, empreendimento, unidade }) => (
       <div><p className="font-semibold text-gray-700">Endereço:</p><span>{relatorio?.endereco_capa || empreendimento?.endereco_empreendimento || '-'}</span></div>
       <div><p className="font-semibold text-gray-700">Unidade:</p><span>{unidade?.unidade_empreendimento || '-'}</span></div>
       <div><p className="font-semibold text-gray-700">Locatário:</p><span>{relatorio?.locatario || '-'}</span></div>
-      <div><p className="font-semibold text-gray-700">Data da 1ª Vistoria:</p><span>{relatorio?.data_saida ? format(new Date(relatorio.data_saida), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span></div>
-      <div><p className="font-semibold text-gray-700">Data do Envio do Relatório:</p><span>{relatorio?.data_relatorio ? format(new Date(relatorio.data_relatorio), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span></div>
-      <div><p className="font-semibold text-gray-700">Data da 2ª Vistoria:</p><span>{relatorio?.data_segunda_vistoria ? format(new Date(relatorio.data_segunda_vistoria), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span></div>
-      <div><p className="font-semibold text-gray-700">Consultor:</p><span>{relatorio?.consultor_responsavel || '-'}</span></div>
-      <div><p className="font-semibold text-gray-700">Revisão:</p><span>{relatorio?.revisao || '-'}</span></div>
+      <div className="col-start-1 row-start-3"><p className="font-semibold text-gray-700">Data da 1ª Vistoria:</p><span>{relatorio?.data_saida ? format(new Date(relatorio.data_saida), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span></div>
+      <div className="col-start-2 row-start-3"><p className="font-semibold text-gray-700">Data do Envio do Relatório:</p><span>{relatorio?.data_relatorio ? format(new Date(relatorio.data_relatorio), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span></div>
+      <div className="col-start-1 row-start-4"><p className="font-semibold text-gray-700">Data da 2ª Vistoria:</p><span>{relatorio?.data_segunda_vistoria ? format(new Date(relatorio.data_segunda_vistoria), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span></div>
+      <div className="col-start-2 row-start-4"><p className="font-semibold text-gray-700">Consultor:</p><span>{relatorio?.consultor_responsavel || '-'}</span></div>
+      <div className="col-start-1 row-start-5"><p className="font-semibold text-gray-700">Revisão:</p><span>{relatorio?.revisao || '-'}</span></div>
       {relatorio?.representantes && (
         <div className="col-span-2">
           <p className="font-semibold text-gray-700">Representantes:</p>
@@ -525,7 +525,8 @@ const estimateDadosPageHeightPx = (relatorio) => {
 };
 
 const measureChecklistInicialItemHeight = (item) => {
-  let height = 58; // pergunta (linha branca)
+  const questionLines = Math.max(1, Math.ceil(String(item?.pergunta || '').length / 90));
+  let height = 44 + (questionLines * 16); // pergunta (linha branca) com quebra
 
   if (item?.resposta && item.resposta !== '-' && ['Sim', 'Não'].includes(item.resposta)) {
     height += 44; // resposta (linha cinza + badge)
@@ -536,8 +537,8 @@ const measureChecklistInicialItemHeight = (item) => {
     height += 24 + (obsLines * 16);
   }
 
-  // Buffer para bordas/margens e variações de fonte no print.
-  return height + 12;
+  // Buffer maior para evitar corte de item no limite da página.
+  return height + 20;
 };
 
 const paginateSaidaContent = (sections, opts = {}) => {
@@ -604,7 +605,7 @@ const paginateSaidaContent = (sections, opts = {}) => {
     headerHeightPx: 60,
     footerHeightPx: 50,
     pagePaddingPx: 32,
-    footerGuardPx: 24,
+    footerGuardPx: 40,
     breakBeforeLimitPx: 20,
     // First content page shares space with DadosPage.
     firstPageExtraHeightPx: opts.firstPageExtraHeightPx ?? 155,
