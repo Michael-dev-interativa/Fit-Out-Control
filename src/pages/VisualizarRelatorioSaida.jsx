@@ -134,8 +134,8 @@ const DadosPage = ({ relatorio, empreendimento, unidade }) => (
       <div><p className="font-semibold text-gray-700">Unidade:</p><span>{unidade?.unidade_empreendimento || '-'}</span></div>
       <div><p className="font-semibold text-gray-700">Locatário:</p><span>{relatorio?.locatario || '-'}</span></div>
       <div><p className="font-semibold text-gray-700">Data da 1ª Vistoria:</p><span>{relatorio?.data_saida ? format(new Date(relatorio.data_saida), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span></div>
-      <div><p className="font-semibold text-gray-700">Data da 2ª Vistoria:</p><span>{relatorio?.data_segunda_vistoria ? format(new Date(relatorio.data_segunda_vistoria), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span></div>
       <div><p className="font-semibold text-gray-700">Data do Envio do Relatório:</p><span>{relatorio?.data_relatorio ? format(new Date(relatorio.data_relatorio), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span></div>
+      <div><p className="font-semibold text-gray-700">Data da 2ª Vistoria:</p><span>{relatorio?.data_segunda_vistoria ? format(new Date(relatorio.data_segunda_vistoria), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span></div>
       <div><p className="font-semibold text-gray-700">Consultor:</p><span>{relatorio?.consultor_responsavel || '-'}</span></div>
       <div><p className="font-semibold text-gray-700">Revisão:</p><span>{relatorio?.revisao || '-'}</span></div>
       {relatorio?.representantes && (
