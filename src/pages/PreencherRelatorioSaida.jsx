@@ -1464,31 +1464,17 @@ export default function PreencherRelatorioSaida({ language = 'pt', theme = 'ligh
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="consultor_responsavel" className={isDark ? 'text-gray-300' : ''}>Consultor Responsável</Label>
-                <Input
-                  id="consultor_responsavel"
-                  value={consultorResponsavel}
-                  onChange={(e) => setConsultorResponsavel(e.target.value)}
-                  placeholder="Nome do consultor..."
-                  className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="representantes" className={isDark ? 'text-gray-300' : ''}>{t.representatives}</Label>
-                <Textarea
-                  id="representantes"
-                  value={representantes}
-                  onChange={(e) => setRepresentantes(e.target.value)}
-                  placeholder={"Digite um nome por linha\nEx:\nThais Motta - SYN\nBreno Goncalves - SYN"}
-                  rows={4}
-                  className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="consultor_responsavel" className={isDark ? 'text-gray-300' : ''}>Consultor Responsável</Label>
+                  <Input
+                    id="consultor_responsavel"
+                    value={consultorResponsavel}
+                    onChange={(e) => setConsultorResponsavel(e.target.value)}
+                    placeholder="Nome do consultor..."
+                    className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="data_saida" className={isDark ? 'text-gray-300' : ''}>{t.exitDate}</Label>
                   <Input
@@ -1510,15 +1496,28 @@ export default function PreencherRelatorioSaida({ language = 'pt', theme = 'ligh
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="data_relatorio" className={isDark ? 'text-gray-300' : ''}>{t.reportDate}</Label>
-                <Input
-                  id="data_relatorio"
-                  type="date"
-                  value={dataRelatorio}
-                  onChange={(e) => setDataRelatorio(e.target.value)}
-                  className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}
-                />
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="representantes" className={isDark ? 'text-gray-300' : ''}>{t.representatives}</Label>
+                  <Textarea
+                    id="representantes"
+                    value={representantes}
+                    onChange={(e) => setRepresentantes(e.target.value)}
+                    placeholder={"Digite um nome por linha\nEx:\nThais Motta - SYN\nBreno Goncalves - SYN"}
+                    rows={4}
+                    className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="data_relatorio" className={isDark ? 'text-gray-300' : ''}>{t.reportDate}</Label>
+                  <Input
+                    id="data_relatorio"
+                    type="date"
+                    value={dataRelatorio}
+                    onChange={(e) => setDataRelatorio(e.target.value)}
+                    className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}
+                  />
+                </div>
               </div>
             </div>
 
