@@ -1380,7 +1380,7 @@ export default function PreencherRelatorioSaida({ language = 'pt', theme = 'ligh
           </Dialog>
       )}
 
-      <form onSubmit={handleSalvar} className="space-y-6">
+      <form onSubmit={handleSalvar} onKeyDown={(e) => { if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') e.preventDefault(); }} className="space-y-6">
         <Card className={isDark ? 'bg-gray-800' : ''}>
           <CardHeader>
             <CardTitle className={`flex items-center gap-2 ${isDark ? 'text-white' : ''}`}>
