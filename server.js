@@ -5687,7 +5687,23 @@ app.delete('/api/aprovacoes-amostra/:id', async (req, res) => {
 });
 
 // ---- Empreendimentos ----
+function parseJsonSafe(value, fallback) {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
+    }
+  }
+  return value;
+}
+
 function mapEmpreendimentoRow(row) {
+  const bmContato = parseJsonSafe(row.bm_contato, null);
+  const mantenedorContato = parseJsonSafe(row.mantenedor_contato, null);
+  const projetistasContatos = parseJsonSafe(row.projetistas_contatos, null);
+
   return {
     // Fornecer id como string (compatibilidade com UI antiga) e numérico nos aliases
     id: String(row.id),
@@ -5697,7 +5713,9 @@ function mapEmpreendimentoRow(row) {
     // Alias usado por partes da UI
     nome: row.nome_empreendimento,
     // Campos conforme schema
+    cli_empreendimento: row.cli_empreendimento ?? null,
     cliente: row.cli_empreendimento ?? null,
+    endereco_empreendimento: row.endereco_empreendimento ?? null,
     endereco: row.endereco_empreendimento ?? null,
     foto_empreendimento: row.foto_empreendimento ?? null,
     fotos_empreendimento: row.fotos_empreendimento ?? [],
@@ -5709,6 +5727,18 @@ function mapEmpreendimentoRow(row) {
     data_termino_contrato: row.data_termino_contrato ?? null,
     valor_contratual: row.valor_contratual != null ? Number(String(row.valor_contratual)) : null,
     prazo_contratual_dias: row.prazo_contratual_dias != null ? Number(row.prazo_contratual_dias) : null,
+    ano_entrega: row.ano_entrega != null ? Number(row.ano_entrega) : null,
+    idade_imovel: row.idade_imovel != null ? Number(row.idade_imovel) : null,
+    quantidade_pavimentos: row.quantidade_pavimentos != null ? Number(row.quantidade_pavimentos) : null,
+    quantidade_conjuntos: row.quantidade_conjuntos != null ? Number(row.quantidade_conjuntos) : null,
+    texto_capa_rodape: row.texto_capa_rodape ?? null,
+    logo_responsavel: row.logo_responsavel ?? null,
+    contatos_proprietario: parseJsonSafe(row.contatos_proprietario, []),
+    bm_contato: typeof bmContato === 'string' ? bmContato : (bmContato != null ? JSON.stringify(bmContato) : ''),
+    mantenedor_contato: typeof mantenedorContato === 'string' ? mantenedorContato : (mantenedorContato != null ? JSON.stringify(mantenedorContato) : ''),
+    projetistas_contatos: typeof projetistasContatos === 'string' ? projetistasContatos : (projetistasContatos != null ? JSON.stringify(projetistasContatos) : ''),
+    particularidades: row.particularidades ?? null,
+    informacoes_tecnicas: parseJsonSafe(row.informacoes_tecnicas, []),
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -6080,8 +6110,19 @@ app.put('/api/empreendimentos/:id', async (req, res) => {
     data_termino_contrato = COALESCE($11, data_termino_contrato),
     valor_contratual = COALESCE($12, valor_contratual),
     prazo_contratual_dias = COALESCE($13, prazo_contratual_dias),
-    contatos_proprietario = COALESCE($14, contatos_proprietario)
-    WHERE id = $15 RETURNING * `;
+    contatos_proprietario = COALESCE($14, contatos_proprietario),
+    ano_entrega = COALESCE($15, ano_entrega),
+    idade_imovel = COALESCE($16, idade_imovel),
+    quantidade_pavimentos = COALESCE($17, quantidade_pavimentos),
+    quantidade_conjuntos = COALESCE($18, quantidade_conjuntos),
+    texto_capa_rodape = COALESCE($19, texto_capa_rodape),
+    logo_responsavel = COALESCE($20, logo_responsavel),
+    bm_contato = COALESCE($21, bm_contato),
+    mantenedor_contato = COALESCE($22, mantenedor_contato),
+    projetistas_contatos = COALESCE($23, projetistas_contatos),
+    particularidades = COALESCE($24, particularidades),
+    informacoes_tecnicas = COALESCE($25, informacoes_tecnicas)
+    WHERE id = $26 RETURNING * `;
     const nn2 = (v) => (v === '' || v === undefined || v === null ? null : v);
     const params = [
       nn2(b.nome_empreendimento ?? b.nome),
@@ -6099,6 +6140,17 @@ app.put('/api/empreendimentos/:id', async (req, res) => {
       nn2(b.prazo_contratual_dias),
       // contatos_proprietario (JSONB)
       nn2(b.contatos_proprietario),
+      nn2(b.ano_entrega),
+      nn2(b.idade_imovel),
+      nn2(b.quantidade_pavimentos),
+      nn2(b.quantidade_conjuntos),
+      nn2(b.texto_capa_rodape),
+      nn2(b.logo_responsavel),
+      nn2(b.bm_contato),
+      nn2(b.mantenedor_contato),
+      nn2(b.projetistas_contatos),
+      nn2(b.particularidades),
+      nn2(b.informacoes_tecnicas),
       id,
     ];
     // Ensure JSONB params are sent as JSON strings to Postgres when needed
@@ -6112,6 +6164,25 @@ app.put('/api/empreendimentos/:id', async (req, res) => {
       if (params[13] !== null && params[13] !== undefined) {
         const v = params[13];
         if (typeof v === 'object') params[13] = JSON.stringify(v);
+      }
+      // bm_contato is at index 20 (0-based)
+      if (params[20] !== null && params[20] !== undefined) {
+        const v = params[20];
+        params[20] = typeof v === 'object' ? JSON.stringify(v) : JSON.stringify(String(v));
+      }
+      // mantenedor_contato is at index 21 (0-based)
+      if (params[21] !== null && params[21] !== undefined) {
+        const v = params[21];
+        params[21] = typeof v === 'object' ? JSON.stringify(v) : JSON.stringify(String(v));
+      }
+      // projetistas_contatos is at index 22 (0-based)
+      if (params[22] !== null && params[22] !== undefined) {
+        const v = params[22];
+        params[22] = typeof v === 'object' ? JSON.stringify(v) : JSON.stringify(String(v));
+      }
+      // informacoes_tecnicas is text/json text in legacy databases at index 24 (0-based)
+      if (params[24] !== null && params[24] !== undefined && typeof params[24] === 'object') {
+        params[24] = JSON.stringify(params[24]);
       }
     } catch (e) { /* ignore */ }
     const { rows } = await p.query(sql, params);
