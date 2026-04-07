@@ -296,15 +296,14 @@ const ContentPage = ({ sections }) => (
                     <div key={idx} className="border-b border-gray-300 last:border-b-0">
                       <div className="p-2 font-bold text-gray-800" style={{ backgroundColor: '#e8edf3' }}>{item.pergunta}</div>
                       {item.titulo && item.titulo !== '' && (
-                        <div className="px-3 pt-2 pb-1">
-                          <p className="text-xs text-gray-500 font-medium mb-0.5">Título da Área</p>
-                          <p className="text-sm font-semibold text-gray-800">{item.titulo}</p>
+                        <div className="px-3 py-2 border-t border-gray-200 bg-white">
+                          <p className="text-xs font-bold text-gray-900 uppercase">{item.titulo}</p>
                         </div>
                       )}
                       {item.resposta && item.resposta.trim() !== '' && (
-                        <div className="px-3 pt-1 pb-2" style={{ borderTop: (item.titulo && item.titulo !== '') ? '1px solid #e5e7eb' : 'none' }}>
-                          <p className="text-xs text-gray-500 font-medium mb-0.5">Comentário Geral</p>
-                          <p className="text-xs text-gray-700 whitespace-pre-wrap">{item.resposta}</p>
+                        <div className="px-3 py-2" style={{ borderTop: (item.titulo && item.titulo !== '') ? '1px solid #e5e7eb' : 'none', backgroundColor: '#eef6ff' }}>
+                          <p className="text-xs font-semibold text-gray-800 mb-1">Detalhamento das adequações:</p>
+                          <p className="text-xs text-gray-700 whitespace-pre-wrap break-words" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{item.resposta}</p>
                         </div>
                       )}
                     </div>
