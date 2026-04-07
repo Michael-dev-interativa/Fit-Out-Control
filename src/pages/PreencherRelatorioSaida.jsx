@@ -1612,9 +1612,9 @@ export default function PreencherRelatorioSaida({ language = 'pt', theme = 'ligh
                                 className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}
                               />
                             </div>
-                            {/* Comentário Geral */}
+                            {/* Detalhamento das adequações */}
                             <div className="space-y-1 mb-4">
-                              <Label className={`block text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Comentário Geral</Label>
+                              <Label className={`block text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Detalhamento das adequações</Label>
                               <Textarea
                                 placeholder={`Descrição geral da área ${areaNum}...`}
                                 value={descricaoGeralAdequacoes[areaKey] || ''}

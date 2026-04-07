@@ -219,14 +219,36 @@ const DeclaracoesGrid = ({ items }) => {
   );
 };
 
+const normalizeSectionName = (name = '') => String(name || '').replace(/^\d+\s*-\s*/, '').trim();
+
+const getDisplaySectionName = (name = '') => {
+  const normalized = normalizeSectionName(name);
+
+  switch (normalized) {
+    case 'CHECK-LIST INICIAL DE VISTORIA':
+      return '1 - CHECK-LIST INICIAL DE VISTORIA';
+    case 'CHECK-LIST DE DOCUMENTAÇÃO':
+      return '2 - CHECK-LIST DE DOCUMENTAÇÃO';
+    case 'DETALHAMENTO DAS ADEQUAÇÕES':
+      return '3 - DESCRIÇÃO GERAL DAS ADEQUAÇÕES';
+    case 'CONSIDERAÇÕES FINAIS':
+      return '4 - CONSIDERAÇÕES FINAIS';
+    case 'DECLARAÇÕES (1º VISTORIA)':
+      return '5 - DECLARAÇÕES (1º VISTORIA)';
+    default:
+      return name;
+  }
+};
+
 const ContentPage = ({ sections }) => (
   <div className="px-4 py-1">
     {sections.map(({ secaoName, items }, sIdx) => {
-      const isDocChecklistSecao = secaoName === 'CHECK-LIST DE DOCUMENTAÇÃO';
+      const normalizedSectionName = normalizeSectionName(secaoName);
+      const isDocChecklistSecao = normalizedSectionName === 'CHECK-LIST DE DOCUMENTAÇÃO';
       return (
         <div key={sIdx} className="mb-2">
-          <div className="text-base font-bold text-white p-2 rounded-md mb-2" style={{ backgroundColor: blueColor }}>{secaoName}</div>
-          {secaoName === 'CHECK-LIST INICIAL DE VISTORIA' ? (
+          <div className="text-base font-bold text-white p-2 rounded-md mb-2" style={{ backgroundColor: blueColor }}>{getDisplaySectionName(secaoName)}</div>
+          {normalizedSectionName === 'CHECK-LIST INICIAL DE VISTORIA' ? (
             <div className="border border-gray-300 rounded mb-3 text-xs overflow-hidden">
               {items.map((item, idx) => (
                 <div key={idx} className="border-b border-gray-300 last:border-b-0">
@@ -279,16 +301,16 @@ const ContentPage = ({ sections }) => (
                   );
                 })}
             </div>
-          ) : secaoName.includes('CONSIDERAÇÕES FINAIS') ? (
+          ) : normalizedSectionName.includes('CONSIDERAÇÕES FINAIS') ? (
             <div className="border border-gray-300 rounded mb-3 text-xs overflow-hidden">
               <div className="p-2 font-bold text-gray-800" style={{ backgroundColor: '#e8edf3' }}>Considerações</div>
               <div className="p-3" style={{ minHeight: '120px' }}>
                 <p className="text-gray-800 whitespace-pre-wrap break-words" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{items?.[0]?.resposta || ''}</p>
               </div>
             </div>
-          ) : secaoName.includes('DECLARAÇÕES') ? (
+          ) : normalizedSectionName.includes('DECLARAÇÕES') ? (
             <DeclaracoesGrid items={items} />
-          ) : secaoName === 'DETALHAMENTO DAS ADEQUAÇÕES' ? (
+          ) : normalizedSectionName === 'DETALHAMENTO DAS ADEQUAÇÕES' ? (
             <div className="border border-gray-300 rounded mb-3 text-xs overflow-hidden">
               {items.map((item, idx) => {
                 if (item.tipo === 'descricao_geral') {
@@ -297,7 +319,7 @@ const ContentPage = ({ sections }) => (
                       <div className="p-2 font-bold text-gray-800" style={{ backgroundColor: '#e8edf3' }}>{item.pergunta}</div>
                       {item.titulo && item.titulo !== '' && (
                         <div className="px-3 py-2 border-t border-gray-200 bg-white">
-                          <p className="text-xs font-bold text-gray-900 uppercase">{item.titulo}</p>
+                          <p className="text-[10px] font-bold text-gray-900 uppercase">{item.titulo}</p>
                         </div>
                       )}
                       {item.resposta && item.resposta.trim() !== '' && (
@@ -581,7 +603,7 @@ const paginateSaidaContent = (sections, opts = {}) => {
     if (!section?.secaoName || items.length === 0) return;
 
     // Keep declaration block together to preserve signature grid layout.
-    if (section.secaoName?.includes('DECLARAÇÕES')) {
+    if (normalizeSectionName(section.secaoName).includes('DECLARAÇÕES')) {
       blocks.push({
         secaoName: section.secaoName,
         items,
@@ -591,7 +613,7 @@ const paginateSaidaContent = (sections, opts = {}) => {
       return;
     }
 
-    const isInitialChecklistSection = section.secaoName === 'CHECK-LIST INICIAL DE VISTORIA';
+    const isInitialChecklistSection = normalizeSectionName(section.secaoName) === 'CHECK-LIST INICIAL DE VISTORIA';
 
     items.forEach((item, itemIndex) => {
       const estimatedHeight = isInitialChecklistSection
