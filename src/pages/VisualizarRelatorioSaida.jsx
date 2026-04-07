@@ -279,6 +279,13 @@ const ContentPage = ({ sections }) => (
                   );
                 })}
             </div>
+          ) : secaoName.includes('CONSIDERAÇÕES FINAIS') ? (
+            <div className="border border-gray-300 rounded mb-3 text-xs overflow-hidden">
+              <div className="p-2 font-bold text-gray-800" style={{ backgroundColor: '#e8edf3' }}>Considerações</div>
+              <div className="p-3" style={{ minHeight: '120px' }}>
+                <p className="text-gray-800 whitespace-pre-wrap">{items?.[0]?.resposta || ''}</p>
+              </div>
+            </div>
           ) : secaoName.includes('DECLARAÇÕES') ? (
             <DeclaracoesGrid items={items} />
           ) : secaoName === 'DETALHAMENTO DAS ADEQUAÇÕES' ? (
@@ -842,19 +849,17 @@ const processData = (relatorio, formulario) => {
     if (mergedItems.length > 0) allSections.push({ secaoName: 'DETALHAMENTO DAS ADEQUAÇÕES', items: mergedItems });
   }
 
-  // 5. ADD CONSIDERAÇÕES FINAIS (before declarations)
-  if (relatorio?.consideracoes_finais && String(relatorio.consideracoes_finais).trim() !== '') {
-    allSections.push({
-      secaoName: '4 - CONSIDERAÇÕES FINAIS',
-      items: [{
-        pergunta: 'Considerações',
-        resposta: String(relatorio.consideracoes_finais),
-        assinatura: null,
-        observacao: '',
-        fotos: [],
-      }],
-    });
-  }
+  // 5. ADD CONSIDERAÇÕES FINAIS (before declarations) - always visible.
+  allSections.push({
+    secaoName: '4 - CONSIDERAÇÕES FINAIS',
+    items: [{
+      pergunta: 'Considerações',
+      resposta: String(relatorio?.consideracoes_finais || ''),
+      assinatura: null,
+      observacao: '',
+      fotos: [],
+    }],
+  });
 
   // 6. ADD DECLARAÇÕES (always last)
   let declaracoesData = relatorio.declaracoes;
