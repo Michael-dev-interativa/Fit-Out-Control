@@ -254,7 +254,7 @@ const ESTRUTURA_RELATORIO_SAIDA = [
     perguntas: [
       { pergunta: 'Este relatório tem como objetivo descrever e sinalizar os elementos que deverão ser adequados antes da desocupação do pavimento ocupado pelo atual LOCATÁRIO, para a devolução de unidade para a:', tipo: 'textarea' },
       { pergunta: 'O LOCATÁRIO é o responsável por todas as adequações e comprovações solicitadas para as seguintes disciplinas:', tipo: 'textarea' },
-      { pergunta: 'Observação', tipo: 'textarea' },
+      { pergunta: 'Considerações Iniciais', tipo: 'textarea' },
     ]
   },
   {

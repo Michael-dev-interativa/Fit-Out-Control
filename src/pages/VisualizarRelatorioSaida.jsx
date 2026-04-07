@@ -761,6 +761,12 @@ const processData = (relatorio, formulario) => {
   if (typeof detalhamentoData === 'string') { try { detalhamentoData = JSON.parse(detalhamentoData); } catch { detalhamentoData = {}; } }
 
   const allSections = [];
+  const normalizeQuestionLabel = (label) => {
+    const text = String(label || '').trim();
+    return text.toLowerCase() === 'observação' || text.toLowerCase() === 'observacao'
+      ? 'Considerações Iniciais'
+      : text;
+  };
 
   // 1. OBJETIVOS (primeira seção do formulário)
   const objetivosSecao = formulario.secoes.find(s => s.nome_secao?.toUpperCase().includes('OBJETIVOS'));
@@ -777,7 +783,7 @@ const processData = (relatorio, formulario) => {
       if (valorRaw && valorRaw !== '') resposta = String(valorRaw);
       const observacao = comentario || '';
       const hasContent = resposta !== '-' || fotosItem.length > 0 || (observacao && observacao.trim() !== '');
-      if (hasContent) items.push({ pergunta: perg.pergunta, resposta, assinatura: null, observacao, fotos: fotosItem });
+      if (hasContent) items.push({ pergunta: normalizeQuestionLabel(perg.pergunta), resposta, assinatura: null, observacao, fotos: fotosItem });
     });
     if (items.length > 0) allSections.push({ secaoName: objetivosSecao.nome_secao, items });
   }
