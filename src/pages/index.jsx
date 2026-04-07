@@ -171,7 +171,7 @@ const EmpreendimentoListaDocumentosReport = lazy(() => import("./EmpreendimentoL
 
 const EditarListaDocumentosReport = lazy(() => import("./EditarListaDocumentosReport"));
 
-import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import { HashRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 
 const PAGES = {
 
