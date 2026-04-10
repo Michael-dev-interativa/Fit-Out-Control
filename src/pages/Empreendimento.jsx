@@ -320,6 +320,15 @@ const EmpreendimentoPage = () => {
                     <FileText className="w-5 h-5" />
                     <span className="text-center leading-tight">{t['Análise Técnica'] || 'Análise Técnica'}</span>
                   </Button>
+
+                  <Button
+                    variant="outline"
+                    className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
+                    onClick={() => navigate(createPageUrl(`EmpreendimentoVistoriaTecnica?empreendimentoId=${empreendimentoId}`))}
+                  >
+                    <ClipboardList className="w-5 h-5" />
+                    <span className="text-center leading-tight">{t['Vistoria Técnica'] || 'Vistoria Técnica'}</span>
+                  </Button>
                 </div>
 
 
