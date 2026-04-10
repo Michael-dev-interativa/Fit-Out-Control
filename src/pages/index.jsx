@@ -58,6 +58,10 @@ const NovaVistoriaTerminalidade = lazy(() => import("./NovaVistoriaTerminalidade
 const VisualizarVistoriaTerminalidade = lazy(() => import("./VisualizarVistoriaTerminalidade"));
 const EditarVistoriaTerminalidade = lazy(() => import("./EditarVistoriaTerminalidade"));
 const GaleriaVistoriaTerminalidade = lazy(() => import("./GaleriaVistoriaTerminalidade"));
+const EmpreendimentoVistoriaTecnica = lazy(() => import("./EmpreendimentoVistoriaTecnica"));
+const NovaVistoriaTecnica = lazy(() => import("./NovaVistoriaTecnica"));
+const EditarVistoriaTecnica = lazy(() => import("./EditarVistoriaTecnica"));
+const VisualizarVistoriaTecnica = lazy(() => import("./VisualizarVistoriaTecnica"));
 const EmpreendimentoRelatoriosSemanais = lazy(() => import("./EmpreendimentoRelatoriosSemanais"));
 const NovoRelatorioSemanal = lazy(() => import("./NovoRelatorioSemanal"));
 const EmpreendimentoPrimeirosServicos = lazy(() => import("./EmpreendimentoPrimeirosServicos"));
@@ -276,6 +280,14 @@ const PAGES = {
     EditarVistoriaTerminalidade: EditarVistoriaTerminalidade,
 
     GaleriaVistoriaTerminalidade: GaleriaVistoriaTerminalidade,
+
+    EmpreendimentoVistoriaTecnica: EmpreendimentoVistoriaTecnica,
+
+    NovaVistoriaTecnica: NovaVistoriaTecnica,
+
+    EditarVistoriaTecnica: EditarVistoriaTecnica,
+
+    VisualizarVistoriaTecnica: VisualizarVistoriaTecnica,
 
     EmpreendimentoRelatoriosSemanais: EmpreendimentoRelatoriosSemanais,
 
@@ -543,6 +555,11 @@ function PagesContent() {
                     <Route path="/EditarVistoriaTerminalidade" element={<EditarVistoriaTerminalidade />} />
 
                     <Route path="/GaleriaVistoriaTerminalidade" element={<GaleriaVistoriaTerminalidade />} />
+
+                    <Route path="/EmpreendimentoVistoriaTecnica" element={<EmpreendimentoVistoriaTecnica />} />
+                    <Route path="/NovaVistoriaTecnica" element={<NovaVistoriaTecnica />} />
+                    <Route path="/EditarVistoriaTecnica" element={<EditarVistoriaTecnica />} />
+                    <Route path="/VisualizarVistoriaTecnica" element={<VisualizarVistoriaTecnica />} />
 
                     <Route path="/EmpreendimentoRelatoriosSemanais" element={<EmpreendimentoRelatoriosSemanais />} />
 
