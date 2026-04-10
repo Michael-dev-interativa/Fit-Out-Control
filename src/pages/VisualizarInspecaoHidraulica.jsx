@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { InspecaoHidraulica, Empreendimento } from '@/api/entities';
+import { compressReportImages } from '@/lib/compressReportImages';
 import { Button } from '@/components/ui/button';
 import { Loader2, Printer, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -164,10 +165,10 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
 };
 
 const FotoInspecao = ({ url, legenda, maxHeight = '66mm' }) => {
-  const compressedUrl = useCompressedImage(url, 800, 0.6);
+  // URL já vem comprimida pelo compressReportImages
   return (
     <div className="text-center foto-inspecao" style={{ overflow: 'hidden', boxSizing: 'border-box' }}>
-      <img src={compressedUrl} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: '250px', objectFit: 'cover', border: '1px solid #ddd', display: 'block' }} />
+      <img src={url} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: '250px', objectFit: 'cover', border: '1px solid #ddd', display: 'block' }} />
       {legenda && (
         <p className="text-[9px] text-gray-600 mt-1">{legenda}</p>
       )}
@@ -595,7 +596,10 @@ export default function VisualizarInspecaoHidraulica() {
         const empreendimentoData = await Empreendimento.get(relatorioData.id_empreendimento);
         if (!empreendimentoData) throw new Error("Empreendimento associado não encontrado.");
 
-        setRelatorio(relatorioData);
+        // Comprimir as imagens do relatório ANTES de renderizar
+        const compressedRelatorio = await compressReportImages(relatorioData);
+
+        setRelatorio(compressedRelatorio);
         setEmpreendimento(empreendimentoData);
       } catch (err) {
         setError(err.message);

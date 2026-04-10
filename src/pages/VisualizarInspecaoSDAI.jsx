@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { InspecaoSDAI, Empreendimento } from '@/api/entities';
 import { getUploadUrl } from '@/api/config';
+import { compressReportImages } from '@/lib/compressReportImages';
 import { Button } from '@/components/ui/button';
 import { Loader2, Printer, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -158,7 +159,8 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
 };
 
 const FotoInstalacao = ({ url, legenda }) => {
-    const imageUrl = useCompressedImage(getUploadUrl(url), 800, 0.7);
+    // URL já vem comprimida pelo compressReportImages
+    const imageUrl = getUploadUrl(url);
 
     return (
         <div style={{ textAlign: 'center', overflow: 'hidden', marginBottom: '6px', boxSizing: 'border-box' }}>
@@ -661,7 +663,10 @@ export default function VisualizarInspecaoSDAI() {
                 const empreendimentoData = await Empreendimento.get(relatorioData.id_empreendimento);
                 if (!empreendimentoData) throw new Error("Empreendimento associado não encontrado.");
 
-                setRelatorio(relatorioData);
+                // Comprimir as imagens do relatório ANTES de renderizar
+                const compressedRelatorio = await compressReportImages(relatorioData);
+
+                setRelatorio(compressedRelatorio);
                 setEmpreendimento(empreendimentoData);
             } catch (err) {
                 setError(err.message);

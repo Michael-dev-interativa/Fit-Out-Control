@@ -4,6 +4,7 @@ import { InspecaoSprinklers } from '@/api/entities';
 import { Empreendimento } from '@/api/entities';
 import { paginateLocalItemsForPrinting } from '@/lib/reportPagination';
 import { getUploadUrl } from '@/api/config';
+import { compressReportImages } from '@/lib/compressReportImages';
 import { Button } from '@/components/ui/button';
 import { Loader2, Printer, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -136,10 +137,10 @@ const DocumentacaoPage = ({ itens }) => {
 };
 
 const FotoInspecao = ({ url, legenda }) => {
-    const compressedUrl = useCompressedImage(url, 600, 0.6);
+    // URL já vem comprimida pelo compressReportImages, apenas renderizar
     return (
         <div className="text-center">
-            <img src={compressedUrl} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: 'auto', objectFit: 'contain', border: '1px solid #ddd' }} />
+            <img src={url} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: 'auto', objectFit: 'contain', border: '1px solid #ddd' }} />
             {legenda && (
                 <p className="text-[9px] text-gray-600 mt-1">{legenda}</p>
             )}
@@ -491,7 +492,10 @@ export default function VisualizarInspecaoSprinklers() {
                 const empreendimentoData = await Empreendimento.get(relatorioData.id_empreendimento);
                 if (!empreendimentoData) throw new Error("Empreendimento associado não encontrado.");
 
-                setRelatorio(relatorioData);
+                // Comprimir as imagens do relatório ANTES de renderizar
+                const compressedRelatorio = await compressReportImages(relatorioData);
+
+                setRelatorio(compressedRelatorio);
                 setEmpreendimento(empreendimentoData);
             } catch (err) {
                 setError(err.message);

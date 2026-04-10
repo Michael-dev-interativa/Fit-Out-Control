@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { paginateLocalItemsForPrinting } from '@/lib/reportPagination';
+import { compressReportImages } from '@/lib/compressReportImages';
 import { Button } from '@/components/ui/button';
 import { Loader2, Printer, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -742,24 +743,10 @@ export default function VisualizarInspecaoEletrica() {
                 const empreendimentoData = await base44.entities.Empreendimento.get(relatorioData.id_empreendimento);
                 if (!empreendimentoData) throw new Error("Empreendimento associado não encontrado.");
 
-                // Pré-comprimir todas as imagens antes de usar
-                console.log("==== INICIANDO COMPRESSÃO DE IMAGENS ====");
+                // Comprimir as imagens do relatório ANTES de renderizar
+                const compressedRelatorio = await compressReportImages(relatorioData);
 
-                // Preserve original project/inspection images for print fidelity.
-                // Previous aggressive JPEG compression changed visual appearance in PDFs.
-
-                // Comprimir imagens de assinaturas
-                if (relatorioData.assinaturas && relatorioData.assinaturas.length > 0) {
-                    console.log("Comprimindo assinaturas...");
-                    for (const assinatura of relatorioData.assinaturas) {
-                        if (assinatura.assinatura_imagem) {
-                            assinatura.assinatura_imagem = await compressImage(assinatura.assinatura_imagem, null, 0.2);
-                        }
-                    }
-                }
-
-                console.log("==== TODAS AS IMAGENS COMPRIMIDAS! ====");
-                setRelatorio(relatorioData);
+                setRelatorio(compressedRelatorio);
                 setEmpreendimento(empreendimentoData);
             } catch (err) {
                 setError(err.message);

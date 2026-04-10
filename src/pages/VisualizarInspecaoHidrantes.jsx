@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { InspecaoHidrantes, Empreendimento } from '@/api/entities';
+import { compressReportImages } from '@/lib/compressReportImages';
 import { Button } from '@/components/ui/button';
 import { Loader2, Printer, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -145,7 +146,7 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
 };
 
 const FotoInspecao = ({ url, legenda, maxHeight = '150px' }) => {
-    const compressedUrl = useCompressedImage(url, 600, 0.6);
+    // URL já vem comprimida pelo compressReportImages
     const printing = typeof document !== 'undefined' && document.body && document.body.dataset && document.body.dataset.printing === 'true';
 
     // Durante a impressão, renderizamos como background-image em um bloco fixo
@@ -175,7 +176,7 @@ const FotoInspecao = ({ url, legenda, maxHeight = '150px' }) => {
 
     return (
         <div className="text-center foto-inspecao">
-            <img className="foto-inspecao-img" src={compressedUrl} data-original={url} height={maxHeight} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: maxHeight, objectFit: 'cover', border: '1px solid #ddd', display: 'block' }} />
+            <img className="foto-inspecao-img" src={url} data-original={url} height={maxHeight} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: maxHeight, objectFit: 'cover', border: '1px solid #ddd', display: 'block' }} />
             {legenda && (
                 <p className="text-[9px] text-gray-600 mt-1">{legenda}</p>
             )}
@@ -736,49 +737,10 @@ export default function VisualizarInspecaoHidrantes() {
                 const empreendimentoData = await Empreendimento.get(relatorioData.id_empreendimento);
                 if (!empreendimentoData) throw new Error("Empreendimento associado não encontrado.");
 
-                // Pré-comprimir imagens para tornar medições e paginação mais previsíveis
-                try {
-                    // Capa
-                    if (empreendimentoData?.foto_empreendimento) {
-                        empreendimentoData.foto_empreendimento = await compressImage(empreendimentoData.foto_empreendimento, 600, 0.15);
-                    }
+                // Comprimir as imagens do relatório ANTES de renderizar
+                const compressedRelatorio = await compressReportImages(relatorioData);
 
-                    // Fotos de inspeção
-                    if (relatorioData.locais && relatorioData.locais.length > 0) {
-                        for (const local of relatorioData.locais) {
-                            if (local.itens_inspecao && local.itens_inspecao.length > 0) {
-                                for (const item of local.itens_inspecao) {
-                                    if (item.fotos && item.fotos.length > 0) {
-                                        for (const foto of item.fotos) {
-                                            if (foto && foto.url) {
-                                                try {
-                                                    foto.url = await compressImage(foto.url, 500, 0.15);
-                                                } catch (e) {
-                                                    // ignore individual photo errors
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Assinaturas
-                    if (relatorioData.assinaturas && relatorioData.assinaturas.length > 0) {
-                        for (const assinatura of relatorioData.assinaturas) {
-                            if (assinatura.assinatura_imagem) {
-                                try {
-                                    assinatura.assinatura_imagem = await compressImage(assinatura.assinatura_imagem, 300, 0.2);
-                                } catch (e) { }
-                            }
-                        }
-                    }
-                } catch (e) {
-                    // se compressão falhar, continuamos com as URLs originais
-                }
-
-                setRelatorio(relatorioData);
+                setRelatorio(compressedRelatorio);
                 setEmpreendimento(empreendimentoData);
             } catch (err) {
                 setError(err.message);

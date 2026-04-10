@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { InspecaoControleAcesso, Empreendimento } from '@/api/entities';
 import { getUploadUrl } from '@/api/config';
+import { compressReportImages } from '@/lib/compressReportImages';
 import { Button } from '@/components/ui/button';
 import { Loader2, Printer, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -154,14 +155,14 @@ const FotoInspecao = ({ foto }) => {
     const objectFit = typeof foto === 'string' ? 'contain' : (foto?.objectFit || foto?.fit || 'contain');
     const objectPosition = typeof foto === 'string' ? 'center center' : (foto?.objectPosition || foto?.posicao || 'center center');
     const resolvedUrl = getUploadUrl(fotoUrl) || fotoUrl;
-    const compressedUrl = useCompressedImage(resolvedUrl, 900, 0.75);
+    // URL já vem comprimida pelo compressReportImages, apenas usar resolvedUrl
 
     if (!resolvedUrl) return null;
 
     return (
         <div className="imagem-box" style={{ textAlign: 'left', marginBottom: '0px', boxSizing: 'border-box' }}>
             <img
-                src={compressedUrl}
+                src={resolvedUrl}
                 alt={legenda || 'Foto da inspecao'}
                 style={{
                     width: 'auto',
@@ -784,7 +785,10 @@ export default function VisualizarInspecaoControleAcesso() {
                 const empreendimentoData = await Empreendimento.get(relatorioData.id_empreendimento);
                 if (!empreendimentoData) throw new Error("Empreendimento associado não encontrado.");
 
-                setRelatorio(relatorioData);
+                // Comprimir as imagens do relatório ANTES de renderizar
+                const compressedRelatorio = await compressReportImages(relatorioData);
+
+                setRelatorio(compressedRelatorio);
                 setEmpreendimento(empreendimentoData);
             } catch (err) {
                 setError(err.message);
