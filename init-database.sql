@@ -123,6 +123,39 @@ CREATE TABLE IF NOT EXISTS public.relatorios_analise_tecnica (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS public.vistorias_tecnicas (
+    id SERIAL PRIMARY KEY,
+    id_empreendimento INTEGER REFERENCES public.empreendimentos(id) ON DELETE CASCADE,
+    data_vistoria DATE,
+    titulo_capa TEXT,
+    subtitulo_capa TEXT,
+    texto_rodape_capa TEXT,
+    titulo_vistoria TEXT,
+    descricao_vistoria TEXT,
+    titulo_relatorio TEXT,
+    subtitulo_relatorio TEXT,
+    cliente TEXT,
+    endereco TEXT,
+    revisao VARCHAR(100),
+    eng_responsavel VARCHAR(255),
+    nome_arquivo VARCHAR(255),
+    foto_localizacao TEXT,
+    objetivo TEXT,
+    instalacoes_geral TEXT,
+    lista_documentos JSONB,
+    normas_tecnicas JSONB,
+    itens_documentacao JSONB,
+    comentarios_documentacao TEXT,
+    locais JSONB,
+    quadros_gerais JSONB,
+    elevadores_monta_carga JSONB,
+    conclusao_final TEXT,
+    conclusao TEXT,
+    assinaturas JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 
 CREATE TABLE IF NOT EXISTS public.formularios_vistoria (
     id SERIAL PRIMARY KEY,

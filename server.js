@@ -1107,7 +1107,7 @@ function buildOrderClause(order) {
   const dir = order.startsWith('-') ? 'DESC' : 'ASC';
   // allow both created_date and created_at for compatibility
   const col = field === 'created_date' ? 'created_at' : field;
-  const allowed = new Set(['created_at', 'data_inicio_semana', 'data_fim_semana', 'numero_relatorio', 'id', 'data_inspecao', 'revisao']);
+  const allowed = new Set(['created_at', 'data_inicio_semana', 'data_fim_semana', 'numero_relatorio', 'id', 'data_inspecao', 'data_vistoria', 'revisao']);
   return `ORDER BY ${allowed.has(col) ? col : 'created_at'} ${dir}`;
 }
 
@@ -2703,6 +2703,317 @@ app.delete('/api/inspecoes-ar-condicionado/:id', async (req, res) => {
     const p = requirePool();
     const id = Number(req.params.id);
     const { rowCount } = await p.query('DELETE FROM public.inspecoes_ar_condicionado WHERE id = $1', [id]);
+    if (!rowCount) return res.status(404).json({ error: 'not_found' });
+    res.json({ ok: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: msg });
+  }
+});
+
+// ===== Vistorias Tecnicas =====
+let vistoriaTecnicaSchemaEnsured = false;
+
+async function ensureVistoriaTecnicaSchema() {
+  if (vistoriaTecnicaSchemaEnsured) return;
+
+  const p = requirePool();
+  await p.query(`
+    CREATE TABLE IF NOT EXISTS public.vistorias_tecnicas (
+      id BIGSERIAL PRIMARY KEY,
+      id_empreendimento BIGINT NOT NULL REFERENCES public.empreendimentos(id) ON DELETE CASCADE,
+      data_vistoria DATE,
+      titulo_capa TEXT,
+      subtitulo_capa TEXT,
+      texto_rodape_capa TEXT,
+      titulo_vistoria TEXT,
+      descricao_vistoria TEXT,
+      titulo_relatorio TEXT,
+      subtitulo_relatorio TEXT,
+      cliente TEXT,
+      endereco TEXT,
+      revisao TEXT,
+      eng_responsavel TEXT,
+      nome_arquivo TEXT,
+      foto_localizacao TEXT,
+      objetivo TEXT,
+      instalacoes_geral TEXT,
+      lista_documentos JSONB,
+      normas_tecnicas JSONB,
+      itens_documentacao JSONB,
+      comentarios_documentacao TEXT,
+      locais JSONB,
+      quadros_gerais JSONB,
+      elevadores_monta_carga JSONB,
+      conclusao_final TEXT,
+      conclusao TEXT,
+      assinaturas JSONB,
+      created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+      updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+    )
+  `);
+
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS data_vistoria DATE`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS titulo_capa TEXT`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS subtitulo_capa TEXT`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS texto_rodape_capa TEXT`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS titulo_vistoria TEXT`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS descricao_vistoria TEXT`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS titulo_relatorio TEXT`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS subtitulo_relatorio TEXT`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS cliente TEXT`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS endereco TEXT`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS revisao TEXT`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS eng_responsavel TEXT`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS nome_arquivo TEXT`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS foto_localizacao TEXT`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS objetivo TEXT`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS instalacoes_geral TEXT`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS lista_documentos JSONB`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS normas_tecnicas JSONB`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS itens_documentacao JSONB`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS comentarios_documentacao TEXT`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS locais JSONB`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS quadros_gerais JSONB`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS elevadores_monta_carga JSONB`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS conclusao_final TEXT`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS conclusao TEXT`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS assinaturas JSONB`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now() NOT NULL`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now() NOT NULL`);
+
+  await p.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'vistorias_tecnicas_id_empreendimento_fkey'
+      ) THEN
+        ALTER TABLE public.vistorias_tecnicas
+        ADD CONSTRAINT vistorias_tecnicas_id_empreendimento_fkey
+        FOREIGN KEY (id_empreendimento) REFERENCES public.empreendimentos(id) ON DELETE CASCADE;
+      END IF;
+    END $$;
+  `);
+
+  await p.query('DROP TRIGGER IF EXISTS vistorias_tecnicas_set_updated_at ON public.vistorias_tecnicas');
+  await p.query('CREATE TRIGGER vistorias_tecnicas_set_updated_at BEFORE UPDATE ON public.vistorias_tecnicas FOR EACH ROW EXECUTE FUNCTION public.set_updated_at()');
+  await p.query('CREATE INDEX IF NOT EXISTS idx_vistorias_tecnicas_empreendimento ON public.vistorias_tecnicas (id_empreendimento)');
+  await p.query('CREATE INDEX IF NOT EXISTS idx_vistorias_tecnicas_data ON public.vistorias_tecnicas (data_vistoria)');
+  await p.query('CREATE INDEX IF NOT EXISTS idx_vistorias_tecnicas_revisao ON public.vistorias_tecnicas (revisao)');
+
+  vistoriaTecnicaSchemaEnsured = true;
+}
+
+function mapVistoriaTecnicaRow(row) {
+  return {
+    id: row.id,
+    id_empreendimento: row.id_empreendimento,
+    data_vistoria: formatDateForAPI(row.data_vistoria),
+    titulo_capa: row.titulo_capa,
+    subtitulo_capa: row.subtitulo_capa,
+    texto_rodape_capa: row.texto_rodape_capa,
+    titulo_vistoria: row.titulo_vistoria,
+    descricao_vistoria: row.descricao_vistoria,
+    titulo_relatorio: row.titulo_relatorio,
+    subtitulo_relatorio: row.subtitulo_relatorio,
+    cliente: row.cliente,
+    endereco: row.endereco,
+    revisao: row.revisao,
+    eng_responsavel: row.eng_responsavel,
+    nome_arquivo: row.nome_arquivo,
+    foto_localizacao: row.foto_localizacao,
+    objetivo: row.objetivo,
+    instalacoes_geral: row.instalacoes_geral,
+    lista_documentos: row.lista_documentos,
+    normas_tecnicas: row.normas_tecnicas,
+    itens_documentacao: row.itens_documentacao,
+    comentarios_documentacao: row.comentarios_documentacao,
+    locais: row.locais,
+    quadros_gerais: row.quadros_gerais,
+    elevadores_monta_carga: row.elevadores_monta_carga,
+    conclusao_final: row.conclusao_final,
+    conclusao: row.conclusao,
+    assinaturas: row.assinaturas,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+app.get('/api/vistorias-tecnicas', async (req, res) => {
+  try {
+    await ensureVistoriaTecnicaSchema();
+    const p = requirePool();
+    const { id_empreendimento, order } = req.query;
+    const where = [];
+    const params = [];
+    if (id_empreendimento) {
+      where.push('id_empreendimento = $' + (params.length + 1));
+      params.push(Number(id_empreendimento));
+    }
+    const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+    const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
+    const { rows } = await p.query(`SELECT * FROM public.vistorias_tecnicas ${whereClause} ${orderClause}`, params);
+    res.json(rows.map(mapVistoriaTecnicaRow));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: msg });
+  }
+});
+
+app.get('/api/vistorias-tecnicas/:id', async (req, res) => {
+  try {
+    await ensureVistoriaTecnicaSchema();
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const { rows } = await p.query('SELECT * FROM public.vistorias_tecnicas WHERE id = $1', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapVistoriaTecnicaRow(rows[0]));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: msg });
+  }
+});
+
+app.post('/api/vistorias-tecnicas', async (req, res) => {
+  try {
+    await ensureVistoriaTecnicaSchema();
+    const p = requirePool();
+    const b = req.body || {};
+    if (!b.id_empreendimento) {
+      return res.status(400).json({ error: 'missing_id_empreendimento' });
+    }
+    const sql = `INSERT INTO public.vistorias_tecnicas (
+      id_empreendimento, data_vistoria, titulo_capa, subtitulo_capa, texto_rodape_capa,
+      titulo_vistoria, descricao_vistoria, titulo_relatorio, subtitulo_relatorio, cliente,
+      endereco, revisao, eng_responsavel, nome_arquivo, foto_localizacao,
+      objetivo, instalacoes_geral, lista_documentos, normas_tecnicas, itens_documentacao,
+      comentarios_documentacao, locais, quadros_gerais, elevadores_monta_carga,
+      conclusao_final, conclusao, assinaturas
+    ) VALUES (
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18::jsonb,$19::jsonb,$20::jsonb,$21,$22::jsonb,$23::jsonb,$24::jsonb,$25,$26,$27::jsonb
+    ) RETURNING *`;
+    const params = [
+      Number(b.id_empreendimento),
+      normalizeDate(b.data_vistoria) ?? null,
+      b.titulo_capa ?? null,
+      b.subtitulo_capa ?? null,
+      b.texto_rodape_capa ?? null,
+      b.titulo_vistoria ?? null,
+      b.descricao_vistoria ?? null,
+      b.titulo_relatorio ?? null,
+      b.subtitulo_relatorio ?? null,
+      b.cliente ?? null,
+      b.endereco ?? null,
+      b.revisao ?? null,
+      b.eng_responsavel ?? null,
+      b.nome_arquivo ?? null,
+      b.foto_localizacao ?? null,
+      b.objetivo ?? null,
+      b.instalacoes_geral ?? null,
+      toJson(b.lista_documentos ?? []),
+      toJson(b.normas_tecnicas ?? []),
+      toJson(b.itens_documentacao ?? []),
+      b.comentarios_documentacao ?? null,
+      toJson(b.locais ?? []),
+      toJson(b.quadros_gerais ?? []),
+      toJson(b.elevadores_monta_carga ?? []),
+      b.conclusao_final ?? null,
+      b.conclusao ?? null,
+      toJson(b.assinaturas ?? []),
+    ];
+    const { rows } = await p.query(sql, params);
+    res.status(201).json(mapVistoriaTecnicaRow(rows[0]));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const code = err && typeof err === 'object' && 'code' in err ? err.code : undefined;
+    res.status(500).json({ error: msg, code });
+  }
+});
+
+app.put('/api/vistorias-tecnicas/:id', async (req, res) => {
+  try {
+    await ensureVistoriaTecnicaSchema();
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const b = req.body || {};
+    const sql = `UPDATE public.vistorias_tecnicas SET
+      id_empreendimento = COALESCE($1, id_empreendimento),
+      data_vistoria = $2,
+      titulo_capa = $3,
+      subtitulo_capa = $4,
+      texto_rodape_capa = $5,
+      titulo_vistoria = $6,
+      descricao_vistoria = $7,
+      titulo_relatorio = $8,
+      subtitulo_relatorio = $9,
+      cliente = $10,
+      endereco = $11,
+      revisao = $12,
+      eng_responsavel = $13,
+      nome_arquivo = $14,
+      foto_localizacao = $15,
+      objetivo = $16,
+      instalacoes_geral = $17,
+      lista_documentos = $18::jsonb,
+      normas_tecnicas = $19::jsonb,
+      itens_documentacao = $20::jsonb,
+      comentarios_documentacao = $21,
+      locais = $22::jsonb,
+      quadros_gerais = $23::jsonb,
+      elevadores_monta_carga = $24::jsonb,
+      conclusao_final = $25,
+      conclusao = $26,
+      assinaturas = $27::jsonb,
+      updated_at = now()
+    WHERE id = $28 RETURNING *`;
+    const params = [
+      (b.id_empreendimento !== undefined && b.id_empreendimento !== null) ? Number(b.id_empreendimento) : null,
+      normalizeDate(b.data_vistoria) ?? null,
+      b.titulo_capa ?? null,
+      b.subtitulo_capa ?? null,
+      b.texto_rodape_capa ?? null,
+      b.titulo_vistoria ?? null,
+      b.descricao_vistoria ?? null,
+      b.titulo_relatorio ?? null,
+      b.subtitulo_relatorio ?? null,
+      b.cliente ?? null,
+      b.endereco ?? null,
+      b.revisao ?? null,
+      b.eng_responsavel ?? null,
+      b.nome_arquivo ?? null,
+      b.foto_localizacao ?? null,
+      b.objetivo ?? null,
+      b.instalacoes_geral ?? null,
+      toJson(b.lista_documentos ?? []),
+      toJson(b.normas_tecnicas ?? []),
+      toJson(b.itens_documentacao ?? []),
+      b.comentarios_documentacao ?? null,
+      toJson(b.locais ?? []),
+      toJson(b.quadros_gerais ?? []),
+      toJson(b.elevadores_monta_carga ?? []),
+      b.conclusao_final ?? null,
+      b.conclusao ?? null,
+      toJson(b.assinaturas ?? []),
+      id,
+    ];
+    const { rows } = await p.query(sql, params);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapVistoriaTecnicaRow(rows[0]));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const code = err && typeof err === 'object' && 'code' in err ? err.code : undefined;
+    res.status(500).json({ error: msg, code });
+  }
+});
+
+app.delete('/api/vistorias-tecnicas/:id', async (req, res) => {
+  try {
+    await ensureVistoriaTecnicaSchema();
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const { rowCount } = await p.query('DELETE FROM public.vistorias_tecnicas WHERE id = $1', [id]);
     if (!rowCount) return res.status(404).json({ error: 'not_found' });
     res.json({ ok: true });
   } catch (err) {

@@ -773,6 +773,52 @@ CREATE INDEX IF NOT EXISTS idx_rat_data_emissao
 CREATE INDEX IF NOT EXISTS idx_rat_status
   ON public.relatorios_analise_tecnica (status_relatorio);
 
+-- Tabela: vistorias_tecnicas
+CREATE TABLE IF NOT EXISTS public.vistorias_tecnicas (
+  id BIGSERIAL PRIMARY KEY,
+  id_empreendimento BIGINT NOT NULL REFERENCES public.empreendimentos(id) ON DELETE CASCADE,
+  data_vistoria DATE,
+  titulo_capa TEXT,
+  subtitulo_capa TEXT,
+  texto_rodape_capa TEXT,
+  titulo_vistoria TEXT,
+  descricao_vistoria TEXT,
+  titulo_relatorio TEXT,
+  subtitulo_relatorio TEXT,
+  cliente TEXT,
+  endereco TEXT,
+  revisao TEXT,
+  eng_responsavel TEXT,
+  nome_arquivo TEXT,
+  foto_localizacao TEXT,
+  objetivo TEXT,
+  instalacoes_geral TEXT,
+  lista_documentos JSONB,
+  normas_tecnicas JSONB,
+  itens_documentacao JSONB,
+  comentarios_documentacao TEXT,
+  locais JSONB,
+  quadros_gerais JSONB,
+  elevadores_monta_carga JSONB,
+  conclusao_final TEXT,
+  conclusao TEXT,
+  assinaturas JSONB,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+DROP TRIGGER IF EXISTS vistorias_tecnicas_set_updated_at ON public.vistorias_tecnicas;
+CREATE TRIGGER vistorias_tecnicas_set_updated_at
+BEFORE UPDATE ON public.vistorias_tecnicas
+FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE INDEX IF NOT EXISTS idx_vistorias_tecnicas_empreendimento
+  ON public.vistorias_tecnicas (id_empreendimento);
+CREATE INDEX IF NOT EXISTS idx_vistorias_tecnicas_data
+  ON public.vistorias_tecnicas (data_vistoria);
+CREATE INDEX IF NOT EXISTS idx_vistorias_tecnicas_revisao
+  ON public.vistorias_tecnicas (revisao);
+
 -- Tabela: aprovacoes_amostra
 CREATE TABLE IF NOT EXISTS public.aprovacoes_amostra (
   id BIGSERIAL PRIMARY KEY,
