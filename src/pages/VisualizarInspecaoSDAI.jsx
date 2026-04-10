@@ -164,7 +164,27 @@ const FotoInstalacao = ({ url, legenda }) => {
 
     return (
         <div style={{ textAlign: 'center', overflow: 'hidden', marginBottom: '6px', boxSizing: 'border-box' }}>
-            <img src={imageUrl} alt={legenda || 'Foto da instalação'} style={{ width: '100%', height: 'auto', maxHeight: '45mm', objectFit: 'contain', border: '1px solid #ddd', display: 'block' }} />
+            <div
+                style={{
+                    width: '100%',
+                    height: '45mm',
+                    overflow: 'hidden',
+                    border: '1px solid #ddd',
+                    backgroundColor: '#fff',
+                }}
+            >
+                <img
+                    src={imageUrl}
+                    alt={legenda || 'Foto da instalação'}
+                    style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        objectPosition: 'center',
+                        display: 'block',
+                    }}
+                />
+            </div>
             {legenda && (
                 <p style={{ fontSize: '7px', color: '#555', marginTop: '4px', lineHeight: '1.1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{legenda}</p>
             )}
@@ -246,7 +266,7 @@ const InstalacaoPage = ({ itens_instalacao, comentarios_instalacao, showHeader =
                                 <tr key={idx}>
                                     <td colSpan="4" className="border border-black p-1 pt-3">
                                         <div className="text-xs text-gray-600 italic mb-2">{item.descricao}</div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min((item.fotos || []).length || 1, 3)}, 1fr)`, gap: '4px', maxWidth: '100%' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min((item.fotos || []).length || 1, 3)}, 1fr)`, gap: '4px', maxWidth: '100%', alignItems: 'stretch' }}>
                                             {(item.fotos || []).map((foto, fotoIdx) => (
                                                 <FotoInstalacao key={fotoIdx} url={foto.url} legenda={foto.legenda} />
                                             ))}
@@ -267,7 +287,7 @@ const InstalacaoPage = ({ itens_instalacao, comentarios_instalacao, showHeader =
                                 {item.fotos && item.fotos.length > 0 && (
                                     <tr>
                                         <td colSpan="4" className="border border-black p-1">
-                                            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(item.fotos.length, 3)}, 1fr)`, gap: '4px', maxWidth: '100%' }}>
+                                            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(item.fotos.length, 3)}, 1fr)`, gap: '4px', maxWidth: '100%', alignItems: 'stretch' }}>
                                                 {item.fotos.map((foto, fotoIdx) => (
                                                     <FotoInstalacao key={fotoIdx} url={foto.url} legenda={foto.legenda} />
                                                 ))}
