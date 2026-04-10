@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { base44 } from '@/api/base44Client';
+import { Empreendimento, VistoriaTecnica } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -50,7 +50,7 @@ export default function EditarVistoriaTecnica() {
         if (!vistoriaId) { toast.error("ID da vistoria não encontrado."); navigate(-1); return; }
         const load = async () => {
             try {
-                const data = await base44.entities.VistoriaTecnica.get(vistoriaId);
+                const data = await VistoriaTecnica.get(vistoriaId);
                 if (!data) throw new Error("Vistoria não encontrada.");
                 setFormData(data);
                 setCoverData({
@@ -72,7 +72,7 @@ export default function EditarVistoriaTecnica() {
                     capa_area_subtitulo_color: data.capa_area_subtitulo_color || '#4b5563',
                 });
                 if (data.id_empreendimento) {
-                    const emp = await base44.entities.Empreendimento.get(data.id_empreendimento);
+                    const emp = await Empreendimento.get(data.id_empreendimento);
                     setEmpreendimento(emp);
                 }
             } catch (err) {
@@ -125,7 +125,7 @@ export default function EditarVistoriaTecnica() {
             if (dataToSave.data_vistoria && !dataToSave.data_vistoria.includes('T')) {
                 dataToSave.data_vistoria = dataToSave.data_vistoria + 'T12:00:00';
             }
-            await base44.entities.VistoriaTecnica.update(vistoriaId, dataToSave);
+            await VistoriaTecnica.update(vistoriaId, dataToSave);
             toast.success("Vistoria técnica atualizada com sucesso!");
             navigate(createPageUrl(`EmpreendimentoVistoriaTecnica?empreendimentoId=${empreendimentoId || formData.id_empreendimento}`));
         } catch (error) {

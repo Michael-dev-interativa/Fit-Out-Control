@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { base44 } from '@/api/base44Client';
+import { Empreendimento, VistoriaTecnica } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -91,7 +91,7 @@ export default function NovaVistoriaTecnica() {
 
     useEffect(() => {
         if (!empreendimentoId) { navigate(-1); return; }
-        base44.entities.Empreendimento.get(empreendimentoId).then(data => {
+        Empreendimento.get(empreendimentoId).then(data => {
             setEmpreendimento(data);
             setFormData(prev => ({
                 ...prev,
@@ -135,7 +135,7 @@ export default function NovaVistoriaTecnica() {
             if (dataToSave.data_vistoria && !dataToSave.data_vistoria.includes('T')) {
                 dataToSave.data_vistoria = dataToSave.data_vistoria + 'T12:00:00';
             }
-            await base44.entities.VistoriaTecnica.create(dataToSave);
+            await VistoriaTecnica.create(dataToSave);
             clearDraft();
             toast.success("Vistoria técnica criada com sucesso!");
             navigate(createPageUrl(`EmpreendimentoVistoriaTecnica?empreendimentoId=${empreendimentoId}`));

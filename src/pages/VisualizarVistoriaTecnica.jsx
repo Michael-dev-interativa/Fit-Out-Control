@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { paginateLocaisFlowForVistoriaTecnica } from '@/lib/reportPaginationVistoriaTecnica.js';
-import { base44 } from '@/api/base44Client';
+import { Empreendimento, VistoriaTecnica } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -615,9 +615,9 @@ export default function VisualizarVistoriaTecnica() {
         if (!isValidId(vistoriaId)) { setError("ID da vistoria inválido."); setLoading(false); return; }
         const fetchData = async () => {
             try {
-                const data = await base44.entities.VistoriaTecnica.get(vistoriaId);
+                const data = await VistoriaTecnica.get(vistoriaId);
                 if (!data) throw new Error("Vistoria não encontrada.");
-                const emp = await base44.entities.Empreendimento.get(data.id_empreendimento);
+                    const emp = await Empreendimento.get(data.id_empreendimento);
                 setRelatorio(data);
                 setEmpreendimento(emp);
             } catch (err) { setError(err.message); }
@@ -747,7 +747,7 @@ export default function VisualizarVistoriaTecnica() {
                 capa_area_subtitulo_color: editedCoverData.capa_area_subtitulo_color || '',
             };
 
-            await base44.entities.VistoriaTecnica.update(relatorio.id, payload);
+            await VistoriaTecnica.update(relatorio.id, payload);
             setRelatorio((prev) => ({ ...prev, ...payload }));
             setEditCoverOpen(false);
             toast.success('Campos da capa atualizados!');
