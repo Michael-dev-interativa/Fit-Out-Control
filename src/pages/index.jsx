@@ -2,6 +2,10 @@ import React, { lazy, Suspense } from "react";
 import Layout from "./Layout.jsx";
 import Login from "./Login.jsx";
 import Register from "./Register.jsx";
+import EmpreendimentoVistoriaTecnica from "./EmpreendimentoVistoriaTecnica.jsx";
+import NovaVistoriaTecnica from "./NovaVistoriaTecnica.jsx";
+import EditarVistoriaTecnica from "./EditarVistoriaTecnica.jsx";
+import VisualizarVistoriaTecnica from "./VisualizarVistoriaTecnica.jsx";
 
 // Lazy-load large pages to reduce initial bundle size
 const Empreendimentos = lazy(() => import("./Empreendimentos"));
@@ -58,10 +62,6 @@ const NovaVistoriaTerminalidade = lazy(() => import("./NovaVistoriaTerminalidade
 const VisualizarVistoriaTerminalidade = lazy(() => import("./VisualizarVistoriaTerminalidade"));
 const EditarVistoriaTerminalidade = lazy(() => import("./EditarVistoriaTerminalidade"));
 const GaleriaVistoriaTerminalidade = lazy(() => import("./GaleriaVistoriaTerminalidade"));
-const EmpreendimentoVistoriaTecnica = lazy(() => import("./EmpreendimentoVistoriaTecnica"));
-const NovaVistoriaTecnica = lazy(() => import("./NovaVistoriaTecnica"));
-const EditarVistoriaTecnica = lazy(() => import("./EditarVistoriaTecnica"));
-const VisualizarVistoriaTecnica = lazy(() => import("./VisualizarVistoriaTecnica"));
 const EmpreendimentoRelatoriosSemanais = lazy(() => import("./EmpreendimentoRelatoriosSemanais"));
 const NovoRelatorioSemanal = lazy(() => import("./NovoRelatorioSemanal"));
 const EmpreendimentoPrimeirosServicos = lazy(() => import("./EmpreendimentoPrimeirosServicos"));
