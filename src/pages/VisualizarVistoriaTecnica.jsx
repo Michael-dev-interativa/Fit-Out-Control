@@ -140,9 +140,9 @@ const DadosPage = ({ relatorio, empreendimento }) => (
         <table className="w-full border-collapse text-xs">
             <tbody>
                 <tr>
-                    <td className="border border-black p-2 font-bold bg-gray-50 w-1/4">Cliente</td>
+                    <td className="border border-black p-2 font-bold bg-gray-50" style={{width:'10%'}}>Cliente</td>
                     <td className="border border-black p-2">{relatorio?.cliente || '-'}</td>
-                    <td className="border border-black p-2 font-bold bg-gray-50 w-1/4">Obra</td>
+                    <td className="border border-black p-2 font-bold bg-gray-50" style={{width:'10%'}}>Obra</td>
                     <td className="border border-black p-2">{relatorio?.subtitulo_relatorio || empreendimento?.nome_empreendimento || '-'}</td>
                 </tr>
                 <tr>
@@ -159,12 +159,12 @@ const DadosPage = ({ relatorio, empreendimento }) => (
                     <td className="border border-black p-2 font-bold bg-gray-50">Responsável</td>
                     <td className="border border-black p-2" colSpan="3">{relatorio?.eng_responsavel || '-'}</td>
                 </tr>
-                {relatorio?.descricao_vistoria && (
-                    <tr>
-                        <td className="border border-black p-2 font-bold bg-gray-50">Descrição</td>
-                        <td className="border border-black p-2 whitespace-pre-wrap" colSpan="3">{relatorio.descricao_vistoria}</td>
-                    </tr>
-                )}
+                <tr>
+                    <td className="border border-black p-2 font-bold bg-gray-50">Consultor Responsável</td>
+                    <td className="border border-black p-2 whitespace-pre-wrap">{relatorio?.consultor_responsavel || '-'}</td>
+                    <td className="border border-black p-2 font-bold bg-gray-50">Data do Relatório</td>
+                    <td className="border border-black p-2">{relatorio?.data_relatorio ? format(new Date(relatorio.data_relatorio), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</td>
+                </tr>
             </tbody>
         </table>
     </div>
