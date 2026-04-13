@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 const DRAFT_PREFIX = 'draft:';
 
@@ -23,20 +23,25 @@ function readDraft(storageKey) {
 
 export function useFormDraft(key, initialValue) {
   const storageKey = useMemo(() => toStorageKey(key), [key]);
+  const initialValueRef = useRef(initialValue);
   const initialDraft = useMemo(() => readDraft(storageKey), [storageKey]);
+
+  useEffect(() => {
+    initialValueRef.current = initialValue;
+  }, [storageKey, initialValue]);
 
   const [formData, setFormData] = useState(() => {
     if (initialDraft?.data) return initialDraft.data;
-    return initialValue;
+    return initialValueRef.current;
   });
   const [draftSavedAt, setDraftSavedAt] = useState(initialDraft?.savedAt || null);
 
   const hasDraft = !!draftSavedAt;
 
   useEffect(() => {
-    setFormData(initialDraft?.data || initialValue);
+    setFormData(initialDraft?.data || initialValueRef.current);
     setDraftSavedAt(initialDraft?.savedAt || null);
-  }, [storageKey, initialDraft, initialValue]);
+  }, [storageKey, initialDraft]);
 
   useEffect(() => {
     const timer = setTimeout(() => {

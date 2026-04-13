@@ -137,17 +137,17 @@ const CoverPage = ({ relatorio, empreendimento }) => {
 const DadosPage = ({ relatorio, empreendimento }) => (
     <div className="p-4">
         <h2 className="text-base font-bold text-center mb-3 bg-blue-900 text-white p-2">Dados do Empreendimento</h2>
-        <table className="w-full border-collapse text-xs">
+        <table className="w-full border-collapse text-xs table-fixed">
             <tbody>
                 <tr>
                     <td className="border border-black p-2 font-bold bg-gray-50 w-1/4">Cliente</td>
-                    <td className="border border-black p-2">{relatorio?.cliente || '-'}</td>
+                    <td className="border border-black p-2 break-words">{relatorio?.cliente || '-'}</td>
                     <td className="border border-black p-2 font-bold bg-gray-50 w-1/4">Obra</td>
-                    <td className="border border-black p-2">{relatorio?.subtitulo_relatorio || empreendimento?.nome_empreendimento || '-'}</td>
+                    <td className="border border-black p-2 break-words">{relatorio?.subtitulo_relatorio || empreendimento?.nome_empreendimento || '-'}</td>
                 </tr>
                 <tr>
                     <td className="border border-black p-2 font-bold bg-gray-50">Endereço</td>
-                    <td className="border border-black p-2" colSpan="3">{relatorio?.endereco || empreendimento?.endereco_empreendimento || '-'}</td>
+                    <td className="border border-black p-2 break-words" colSpan="3">{relatorio?.endereco || empreendimento?.endereco_empreendimento || '-'}</td>
                 </tr>
                 <tr>
                     <td className="border border-black p-2 font-bold bg-gray-50">Data da Vistoria</td>
@@ -157,12 +157,12 @@ const DadosPage = ({ relatorio, empreendimento }) => (
                 </tr>
                 <tr>
                     <td className="border border-black p-2 font-bold bg-gray-50">Responsável</td>
-                    <td className="border border-black p-2" colSpan="3">{relatorio?.eng_responsavel || '-'}</td>
+                    <td className="border border-black p-2 break-words" colSpan="3">{relatorio?.eng_responsavel || '-'}</td>
                 </tr>
                 {relatorio?.descricao_vistoria && (
                     <tr>
                         <td className="border border-black p-2 font-bold bg-gray-50">Descrição</td>
-                        <td className="border border-black p-2 whitespace-pre-wrap" colSpan="3">{relatorio.descricao_vistoria}</td>
+                        <td className="border border-black p-2 whitespace-pre-wrap break-words" colSpan="3">{relatorio.descricao_vistoria}</td>
                     </tr>
                 )}
             </tbody>
@@ -222,14 +222,14 @@ const CaracteristicasPage = ({ relatorio, sections, showTitle }) => {
             {sections.includes('objetivos') && relatorio?.objetivo && (
                 <div>
                     <h3 className="text-xs font-bold bg-gray-100 border border-black p-1 mb-0">Objetivos</h3>
-                    <div className="border border-black border-t-0 p-2 text-xs whitespace-pre-wrap">{relatorio.objetivo}</div>
+                    <div className="border border-black border-t-0 p-2 text-xs whitespace-pre-wrap break-words">{relatorio.objetivo}</div>
                 </div>
             )}
 
             {sections.includes('instalacoes') && relatorio?.instalacoes_geral && (
                 <div>
                     <h3 className="text-xs font-bold bg-gray-100 border border-black p-1 mb-0">Instalações em Geral</h3>
-                    <div className="border border-black border-t-0 p-2 text-xs whitespace-pre-wrap">{relatorio.instalacoes_geral}</div>
+                    <div className="border border-black border-t-0 p-2 text-xs whitespace-pre-wrap break-words">{relatorio.instalacoes_geral}</div>
                 </div>
             )}
 
@@ -330,7 +330,7 @@ const ContentPage = ({ segments }) => (
                                             if (item.tipo === 'comentario') {
                                                 return (
                                                     <tr key={idx}>
-                                                        <td colSpan="3" className="border border-black p-2 text-xs whitespace-pre-wrap">
+                                                        <td colSpan="3" className="border border-black p-2 text-xs whitespace-pre-wrap break-words">
                                                             <strong>Comentários Gerais: </strong>{item.comentarios || ''}
                                                         </td>
                                                     </tr>
@@ -350,14 +350,14 @@ const ContentPage = ({ segments }) => (
                                             return (
                                                 <React.Fragment key={idx}>
                                                     <tr data-item-group={`item-${idx}`}>
-                                                        <td className="border border-black p-2 align-top font-semibold text-xs">{item.descricao}</td>
+                                                        <td className="border border-black p-2 align-top font-semibold text-xs whitespace-pre-wrap break-words">{item.descricao}</td>
                                                         <td className="border border-black p-2 text-center align-top" style={{ width: '50px' }}>
                                                             {item.resultado && <span style={{ color: statusColor, fontWeight: 'bold', fontSize: '11px' }}>{item.resultado}</span>}
                                                         </td>
                                                     </tr>
                                                     {item.observacoes && (
                                                         <tr data-item-group={`item-${idx}`}>
-                                                            <td colSpan="2" className="border border-black px-3 py-2 text-xs text-gray-700 whitespace-pre-wrap bg-gray-50"><div className="font-semibold text-gray-500 mb-1">Comentários:</div>{item.observacoes}</td>
+                                                            <td colSpan="2" className="border border-black px-3 py-2 text-xs text-gray-700 whitespace-pre-wrap break-words bg-gray-50"><div className="font-semibold text-gray-500 mb-1">Comentários:</div>{item.observacoes}</td>
                                                         </tr>
                                                     )}
                                                     {item.fotos && item.fotos.length > 0 && (
@@ -399,8 +399,8 @@ const ListaDocumentosPage = ({ documentos }) => (
                 {(documentos || []).map((doc, idx) => (
                     <tr key={idx}>
                         <td className="border border-black p-2 text-center">{doc.des}</td>
-                        <td className="border border-black p-2">{doc.descricao}</td>
-                        <td className="border border-black p-2 text-black-700">{doc.arquivo}</td>
+                        <td className="border border-black p-2 break-words whitespace-normal">{doc.descricao}</td>
+                        <td className="border border-black p-2 text-black-700 break-words whitespace-normal">{doc.arquivo}</td>
                         <td className="border border-black p-2 text-center">{doc.rev}</td>
                         <td className="border border-black p-2 text-center">{doc.data}</td>
                     </tr>
@@ -424,8 +424,8 @@ const NormasTecnicasPage = ({ normas }) => (
             <tbody>
                 {(normas || []).map((n, idx) => (
                     <tr key={idx}>
-                        <td className="border border-black p-2 text-center">{n.norma}</td>
-                        <td className="border border-black p-2 text-center">{n.descricao}</td>
+                        <td className="border border-black p-2 text-center break-words whitespace-normal">{n.norma}</td>
+                        <td className="border border-black p-2 text-center break-words whitespace-normal">{n.descricao}</td>
                     </tr>
                 ))}
             </tbody>
@@ -535,14 +535,14 @@ const QuadrosGeraisPage = ({ quadro, itens, showTitle = true, showQuadroHeader =
                             return (
                                 <React.Fragment key={iIdx}>
                                     <tr>
-                                        <td className="border border-black p-2 font-semibold">{item.descricao}</td>
+                                        <td className="border border-black p-2 font-semibold whitespace-pre-wrap break-words">{item.descricao}</td>
                                         <td className="border border-black p-2 text-center">
                                             {item.resultado && <span style={{color: statusColor, fontWeight:'bold', fontSize:'11px'}}>{item.resultado}</span>}
                                         </td>
                                     </tr>
                                     {item.comentarios && (
                                         <tr>
-                                            <td colSpan="2" className="border border-black px-3 py-2 text-xs text-gray-700 whitespace-pre-wrap bg-gray-50">
+                                            <td colSpan="2" className="border border-black px-3 py-2 text-xs text-gray-700 whitespace-pre-wrap break-words bg-gray-50">
                                                 <div className="font-semibold text-gray-500 mb-1">Comentários:</div>{item.comentarios}
                                             </td>
                                         </tr>
@@ -1029,6 +1029,15 @@ export default function VisualizarVistoriaTecnica() {
                     .report-container { max-width: none !important; margin: 0 !important; padding: 0 !important; width: 210mm !important; }
                     .report-page { page-break-after: always; width: 210mm !important; height: 297mm !important; margin: 0 !important; box-shadow: none !important; overflow: visible !important; }
                     .report-page:last-child { page-break-after: auto; }
+                    .report-page table th,
+                    .report-page table td {
+                        overflow-wrap: anywhere !important;
+                        word-break: break-word !important;
+                    }
+                    .report-page table tr {
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
+                    }
                     html, body, * { overflow: visible !important; scrollbar-width: none !important; }
                     *::-webkit-scrollbar { display: none !important; }
                     .report-page .foto-inspecao-img { height: 220px !important; object-fit: cover !important; width: 100% !important; display: block !important; }
