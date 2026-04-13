@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { paginateLocaisFlowForVistoriaTecnica } from '@/lib/reportPaginationVistoriaTecnica.js';
-import { Empreendimento, VistoriaTecnica } from '@/api/entities';
+import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -137,17 +137,17 @@ const CoverPage = ({ relatorio, empreendimento }) => {
 const DadosPage = ({ relatorio, empreendimento }) => (
     <div className="p-4">
         <h2 className="text-base font-bold text-center mb-3 bg-blue-900 text-white p-2">Dados do Empreendimento</h2>
-        <table className="w-full border-collapse text-xs table-fixed">
+        <table className="w-full border-collapse text-xs">
             <tbody>
                 <tr>
                     <td className="border border-black p-2 font-bold bg-gray-50 w-1/4">Cliente</td>
-                    <td className="border border-black p-2 break-words">{relatorio?.cliente || '-'}</td>
+                    <td className="border border-black p-2">{relatorio?.cliente || '-'}</td>
                     <td className="border border-black p-2 font-bold bg-gray-50 w-1/4">Obra</td>
-                    <td className="border border-black p-2 break-words">{relatorio?.subtitulo_relatorio || empreendimento?.nome_empreendimento || '-'}</td>
+                    <td className="border border-black p-2">{relatorio?.subtitulo_relatorio || empreendimento?.nome_empreendimento || '-'}</td>
                 </tr>
                 <tr>
                     <td className="border border-black p-2 font-bold bg-gray-50">Endereço</td>
-                    <td className="border border-black p-2 break-words" colSpan="3">{relatorio?.endereco || empreendimento?.endereco_empreendimento || '-'}</td>
+                    <td className="border border-black p-2" colSpan="3">{relatorio?.endereco || empreendimento?.endereco_empreendimento || '-'}</td>
                 </tr>
                 <tr>
                     <td className="border border-black p-2 font-bold bg-gray-50">Data da Vistoria</td>
@@ -157,12 +157,12 @@ const DadosPage = ({ relatorio, empreendimento }) => (
                 </tr>
                 <tr>
                     <td className="border border-black p-2 font-bold bg-gray-50">Responsável</td>
-                    <td className="border border-black p-2 break-words" colSpan="3">{relatorio?.eng_responsavel || '-'}</td>
+                    <td className="border border-black p-2" colSpan="3">{relatorio?.eng_responsavel || '-'}</td>
                 </tr>
                 {relatorio?.descricao_vistoria && (
                     <tr>
                         <td className="border border-black p-2 font-bold bg-gray-50">Descrição</td>
-                        <td className="border border-black p-2 whitespace-pre-wrap break-words" colSpan="3">{relatorio.descricao_vistoria}</td>
+                        <td className="border border-black p-2 whitespace-pre-wrap" colSpan="3">{relatorio.descricao_vistoria}</td>
                     </tr>
                 )}
             </tbody>
@@ -222,14 +222,14 @@ const CaracteristicasPage = ({ relatorio, sections, showTitle }) => {
             {sections.includes('objetivos') && relatorio?.objetivo && (
                 <div>
                     <h3 className="text-xs font-bold bg-gray-100 border border-black p-1 mb-0">Objetivos</h3>
-                    <div className="border border-black border-t-0 p-2 text-xs whitespace-pre-wrap break-words">{relatorio.objetivo}</div>
+                    <div className="border border-black border-t-0 p-2 text-xs whitespace-pre-wrap">{relatorio.objetivo}</div>
                 </div>
             )}
 
             {sections.includes('instalacoes') && relatorio?.instalacoes_geral && (
                 <div>
                     <h3 className="text-xs font-bold bg-gray-100 border border-black p-1 mb-0">Instalações em Geral</h3>
-                    <div className="border border-black border-t-0 p-2 text-xs whitespace-pre-wrap break-words">{relatorio.instalacoes_geral}</div>
+                    <div className="border border-black border-t-0 p-2 text-xs whitespace-pre-wrap">{relatorio.instalacoes_geral}</div>
                 </div>
             )}
 
@@ -266,37 +266,42 @@ const FotoInspecao = ({ url, legenda }) => {
     const compressed = useCompressedImage(url, 600, 0.6);
     return (
         <div className="text-center">
-            <img src={compressed} data-original={url} alt={legenda || ''} className="foto-inspecao-img" style={{ width: '100%', height: '220px', objectFit: 'cover', border: '1px solid #ddd', display: 'block' }} />
+            <div className="foto-inspecao-container" style={{ width: '100%', height: '220px', overflow: 'hidden', border: '1px solid #ddd' }}>
+                <img src={compressed} data-original={url} alt={legenda || ''} className="foto-inspecao-img" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            </div>
             {legenda && <p className="text-[9px] text-gray-600 mt-1">{legenda}</p>}
         </div>
     );
 };
 
 // ── PÁGINA DE INSPEÇÃO ────────────────────────────────────────────────────────
-const ContentPage = ({ segments }) => (
+const ContentPage = ({ segments, isFirstPage = false }) => (
     <div className="px-4 pt-6 pb-4">
         {Array.isArray(segments) && segments.length > 0 && (
             <div>
+                {isFirstPage && (
+                    <h2 className="text-base font-bold text-center bg-blue-900 text-white p-2 mb-3">Inspeção Técnica</h2>
+                )}
                 {(() => {
                     const renderedTopics = new Set();
                     return segments.map((segment, sIdx) => {
                         const { local, items, showHeader } = segment;
                         const showTableHeader = showHeader && items.some((item) => item.tipo !== 'comentario');
                         const topicKey = (local?.nome_local || 'Inspeção Técnica').trim();
-                        const showBlueTopicHeader = showHeader && !renderedTopics.has(topicKey);
-                        if (showBlueTopicHeader) renderedTopics.add(topicKey);
+                        const showTopicHeader = showHeader && !renderedTopics.has(topicKey);
+                        if (showTopicHeader) renderedTopics.add(topicKey);
                         return (
                             <div key={`${segment.localIndex}-${sIdx}`} className={showHeader ? 'mt-0' : 'mt-3'}>
                                 {showHeader && (
                                     <>
-                                        {showBlueTopicHeader && (
-                                            <h3 className="text-base font-bold mb-2 bg-blue-900 text-white p-2 text-center">{local.nome_local || 'Inspeção Técnica'}</h3>
+                                        {showTopicHeader && (
+                                            <div className="text-sm font-bold mb-2 pt-3 pb-1 text-gray-700 uppercase tracking-widest border-b-2 border-gray-400">{local.nome_local || 'Inspeção Técnica'}</div>
                                         )}
                                         {local.nome_local_exibicao && (
                                             <div className="mb-2 text-xs font-bold text-gray-800 bg-gray-100 border border-gray-400 px-3 py-2 uppercase tracking-wide">{local.nome_local_exibicao}</div>
                                         )}
                                         {local.fotos && local.fotos.length > 0 && (
-                                            <div className="mb-3">
+                                            <div className="mb-3 border border-black p-2">
                                                 <div className="grid grid-cols-3 gap-2">
                                                     {local.fotos.map((f, fi) => <FotoInspecao key={fi} url={f.url} legenda={f.legenda} />)}
                                                 </div>
@@ -330,7 +335,7 @@ const ContentPage = ({ segments }) => (
                                             if (item.tipo === 'comentario') {
                                                 return (
                                                     <tr key={idx}>
-                                                        <td colSpan="3" className="border border-black p-2 text-xs whitespace-pre-wrap break-words">
+                                                        <td colSpan="3" className="border border-black p-2 text-xs whitespace-pre-wrap">
                                                             <strong>Comentários Gerais: </strong>{item.comentarios || ''}
                                                         </td>
                                                     </tr>
@@ -350,14 +355,14 @@ const ContentPage = ({ segments }) => (
                                             return (
                                                 <React.Fragment key={idx}>
                                                     <tr data-item-group={`item-${idx}`}>
-                                                        <td className="border border-black p-2 align-top font-semibold text-xs whitespace-pre-wrap break-words">{item.descricao}</td>
+                                                        <td className="border border-black p-2 align-top font-semibold text-xs">{item.descricao}</td>
                                                         <td className="border border-black p-2 text-center align-top" style={{ width: '50px' }}>
                                                             {item.resultado && <span style={{ color: statusColor, fontWeight: 'bold', fontSize: '11px' }}>{item.resultado}</span>}
                                                         </td>
                                                     </tr>
                                                     {item.observacoes && (
                                                         <tr data-item-group={`item-${idx}`}>
-                                                            <td colSpan="2" className="border border-black px-3 py-2 text-xs text-gray-700 whitespace-pre-wrap break-words bg-gray-50"><div className="font-semibold text-gray-500 mb-1">Comentários:</div>{item.observacoes}</td>
+                                                            <td colSpan="2" className="border border-black px-3 py-2 text-xs text-gray-700 whitespace-pre-wrap bg-gray-50"><div className="font-semibold text-gray-500 mb-1">Comentários:</div>{item.observacoes}</td>
                                                         </tr>
                                                     )}
                                                     {item.fotos && item.fotos.length > 0 && (
@@ -382,13 +387,27 @@ const ContentPage = ({ segments }) => (
 );
 
 // ── TÓPICO 2 — LISTA MESTRA DE DOCUMENTOS ──────────────────────────────────────
+const DOCS_PAGE_HEIGHT = 1122 - 80 - 45 - 8;
+const DOCS_HEADER_H = 40 + 34 + 16; // título + thead + padding
+const DOCS_ROW_H = 40; // altura conservadora por linha
+const DOCS_PER_PAGE = Math.floor((DOCS_PAGE_HEIGHT - DOCS_HEADER_H) / DOCS_ROW_H);
+
+const paginateDocumentos = (documentos) => {
+    if (!documentos || documentos.length === 0) return [[]];
+    const pages = [];
+    for (let i = 0; i < documentos.length; i += DOCS_PER_PAGE) {
+        pages.push(documentos.slice(i, i + DOCS_PER_PAGE));
+    }
+    return pages;
+};
+
 const ListaDocumentosPage = ({ documentos }) => (
     <div className="p-4">
         <h2 className="text-base font-bold text-center bg-blue-900 text-white p-2 mb-0">Lista Mestra de Documentos Analisados</h2>
         <table className="w-full border-collapse text-xs table-fixed">
             <thead>
                 <tr className="bg-gray-100">
-                    <th className="border border-black p-2 text-center" style={{width:'8%'}}>DES</th>
+                    <th className="border border-black p-2 text-center" style={{width:'8%'}}>ITEM</th>
                     <th className="border border-black p-2 text-left" style={{width:'30%'}}>DESCRIÇÃO</th>
                     <th className="border border-black p-2 text-left" style={{width:'35%'}}>ARQUIVO</th>
                     <th className="border border-black p-2 text-center" style={{width:'10%'}}>REV</th>
@@ -399,8 +418,8 @@ const ListaDocumentosPage = ({ documentos }) => (
                 {(documentos || []).map((doc, idx) => (
                     <tr key={idx}>
                         <td className="border border-black p-2 text-center">{doc.des}</td>
-                        <td className="border border-black p-2 break-words whitespace-normal">{doc.descricao}</td>
-                        <td className="border border-black p-2 text-black-700 break-words whitespace-normal">{doc.arquivo}</td>
+                        <td className="border border-black p-2">{doc.descricao}</td>
+                        <td className="border border-black p-2 text-black-700">{doc.arquivo}</td>
                         <td className="border border-black p-2 text-center">{doc.rev}</td>
                         <td className="border border-black p-2 text-center">{doc.data}</td>
                     </tr>
@@ -424,8 +443,8 @@ const NormasTecnicasPage = ({ normas }) => (
             <tbody>
                 {(normas || []).map((n, idx) => (
                     <tr key={idx}>
-                        <td className="border border-black p-2 text-center break-words whitespace-normal">{n.norma}</td>
-                        <td className="border border-black p-2 text-center break-words whitespace-normal">{n.descricao}</td>
+                        <td className="border border-black p-2 text-center">{n.norma}</td>
+                        <td className="border border-black p-2 text-center">{n.descricao}</td>
                     </tr>
                 ))}
             </tbody>
@@ -496,6 +515,36 @@ const paginateQuadroItens = (quadro, opts = {}) => {
     return pages;
 };
 
+// ── LAYOUT PROPOSTO ─────────────────────────────────────────────────────────
+const LayoutFotoItem = ({ url, legenda }) => {
+    const compressed = useCompressedImage(url, 700, 0.8);
+    return (
+        <div style={{ width: '100%' }}>
+            <img src={compressed} alt={legenda || ''} style={{ maxHeight: '320px', width: '100%', objectFit: 'contain', display: 'block' }} />
+            {legenda && <p className="text-[9px] text-gray-600 mt-1 text-center">{legenda}</p>}
+        </div>
+    );
+};
+
+const LayoutPropostoPage = ({ relatorio }) => {
+    const fotos = relatorio?.fotos_layout_proposto || [];
+    // fallback para campo antigo (foto_layout_proposto)
+    const fotosEffective = fotos.length > 0 ? fotos : (relatorio?.foto_layout_proposto ? [{ url: relatorio.foto_layout_proposto, legenda: '' }] : []);
+    return (
+        <div className="p-4 space-y-4">
+            <h2 className="text-base font-bold text-center bg-blue-900 text-white p-2">Layout Proposto</h2>
+            {fotosEffective.length > 0 && (
+                <div>
+                    <h3 className="text-xs font-bold bg-gray-100 border border-black p-1 mb-0">Layout do Empreendimento</h3>
+                    <div className="border border-black border-t-0 p-2 flex flex-col gap-4 items-center">
+                        {fotosEffective.map((foto, fi) => <LayoutFotoItem key={fi} url={foto.url} legenda={foto.legenda} />)}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 // ── QUADROS GERAIS ───────────────────────────────────────────────────────────
 const QuadrosGeraisPage = ({ quadro, itens, showTitle = true, showQuadroHeader = true }) => (
     <div className="p-4 space-y-6">
@@ -535,14 +584,14 @@ const QuadrosGeraisPage = ({ quadro, itens, showTitle = true, showQuadroHeader =
                             return (
                                 <React.Fragment key={iIdx}>
                                     <tr>
-                                        <td className="border border-black p-2 font-semibold whitespace-pre-wrap break-words">{item.descricao}</td>
+                                        <td className="border border-black p-2 font-semibold">{item.descricao}</td>
                                         <td className="border border-black p-2 text-center">
                                             {item.resultado && <span style={{color: statusColor, fontWeight:'bold', fontSize:'11px'}}>{item.resultado}</span>}
                                         </td>
                                     </tr>
                                     {item.comentarios && (
                                         <tr>
-                                            <td colSpan="2" className="border border-black px-3 py-2 text-xs text-gray-700 whitespace-pre-wrap break-words bg-gray-50">
+                                            <td colSpan="2" className="border border-black px-3 py-2 text-xs text-gray-700 whitespace-pre-wrap bg-gray-50">
                                                 <div className="font-semibold text-gray-500 mb-1">Comentários:</div>{item.comentarios}
                                             </td>
                                         </tr>
@@ -564,8 +613,15 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
     const HEADER = pageNumber > 1 ? '80px' : '0px';
     const FOOTER = '45px';
     const isCover = pageNumber === 1;
+    const pageBreakStyle = {
+        overflow: isCover ? 'hidden' : 'visible',
+        pageBreakAfter: pageNumber === totalPages ? 'auto' : 'always',
+        WebkitPageBreakAfter: pageNumber === totalPages ? 'auto' : 'always',
+        breakAfter: pageNumber === totalPages ? 'auto' : 'page',
+    };
+
     return (
-        <div className="report-page" style={{ overflow: isCover ? 'hidden' : 'visible' }}>
+        <div className="report-page" style={pageBreakStyle}>
             {pageNumber > 1 && (
                 <div className="flex justify-between items-center border-b border-gray-200 bg-white" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: HEADER, zIndex: 100, padding: '4px 8px' }}>
                     <img src={logo} alt="Logo" style={{ height: '32px', maxWidth: '120px', objectFit: 'contain' }} />
@@ -615,9 +671,9 @@ export default function VisualizarVistoriaTecnica() {
         if (!isValidId(vistoriaId)) { setError("ID da vistoria inválido."); setLoading(false); return; }
         const fetchData = async () => {
             try {
-                const data = await VistoriaTecnica.get(vistoriaId);
+                const data = await base44.entities.VistoriaTecnica.get(vistoriaId);
                 if (!data) throw new Error("Vistoria não encontrada.");
-                    const emp = await Empreendimento.get(data.id_empreendimento);
+                const emp = await base44.entities.Empreendimento.get(data.id_empreendimento);
                 setRelatorio(data);
                 setEmpreendimento(emp);
             } catch (err) { setError(err.message); }
@@ -666,7 +722,8 @@ export default function VisualizarVistoriaTecnica() {
             }),
         }))
         : [];
-    const hasAssinaturas = relatorio.assinaturas && relatorio.assinaturas.some(a => a.assinatura_imagem);
+    const hasAssinaturas = relatorio.assinaturas && relatorio.assinaturas.length > 0 &&
+        relatorio.assinaturas.some(ass => (ass.nome && ass.nome.trim() !== '') || (ass.parte && ass.parte.trim() !== '') || (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== ''));
         const contentPages = hasLocais
                 ? paginateLocaisFlowForVistoriaTecnica(relatorio.locais, {
                         pageHeightPx: 1122,
@@ -688,13 +745,15 @@ export default function VisualizarVistoriaTecnica() {
     const hasRemainingPage = remainingSectionsCheck.length > 0;
     const hasListaDocs = relatorio.lista_documentos && relatorio.lista_documentos.length > 0;
     const hasNormas = relatorio.normas_tecnicas && relatorio.normas_tecnicas.length > 0;
-    const docsAndNormasSamePage = hasListaDocs && hasNormas;
-    const docsNormasPageCount = docsAndNormasSamePage ? 1 : (hasListaDocs ? 1 : 0) + (hasNormas ? 1 : 0);
+    const docPages = hasListaDocs ? paginateDocumentos(relatorio.lista_documentos) : [];
+    const docsAndNormasSamePage = hasListaDocs && hasNormas && docPages.length === 1;
+    const docsNormasPageCount = docsAndNormasSamePage ? 1 : docPages.length + (hasNormas ? 1 : 0);
     const quadrosPageCount = hasQuadros
         ? paginatedQuadros.reduce((acc, entry) => acc + entry.itemPages.length + (entry.quadro.itens_analisados || (entry.quadro.notas && entry.quadro.notas.length > 0) ? 1 : 0), 0)
         : 0;
     const hasConclusao = relatorio.conclusao_final && relatorio.conclusao_final.trim().length > 0;
-    const totalPages = 1 + 1 + (hasRemainingPage ? 1 : 0) + docsNormasPageCount + contentPages.length + quadrosPageCount + (hasConclusao ? 1 : 0) + (hasAssinaturas ? 1 : 0);
+    const hasLayoutProposto = (relatorio.fotos_layout_proposto && relatorio.fotos_layout_proposto.length > 0) || !!relatorio.foto_layout_proposto;
+    const totalPages = 1 + 1 + (hasRemainingPage ? 1 : 0) + docsNormasPageCount + (hasLayoutProposto ? 1 : 0) + contentPages.length + quadrosPageCount + (hasConclusao ? 1 : 0) + (hasAssinaturas ? 1 : 0);
     let pg = 1;
 
     const handlePrint = async () => {
@@ -747,7 +806,7 @@ export default function VisualizarVistoriaTecnica() {
                 capa_area_subtitulo_color: editedCoverData.capa_area_subtitulo_color || '',
             };
 
-            await VistoriaTecnica.update(relatorio.id, payload);
+            await base44.entities.VistoriaTecnica.update(relatorio.id, payload);
             setRelatorio((prev) => ({ ...prev, ...payload }));
             setEditCoverOpen(false);
             toast.success('Campos da capa atualizados!');
@@ -812,34 +871,43 @@ export default function VisualizarVistoriaTecnica() {
 
                 {/* Tópico 2 + 3 — Lista de Documentos e Normas Técnicas (juntas se possível) */}
                 {(hasListaDocs || hasNormas) && (() => {
-                    const docsAndNormasSamePage = hasListaDocs && hasNormas;
-                    if (docsAndNormasSamePage) {
-                        return (
-                            <ReportPageLayout pageNumber={pg++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                                <div>
-                                    <ListaDocumentosPage documentos={relatorio.lista_documentos} />
-                                    <NormasTecnicasPage normas={relatorio.normas_tecnicas} />
-                                </div>
+                    const pages = [];
+                    if (hasListaDocs) {
+                        docPages.forEach((chunk, chunkIdx) => {
+                            const isLastChunk = chunkIdx === docPages.length - 1;
+                            const showNormasHere = isLastChunk && docsAndNormasSamePage;
+                            pages.push(
+                                <ReportPageLayout key={`docs-${chunkIdx}`} pageNumber={pg++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+                                    <div>
+                                        <ListaDocumentosPage documentos={chunk} />
+                                        {showNormasHere && <NormasTecnicasPage normas={relatorio.normas_tecnicas} />}
+                                    </div>
+                                </ReportPageLayout>
+                            );
+                        });
+                    }
+                    if (hasNormas && !docsAndNormasSamePage) {
+                        pages.push(
+                            <ReportPageLayout key="normas" pageNumber={pg++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+                                <NormasTecnicasPage normas={relatorio.normas_tecnicas} />
                             </ReportPageLayout>
                         );
                     }
-                    if (hasListaDocs) return (
-                        <ReportPageLayout pageNumber={pg++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                            <ListaDocumentosPage documentos={relatorio.lista_documentos} />
-                        </ReportPageLayout>
-                    );
-                    return (
-                        <ReportPageLayout pageNumber={pg++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                            <NormasTecnicasPage normas={relatorio.normas_tecnicas} />
-                        </ReportPageLayout>
-                    );
+                    return pages;
                 })()}
+
+                {/* Layout Proposto */}
+                {hasLayoutProposto && (
+                    <ReportPageLayout pageNumber={pg++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+                        <LayoutPropostoPage relatorio={relatorio} />
+                    </ReportPageLayout>
+                )}
 
                 {/* Inspeção por locais */}
                 {contentPages.map((page, idx) => {
                     return (
                     <ReportPageLayout key={idx} pageNumber={pg++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                        <ContentPage segments={page.segments} />
+                        <ContentPage segments={page.segments} isFirstPage={idx === 0} />
                     </ReportPageLayout>
                     );
                 })}
@@ -904,7 +972,11 @@ export default function VisualizarVistoriaTecnica() {
                 {/* Assinaturas */}
                 {hasAssinaturas && (
                     <ReportPageLayout pageNumber={pg++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                        <AssinaturasPage assinaturas={relatorio.assinaturas} />
+                        <AssinaturasPage assinaturas={relatorio.assinaturas.filter(ass =>
+                            (ass.nome && ass.nome.trim() !== '') ||
+                            (ass.parte && ass.parte.trim() !== '') ||
+                            (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== '')
+                        )} />
                     </ReportPageLayout>
                 )}
             </div>
@@ -1023,87 +1095,17 @@ export default function VisualizarVistoriaTecnica() {
                 @media screen { .report-page { margin: 20px auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); } }
                 @media print {
                     .no-print, aside, header, nav { display: none !important; }
-                    html, body { margin: 0 !important; padding: 0 !important; background: white !important; width: 210mm !important; }
-                    body, body > div, main { padding: 0 !important; margin: 0 !important; }
+                    html, body { margin: 0 !important; padding: 0 !important; background: white !important; width: 210mm !important; height: auto !important; }
+                    body, body > div, main { padding: 0 !important; margin: 0 !important; width: 100% !important; }
                     .lg\\:pl-72 { padding-left: 0 !important; }
                     .report-container { max-width: none !important; margin: 0 !important; padding: 0 !important; width: 210mm !important; }
-                    .report-page { 
-                        display: block !important;
-                        page-break-after: always !important;
-                        break-after: page !important;
-                        page-break-inside: avoid !important;
-                        break-inside: avoid !important;
-                        width: 210mm !important;
-                        height: 297mm !important;
-                        min-height: unset !important;
-                        margin: 0 !important;
-                        padding: 0 !important;
-                        box-shadow: none !important;
-                        overflow: visible !important;
-                        position: relative !important;
-                    }
-                    .report-page:last-child {
-                        page-break-after: auto !important;
-                        break-after: auto !important;
-                    }
-                    .page-content {
-                        overflow: visible !important;
-                        padding-bottom: 45px !important;
-                        box-sizing: border-box !important;
-                        display: block !important;
-                    }
-                    img { max-width: 100%; }
-                    table { page-break-inside: auto; border-collapse: collapse; }
-                    thead { display: table-header-group; }
-                    tr { page-break-inside: avoid; }
-                    .photo-row { page-break-inside: avoid !important; break-inside: avoid !important; }
-                    .photo-cell {
-                        padding: 0 !important;
-                        background: #fff !important;
-                        box-sizing: border-box !important;
-                    }
-                    .photo-inner-wrap {
-                        padding: 0 !important;
-                        background: #fff !important;
-                    }
-                    .imagens-container {
-                        display: flex !important;
-                        flex-wrap: wrap !important;
-                        gap: 6px !important;
-                        justify-content: flex-start !important;
-                        page-break-inside: avoid !important;
-                        break-inside: avoid !important;
-                    }
-                    .imagem-box {
-                        flex: 0 0 calc((100% - 30px) / 3) !important;
-                        max-width: calc((100% - 30px) / 3) !important;
-                        width: calc((100% - 30px) / 3) !important;
-                        height: 205px !important;
-                        overflow: hidden !important;
-                        page-break-inside: avoid !important;
-                        break-inside: avoid !important;
-                    }
-                    .imagem-box img {
-                        width: 100% !important;
-                        height: 100% !important;
-                        object-fit: cover !important;
-                        object-position: center center !important;
-                        background: #f0f0f0 !important;
-                        border-radius: 0 !important;
-                        page-break-inside: avoid !important;
-                        break-inside: avoid !important;
-                    }
-                    .report-page table th,
-                    .report-page table td {
-                        overflow-wrap: anywhere !important;
-                        word-break: break-word !important;
-                    }
-                    .report-page table tr {
-                        page-break-inside: avoid !important;
-                        break-inside: avoid !important;
-                    }
-                    html, body { margin: 0 !important; padding: 0 !important; }
-                    .report-page .foto-inspecao-img { height: 220px !important; object-fit: cover !important; width: 100% !important; display: block !important; }
+                    .report-page { page-break-after: always; break-after: page; page-break-inside: avoid; width: 210mm !important; min-height: 297mm !important; height: 297mm !important; margin: 0 !important; box-shadow: none !important; overflow: hidden !important; position: relative !important; }
+                    .report-page:last-child { page-break-after: auto; break-after: auto; }
+                    .page-content { overflow: hidden !important; padding-bottom: 45px !important; box-sizing: border-box !important; }
+                    html, body, * { overflow: visible !important; scrollbar-width: none !important; }
+                    *::-webkit-scrollbar { display: none !important; }
+                    .foto-inspecao-container { height: 220px !important; width: 100% !important; overflow: hidden !important; }
+                    .report-page .foto-inspecao-img { height: 100% !important; object-fit: cover !important; width: 100% !important; display: block !important; }
                 }
             `}</style>
         </div>
