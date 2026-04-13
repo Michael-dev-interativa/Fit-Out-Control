@@ -550,14 +550,6 @@ const EmpreendimentoPage = () => {
                 <Button
                   variant="outline"
                   className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
-                  onClick={() => navigate(createPageUrl(`EmpreendimentoInspecaoGas?empreendimentoId=${empreendimentoId}`))}
-                >
-                  <ClipboardList className="w-5 h-5" />
-                  <span className="text-center leading-tight">{t['Inspeção de Gás']}</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
                   onClick={() => navigate(createPageUrl(`EmpreendimentoNaoConformidade?empreendimentoId=${empreendimentoId}`))}
                 >
                   <AlertCircle className="w-5 h-5" />
