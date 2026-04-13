@@ -38,7 +38,8 @@ const initialFormData = (empreendimentoId) => ({
     subtitulo_relatorio: '',
     endereco: '',
     revisao: '01',
-    descricao_vistoria: '',
+    consultor_responsavel: '',
+    data_relatorio: new Date().toISOString().split('T')[0],
     eng_responsavel: '',
     // Tópico 1 - Características Gerais
     foto_localizacao: '',
@@ -202,14 +203,13 @@ export default function NovaVistoriaTecnica() {
                             <Label>Nome do Arquivo</Label>
                             <Input value={formData.nome_arquivo || ''} onChange={e => handleChange('nome_arquivo', e.target.value)} placeholder="Ex: VT-2026-01" />
                         </div>
-                        <div className="md:col-span-2 space-y-2">
-                            <Label>Descrição / Escopo</Label>
-                            <Textarea
-                                value={formData.descricao_vistoria}
-                                onChange={e => handleChange('descricao_vistoria', e.target.value)}
-                                placeholder="Descreva o escopo da vistoria técnica..."
-                                rows={3}
-                            />
+                        <div className="space-y-2">
+                            <Label>Consultor Responsável</Label>
+                            <Textarea value={formData.consultor_responsavel || ''} onChange={e => handleChange('consultor_responsavel', e.target.value)} placeholder="Nome do consultor responsável..." rows={3} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Data do Relatório</Label>
+                            <Input type="date" value={formData.data_relatorio || ''} onChange={e => handleChange('data_relatorio', e.target.value)} />
                         </div>
                     </CardContent>
                 </Card>

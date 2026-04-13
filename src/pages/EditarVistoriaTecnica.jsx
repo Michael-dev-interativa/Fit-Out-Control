@@ -199,14 +199,13 @@ export default function EditarVistoriaTecnica() {
                             <Label>Nome do Arquivo</Label>
                             <Input value={formData.nome_arquivo || ''} onChange={e => handleChange('nome_arquivo', e.target.value)} placeholder="Ex: VT-2026-01" />
                         </div>
-                        <div className="md:col-span-2 space-y-2">
-                            <Label>Descrição / Escopo</Label>
-                            <Textarea
-                                value={formData.descricao_vistoria || ''}
-                                onChange={e => handleChange('descricao_vistoria', e.target.value)}
-                                placeholder="Descreva o escopo da vistoria técnica..."
-                                rows={3}
-                            />
+                        <div className="space-y-2">
+                            <Label>Consultor Responsável</Label>
+                            <Textarea value={formData.consultor_responsavel || ''} onChange={e => handleChange('consultor_responsavel', e.target.value)} placeholder="Nome do consultor responsável..." rows={3} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Data do Relatório</Label>
+                            <Input type="date" value={formData.data_relatorio ? formData.data_relatorio.split('T')[0] : ''} onChange={e => handleChange('data_relatorio', e.target.value)} />
                         </div>
                     </CardContent>
                 </Card>
@@ -425,7 +424,7 @@ export default function EditarVistoriaTecnica() {
                                 )}
                                 {local.is_sub_local && (
                                 <div className="bg-blue-700 text-white px-4 py-2 flex items-center justify-between">
-                                    <span className="text-sm font-medium text-blue-200">Local adicional — {local.nome_local}</span>
+                                    <span className="text-sm font-medium text-blue-200">Local adicional</span>
                                     <button type="button" onClick={() => {
                                         const l = [...(formData.locais||[])];
                                         l.splice(lIdx, 1);
@@ -512,8 +511,7 @@ export default function EditarVistoriaTecnica() {
                                         />
                                     </div>
 
-                                    {!local.is_sub_local && (
-                                    <>
+                                    {(<>
                                     {/* Tabela de Itens */}
                                     <div>
                                         <Label className="text-sm font-semibold mb-2 block">Itens de Inspeção</Label>
