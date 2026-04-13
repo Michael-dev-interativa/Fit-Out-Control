@@ -119,9 +119,10 @@ const CoverPage = ({ relatorio, empreendimento }) => {
                         color: redColor,
                         letterSpacing: '2px',
                         whiteSpace: 'normal',
-                        wordBreak: 'break-word',
+                        wordBreak: 'break-all',
                         overflowWrap: 'anywhere',
                         lineBreak: 'anywhere',
+                        hyphens: 'auto',
                         maxWidth: '100%',
                         display: 'block',
                     }}>
@@ -135,9 +136,10 @@ const CoverPage = ({ relatorio, empreendimento }) => {
                     style={{
                         ...reportSubtitleStyle,
                         whiteSpace: 'normal',
-                        wordBreak: 'break-word',
+                        wordBreak: 'break-all',
                         overflowWrap: 'anywhere',
                         lineBreak: 'anywhere',
+                        hyphens: 'auto',
                         display: 'inline-block',
                         maxWidth: '100%',
                     }}
