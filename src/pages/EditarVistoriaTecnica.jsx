@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Empreendimento, VistoriaTecnica } from '@/api/entities';
+import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -50,7 +50,7 @@ export default function EditarVistoriaTecnica() {
         if (!vistoriaId) { toast.error("ID da vistoria não encontrado."); navigate(-1); return; }
         const load = async () => {
             try {
-                const data = await VistoriaTecnica.get(vistoriaId);
+                const data = await base44.entities.VistoriaTecnica.get(vistoriaId);
                 if (!data) throw new Error("Vistoria não encontrada.");
                 setFormData(data);
                 setCoverData({
@@ -72,7 +72,7 @@ export default function EditarVistoriaTecnica() {
                     capa_area_subtitulo_color: data.capa_area_subtitulo_color || '#4b5563',
                 });
                 if (data.id_empreendimento) {
-                    const emp = await Empreendimento.get(data.id_empreendimento);
+                    const emp = await base44.entities.Empreendimento.get(data.id_empreendimento);
                     setEmpreendimento(emp);
                 }
             } catch (err) {
@@ -125,7 +125,7 @@ export default function EditarVistoriaTecnica() {
             if (dataToSave.data_vistoria && !dataToSave.data_vistoria.includes('T')) {
                 dataToSave.data_vistoria = dataToSave.data_vistoria + 'T12:00:00';
             }
-            await VistoriaTecnica.update(vistoriaId, dataToSave);
+            await base44.entities.VistoriaTecnica.update(vistoriaId, dataToSave);
             toast.success("Vistoria técnica atualizada com sucesso!");
             navigate(createPageUrl(`EmpreendimentoVistoriaTecnica?empreendimentoId=${empreendimentoId || formData.id_empreendimento}`));
         } catch (error) {
@@ -352,42 +352,38 @@ export default function EditarVistoriaTecnica() {
 
                 {/* Layout Proposto */}
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Layout Proposto</CardTitle>
-                    </CardHeader>
+                    <CardHeader><CardTitle>Layout Proposto</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Label className="text-base font-semibold">Imagem do Layout</Label>
-                            <p className="text-sm text-gray-500">Planta, croqui ou diagrama do layout proposto</p>
-                            {formData.layout_proposto ? (
-                                <div className="relative inline-block">
-                                    <img src={formData.layout_proposto} alt="Layout" className="rounded-lg border max-h-80 object-contain" />
-                                    <button type="button" onClick={() => handleChange('layout_proposto', '')} className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600">
-                                        <X className="w-4 h-4" />
-                                    </button>
+                        <div className="flex flex-wrap gap-4">
+                            {(formData.fotos_layout_proposto || []).map((foto, fIdx) => (
+                                <div key={fIdx} className="relative flex flex-col" style={{width: '300px'}}>
+                                    <div className="relative">
+                                        <img src={foto.url} alt={foto.legenda || ''} className="rounded-lg border object-cover" style={{width:'300px', height:'200px', objectFit:'cover'}} />
+                                        <button type="button" onClick={() => { const fs = [...(formData.fotos_layout_proposto||[])]; fs.splice(fIdx,1); handleChange('fotos_layout_proposto', fs); }} className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600">
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    <Input
+                                        value={foto.legenda || ''}
+                                        onChange={e => { const fs = [...(formData.fotos_layout_proposto||[])]; fs[fIdx] = {...fs[fIdx], legenda: e.target.value}; handleChange('fotos_layout_proposto', fs); }}
+                                        placeholder="Legenda da imagem..."
+                                        className="mt-2 text-xs h-8"
+                                    />
                                 </div>
-                            ) : (
-                                <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                                    {uploadingFoto ? <Loader2 className="w-8 h-8 animate-spin text-gray-400" /> : (
-                                        <>
-                                            <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                                            <span className="text-sm text-gray-500">Clique para fazer upload da imagem do layout</span>
-                                        </>
-                                    )}
-                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => {
-                                        const file = e.target.files[0];
-                                        if (!file) return;
-                                        setUploadingFoto(true);
-                                        uploadPhoto(file).then(result => {
-                                            handleChange('layout_proposto', result.url);
-                                            setUploadingFoto(false);
-                                        }).catch(() => {
-                                            toast.error("Erro ao fazer upload da foto.");
-                                            setUploadingFoto(false);
-                                        });
-                                    }} disabled={uploadingFoto} />
-                                </label>
-                            )}
+                            ))}
+                            <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" style={{width:'300px', height:'200px'}}>
+                                <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                                <span className="text-sm text-gray-500 text-center px-4">Adicionar imagem do layout</span>
+                                <input type="file" accept="image/*" multiple className="hidden" onChange={async e => {
+                                    const files = Array.from(e.target.files);
+                                    if (!files.length) return;
+                                    try {
+                                        const results = await Promise.all(files.map(f => uploadPhoto(f)));
+                                        const novas = results.map(r => ({ url: r.url, legenda: '' }));
+                                        handleChange('fotos_layout_proposto', [...(formData.fotos_layout_proposto||[]), ...novas]);
+                                    } catch { toast.error('Erro ao fazer upload.'); }
+                                }} />
+                            </label>
                         </div>
                     </CardContent>
                 </Card>
@@ -787,6 +783,65 @@ export default function EditarVistoriaTecnica() {
                     </CardContent>
                 </Card>
 
+                {/* Assinaturas */}
+                <Card>
+                    <CardHeader>
+                        <div className="flex justify-between items-center">
+                            <CardTitle>Assinaturas</CardTitle>
+                            <Button type="button" size="sm" onClick={() => handleChange('assinaturas', [...(formData.assinaturas||[]), { parte: '', nome: '', assinatura_imagem: '' }])}>
+                                <Plus className="w-4 h-4 mr-1" /> Adicionar Assinatura
+                            </Button>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {(formData.assinaturas || []).length === 0 && (
+                            <p className="text-sm text-gray-400 text-center py-4">Nenhuma assinatura adicionada.</p>
+                        )}
+                        {(formData.assinaturas || []).map((ass, aIdx) => (
+                            <div key={aIdx} className="border border-gray-200 rounded-lg p-4 space-y-3">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm font-semibold text-gray-600">Assinatura {aIdx + 1}</span>
+                                    <button type="button" onClick={() => { const a = [...(formData.assinaturas||[])]; a.splice(aIdx,1); handleChange('assinaturas', a); }} className="text-red-500 hover:text-red-700"><Trash2 className="w-4 h-4" /></button>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <Label className="text-xs font-semibold">Cargo / Parte</Label>
+                                        <Input value={ass.parte || ''} onChange={e => { const a = [...(formData.assinaturas||[])]; a[aIdx] = {...a[aIdx], parte: e.target.value}; handleChange('assinaturas', a); }} placeholder="Ex: Engenheiro Responsável, Cliente..." className="h-8 text-sm" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-xs font-semibold">Nome</Label>
+                                        <Input value={ass.nome || ''} onChange={e => { const a = [...(formData.assinaturas||[])]; a[aIdx] = {...a[aIdx], nome: e.target.value}; handleChange('assinaturas', a); }} placeholder="Nome completo..." className="h-8 text-sm" />
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-xs font-semibold">Imagem da Assinatura</Label>
+                                    {ass.assinatura_imagem ? (
+                                        <div className="relative inline-block">
+                                            <img src={ass.assinatura_imagem} alt="Assinatura" className="h-24 border rounded object-contain bg-white" />
+                                            <button type="button" onClick={() => { const a = [...(formData.assinaturas||[])]; a[aIdx] = {...a[aIdx], assinatura_imagem: ''}; handleChange('assinaturas', a); }} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"><X className="w-3 h-3" /></button>
+                                        </div>
+                                    ) : (
+                                        <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                                            <Upload className="w-6 h-6 text-gray-400" />
+                                            <span className="text-xs text-gray-500 mt-1">Upload da assinatura</span>
+                                            <input type="file" accept="image/*" className="hidden" onChange={async e => {
+                                                const file = e.target.files[0];
+                                                if (!file) return;
+                                                try {
+                                                    const result = await uploadPhoto(file);
+                                                    const a = [...(formData.assinaturas||[])];
+                                                    a[aIdx] = {...a[aIdx], assinatura_imagem: result.url};
+                                                    handleChange('assinaturas', a);
+                                                } catch { toast.error('Erro ao fazer upload.'); }
+                                            }} />
+                                        </label>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
+
                 <div className="flex justify-end gap-4">
                     <Button type="button" variant="outline" onClick={() => navigate(-1)}>Cancelar</Button>
                     <Button type="submit" disabled={saving}>
@@ -818,66 +873,14 @@ export default function EditarVistoriaTecnica() {
                         </div>
                         <div className="border rounded-lg p-4 bg-green-50 border-green-200">
                             <h3 className="font-semibold text-sm mb-4 text-green-900">Área Central da Vistoria</h3>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-3">
                                 <div>
-                                    <Label className="text-xs font-semibold">Top</Label>
-                                    <Input value={coverData.capa_area_top || ''} onChange={e => setCoverData(p => ({ ...p, capa_area_top: e.target.value }))} className="mt-1" placeholder="Ex: 50%" />
+                                    <Label className="text-xs font-semibold">Título da Vistoria</Label>
+                                    <Input value={formData.titulo_vistoria || ''} onChange={e => setFormData(p => ({ ...p, titulo_vistoria: e.target.value }))} className="mt-1" placeholder="Ex: RELATÓRIO DE VISTORIA TÉCNICA" />
                                 </div>
                                 <div>
-                                    <Label className="text-xs font-semibold">Right</Label>
-                                    <Input value={coverData.capa_area_right || ''} onChange={e => setCoverData(p => ({ ...p, capa_area_right: e.target.value }))} className="mt-1" placeholder="Ex: -3%" />
-                                </div>
-                                <div>
-                                    <Label className="text-xs font-semibold">Left (opcional)</Label>
-                                    <Input value={coverData.capa_area_left || ''} onChange={e => setCoverData(p => ({ ...p, capa_area_left: e.target.value }))} className="mt-1" placeholder="Ex: auto ou 55%" />
-                                </div>
-                                <div>
-                                    <Label className="text-xs font-semibold">Largura</Label>
-                                    <Input value={coverData.capa_area_width || ''} onChange={e => setCoverData(p => ({ ...p, capa_area_width: e.target.value }))} className="mt-1" placeholder="Ex: 45%" />
-                                </div>
-                                <div>
-                                    <Label className="text-xs font-semibold">Alinhamento</Label>
-                                    <select
-                                        value={coverData.capa_area_align || 'center'}
-                                        onChange={e => setCoverData(p => ({ ...p, capa_area_align: e.target.value }))}
-                                        className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                    >
-                                        <option value="left">left</option>
-                                        <option value="center">center</option>
-                                        <option value="right">right</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <Label className="text-xs font-semibold">Fundo da Área</Label>
-                                    <Input value={coverData.capa_area_bg || ''} onChange={e => setCoverData(p => ({ ...p, capa_area_bg: e.target.value }))} className="mt-1" placeholder="Ex: transparent ou #ffffffcc" />
-                                </div>
-                                <div>
-                                    <Label className="text-xs font-semibold">Padding</Label>
-                                    <Input value={coverData.capa_area_padding || ''} onChange={e => setCoverData(p => ({ ...p, capa_area_padding: e.target.value }))} className="mt-1" placeholder="Ex: 8px" />
-                                </div>
-                                <div>
-                                    <Label className="text-xs font-semibold">Raio</Label>
-                                    <Input value={coverData.capa_area_radius || ''} onChange={e => setCoverData(p => ({ ...p, capa_area_radius: e.target.value }))} className="mt-1" placeholder="Ex: 8px" />
-                                </div>
-                                <div>
-                                    <Label className="text-xs font-semibold">Fonte Título</Label>
-                                    <Input value={coverData.capa_area_titulo_font_size || ''} onChange={e => setCoverData(p => ({ ...p, capa_area_titulo_font_size: e.target.value }))} className="mt-1" placeholder="Ex: 26px" />
-                                </div>
-                                <div>
-                                    <Label className="text-xs font-semibold">Cor Título</Label>
-                                    <Input value={coverData.capa_area_titulo_color || ''} onChange={e => setCoverData(p => ({ ...p, capa_area_titulo_color: e.target.value }))} className="mt-1" placeholder="Ex: #000000" />
-                                </div>
-                                <div>
-                                    <Label className="text-xs font-semibold">Margem abaixo do Título</Label>
-                                    <Input value={coverData.capa_area_titulo_margin_bottom || ''} onChange={e => setCoverData(p => ({ ...p, capa_area_titulo_margin_bottom: e.target.value }))} className="mt-1" placeholder="Ex: 6px" />
-                                </div>
-                                <div>
-                                    <Label className="text-xs font-semibold">Fonte Subtítulo</Label>
-                                    <Input value={coverData.capa_area_subtitulo_font_size || ''} onChange={e => setCoverData(p => ({ ...p, capa_area_subtitulo_font_size: e.target.value }))} className="mt-1" placeholder="Ex: 16px" />
-                                </div>
-                                <div className="col-span-2">
-                                    <Label className="text-xs font-semibold">Cor Subtítulo</Label>
-                                    <Input value={coverData.capa_area_subtitulo_color || ''} onChange={e => setCoverData(p => ({ ...p, capa_area_subtitulo_color: e.target.value }))} className="mt-1" placeholder="Ex: #4b5563" />
+                                    <Label className="text-xs font-semibold">Descrição da Vistoria</Label>
+                                    <Input value={formData.descricao_vistoria || ''} onChange={e => setFormData(p => ({ ...p, descricao_vistoria: e.target.value }))} className="mt-1" placeholder="Ex: 1ª vistoria técnica" />
                                 </div>
                             </div>
                         </div>
