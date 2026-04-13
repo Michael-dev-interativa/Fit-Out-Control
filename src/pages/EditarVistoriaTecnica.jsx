@@ -350,6 +350,48 @@ export default function EditarVistoriaTecnica() {
                     </CardContent>
                 </Card>
 
+                {/* Layout Proposto */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Layout Proposto</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label className="text-base font-semibold">Imagem do Layout</Label>
+                            <p className="text-sm text-gray-500">Planta, croqui ou diagrama do layout proposto</p>
+                            {formData.layout_proposto ? (
+                                <div className="relative inline-block">
+                                    <img src={formData.layout_proposto} alt="Layout" className="rounded-lg border max-h-80 object-contain" />
+                                    <button type="button" onClick={() => handleChange('layout_proposto', '')} className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600">
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                                    {uploadingFoto ? <Loader2 className="w-8 h-8 animate-spin text-gray-400" /> : (
+                                        <>
+                                            <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                                            <span className="text-sm text-gray-500">Clique para fazer upload da imagem do layout</span>
+                                        </>
+                                    )}
+                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                                        const file = e.target.files[0];
+                                        if (!file) return;
+                                        setUploadingFoto(true);
+                                        uploadPhoto(file).then(result => {
+                                            handleChange('layout_proposto', result.url);
+                                            setUploadingFoto(false);
+                                        }).catch(() => {
+                                            toast.error("Erro ao fazer upload da foto.");
+                                            setUploadingFoto(false);
+                                        });
+                                    }} disabled={uploadingFoto} />
+                                </label>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
                 {/* Áreas Técnicas */}
                 <Card>
                     <CardHeader>
