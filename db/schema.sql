@@ -791,6 +791,7 @@ CREATE TABLE IF NOT EXISTS public.vistorias_tecnicas (
   eng_responsavel TEXT,
   nome_arquivo TEXT,
   foto_localizacao TEXT,
+  layout_proposto_imagens JSONB,
   objetivo TEXT,
   instalacoes_geral TEXT,
   lista_documentos JSONB,

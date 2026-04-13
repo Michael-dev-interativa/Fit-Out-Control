@@ -521,7 +521,7 @@ const LayoutFotoItem = ({ url, legenda }) => {
     return (
         <div style={{ width: '100%' }}>
             <img src={compressed} alt={legenda || ''} style={{ maxHeight: '320px', width: '100%', objectFit: 'contain', display: 'block' }} />
-            {legenda && <p className="text-[9px] text-gray-600 mt-1 text-center">{legenda}</p>}
+            {legenda && <p className="text-[9px] text-gray-600 mt-1 text-left">{legenda}</p>}
         </div>
     );
 };
@@ -532,11 +532,10 @@ const LayoutPropostoPage = ({ relatorio }) => {
     const fotosEffective = fotos.length > 0 ? fotos : (relatorio?.foto_layout_proposto ? [{ url: relatorio.foto_layout_proposto, legenda: '' }] : []);
     return (
         <div className="p-4 space-y-4">
-            <h2 className="text-base font-bold text-center bg-blue-900 text-white p-2">Layout Proposto</h2>
+            <h2 className="text-base font-bold text-center bg-blue-900 text-white p-2">Layout de Projeto</h2>
             {fotosEffective.length > 0 && (
                 <div>
-                    <h3 className="text-xs font-bold bg-gray-100 border border-black p-1 mb-0">Layout do Empreendimento</h3>
-                    <div className="border border-black border-t-0 p-2 flex flex-col gap-4 items-center">
+                    <div className="border border-black p-2 flex flex-col gap-4 items-center">
                         {fotosEffective.map((foto, fi) => <LayoutFotoItem key={fi} url={foto.url} legenda={foto.legenda} />)}
                     </div>
                 </div>
@@ -613,15 +612,8 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
     const HEADER = pageNumber > 1 ? '80px' : '0px';
     const FOOTER = '45px';
     const isCover = pageNumber === 1;
-    const pageBreakStyle = {
-        overflow: isCover ? 'hidden' : 'visible',
-        pageBreakAfter: pageNumber === totalPages ? 'auto' : 'always',
-        WebkitPageBreakAfter: pageNumber === totalPages ? 'auto' : 'always',
-        breakAfter: pageNumber === totalPages ? 'auto' : 'page',
-    };
-
     return (
-        <div className="report-page" style={pageBreakStyle}>
+        <div className="report-page" style={{ overflow: isCover ? 'hidden' : 'visible' }}>
             {pageNumber > 1 && (
                 <div className="flex justify-between items-center border-b border-gray-200 bg-white" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: HEADER, zIndex: 100, padding: '4px 8px' }}>
                     <img src={logo} alt="Logo" style={{ height: '32px', maxWidth: '120px', objectFit: 'contain' }} />
@@ -1095,13 +1087,12 @@ export default function VisualizarVistoriaTecnica() {
                 @media screen { .report-page { margin: 20px auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); } }
                 @media print {
                     .no-print, aside, header, nav { display: none !important; }
-                    html, body { margin: 0 !important; padding: 0 !important; background: white !important; width: 210mm !important; height: auto !important; }
-                    body, body > div, main { padding: 0 !important; margin: 0 !important; width: 100% !important; }
+                    html, body { margin: 0 !important; padding: 0 !important; background: white !important; width: 210mm !important; }
+                    body, body > div, main { padding: 0 !important; margin: 0 !important; }
                     .lg\\:pl-72 { padding-left: 0 !important; }
                     .report-container { max-width: none !important; margin: 0 !important; padding: 0 !important; width: 210mm !important; }
-                    .report-page { page-break-after: always; break-after: page; page-break-inside: avoid; width: 210mm !important; min-height: 297mm !important; height: 297mm !important; margin: 0 !important; box-shadow: none !important; overflow: hidden !important; position: relative !important; }
-                    .report-page:last-child { page-break-after: auto; break-after: auto; }
-                    .page-content { overflow: hidden !important; padding-bottom: 45px !important; box-sizing: border-box !important; }
+                    .report-page { page-break-after: always; page-break-inside: avoid; width: 210mm !important; min-height: 297mm !important; height: 297mm !important; margin: 0 !important; box-shadow: none !important; overflow: hidden !important; }
+                    .report-page:last-child { page-break-after: auto; }
                     html, body, * { overflow: visible !important; scrollbar-width: none !important; }
                     *::-webkit-scrollbar { display: none !important; }
                     .foto-inspecao-container { height: 220px !important; width: 100% !important; overflow: hidden !important; }

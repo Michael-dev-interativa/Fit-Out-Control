@@ -2736,6 +2736,7 @@ async function ensureVistoriaTecnicaSchema() {
       eng_responsavel TEXT,
       nome_arquivo TEXT,
       foto_localizacao TEXT,
+      layout_proposto_imagens JSONB,
       objetivo TEXT,
       instalacoes_geral TEXT,
       lista_documentos JSONB,
@@ -2767,6 +2768,7 @@ async function ensureVistoriaTecnicaSchema() {
   await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS eng_responsavel TEXT`);
   await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS nome_arquivo TEXT`);
   await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS foto_localizacao TEXT`);
+  await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS layout_proposto_imagens JSONB`);
   await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS objetivo TEXT`);
   await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS instalacoes_geral TEXT`);
   await p.query(`ALTER TABLE public.vistorias_tecnicas ADD COLUMN IF NOT EXISTS lista_documentos JSONB`);
@@ -2824,6 +2826,8 @@ function mapVistoriaTecnicaRow(row) {
     eng_responsavel: row.eng_responsavel,
     nome_arquivo: row.nome_arquivo,
     foto_localizacao: row.foto_localizacao,
+    layout_proposto_imagens: row.layout_proposto_imagens,
+    fotos_layout_proposto: row.layout_proposto_imagens,
     objetivo: row.objetivo,
     instalacoes_geral: row.instalacoes_geral,
     lista_documentos: row.lista_documentos,
@@ -2884,15 +2888,16 @@ app.post('/api/vistorias-tecnicas', async (req, res) => {
     if (!b.id_empreendimento) {
       return res.status(400).json({ error: 'missing_id_empreendimento' });
     }
+    const fotosLayoutProposto = b.layout_proposto_imagens ?? b.fotos_layout_proposto ?? [];
     const sql = `INSERT INTO public.vistorias_tecnicas (
       id_empreendimento, data_vistoria, titulo_capa, subtitulo_capa, texto_rodape_capa,
       titulo_vistoria, descricao_vistoria, titulo_relatorio, subtitulo_relatorio, cliente,
-      endereco, revisao, eng_responsavel, nome_arquivo, foto_localizacao,
+      endereco, revisao, eng_responsavel, nome_arquivo, foto_localizacao, layout_proposto_imagens,
       objetivo, instalacoes_geral, lista_documentos, normas_tecnicas, itens_documentacao,
       comentarios_documentacao, locais, quadros_gerais, elevadores_monta_carga,
       conclusao_final, conclusao, assinaturas
     ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18::jsonb,$19::jsonb,$20::jsonb,$21,$22::jsonb,$23::jsonb,$24::jsonb,$25,$26,$27::jsonb
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18::jsonb,$19::jsonb,$20::jsonb,$21,$22::jsonb,$23::jsonb,$24::jsonb,$25,$26,$27,$28::jsonb
     ) RETURNING *`;
     const params = [
       Number(b.id_empreendimento),
@@ -2910,6 +2915,7 @@ app.post('/api/vistorias-tecnicas', async (req, res) => {
       b.eng_responsavel ?? null,
       b.nome_arquivo ?? null,
       b.foto_localizacao ?? null,
+      toJson(fotosLayoutProposto),
       b.objetivo ?? null,
       b.instalacoes_geral ?? null,
       toJson(b.lista_documentos ?? []),
@@ -2938,6 +2944,7 @@ app.put('/api/vistorias-tecnicas/:id', async (req, res) => {
     const p = requirePool();
     const id = Number(req.params.id);
     const b = req.body || {};
+    const fotosLayoutProposto = b.layout_proposto_imagens ?? b.fotos_layout_proposto ?? [];
     const sql = `UPDATE public.vistorias_tecnicas SET
       id_empreendimento = COALESCE($1, id_empreendimento),
       data_vistoria = $2,
@@ -2954,20 +2961,21 @@ app.put('/api/vistorias-tecnicas/:id', async (req, res) => {
       eng_responsavel = $13,
       nome_arquivo = $14,
       foto_localizacao = $15,
-      objetivo = $16,
-      instalacoes_geral = $17,
-      lista_documentos = $18::jsonb,
-      normas_tecnicas = $19::jsonb,
-      itens_documentacao = $20::jsonb,
-      comentarios_documentacao = $21,
-      locais = $22::jsonb,
-      quadros_gerais = $23::jsonb,
-      elevadores_monta_carga = $24::jsonb,
-      conclusao_final = $25,
-      conclusao = $26,
-      assinaturas = $27::jsonb,
+      layout_proposto_imagens = $16::jsonb,
+      objetivo = $17,
+      instalacoes_geral = $18,
+      lista_documentos = $19::jsonb,
+      normas_tecnicas = $20::jsonb,
+      itens_documentacao = $21::jsonb,
+      comentarios_documentacao = $22,
+      locais = $23::jsonb,
+      quadros_gerais = $24::jsonb,
+      elevadores_monta_carga = $25::jsonb,
+      conclusao_final = $26,
+      conclusao = $27,
+      assinaturas = $28::jsonb,
       updated_at = now()
-    WHERE id = $28 RETURNING *`;
+    WHERE id = $29 RETURNING *`;
     const params = [
       (b.id_empreendimento !== undefined && b.id_empreendimento !== null) ? Number(b.id_empreendimento) : null,
       normalizeDate(b.data_vistoria) ?? null,
@@ -2984,6 +2992,7 @@ app.put('/api/vistorias-tecnicas/:id', async (req, res) => {
       b.eng_responsavel ?? null,
       b.nome_arquivo ?? null,
       b.foto_localizacao ?? null,
+      toJson(fotosLayoutProposto),
       b.objetivo ?? null,
       b.instalacoes_geral ?? null,
       toJson(b.lista_documentos ?? []),
