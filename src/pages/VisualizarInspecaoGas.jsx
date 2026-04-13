@@ -85,7 +85,18 @@ const CoverPage = ({ relatorio, empreendimento }) => {
             </div>
             <div className="absolute z-30" style={{ top: '10%', right: '8%', width: '50%', textAlign: 'right' }}>
                 <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: '64px', fontWeight: 'bold', color: '#394557', lineHeight: '1.1', marginBottom: '4px' }}>{relatorio?.titulo_capa || 'RELATÓRIO'}</h1>
-                <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '26px', color: redColor, letterSpacing: '2px' }}>{relatorio?.subtitulo_capa || 'Gerenciamento de Obra'}</h2>
+                <h2
+                    style={{
+                        fontFamily: "'Inter', sans-serif",
+                        fontSize: '26px',
+                        color: redColor,
+                        letterSpacing: '2px',
+                        textTransform: 'inherit',
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-word'
+                    }}>
+                    {relatorio?.subtitulo_capa || 'Gerenciamento de Obra'}
+                </h2>
             </div>
             <div className="absolute z-30" style={{ top: '50%', right: '-3%', width: '45%', padding: '1.3% 2.5%', textAlign: 'center' }}>
                 <h1 className="font-black uppercase" style={{ fontSize: '28px', lineHeight: '1.0', fontFamily: "'Inter', sans-serif", marginBottom: '6px', color: 'black' }}>{relatorio?.cliente || 'Cliente'}</h1>
