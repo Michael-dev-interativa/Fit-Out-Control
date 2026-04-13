@@ -2711,6 +2711,267 @@ app.delete('/api/inspecoes-ar-condicionado/:id', async (req, res) => {
   }
 });
 
+// ===== Inspeções de Gás =====
+let inspecaoGasSchemaEnsured = false;
+
+async function ensureInspecaoGasSchema() {
+  if (inspecaoGasSchemaEnsured) return;
+  const p = requirePool();
+  await p.query(`
+    CREATE TABLE IF NOT EXISTS public.inspecoes_gas (
+      id BIGSERIAL PRIMARY KEY,
+      id_empreendimento BIGINT NOT NULL REFERENCES public.empreendimentos(id) ON DELETE CASCADE,
+      data_inspecao DATE,
+      titulo_capa TEXT,
+      subtitulo_capa TEXT,
+      texto_rodape_capa TEXT,
+      titulo_relatorio TEXT,
+      subtitulo_relatorio TEXT,
+      cliente TEXT,
+      revisao TEXT,
+      eng_responsavel TEXT,
+      nome_arquivo TEXT,
+      itens_documentacao JSONB,
+      comentarios_documentacao TEXT,
+      locais JSONB,
+      observacoes_gerais TEXT,
+      conclusao_r01 TEXT,
+      conclusao_r02 TEXT,
+      assinaturas JSONB,
+      created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+      updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+    )
+  `);
+  await p.query(`ALTER TABLE public.inspecoes_gas ADD COLUMN IF NOT EXISTS data_inspecao DATE`);
+  await p.query(`ALTER TABLE public.inspecoes_gas ADD COLUMN IF NOT EXISTS titulo_capa TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_gas ADD COLUMN IF NOT EXISTS subtitulo_capa TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_gas ADD COLUMN IF NOT EXISTS texto_rodape_capa TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_gas ADD COLUMN IF NOT EXISTS titulo_relatorio TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_gas ADD COLUMN IF NOT EXISTS subtitulo_relatorio TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_gas ADD COLUMN IF NOT EXISTS cliente TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_gas ADD COLUMN IF NOT EXISTS revisao TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_gas ADD COLUMN IF NOT EXISTS eng_responsavel TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_gas ADD COLUMN IF NOT EXISTS nome_arquivo TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_gas ADD COLUMN IF NOT EXISTS itens_documentacao JSONB`);
+  await p.query(`ALTER TABLE public.inspecoes_gas ADD COLUMN IF NOT EXISTS comentarios_documentacao TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_gas ADD COLUMN IF NOT EXISTS locais JSONB`);
+  await p.query(`ALTER TABLE public.inspecoes_gas ADD COLUMN IF NOT EXISTS observacoes_gerais TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_gas ADD COLUMN IF NOT EXISTS conclusao_r01 TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_gas ADD COLUMN IF NOT EXISTS conclusao_r02 TEXT`);
+  await p.query(`ALTER TABLE public.inspecoes_gas ADD COLUMN IF NOT EXISTS assinaturas JSONB`);
+  await p.query(`ALTER TABLE public.inspecoes_gas ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now() NOT NULL`);
+  await p.query(`ALTER TABLE public.inspecoes_gas ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now() NOT NULL`);
+  await p.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'inspecoes_gas_id_empreendimento_fkey'
+      ) THEN
+        ALTER TABLE public.inspecoes_gas
+        ADD CONSTRAINT inspecoes_gas_id_empreendimento_fkey
+        FOREIGN KEY (id_empreendimento) REFERENCES public.empreendimentos(id) ON DELETE CASCADE;
+      END IF;
+    END $$;
+  `);
+  await p.query('DROP TRIGGER IF EXISTS inspecoes_gas_set_updated_at ON public.inspecoes_gas');
+  await p.query('CREATE TRIGGER inspecoes_gas_set_updated_at BEFORE UPDATE ON public.inspecoes_gas FOR EACH ROW EXECUTE FUNCTION public.set_updated_at()');
+  await p.query('CREATE INDEX IF NOT EXISTS idx_inspecoes_gas_empreendimento ON public.inspecoes_gas (id_empreendimento)');
+  await p.query('CREATE INDEX IF NOT EXISTS idx_inspecoes_gas_data ON public.inspecoes_gas (data_inspecao)');
+  await p.query('CREATE INDEX IF NOT EXISTS idx_inspecoes_gas_revisao ON public.inspecoes_gas (revisao)');
+  inspecaoGasSchemaEnsured = true;
+}
+
+function mapInspecaoGasRow(row) {
+  return {
+    id: row.id,
+    id_empreendimento: row.id_empreendimento,
+    data_inspecao: formatDateForAPI(row.data_inspecao),
+    titulo_capa: row.titulo_capa,
+    subtitulo_capa: row.subtitulo_capa,
+    texto_rodape_capa: row.texto_rodape_capa,
+    titulo_relatorio: row.titulo_relatorio,
+    subtitulo_relatorio: row.subtitulo_relatorio,
+    cliente: row.cliente,
+    revisao: row.revisao,
+    eng_responsavel: row.eng_responsavel,
+    nome_arquivo: row.nome_arquivo,
+    itens_documentacao: row.itens_documentacao,
+    comentarios_documentacao: row.comentarios_documentacao,
+    locais: row.locais,
+    observacoes_gerais: row.observacoes_gerais,
+    conclusao_r01: row.conclusao_r01,
+    conclusao_r02: row.conclusao_r02,
+    assinaturas: row.assinaturas,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+app.get('/api/inspecoes-gas', async (req, res) => {
+  try {
+    await ensureInspecaoGasSchema();
+    const p = requirePool();
+    const { id_empreendimento, order } = req.query;
+    const where = [];
+    const params = [];
+    if (id_empreendimento) { where.push('id_empreendimento = $' + (params.length + 1)); params.push(Number(id_empreendimento)); }
+    const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+    const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
+    const sql = `SELECT * FROM public.inspecoes_gas ${whereClause} ${orderClause}`;
+    const { rows } = await p.query(sql, params);
+    res.json(rows.map(mapInspecaoGasRow));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (shouldReturnEmptyOnDbError(err)) return res.json([]);
+    res.status(500).json({ error: msg });
+  }
+});
+
+app.get('/api/inspecoes-gas/:id', async (req, res) => {
+  try {
+    await ensureInspecaoGasSchema();
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const { rows } = await p.query('SELECT * FROM public.inspecoes_gas WHERE id = $1', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapInspecaoGasRow(rows[0]));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: msg });
+  }
+});
+
+app.post('/api/inspecoes-gas', async (req, res) => {
+  try {
+    await ensureInspecaoGasSchema();
+    const p = requirePool();
+    const b = req.body || {};
+    if (!b.id_empreendimento) {
+      return res.status(400).json({ error: 'missing_id_empreendimento' });
+    }
+    const empId = Number(b.id_empreendimento);
+    try {
+      const chk = await p.query('SELECT 1 FROM public.empreendimentos WHERE id = $1', [empId]);
+      if (!chk.rows.length) {
+        return res.status(400).json({ error: 'invalid_empreendimento', id: empId });
+      }
+    } catch (e) {
+      if (shouldReturnEmptyOnDbError(e)) return res.status(500).json({ error: 'db_unavailable' });
+      throw e;
+    }
+    const sql = `INSERT INTO public.inspecoes_gas (
+      id_empreendimento, data_inspecao, titulo_capa, subtitulo_capa, texto_rodape_capa,
+      titulo_relatorio, subtitulo_relatorio, cliente, revisao, eng_responsavel, nome_arquivo,
+      itens_documentacao, comentarios_documentacao, locais, observacoes_gerais, conclusao_r01, conclusao_r02, assinaturas
+    ) VALUES (
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13,$14::jsonb,$15,$16,$17,$18::jsonb
+    ) RETURNING *`;
+    const params = [
+      empId,
+      normalizeDate(b.data_inspecao) ?? new Date().toISOString().slice(0, 10),
+      b.titulo_capa ?? null,
+      b.subtitulo_capa ?? null,
+      b.texto_rodape_capa ?? null,
+      b.titulo_relatorio ?? null,
+      b.subtitulo_relatorio ?? null,
+      b.cliente ?? null,
+      b.revisao ?? null,
+      b.eng_responsavel ?? null,
+      b.nome_arquivo ?? null,
+      toJson(b.itens_documentacao ?? []),
+      b.comentarios_documentacao ?? null,
+      toJson(b.locais ?? []),
+      b.observacoes_gerais ?? null,
+      b.conclusao_r01 ?? null,
+      b.conclusao_r02 ?? null,
+      toJson(b.assinaturas ?? [])
+    ];
+    const { rows } = await p.query(sql, params);
+    res.status(201).json(mapInspecaoGasRow(rows[0]));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const code = err && typeof err === 'object' && 'code' in err ? err.code : undefined;
+    const detail = err && typeof err === 'object' && 'detail' in err ? err.detail : undefined;
+    console.error('[POST /api/inspecoes-gas] error:', err);
+    res.status(500).json({ error: msg, code, detail });
+  }
+});
+
+app.put('/api/inspecoes-gas/:id', async (req, res) => {
+  try {
+    await ensureInspecaoGasSchema();
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const b = req.body || {};
+    const sql = `UPDATE public.inspecoes_gas SET
+      id_empreendimento = COALESCE($1, id_empreendimento),
+      data_inspecao = $2,
+      titulo_capa = $3,
+      subtitulo_capa = $4,
+      texto_rodape_capa = $5,
+      titulo_relatorio = $6,
+      subtitulo_relatorio = $7,
+      cliente = $8,
+      revisao = $9,
+      eng_responsavel = $10,
+      nome_arquivo = $11,
+      itens_documentacao = $12::jsonb,
+      comentarios_documentacao = $13,
+      locais = $14::jsonb,
+      observacoes_gerais = $15,
+      conclusao_r01 = $16,
+      conclusao_r02 = $17,
+      assinaturas = $18::jsonb,
+      updated_at = now()
+    WHERE id = $19 RETURNING *`;
+    const params = [
+      (b.id_empreendimento !== undefined && b.id_empreendimento !== null) ? Number(b.id_empreendimento) : null,
+      normalizeDate(b.data_inspecao) ?? null,
+      b.titulo_capa ?? null,
+      b.subtitulo_capa ?? null,
+      b.texto_rodape_capa ?? null,
+      b.titulo_relatorio ?? null,
+      b.subtitulo_relatorio ?? null,
+      b.cliente ?? null,
+      b.revisao ?? null,
+      b.eng_responsavel ?? null,
+      b.nome_arquivo ?? null,
+      toJson(b.itens_documentacao ?? []),
+      b.comentarios_documentacao ?? null,
+      toJson(b.locais ?? []),
+      b.observacoes_gerais ?? null,
+      b.conclusao_r01 ?? null,
+      b.conclusao_r02 ?? null,
+      toJson(b.assinaturas ?? []),
+      id
+    ];
+    const { rows } = await p.query(sql, params);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapInspecaoGasRow(rows[0]));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const code = err && typeof err === 'object' && 'code' in err ? err.code : undefined;
+    console.error('[PUT /api/inspecoes-gas/:id] error:', err);
+    res.status(500).json({ error: msg, code });
+  }
+});
+
+app.delete('/api/inspecoes-gas/:id', async (req, res) => {
+  try {
+    await ensureInspecaoGasSchema();
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const { rowCount } = await p.query('DELETE FROM public.inspecoes_gas WHERE id = $1', [id]);
+    if (!rowCount) return res.status(404).json({ error: 'not_found' });
+    res.json({ ok: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: msg });
+  }
+});
+
 // ===== Vistorias Tecnicas =====
 let vistoriaTecnicaSchemaEnsured = false;
 
