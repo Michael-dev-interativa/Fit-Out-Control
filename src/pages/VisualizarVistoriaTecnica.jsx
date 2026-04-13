@@ -112,11 +112,33 @@ const CoverPage = ({ relatorio, empreendimento }) => {
             </div>
             <div className="absolute z-30" style={{ top: '10%', right: '8%', width: '50%', textAlign: 'right' }}>
                 <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: '64px', fontWeight: 'bold', color: '#394557', lineHeight: '1.1' }}>{relatorio?.titulo_capa || 'RELATÓRIO'}</h1>
-                <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '26px', color: redColor, letterSpacing: '2px' }}>{relatorio?.subtitulo_capa || 'VISTORIA TÉCNICA'}</h2>
+                <h2
+                    style={{
+                        fontFamily: "'Inter', sans-serif",
+                        fontSize: '26px',
+                        color: redColor,
+                        letterSpacing: '2px',
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-word',
+                        overflowWrap: 'anywhere',
+                        maxWidth: '100%',
+                    }}>
+                    {relatorio?.subtitulo_capa || 'VISTORIA TÉCNICA'}
+                </h2>
             </div>
             <div className="absolute z-30" style={reportAreaStyle}>
                 <h1 className="font-black uppercase" style={reportTitleStyle}>{relatorio?.titulo_vistoria || relatorio?.titulo_relatorio || 'RELATÓRIO DE VISTORIA TÉCNICA'}</h1>
-                <h2 className="font-medium" style={reportSubtitleStyle}>{relatorio?.descricao_vistoria || ''}</h2>
+                <h2
+                    className="font-medium"
+                    style={{
+                        ...reportSubtitleStyle,
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-word',
+                        overflowWrap: 'anywhere',
+                    }}
+                >
+                    {relatorio?.descricao_vistoria || ''}
+                </h2>
             </div>
             <div className="absolute z-20" style={{ top: '-350px', right: '-30%', width: '1700px', height: '1150px', backgroundColor: redColor, WebkitMaskImage: `url(${redDecor})`, maskImage: `url(${redDecor})`, WebkitMaskSize: '100% 100%', WebkitMaskRepeat: 'no-repeat' }} />
             <div className="absolute z-50" style={{ top: '-10%', right: '-20%', width: '1800px', height: '800px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

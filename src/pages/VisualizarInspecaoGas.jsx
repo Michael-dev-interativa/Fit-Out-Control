@@ -91,9 +91,11 @@ const CoverPage = ({ relatorio, empreendimento }) => {
                         fontSize: '26px',
                         color: redColor,
                         letterSpacing: '2px',
-                        textTransform: 'inherit',
                         whiteSpace: 'normal',
-                        wordBreak: 'break-word'
+                        wordBreak: 'break-word',
+                        overflowWrap: 'anywhere',
+                        maxWidth: '90%',
+                        textTransform: 'inherit'
                     }}>
                     {relatorio?.subtitulo_capa || 'Gerenciamento de Obra'}
                 </h2>
