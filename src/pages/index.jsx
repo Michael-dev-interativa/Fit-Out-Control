@@ -123,6 +123,14 @@ const VisualizarInspecaoArCondicionado = lazy(() => import("./VisualizarInspecao
 
 const EmpreendimentoInspecaoArCondicionado = lazy(() => import("./EmpreendimentoInspecaoArCondicionado"));
 
+const NovaInspecaoGas = lazy(() => import("./NovaInspecaoGas"));
+
+const EditarInspecaoGas = lazy(() => import("./EditarInspecaoGas"));
+
+const VisualizarInspecaoGas = lazy(() => import("./VisualizarInspecaoGas"));
+
+const EmpreendimentoInspecaoGas = lazy(() => import("./EmpreendimentoInspecaoGas"));
+
 const EmpreendimentoInspecaoControleAcesso = lazy(() => import("./EmpreendimentoInspecaoControleAcesso"));
 
 const NovaInspecaoControleAcesso = lazy(() => import("./NovaInspecaoControleAcesso"));
@@ -346,7 +354,15 @@ const PAGES = {
 
     VisualizarInspecaoArCondicionado: VisualizarInspecaoArCondicionado,
 
+    NovaInspecaoGas: NovaInspecaoGas,
+
+    EditarInspecaoGas: EditarInspecaoGas,
+
+    VisualizarInspecaoGas: VisualizarInspecaoGas,
+
     EmpreendimentoInspecaoArCondicionado: EmpreendimentoInspecaoArCondicionado,
+
+    EmpreendimentoInspecaoGas: EmpreendimentoInspecaoGas,
 
     EmpreendimentoInspecaoControleAcesso: EmpreendimentoInspecaoControleAcesso,
 
@@ -622,6 +638,14 @@ function PagesContent() {
                     <Route path="/VisualizarInspecaoArCondicionado" element={<VisualizarInspecaoArCondicionado />} />
 
                     <Route path="/EmpreendimentoInspecaoArCondicionado" element={<EmpreendimentoInspecaoArCondicionado />} />
+
+                    <Route path="/NovaInspecaoGas" element={<NovaInspecaoGas />} />
+
+                    <Route path="/EditarInspecaoGas" element={<EditarInspecaoGas />} />
+
+                    <Route path="/VisualizarInspecaoGas" element={<VisualizarInspecaoGas />} />
+
+                    <Route path="/EmpreendimentoInspecaoGas" element={<EmpreendimentoInspecaoGas />} />
 
                     <Route path="/EmpreendimentoInspecaoControleAcesso" element={<EmpreendimentoInspecaoControleAcesso />} />
 

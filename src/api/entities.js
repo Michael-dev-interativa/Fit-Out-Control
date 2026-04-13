@@ -249,6 +249,7 @@ export const InspecaoControleAcesso = makeEntity('inspecoes-controle-acesso');
 export const InspecaoCFTV = makeEntity('inspecoes-cftv');
 export const InspecaoSDAI = makeEntity('inspecoes-sdai');
 export const InspecaoEletrica = makeEntity('inspecoes-eletrica');
+export const InspecaoGas = makeEntity('inspecoes-gas');
 
 // Placeholders para entidades ainda não mapeadas no backend
 export const Usuario = makeEntity('usuarios');
@@ -389,6 +390,7 @@ try {
   base44.entities.InspecaoEletrica = InspecaoEletrica;
   base44.entities.InspecaoArCondicionado = InspecaoArCondicionado;
   base44.entities.InspecaoHidrantes = InspecaoHidrantes;
+  base44.entities.InspecaoGas = InspecaoGas;
 } catch (e) { /* ignore in static build */ }
 
 // Auth local mínima
