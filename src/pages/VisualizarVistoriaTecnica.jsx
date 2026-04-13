@@ -1028,25 +1028,29 @@ export default function VisualizarVistoriaTecnica() {
                     .lg\\:pl-72 { padding-left: 0 !important; }
                     .report-container { max-width: none !important; margin: 0 !important; padding: 0 !important; width: 210mm !important; }
                     .report-page { 
-                        page-break-after: always;
-                        break-after: page;
+                        display: block !important;
+                        page-break-after: always !important;
+                        break-after: page !important;
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
                         width: 210mm !important;
                         height: 297mm !important;
                         min-height: unset !important;
                         margin: 0 !important;
                         padding: 0 !important;
                         box-shadow: none !important;
-                        overflow: hidden !important;
+                        overflow: visible !important;
                         position: relative !important;
                     }
                     .report-page:last-child {
-                        page-break-after: auto;
-                        break-after: auto;
+                        page-break-after: auto !important;
+                        break-after: auto !important;
                     }
                     .page-content {
-                        overflow: hidden !important;
+                        overflow: visible !important;
                         padding-bottom: 45px !important;
                         box-sizing: border-box !important;
+                        display: block !important;
                     }
                     img { max-width: 100%; }
                     table { page-break-inside: auto; border-collapse: collapse; }
@@ -1098,8 +1102,7 @@ export default function VisualizarVistoriaTecnica() {
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
                     }
-                    html, body, * { overflow: hidden !important; scrollbar-width: none !important; }
-                    *::-webkit-scrollbar { display: none !important; }
+                    html, body { margin: 0 !important; padding: 0 !important; }
                     .report-page .foto-inspecao-img { height: 220px !important; object-fit: cover !important; width: 100% !important; display: block !important; }
                 }
             `}</style>
