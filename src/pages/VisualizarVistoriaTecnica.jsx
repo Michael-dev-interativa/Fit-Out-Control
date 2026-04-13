@@ -121,7 +121,9 @@ const CoverPage = ({ relatorio, empreendimento }) => {
                         whiteSpace: 'normal',
                         wordBreak: 'break-word',
                         overflowWrap: 'anywhere',
+                        lineBreak: 'anywhere',
                         maxWidth: '100%',
+                        display: 'block',
                     }}>
                     {relatorio?.subtitulo_capa || 'VISTORIA TÉCNICA'}
                 </h2>
@@ -135,6 +137,9 @@ const CoverPage = ({ relatorio, empreendimento }) => {
                         whiteSpace: 'normal',
                         wordBreak: 'break-word',
                         overflowWrap: 'anywhere',
+                        lineBreak: 'anywhere',
+                        display: 'inline-block',
+                        maxWidth: '100%',
                     }}
                 >
                     {relatorio?.descricao_vistoria || ''}
