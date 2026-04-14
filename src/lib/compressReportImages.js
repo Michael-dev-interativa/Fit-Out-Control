@@ -145,31 +145,20 @@ const setValueByPath = (obj, path, value) => {
 
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i];
-    let key;
-    let index = null;
-
     if (part.startsWith('[')) {
-      index = parseInt(part.slice(1, -1));
-      key = parts[i - 1]; // key anterior
+      const index = parseInt(part.slice(1, -1));
+      current = current[index];
     } else {
-      key = part;
-    }
-
-    if (index !== null) {
-      current = current[key][index];
-    } else {
-      if (!(key in current)) {
-        current[key] = {};
+      if (current[part] === undefined || current[part] === null) {
+        current[part] = {};
       }
-      current = current[key];
+      current = current[part];
     }
   }
 
   const lastPart = parts[parts.length - 1];
   if (lastPart.startsWith('[')) {
-    const index = parseInt(lastPart.slice(1, -1));
-    const key = parts[parts.length - 2];
-    current[key][index] = value;
+    current[parseInt(lastPart.slice(1, -1))] = value;
   } else {
     current[lastPart] = value;
   }
