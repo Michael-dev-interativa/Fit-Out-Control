@@ -205,14 +205,19 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
 const FotoInspecao = ({ foto }) => {
     const url = foto?.url;
     const legenda = foto?.legenda;
-    const objectFit = 'cover';
     const objectPosition = foto?.objectPosition || foto?.posicao || 'center center';
 
     return (
-        <div className="imagem-box" style={{ textAlign: 'left', marginBottom: '0px', boxSizing: 'border-box' }}>
-            <img src={url} alt={legenda || 'Foto da inspeção'} style={{ objectFit, objectPosition }} />
+        <div className="imagem-box">
+            <div style={{ width: '100%', height: '180px', overflow: 'hidden', border: '1px solid #e5e7eb', boxSizing: 'border-box', background: '#f9fafb' }}>
+                <img
+                    src={url}
+                    alt={legenda || 'Foto da inspeção'}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition, display: 'block' }}
+                />
+            </div>
             {legenda && (
-                <p style={{ fontSize: '7px', color: '#555', marginTop: '4px', lineHeight: '1.1', overflowWrap: 'anywhere', whiteSpace: 'normal' }}>{legenda}</p>
+                <p style={{ fontSize: '7px', color: '#555', marginTop: '3px', lineHeight: '1.1', overflowWrap: 'anywhere', whiteSpace: 'normal' }}>{legenda}</p>
             )}
         </div>
     );
@@ -549,12 +554,14 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 .imagens-container {
                     display: flex;
                     flex-wrap: wrap;
-                    gap: 6px;
+                    gap: 8px;
                     width: 100%;
+                    padding: 6px;
                     align-items: flex-start;
-                    justify-content: space-between;
+                    justify-content: flex-start;
                     break-inside: avoid;
                     page-break-inside: avoid;
+                    box-sizing: border-box;
                 }
 
                 .photo-cell {
@@ -569,22 +576,10 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 }
 
                 .imagem-box {
-                    flex: 0 0 calc((100% - 30px) / 3);
-                    max-width: calc((100% - 30px) / 3);
-                    width: calc((100% - 30px) / 3);
-                    height: 205px;
-                    overflow: hidden;
-                    break-inside: avoid;
-                    page-break-inside: avoid;
-                }
-
-                .imagem-box img {
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                    object-position: center center;
-                    background: #f0f0f0;
-                    border-radius: 0;
+                    flex: 0 0 calc((100% - 28px) / 3);
+                    max-width: calc((100% - 28px) / 3);
+                    width: calc((100% - 28px) / 3);
+                    box-sizing: border-box;
                     break-inside: avoid;
                     page-break-inside: avoid;
                 }
@@ -681,27 +676,19 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     .imagens-container {
                         display: flex !important;
                         flex-wrap: wrap !important;
-                        gap: 6px !important;
+                        gap: 8px !important;
+                        padding: 6px !important;
                         justify-content: flex-start !important;
+                        align-items: flex-start !important;
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
+                        box-sizing: border-box !important;
                     }
                     .imagem-box {
-                        flex: 0 0 calc((100% - 30px) / 3) !important;
-                        max-width: calc((100% - 30px) / 3) !important;
-                        width: calc((100% - 30px) / 3) !important;
-                        height: 205px !important;
-                        overflow: hidden !important;
-                        page-break-inside: avoid !important;
-                        break-inside: avoid !important;
-                    }
-                    .imagem-box img {
-                        width: 100% !important;
-                        height: 100% !important;
-                        object-fit: cover !important;
-                        object-position: center center !important;
-                        background: #f0f0f0 !important;
-                        border-radius: 0 !important;
+                        flex: 0 0 calc((100% - 28px) / 3) !important;
+                        max-width: calc((100% - 28px) / 3) !important;
+                        width: calc((100% - 28px) / 3) !important;
+                        box-sizing: border-box !important;
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
                     }
