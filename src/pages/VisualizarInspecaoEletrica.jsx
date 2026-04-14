@@ -209,11 +209,12 @@ const FotoInspecao = ({ foto }) => {
 
     return (
         <div className="imagem-box">
-            <div style={{ width: '100%', height: '180px', overflow: 'hidden', border: '1px solid #e5e7eb', boxSizing: 'border-box', background: '#f9fafb' }}>
+            <div className="foto-container">
                 <img
                     src={url}
                     alt={legenda || 'Foto da inspeção'}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition, display: 'block' }}
+                    className="foto-img"
+                    style={{ objectPosition }}
                 />
             </div>
             {legenda && (
@@ -449,7 +450,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 headerHeightPx: 80,
                 footerHeightPx: 45,
                 pagePaddingPx: 12,
-                // Keep estimate aligned with fixed photo box height (180px) plus spacing/caption.
+                // Keep estimate aligned with fixed photo box height (200px) plus spacing/caption.
                 photoMaxHeightPx: 200,
                 maxPhotosPerItem: 3,
                 itemBufferPx: 10,
@@ -583,6 +584,22 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     break-inside: avoid;
                     page-break-inside: avoid;
                 }
+
+                .foto-container {
+                    width: 100%;
+                    height: 200px;
+                    overflow: hidden;
+                    border: 1px solid #e5e7eb;
+                    background: #f9fafb;
+                    box-sizing: border-box;
+                }
+
+                .foto-img {
+                    width: 100%;
+                    height: 200px;
+                    object-fit: cover;
+                    display: block;
+                }
                 
                 @media screen { 
                     .report-page { 
@@ -691,6 +708,20 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                         box-sizing: border-box !important;
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
+                    }
+                    .foto-container {
+                        width: 100% !important;
+                        height: 200px !important;
+                        overflow: hidden !important;
+                        border: 1px solid #e5e7eb !important;
+                        background: #f9fafb !important;
+                        box-sizing: border-box !important;
+                    }
+                    .foto-img {
+                        width: 100% !important;
+                        height: 200px !important;
+                        object-fit: cover !important;
+                        display: block !important;
                     }
                 }
                 
