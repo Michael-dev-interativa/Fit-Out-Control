@@ -4,58 +4,58 @@
  */
 
 /**
- * Comprime uma imagem de URL para DataURL em JPEG comprimido
+ * Comprime uma imagem de URL para DataURL em JPEG comprimido.
+ * Usa fetch + blob URL para evitar taint de canvas cross-origin.
  */
-const compressImage = (url, maxWidth = 600, quality = 0.4) => {
-  return new Promise((resolve) => {
-    if (!url || typeof url !== 'string' || url.startsWith('data:image')) {
-      resolve(url);
-      return;
-    }
-    if (url.includes('base44.app/api')) {
-      resolve(url);
-      return;
-    }
+const compressImage = async (url, maxWidth = 600, quality = 0.4) => {
+  if (!url || typeof url !== 'string') return url;
+  if (url.startsWith('data:image')) return url;
+  if (url.includes('base44.app/api')) return url;
 
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
 
-    const timeoutId = setTimeout(() => {
-      console.warn('[compressImage] Timeout ao carregar:', url);
-      resolve(url);
-    }, 10000);
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
 
-    img.onload = () => {
-      clearTimeout(timeoutId);
-      try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        let width = img.width;
-        let height = img.height;
+    if (!response.ok) return url;
 
-        if (width > maxWidth) {
-          height = Math.round(height * maxWidth / width);
-          width = maxWidth;
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+
+    const result = await new Promise((resolve) => {
+      const img = new Image();
+
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        try {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          if (maxWidth && width > maxWidth) {
+            height = Math.round(height * maxWidth / width);
+            width = maxWidth;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        } catch {
+          resolve(url);
         }
+      };
 
-        canvas.width = width;
-        canvas.height = height;
-        ctx.drawImage(img, 0, 0, width, height);
+      img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(url); };
+      img.src = objectUrl;
+    });
 
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      } catch (error) {
-        console.warn('[compressImage] Erro ao comprimir:', error);
-        resolve(url);
-      }
-    };
-
-    img.onerror = () => {
-      clearTimeout(timeoutId);
-      resolve(url);
-    };
-
-    img.src = url;
-  });
+    return result;
+  } catch {
+    return url;
+  }
 };
 
 /**

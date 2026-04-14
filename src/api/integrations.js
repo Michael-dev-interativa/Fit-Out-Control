@@ -68,11 +68,11 @@ async function buildOfflineUploadPayload(file) {
 
 export async function UploadFile({ file }) {
   // If image is larger than threshold, compress it before uploading
-  const IMAGE_SIZE_THRESHOLD = 2.5 * 1024 * 1024; // 2.5 MB
+  const IMAGE_SIZE_THRESHOLD = 300 * 1024; // 300 KB — comprime praticamente todas as fotos
   let toUpload = file;
   if (file && file.type && file.type.startsWith('image/') && file.size > IMAGE_SIZE_THRESHOLD && typeof window !== 'undefined') {
     try {
-      toUpload = await compressImageFile(file, { maxWidth: 1600, quality: 0.78 });
+      toUpload = await compressImageFile(file, { maxWidth: 800, quality: 0.6 });
       console.log('[UploadFile] compressed image', file.size, '->', toUpload.size);
     } catch (e) {
       console.warn('[UploadFile] image compression failed, uploading original', e && (e.message || e));
