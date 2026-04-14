@@ -17,7 +17,6 @@ import {
   Sun,
   Moon,
   FileText,
-  Calendar,
   ListChecks,
   Eye,
   WifiOff
@@ -43,7 +42,6 @@ const translations = {
     projects: "Empreendimentos",
     users: "Usuários",
     forms: "Formulários",
-    planning: "Planejamento",
     standardActivities: "Atividades Padrão",
     logout: "Sair",
     language: "Idioma",
@@ -60,7 +58,6 @@ const translations = {
     projects: "Projects",
     users: "Users",
     forms: "Forms",
-    planning: "Planning",
     standardActivities: "Standard Activities",
     logout: "Logout",
     language: "Language",
@@ -127,22 +124,30 @@ export default function Layout({ children }) {
 
         setPrecacheStatus('running');
 
-        // 1. Empreendimentos
+        // Helper: lista uma entidade sem lançar exceção (404 / erro = array vazio)
+        const safeList = async (entity, label, order) => {
+          try {
+            const rows = await entity.list(order);
+            const result = Array.isArray(rows) ? rows : [];
+            console.log(`[precache] ${label}: ${result.length}`);
+            return result;
+          } catch (err) {
+            console.warn(`[precache] ${label} falhou (ignorado):`, err?.message || err);
+            return [];
+          }
+        };
+
+        // 1. Empreendimentos (obrigatório — se falhar, aborta precache)
         const empRows = await Empreendimento.list('-created_date');
         const itens = Array.isArray(empRows) ? empRows : [];
         console.log(`[precache] empreendimentos cacheados: ${itens.length}`);
 
-        // 2. Unidades de empreendimento
-        const unidadesRows = await UnidadeEmpreendimento.list();
-        console.log(`[precache] unidades cacheadas: ${Array.isArray(unidadesRows) ? unidadesRows.length : 0}`);
-
-        // 3. Formulários de vistoria (templates usados offline)
-        const formsRows = await FormularioVistoria.list();
-        console.log(`[precache] formulários de vistoria cacheados: ${Array.isArray(formsRows) ? formsRows.length : 0}`);
-
-        // 4. Atividades padrão (usadas no planejamento)
-        const atividadesRows = await Atividade.list();
-        console.log(`[precache] atividades cacheadas: ${Array.isArray(atividadesRows) ? atividadesRows.length : 0}`);
+        // 2–4: entidades opcionais — falha individual não aborta o precache
+        const [unidadesRows, , ] = await Promise.all([
+          safeList(UnidadeEmpreendimento, 'unidades cacheadas'),
+          safeList(FormularioVistoria, 'formulários de vistoria cacheados'),
+          safeList(Atividade, 'atividades cacheadas'),
+        ]);
 
         // Coleta URLs de imagens de empreendimentos e unidades para preload no browser cache
         const rawUrls = [
@@ -374,11 +379,6 @@ export default function Layout({ children }) {
         title: t.projects,
         url: createPageUrl("Empreendimentos"),
         icon: Building2,
-      },
-      {
-        title: t.planning,
-        url: createPageUrl("Planejamento"),
-        icon: Calendar,
       },
       {
         title: t.users,
