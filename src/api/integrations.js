@@ -137,6 +137,50 @@ export async function UploadFile({ file }) {
   return payload;
 }
 
+/**
+ * Varre recursivamente um payload e faz upload de qualquer valor que seja
+ * um data: URL (imagem salva offline). Retorna o objeto com as URLs reais
+ * do servidor. Chamado durante o processamento da fila de sync.
+ */
+export async function resolveDataUrlsInBody(body) {
+  if (!body) return body;
+
+  async function uploadDataUrl(dataUrl) {
+    try {
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      const file = new File([blob], 'sync-image.jpg', { type: blob.type || 'image/jpeg' });
+      const form = new FormData();
+      form.append('file', file);
+      const r = await fetch(apiUrl('/api/upload'), { method: 'POST', body: form });
+      if (!r.ok) return dataUrl; // mantém data: URL se o upload falhar
+      const result = await r.json();
+      return result.file_url || dataUrl;
+    } catch {
+      return dataUrl; // em caso de erro, mantém o valor original
+    }
+  }
+
+  async function resolveValue(value) {
+    if (typeof value === 'string' && value.startsWith('data:')) {
+      return uploadDataUrl(value);
+    }
+    if (Array.isArray(value)) {
+      return Promise.all(value.map(resolveValue));
+    }
+    if (value && typeof value === 'object') {
+      const out = {};
+      for (const [k, v] of Object.entries(value)) {
+        out[k] = await resolveValue(v);
+      }
+      return out;
+    }
+    return value;
+  }
+
+  return resolveValue(body);
+}
+
 // Stubs não utilizados atualmente; mantidos apenas para compatibilidade
 export const Core = {};
 export const InvokeLLM = async () => { throw new Error('InvokeLLM not configured'); };

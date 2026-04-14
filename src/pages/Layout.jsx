@@ -1,8 +1,11 @@
-﻿import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Auth, User, Empreendimento } from "@/api/entities";
+import { Auth, User, Empreendimento, FormularioVistoria, UnidadeEmpreendimento, Atividade } from "@/api/entities";
 import { getUploadUrl } from "@/api/config";
+import { queueGetAll } from "@/lib/offlineDb";
+import { resolveDataUrlsInBody } from "@/api/integrations";
+import { toast, Toaster } from "react-hot-toast";
 import ApiConnectionAlert from "@/components/ApiConnectionAlert";
 import {
   Building2,
@@ -96,6 +99,7 @@ export default function Layout({ children }) {
   const [redirectChecked, setRedirectChecked] = useState(false);
   const [isLoadingUser, setIsLoadingUser] = useState(false);
   const [precacheStatus, setPrecacheStatus] = useState('idle'); // idle | running | done | error
+  const [pendingCount, setPendingCount] = useState(0);
 
   const preloadExternalImage = (url) => new Promise((resolve) => {
     const img = new Image();
@@ -114,8 +118,8 @@ export default function Layout({ children }) {
         }
         if (isOffline) return;
         const sessionId = user?.id || user?.email || 'anon';
-        const doneKey = `offline_precache_done_v1_${sessionId}`;
-        const failedKey = `offline_precache_failed_v1_${sessionId}`;
+        const doneKey = `offline_precache_done_v2_${sessionId}`;
+        const failedKey = `offline_precache_failed_v2_${sessionId}`;
         if (sessionStorage.getItem(doneKey) === '1') {
           setPrecacheStatus('done');
           return;
@@ -123,33 +127,61 @@ export default function Layout({ children }) {
 
         setPrecacheStatus('running');
 
-        const rows = await Empreendimento.list('-created_date');
-        const itens = Array.isArray(rows) ? rows : [];
+        // 1. Empreendimentos
+        const empRows = await Empreendimento.list('-created_date');
+        const itens = Array.isArray(empRows) ? empRows : [];
         console.log(`[precache] empreendimentos cacheados: ${itens.length}`);
 
-        const rawUrls = itens.flatMap((emp) => {
-          const list = [];
-          if (emp?.foto_empreendimento && typeof emp.foto_empreendimento === 'string') list.push(emp.foto_empreendimento);
-          if (Array.isArray(emp?.fotos_empreendimento)) {
-            emp.fotos_empreendimento.forEach((f) => {
-              if (f && typeof f === 'string') list.push(f);
-              else if (f && typeof f === 'object' && typeof f.url === 'string') list.push(f.url);
-            });
-          }
-          return list;
-        });
+        // 2. Unidades de empreendimento
+        const unidadesRows = await UnidadeEmpreendimento.list();
+        console.log(`[precache] unidades cacheadas: ${Array.isArray(unidadesRows) ? unidadesRows.length : 0}`);
+
+        // 3. Formulários de vistoria (templates usados offline)
+        const formsRows = await FormularioVistoria.list();
+        console.log(`[precache] formulários de vistoria cacheados: ${Array.isArray(formsRows) ? formsRows.length : 0}`);
+
+        // 4. Atividades padrão (usadas no planejamento)
+        const atividadesRows = await Atividade.list();
+        console.log(`[precache] atividades cacheadas: ${Array.isArray(atividadesRows) ? atividadesRows.length : 0}`);
+
+        // Coleta URLs de imagens de empreendimentos e unidades para preload no browser cache
+        const rawUrls = [
+          ...itens.flatMap((emp) => {
+            const list = [];
+            if (emp?.foto_empreendimento && typeof emp.foto_empreendimento === 'string') list.push(emp.foto_empreendimento);
+            if (Array.isArray(emp?.fotos_empreendimento)) {
+              emp.fotos_empreendimento.forEach((f) => {
+                if (f && typeof f === 'string') list.push(f);
+                else if (f && typeof f === 'object' && typeof f.url === 'string') list.push(f.url);
+              });
+            }
+            return list;
+          }),
+          ...(Array.isArray(unidadesRows) ? unidadesRows.flatMap((u) => {
+            const list = [];
+            if (u?.foto && typeof u.foto === 'string') list.push(u.foto);
+            if (u?.foto_unidade && typeof u.foto_unidade === 'string') list.push(u.foto_unidade);
+            if (Array.isArray(u?.fotos)) {
+              u.fotos.forEach((f) => {
+                if (f && typeof f === 'string') list.push(f);
+                else if (f && typeof f === 'object' && typeof f.url === 'string') list.push(f.url);
+              });
+            }
+            return list;
+          }) : []),
+        ];
 
         const imageUrls = [...new Set(rawUrls
           .map((u) => getUploadUrl(u))
           .filter(Boolean)
-          .slice(0, 80))];
+          .slice(0, 120))];
 
         const imageResults = await Promise.allSettled(
           imageUrls.map((url) => preloadExternalImage(url))
         );
 
         const imageOkCount = imageResults.filter((r) => r.status === 'fulfilled').length;
-        console.log(`[precache] imagens de empreendimentos cacheadas: ${imageOkCount}/${imageUrls.length}`);
+        console.log(`[precache] imagens cacheadas: ${imageOkCount}/${imageUrls.length}`);
 
         // Só marca concluído após o núcleo de dados ter sido cacheado com sucesso.
         sessionStorage.setItem(doneKey, '1');
@@ -158,37 +190,63 @@ export default function Layout({ children }) {
       } catch (err) {
         try {
           const sessionId = user?.id || user?.email || 'anon';
-          sessionStorage.setItem(`offline_precache_failed_v1_${sessionId}`, String(Date.now()));
+          sessionStorage.setItem(`offline_precache_failed_v2_${sessionId}`, String(Date.now()));
         } catch { /* silencioso */ }
         setPrecacheStatus('error');
-        console.warn('[precache] erro ao pre-cachear empreendimentos:', err?.message || err);
+        console.warn('[precache] erro no pre-cache offline:', err?.message || err);
       }
     };
 
     runPrecache();
   }, [user, isOffline]);
 
+  // Carrega contagem de operações pendentes na fila
+  const refreshPendingCount = useCallback(async () => {
+    try {
+      const queue = await queueGetAll();
+      setPendingCount(queue.length);
+    } catch { /* silencioso */ }
+  }, []);
+
   // Monitora status de conexao e processa fila ao voltar online
   useEffect(() => {
+    // Carga inicial: verifica se há itens pendentes de sessão anterior
+    refreshPendingCount();
+
     const handleOnline = async () => {
       setIsOffline(false);
       try {
         const { processSyncQueue } = await import('@/lib/offlineDb');
-        const cnt = await processSyncQueue(() => {
-          const t = localStorage.getItem('authToken') || localStorage.getItem('token');
-          return t ? { Authorization: 'Bearer ' + t } : {};
-        });
-        if (cnt > 0) console.log('[offline] ' + cnt + ' operacoes sincronizadas');
-      } catch { /* silencioso */ }
+        const cnt = await processSyncQueue(
+          () => {
+            const t = localStorage.getItem('authToken') || localStorage.getItem('token');
+            return t ? { Authorization: 'Bearer ' + t } : {};
+          },
+          resolveDataUrlsInBody
+        );
+        if (cnt > 0) {
+          toast.success(`${cnt} ${cnt === 1 ? 'operação sincronizada' : 'operações sincronizadas'}`, { duration: 4000 });
+        }
+        setPendingCount(0);
+      } catch {
+        toast.error('Falha ao sincronizar operações pendentes.', { duration: 5000 });
+      }
     };
-    const handleOffline = () => setIsOffline(true);
+    const handleOffline = () => {
+      setIsOffline(true);
+      refreshPendingCount();
+    };
+    const handleQueueChange = () => refreshPendingCount();
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    window.addEventListener('offline-queue-change', handleQueueChange);
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('offline-queue-change', handleQueueChange);
     };
-  }, []);
+  }, [refreshPendingCount]);
 
   // Detect if the current page is a report page to render it without the main layout
   const reportPagePaths = [
@@ -572,7 +630,7 @@ export default function Layout({ children }) {
               {isOffline && (
                 <div className="flex items-center gap-1 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full border border-yellow-300">
                   <WifiOff className="w-3 h-3" />
-                  <span>Offline</span>
+                  <span>Offline{pendingCount > 0 ? ` • ${pendingCount} pendente${pendingCount > 1 ? 's' : ''}` : ''}</span>
                 </div>
               )}
               {!isOffline && precacheStatus === 'running' && (
@@ -652,7 +710,7 @@ export default function Layout({ children }) {
               {isOffline && (
                 <div className="flex items-center gap-1 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full border border-yellow-300">
                   <WifiOff className="w-3 h-3" />
-                  <span>Offline</span>
+                  <span>Offline{pendingCount > 0 ? ` • ${pendingCount} pendente${pendingCount > 1 ? 's' : ''}` : ''}</span>
                 </div>
               )}
               {!isOffline && precacheStatus === 'running' && (
@@ -701,6 +759,7 @@ export default function Layout({ children }) {
           )}
         </main>
       </div>
+      <Toaster position="bottom-right" toastOptions={{ duration: 4000 }} />
     </div>
   );
 }

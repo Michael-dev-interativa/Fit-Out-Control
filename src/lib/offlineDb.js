@@ -118,6 +118,7 @@ export async function queuePush(method, url, body, meta = {}) {
     const db = await getDb();
     await db.add(QUEUE_STORE, { method, url, body, meta, timestamp: Date.now() });
     console.log('[offlineDb] Operação enfileirada:', method, url);
+    try { window.dispatchEvent(new CustomEvent('offline-queue-change')); } catch { /* fora do browser */ }
   } catch (err) {
     console.warn('[offlineDb] queuePush falhou:', err.message);
   }
@@ -172,9 +173,13 @@ export async function queueDelete(id) {
 
 /**
  * Processa a fila de sincronização (chama fetch para cada operação pendente)
- * Chamado automaticamente quando o navegador volta online
+ * Chamado automaticamente quando o navegador volta online.
+ *
+ * @param {() => object} getAuthHeaders  - retorna headers de autenticação
+ * @param {(body: any) => Promise<any>} [resolveBody] - callback opcional para
+ *   pré-processar o body antes do envio (ex.: fazer upload de data: URLs)
  */
-export async function processSyncQueue(getAuthHeaders) {
+export async function processSyncQueue(getAuthHeaders, resolveBody = null) {
   const queue = await queueGetAll();
   if (queue.length === 0) return 0;
 
@@ -184,10 +189,11 @@ export async function processSyncQueue(getAuthHeaders) {
 
   for (const op of queue) {
     try {
+      const body = (resolveBody && op.body) ? await resolveBody(op.body) : op.body;
       const res = await fetch(op.url, {
         method: op.method,
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-        body: op.body ? JSON.stringify(op.body) : undefined,
+        body: body ? JSON.stringify(body) : undefined,
       });
       if (res.ok) {
         await queueDelete(op.id);
@@ -217,5 +223,6 @@ export async function processSyncQueue(getAuthHeaders) {
   }
 
   console.log(`[offlineDb] ${processed}/${queue.length} operações sincronizadas`);
+  try { window.dispatchEvent(new CustomEvent('offline-queue-change')); } catch { /* fora do browser */ }
   return processed;
 }

@@ -1,7 +1,7 @@
 // Cliente local: wrappers que chamam nosso backend Express
 import { apiUrl } from './config';
 import { base44 } from './base44Client';
-import { cacheGet, cachePut, cacheClearPrefix, isOnline, queuePush, shadowPut, shadowGetAll } from '@/lib/offlineDb';
+import { cacheGet, cachePut, cacheClearPrefix, isOnline, queuePush, shadowPut, shadowGetAll, shadowDelete } from '@/lib/offlineDb';
 function getAuthToken() {
   try { return localStorage.getItem('authToken') || localStorage.getItem('token') || null; } catch { return null; }
 }
@@ -54,6 +54,24 @@ function mergeShadowCreates(baseItems, shadowRows) {
   return items;
 }
 
+// Aplica shadow updates (edições feitas offline) sobre uma lista de itens.
+// Para cada shadow de kind 'update', encontra o item pelo id e mescla o delta.
+function applyShadowUpdates(items, shadowRows) {
+  const updates = shadowRows.filter((s) => s?.kind === 'update' && s?.id != null);
+  if (updates.length === 0) return items;
+  // Se múltiplos updates para o mesmo id, usa o mais recente
+  const updateMap = {};
+  for (const s of updates) {
+    const key = String(s.id);
+    if (!updateMap[key] || s.timestamp > updateMap[key].timestamp) updateMap[key] = s;
+  }
+  return items.map((item) => {
+    const shadow = updateMap[String(item?.id)];
+    if (!shadow) return item;
+    return { ...item, ...shadow.data, offline: true, queued: true };
+  });
+}
+
 const makeEntity = (resource) => ({
   async list(order) {
     const params = new URLSearchParams();
@@ -64,19 +82,19 @@ const makeEntity = (resource) => ({
     if (!isOnline()) {
       const cached = await cacheGet(cacheKey);
       const shadows = await shadowGetAll(resource);
-      if (cached) { console.log(`[offline] servindo cache: ${cacheKey}`); return mergeShadowCreates(cached, shadows); }
-      return mergeShadowCreates([], shadows);
+      if (cached) { console.log(`[offline] servindo cache: ${cacheKey}`); return applyShadowUpdates(mergeShadowCreates(cached, shadows), shadows); }
+      return applyShadowUpdates(mergeShadowCreates([], shadows), shadows);
     }
     try {
       const r = await fetch(url, { headers: getAuthHeaders() });
       const data = await handleResponse(r, resource, 'LIST');
       cachePut(cacheKey, data).catch(() => {});
       const shadows = await shadowGetAll(resource);
-      return mergeShadowCreates(data, shadows);
+      return applyShadowUpdates(mergeShadowCreates(data, shadows), shadows);
     } catch (err) {
       const cached = await cacheGet(cacheKey);
       const shadows = await shadowGetAll(resource);
-      if (cached) { console.log(`[offline] fallback cache: ${cacheKey}`); return mergeShadowCreates(cached, shadows); }
+      if (cached) { console.log(`[offline] fallback cache: ${cacheKey}`); return applyShadowUpdates(mergeShadowCreates(cached, shadows), shadows); }
       throw err;
     }
   },
@@ -90,17 +108,20 @@ const makeEntity = (resource) => ({
     const cacheKey = `FILTER:${resource}:${params.toString()}`;
     if (!isOnline()) {
       const cached = await cacheGet(cacheKey);
-      if (cached) return cached;
+      const shadows = await shadowGetAll(resource);
+      if (cached) return applyShadowUpdates(cached, shadows);
       return [];
     }
     try {
       const r = await fetch(url, { headers: getAuthHeaders() });
       const data = await handleResponse(r, resource, 'FILTER');
       cachePut(cacheKey, data).catch(() => {});
-      return data;
+      const shadows = await shadowGetAll(resource);
+      return applyShadowUpdates(data, shadows);
     } catch (err) {
       const cached = await cacheGet(cacheKey);
-      if (cached) return cached;
+      const shadows = await shadowGetAll(resource);
+      if (cached) return applyShadowUpdates(cached, shadows);
       throw err;
     }
   },
@@ -114,17 +135,28 @@ const makeEntity = (resource) => ({
     }
     if (!isOnline()) {
       const cached = await cacheGet(cacheKey);
-      if (cached) { console.log(`[offline] servindo cache: ${cacheKey}`); return cached; }
+      const shadows = await shadowGetAll(resource);
+      const updateShadow = shadows.find((s) => s?.kind === 'update' && String(s?.id) === String(id));
+      if (cached) {
+        const merged = updateShadow ? { ...cached, ...updateShadow.data, offline: true, queued: true } : cached;
+        console.log(`[offline] servindo cache: ${cacheKey}`);
+        return merged;
+      }
+      if (updateShadow) return { ...updateShadow.data, id, offline: true, queued: true };
       return null;
     }
     try {
       const r = await fetch(url, { headers: getAuthHeaders() });
       const data = await handleResponse(r, resource, `GET ${id}`);
       cachePut(cacheKey, data).catch(() => {});
-      return data;
+      const shadows = await shadowGetAll(resource);
+      const updateShadow = shadows.find((s) => s?.kind === 'update' && String(s?.id) === String(id));
+      return updateShadow ? { ...data, ...updateShadow.data, offline: true, queued: true } : data;
     } catch (err) {
       const cached = await cacheGet(cacheKey);
-      if (cached) return cached;
+      const shadows = await shadowGetAll(resource);
+      const updateShadow = shadows.find((s) => s?.kind === 'update' && String(s?.id) === String(id));
+      if (cached) return updateShadow ? { ...cached, ...updateShadow.data, offline: true, queued: true } : cached;
       throw err;
     }
   },
@@ -171,30 +203,31 @@ const makeEntity = (resource) => ({
   },
   async update(id, data) {
     const url = apiUrl(`/api/${resource}/${id}`);
+    const shadowKey = `${resource}:update:${id}`;
     if (!isOnline()) {
-      await queuePush('PUT', url, data);
-      cacheClearPrefix(`GET:${resource}:${id}`).catch(() => {});
-      cacheClearPrefix(`LIST:${resource}`).catch(() => {});
-      cacheClearPrefix(`FILTER:${resource}`).catch(() => {});
-      return { queued: true, offline: true, action: 'UPDATE', resource, id, data };
+      await shadowPut({ key: shadowKey, resource, kind: 'update', id, data, timestamp: Date.now() });
+      await queuePush('PUT', url, data, { resource, shadowKey, kind: 'update' });
+      // Não limpa caches — o shadow record garante UI optimista nas leituras
+      return { ...data, id, queued: true, offline: true, action: 'UPDATE', resource };
     }
     try {
       const r = await fetch(url, {
         method: 'PUT', headers: getAuthHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(data)
       });
       const result = await handleResponse(r, resource, `UPDATE ${id}`);
-      // Invalida cache do item e listagens
+      // Limpa shadow de update pendente (caso existisse de sessão offline anterior)
+      shadowDelete(shadowKey).catch(() => {});
+      // Invalida caches para forçar releitura fresca
       cacheClearPrefix(`GET:${resource}:${id}`).catch(() => {});
       cacheClearPrefix(`LIST:${resource}`).catch(() => {});
       cacheClearPrefix(`FILTER:${resource}`).catch(() => {});
       return result;
     } catch (err) {
       if (!shouldQueueWriteError(err)) throw err;
-      await queuePush('PUT', url, data);
-      cacheClearPrefix(`GET:${resource}:${id}`).catch(() => {});
-      cacheClearPrefix(`LIST:${resource}`).catch(() => {});
-      cacheClearPrefix(`FILTER:${resource}`).catch(() => {});
-      return { queued: true, offline: true, action: 'UPDATE', resource, id, data };
+      await shadowPut({ key: shadowKey, resource, kind: 'update', id, data, timestamp: Date.now() });
+      await queuePush('PUT', url, data, { resource, shadowKey, kind: 'update' });
+      // Não limpa caches — o shadow record garante UI optimista nas leituras
+      return { ...data, id, queued: true, offline: true, action: 'UPDATE', resource };
     }
   },
   async delete(id) {
