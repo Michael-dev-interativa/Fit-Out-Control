@@ -64,8 +64,13 @@ const compressImage = (url, maxWidth = 600, quality = 0.4) => {
 const isImageUrl = (value) => {
   if (typeof value !== 'string') return false;
   if (value.startsWith('data:image')) return true;
-  if (value.startsWith('http://') || value.startsWith('https://')) {
-    return /\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(value);
+  if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/')) {
+    // URLs com extensão de imagem
+    if (/\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(value)) return true;
+    // Endpoint interno de arquivos do banco (sem extensão)
+    if (value.includes('/api/files/')) return true;
+    // Uploads locais
+    if (value.includes('/uploads/')) return true;
   }
   return false;
 };

@@ -51,67 +51,53 @@ const isConclusaoMatching = (val, key) => {
     return s === key;
 };
 
-const compressImage = (url, maxWidth = null, quality = 0.2) => {
+const compressImage = (url, maxWidth = 600, quality = 0.4) => {
     return new Promise((resolve) => {
-        if (!url || typeof url !== 'string') {
-            console.log("Imagem inválida ou já data URL:", url?.substring(0, 50));
-            resolve(url);
-            return;
-        }
+        if (!url || typeof url !== 'string') { resolve(url); return; }
+        if (url.startsWith('data:image')) { resolve(url); return; }
+        if (url.includes('base44.app/api')) { resolve(url); return; }
 
-        // Se já é data URL comprimida, retorna
-        if (url.startsWith('data:image')) {
-            resolve(url);
-            return;
-        }
-
-        // Skip compression for base44.app/api URLs due to CORS restrictions
-        if (url.includes('base44.app/api')) {
-            console.log("Pulando compressão (base44.app/api):", url);
-            resolve(url);
-            return;
-        }
-
-        console.log(`Comprimindo imagem: maxWidth=${maxWidth}, quality=${quality}, url=${url.substring(0, 60)}...`);
         const img = new Image();
         img.crossOrigin = 'anonymous';
 
+        const timeoutId = setTimeout(() => resolve(url), 10000);
+
         img.onload = () => {
+            clearTimeout(timeoutId);
             try {
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
                 let width = img.width;
                 let height = img.height;
 
-                // Reduz proporcionalmente apenas quando houver limite explícito
                 if (maxWidth && width > maxWidth) {
-                    height *= maxWidth / width;
+                    height = Math.round(height * maxWidth / width);
                     width = maxWidth;
                 }
 
                 canvas.width = width;
                 canvas.height = height;
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-                const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-                const originalSize = url.length;
-                const compressedSize = compressedDataUrl.length;
-                console.log(`✓ Imagem comprimida: ${originalSize} → ${compressedSize} bytes (${Math.round(compressedSize / originalSize * 100)}%)`);
-
-                resolve(compressedDataUrl);
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', quality));
             } catch (error) {
-                console.error("Erro ao comprimir imagem:", error);
                 resolve(url);
             }
         };
 
-        img.onerror = (error) => {
-            console.warn("Erro ao carregar imagem (CORS ou URL inválida):", url, error);
-            resolve(url);
-        };
-
+        img.onerror = () => { clearTimeout(timeoutId); resolve(url); };
         img.src = url;
     });
+};
+
+const useCompressedImage = (url, maxWidth = 600, quality = 0.4) => {
+    const [compressed, setCompressed] = useState(url);
+    useEffect(() => {
+        if (!url || url.startsWith('data:image')) { setCompressed(url); return; }
+        let cancelled = false;
+        compressImage(url, maxWidth, quality).then(r => { if (!cancelled) setCompressed(r); });
+        return () => { cancelled = true; };
+    }, [url, maxWidth, quality]);
+    return compressed;
 };
 
 
@@ -203,9 +189,10 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
 };
 
 const FotoInspecao = ({ foto }) => {
-    const url = foto?.url;
+    const rawUrl = foto?.url;
     const legenda = foto?.legenda;
     const objectPosition = foto?.objectPosition || foto?.posicao || 'center center';
+    const url = useCompressedImage(rawUrl, 600, 0.4);
 
     return (
         <div className="imagem-box">
