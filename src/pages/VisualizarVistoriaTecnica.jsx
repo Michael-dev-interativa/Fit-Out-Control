@@ -27,7 +27,7 @@ const escapeHtml = (unsafe) => {
 
 
 
-const compressImage = (url, maxWidth = 800, quality = 0.7) => {
+const compressImage = (url, maxWidth = 600, quality = 0.5) => {
     return new Promise((resolve) => {
         if (!url || typeof url !== 'string' || url.startsWith('data:image')) { resolve(url); return; }
         if (url.includes('base44.app/api')) { resolve(url); return; }
@@ -46,7 +46,7 @@ const compressImage = (url, maxWidth = 800, quality = 0.7) => {
     });
 };
 
-const useCompressedImage = (url, maxWidth = 800, quality = 0.7) => {
+const useCompressedImage = (url, maxWidth = 600, quality = 0.5) => {
     const [compressedUrl, setCompressedUrl] = useState(url);
     useEffect(() => {
         if (url && typeof url === 'string' && url.startsWith('http')) {
@@ -68,7 +68,7 @@ const toCssUnit = (value, fallback, defaultUnit = 'px') => {
 const CoverPage = ({ relatorio, empreendimento }) => {
     const year = new Date(relatorio?.data_vistoria || Date.now()).getFullYear();
     const redColor = '#CE2D2D';
-    const empFoto = useCompressedImage(empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80', 800, 0.7);
+    const empFoto = useCompressedImage(empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80', 600, 0.5);
     const logoUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png";
     const coverFrame = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png";
     const redDecor = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/513d57969_Designsemnome2.png';
@@ -234,7 +234,7 @@ const paginateCaracteristicasSections = (relatorio) => {
 
 // ── TÓPICO 1 — CARACTERÍSTICAS GERAIS ────────────────────────────────────────
 const CaracteristicasPage = ({ relatorio, sections, showTitle }) => {
-    const fotoUrl = useCompressedImage(relatorio?.foto_localizacao, 700, 0.8);
+    const fotoUrl = useCompressedImage(relatorio?.foto_localizacao, 600, 0.5);
     return (
         <div className="p-4 space-y-4">
             {showTitle && <h2 className="text-base font-bold text-center bg-blue-900 text-white p-2">Características Gerais</h2>}
@@ -292,7 +292,7 @@ const CaracteristicasPage = ({ relatorio, sections, showTitle }) => {
 
 // ── FOTO ITEM ─────────────────────────────────────────────────────────────────
 const FotoInspecao = ({ url, legenda }) => {
-    const compressed = useCompressedImage(url, 600, 0.6);
+    const compressed = useCompressedImage(url, 500, 0.4);
     return (
         <div className="text-center">
             <div className="foto-inspecao-container" style={{ width: '100%', height: '220px', overflow: 'hidden', border: '1px solid #ddd' }}>
@@ -546,7 +546,7 @@ const paginateQuadroItens = (quadro, opts = {}) => {
 
 // ── LAYOUT PROPOSTO ─────────────────────────────────────────────────────────
 const LayoutFotoItem = ({ url, legenda }) => {
-    const compressed = useCompressedImage(url, 700, 0.8);
+    const compressed = useCompressedImage(url, 600, 0.5);
     return (
         <div style={{ width: '100%' }}>
             <img src={compressed} alt={legenda || ''} style={{ maxHeight: '320px', width: '100%', objectFit: 'contain', display: 'block' }} />

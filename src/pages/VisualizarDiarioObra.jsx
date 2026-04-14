@@ -29,7 +29,7 @@ const translations = {
 
 // ************** Funções e Componentes Reutilizados de VisualizarRelatorioVistoria **************
 
-const compressImage = (url, maxWidth = 800, quality = 0.3) => {
+const compressImage = (url, maxWidth = 600, quality = 0.3) => {
     return new Promise((resolve) => {
         if (!url || typeof url !== 'string' || url.startsWith('data:image')) {
             resolve(url);
@@ -156,7 +156,7 @@ const CoverPage = ({ diario, unidade, empreendimento, t, pdfMode }) => {
 };
 
 const CompressedPhoto = ({ url, legenda, index }) => {
-    const compressedUrl = useCompressedImage(url, 500, 0.5);
+    const compressedUrl = useCompressedImage(url, 500, 0.4);
     return (
         <div className="text-center break-inside-avoid photo-item-print">
             <img src={compressedUrl} alt={legenda || `Foto ${index}`} className="w-full h-auto max-h-80 object-contain rounded border photo-img-print bg-gray-50" />

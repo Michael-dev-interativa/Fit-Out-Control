@@ -15,7 +15,7 @@ import { AssinaturasPage } from '@/components/relatorios/AssinaturasSection';
 const isValidId = (id) => id && typeof id === 'string' && id.length > 0;
 
 // Função para comprimir imagens usando dimensões de exibição (150x120px)
-const compressImage = (url, quality = 0.6) => {
+const compressImage = (url, quality = 0.4) => {
     return new Promise((resolve) => {
         if (!url || typeof url !== 'string' || url.startsWith('data:image')) {
             resolve(url);
@@ -49,7 +49,7 @@ const compressImage = (url, quality = 0.6) => {
 };
 
 // Hook para comprimir imagens
-const useCompressedImage = (url, quality = 0.6) => {
+const useCompressedImage = (url, quality = 0.4) => {
     const [compressedUrl, setCompressedUrl] = React.useState(url);
 
     React.useEffect(() => {
@@ -404,7 +404,7 @@ const ContentPage = ({ relatorio, empreendimento, items }) => {
 };
 
 const FotoInspecao = ({ url, alt = 'Foto da inspeção' }) => {
-    const compressedUrl = useCompressedImage(url, 0.6);
+    const compressedUrl = useCompressedImage(url, 0.4);
     return (
         <div className="foto-wrapper">
             <img

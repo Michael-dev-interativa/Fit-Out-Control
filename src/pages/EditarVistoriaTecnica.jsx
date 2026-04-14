@@ -549,14 +549,14 @@ export default function EditarVistoriaTecnica() {
                                                                     handleChange('locais', l);
                                                                 }} className="h-7 text-xs" placeholder="Descrição do item..." />
                                                             </td>
-                                                            <td className="border border-gray-300 p-1">
-                                                                <Input value={item.observacoes || ''} onChange={e => {
-                                                                    const l = [...(formData.locais||[])];
-                                                                    const its = [...(l[lIdx].itens_inspecao||[])];
-                                                                    its[iIdx] = { ...its[iIdx], observacoes: e.target.value };
-                                                                    l[lIdx] = { ...l[lIdx], itens_inspecao: its };
-                                                                    handleChange('locais', l);
-                                                                }} className="h-7 text-xs" placeholder="Observações..." />
+                                                            <td className="border border-gray-300 p-1 align-top">
+                                                               <Textarea value={item.observacoes || ''} onChange={e => {
+                                                                   const l = [...(formData.locais||[])];
+                                                                   const its = [...(l[lIdx].itens_inspecao||[])];
+                                                                   its[iIdx] = { ...its[iIdx], observacoes: e.target.value };
+                                                                   l[lIdx] = { ...l[lIdx], itens_inspecao: its };
+                                                                   handleChange('locais', l);
+                                                               }} className="text-xs" rows={3} placeholder="Observações..." />
                                                             </td>
                                                             <td className="border border-gray-300 p-1 text-center">
                                                                 <select value={item.resultado || 'OK'} onChange={e => {

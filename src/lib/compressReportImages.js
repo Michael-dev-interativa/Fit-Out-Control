@@ -10,7 +10,7 @@
  * @param {number} quality - Qualidade JPEG 0-1 (padrão 0.6)
  * @returns {Promise<string>} DataURL comprimida ou URL original se falhar
  */
-const compressImage = (url, maxWidth = 800, quality = 0.6) => {
+const compressImage = (url, maxWidth = 600, quality = 0.4) => {
   return new Promise((resolve) => {
     // Não comprimir URLs que já são data: ou da API interna
     if (!url || typeof url !== 'string' || url.startsWith('data:image')) {
@@ -112,16 +112,16 @@ const findImageUrls = (obj, found = [], prefix = '') => {
 
       if (isImageUrl(value)) {
         // Detectar qualidade por contexto do campo
-        let quality = 0.6; // Padrão
-        if (key.includes('capa') || key.includes('cover')) quality = 0.7;
-        if (key.includes('logo')) quality = 0.8;
-        if (key.includes('empreendimento') || key.includes('localizacao')) quality = 0.7;
+        let quality = 0.4; // Padrão
+        if (key.includes('capa') || key.includes('cover')) quality = 0.5;
+        if (key.includes('logo')) quality = 0.7;
+        if (key.includes('empreendimento') || key.includes('localizacao')) quality = 0.5;
 
         found.push({
           path: currentPath,
           url: value,
           quality,
-          maxWidth: 800
+          maxWidth: 600
         });
       } else if (typeof value === 'object') {
         findImageUrls(value, found, currentPath);
@@ -214,8 +214,8 @@ export const compressReportImages = async (relatorio) => {
     if (compressedRelatorio.relatorio_empreendimento_foto && isImageUrl(compressedRelatorio.relatorio_empreendimento_foto)) {
       compressedRelatorio.relatorio_empreendimento_foto = await compressImage(
         compressedRelatorio.relatorio_empreendimento_foto,
-        800,
-        0.7
+        600,
+        0.5
       );
     }
 
