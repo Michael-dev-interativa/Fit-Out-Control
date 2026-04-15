@@ -206,7 +206,7 @@ const FotoInspecao = ({ foto }) => {
     const rawUrl = foto?.url;
     const legenda = foto?.legenda;
     const objectPosition = foto?.objectPosition || foto?.posicao || 'center center';
-    const url = useCompressedImage(rawUrl, 250, 0.15);
+    const url = useCompressedImage(rawUrl, 250, 0.25);
 
     return (
         <div className="imagem-box">
