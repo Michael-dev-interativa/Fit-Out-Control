@@ -581,7 +581,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     }
 
                     /* Ensure content area fills exactly between header and footer */
-                    .page-content { position: absolute !important; top: 21.17mm !important; bottom: 11.9mm !important; left: 0 !important; right: 0 !important; overflow: hidden !important; box-sizing: border-box !important; }
+                    .page-content { position: absolute !important; left: 0 !important; right: 0 !important; overflow: hidden !important; box-sizing: border-box !important; }
                     
                     .report-page:last-child { page-break-after: auto; }
                     
