@@ -69,12 +69,12 @@ const toCssUnit = (value, fallback, defaultUnit = 'px') => {
 const CoverPage = ({ relatorio, empreendimento }) => {
     const year = new Date(relatorio?.data_vistoria || Date.now()).getFullYear();
     const redColor = '#CE2D2D';
-    const empFoto = useCompressedImage(empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80', 500, 0.4);
-    const logoUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png";
-    const coverFrame = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png";
-    const redDecor = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/513d57969_Designsemnome2.png';
-    const bottomFrame = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/10e9b2570_erasebg-transformed.png';
-    const logoWhite = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/22086ec44_LOGOPNG-branco.png";
+    const empFoto = empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
+    const logoUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png", 300, 0.3);
+    const coverFrame = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png", 600, 0.3);
+    const redDecor = useCompressedImage('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/513d57969_Designsemnome2.png', 400, 0.3);
+    const bottomFrame = useCompressedImage('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/10e9b2570_erasebg-transformed.png', 600, 0.3);
+    const logoWhite = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/22086ec44_LOGOPNG-branco.png", 300, 0.3);
     const rodape = relatorio?.texto_rodape_capa || [empreendimento?.cli_empreendimento, empreendimento?.nome_empreendimento].filter(Boolean).join(' | ');
 
     // Campos opcionais para customizar a area central da capa (titulo/subtitulo da vistoria).
@@ -235,7 +235,6 @@ const paginateCaracteristicasSections = (relatorio) => {
 
 // ── TÓPICO 1 — CARACTERÍSTICAS GERAIS ────────────────────────────────────────
 const CaracteristicasPage = ({ relatorio, sections, showTitle }) => {
-    const fotoUrl = useCompressedImage(relatorio?.foto_localizacao, 500, 0.4);
     return (
         <div className="p-4 space-y-4">
             {showTitle && <h2 className="text-base font-bold text-center bg-blue-900 text-white p-2">Características Gerais</h2>}
@@ -244,7 +243,7 @@ const CaracteristicasPage = ({ relatorio, sections, showTitle }) => {
                 <div>
                     <h3 className="text-xs font-bold bg-gray-100 border border-black p-1 mb-0">Localização do Empreendimento</h3>
                     <div className="border border-black border-t-0 p-2 flex justify-center">
-                        <img src={fotoUrl} alt="Localização" style={{ maxHeight: '320px', width: '100%', objectFit: 'contain' }} />
+                        <img src={relatorio.foto_localizacao} alt="Localização" style={{ maxHeight: '320px', width: '100%', objectFit: 'contain' }} />
                     </div>
                 </div>
             )}
@@ -293,11 +292,10 @@ const CaracteristicasPage = ({ relatorio, sections, showTitle }) => {
 
 // ── FOTO ITEM ─────────────────────────────────────────────────────────────────
 const FotoInspecao = ({ url, legenda }) => {
-    const compressed = useCompressedImage(url, 300, 0.2);
     return (
         <div className="text-center">
             <div className="foto-inspecao-container" style={{ width: '100%', height: '220px', overflow: 'hidden', border: '1px solid #ddd' }}>
-                <img src={compressed} data-original={url} alt={legenda || ''} className="foto-inspecao-img" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                <img src={url} data-original={url} alt={legenda || ''} className="foto-inspecao-img" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </div>
             {legenda && <p className="text-[9px] text-gray-600 mt-1">{legenda}</p>}
         </div>
@@ -544,10 +542,9 @@ const paginateQuadroItens = (quadro, opts = {}) => {
 
 // ── LAYOUT PROPOSTO ─────────────────────────────────────────────────────────
 const LayoutFotoItem = ({ url, legenda }) => {
-    const compressed = useCompressedImage(url, 500, 0.4);
     return (
         <div style={{ width: '100%' }}>
-            <img src={compressed} alt={legenda || ''} style={{ maxHeight: '320px', width: '100%', objectFit: 'contain', display: 'block' }} />
+            <img src={url} alt={legenda || ''} style={{ maxHeight: '320px', width: '100%', objectFit: 'contain', display: 'block' }} />
             {legenda && <p className="text-[9px] text-gray-600 mt-1 text-left">{legenda}</p>}
         </div>
     );
@@ -635,7 +632,7 @@ const QuadrosGeraisPage = ({ quadro, itens, showTitle = true, showQuadroHeader =
 // ── CONCLUSÃO ─────────────────────────────────────────────────────────────────
 
 const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreendimento }) => {
-    const logo = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png", 400, 0.7);
+    const logo = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png", 300, 0.3);
     const HEADER = pageNumber > 1 ? '80px' : '0px';
     const FOOTER = '45px';
     const isCover = pageNumber === 1;
@@ -696,9 +693,12 @@ export default function VisualizarVistoriaTecnica() {
                 
                 // Comprimir imagens do relatório para reduzir peso do PDF
                 const compressedRelatorio = await compressReportImages(data);
+                const compressedEmpreendimento = await compressReportImages(emp);
+                
+                console.log('[VistoriaTecnica] Imagens comprimidas com sucesso');
                 
                 setRelatorio(compressedRelatorio);
-                setEmpreendimento(emp);
+                setEmpreendimento(compressedEmpreendimento);
             } catch (err) { setError(err.message); }
             finally { setLoading(false); }
         };
