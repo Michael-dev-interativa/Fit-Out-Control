@@ -6,6 +6,7 @@ import { ptBR } from 'date-fns/locale';
 import { ArrowLeft, Loader2, AlertTriangle, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { paginateBlocksForPrinting } from '@/lib/reportPagination';
+import { compressReportImages } from '@/lib/compressReportImages';
 import { createPageUrl } from '@/utils';
 
 const isValidId = (id) => id && String(id).trim() !== '' && !['null', 'undefined'].includes(String(id).toLowerCase());
@@ -962,7 +963,8 @@ export default function VisualizarRelatorioSaida() {
       try {
         const rel = await base44.entities.RelatorioSaida.get(relatorioId);
         if (!rel) throw new Error('Relatório não encontrado.');
-        setRelatorio(rel);
+        const compressedRel = await compressReportImages(rel);
+        setRelatorio(compressedRel);
 
         const [emp, uni] = await Promise.allSettled([
           rel.id_empreendimento ? base44.entities.Empreendimento.get(rel.id_empreendimento) : Promise.resolve(null),

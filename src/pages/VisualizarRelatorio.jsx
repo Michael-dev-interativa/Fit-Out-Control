@@ -5,6 +5,7 @@ import { createPageUrl } from "@/utils";
 import { UnidadeEmpreendimento } from "@/api/entities";
 import { Empreendimento } from "@/api/entities";
 import { RegistroUnidade } from "@/api/entities";
+import { compressReportImages } from "@/lib/compressReportImages";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -81,7 +82,8 @@ export default function VisualizarRelatorio() {
         registrosFiltrados = registrosFiltrados.filter(r => r.emissao_registro === emissaoFiltro);
       }
 
-      setRegistros(registrosFiltrados);
+      const compressedRegistros = await compressReportImages(registrosFiltrados);
+      setRegistros(compressedRegistros);
 
     } catch (error) {
       console.error("Erro ao carregar dados do relatório:", error);

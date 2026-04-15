@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { RelatorioPrimeirosServicos } from '@/api/entities';
 import { Empreendimento } from '@/api/entities';
 import { getUploadUrl } from '@/api/config';
+import { compressReportImages } from '@/lib/compressReportImages';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -386,7 +387,8 @@ export default function VisualizarRelatorioPrimeirosServicos() {
             try {
                 const relatorioData = await RelatorioPrimeirosServicos.get(relatorioId);
                 if (!relatorioData) throw new Error("Relatório não encontrado.");
-                setRelatorio(relatorioData);
+                const compressedRelatorio = await compressReportImages(relatorioData);
+                setRelatorio(compressedRelatorio);
 
                 if (isValidId(relatorioData.id_empreendimento)) {
                     const empreendimentoData = await Empreendimento.get(relatorioData.id_empreendimento);

@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { getUploadUrl } from '@/api/config';
 import { DiarioDeObra } from '@/api/entities';
+import { compressReportImages } from '@/lib/compressReportImages';
 import { Empreendimento } from '@/api/entities';
 import { UnidadeEmpreendimento } from '@/api/entities';
 import { User } from '@/api/entities';
@@ -711,7 +712,9 @@ export default function VisualizarDiarioObra() {
                 try {
                     diarioData = await DiarioDeObra.get(diarioId);
                     if (!diarioData) throw new Error("Diário de obra não encontrado.");
-                    setDiario(diarioData);
+                    const compressedDiario = await compressReportImages(diarioData);
+                    diarioData = compressedDiario;
+                    setDiario(compressedDiario);
                 } catch (diarioErr) {
                     console.warn('DiarioDeObra.get falhou, tentando RDO como fallback:', diarioErr);
                     // Se não for Diário, talvez seja um RDO armazenado em 'rdos' — tentar recuperar

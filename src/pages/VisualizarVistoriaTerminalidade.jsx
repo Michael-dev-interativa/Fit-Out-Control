@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Empreendimento } from '@/api/entities';
 import { VistoriaTerminalidade } from '@/api/entities';
+import { compressReportImages } from '@/lib/compressReportImages';
 import { Button } from '@/components/ui/button';
 import { Loader2, Printer, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -1096,7 +1097,8 @@ export default function VisualizarVistoriaTerminalidade() {
                 const empreendimentoData = await Empreendimento.get(relatorioData.id_empreendimento);
                 if (!empreendimentoData) throw new Error("Empreendimento associado não encontrado.");
 
-                setRelatorio(relatorioData);
+                const compressedRelatorio = await compressReportImages(relatorioData);
+                setRelatorio(compressedRelatorio);
                 setEmpreendimento(empreendimentoData);
                 setError(null);
             } catch (err) {

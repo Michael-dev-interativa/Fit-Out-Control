@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { AtaReuniao, Empreendimento as EmpreendimentoEntity } from '@/api/entities';
+import { compressReportImages } from '@/lib/compressReportImages';
 import { Button } from '@/components/ui/button';
 import { Loader2, Printer, ArrowLeft, AlertTriangle, Edit2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -328,7 +329,8 @@ export default function VisualizarAtaReuniao() {
         const empreendimentoData = await EmpreendimentoEntity.get(ataData.id_empreendimento);
         if (!empreendimentoData) throw new Error("Empreendimento não encontrado.");
 
-        setAta(ataData);
+        const compressedAta = await compressReportImages(ataData);
+        setAta(compressedAta);
         setEmpreendimento(empreendimentoData);
         setError(null);
       } catch (err) {

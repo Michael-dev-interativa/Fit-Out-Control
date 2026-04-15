@@ -8,6 +8,7 @@ import { ArrowLeft, Loader2, AlertTriangle, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import EnviarEmailDialog from '@/components/relatorios/EnviarEmailDialog';
 import { chunkItems } from '@/lib/reportPagination';
+import { compressReportImages } from '@/lib/compressReportImages';
 
 // Standardized colors as per request
 const redColor = '#CE2D2D';
@@ -1897,7 +1898,8 @@ export default function VisualizarTermoAceite() {
         if (!termoData) {
           throw new Error("Termo não encontrado para o ID fornecido.");
         }
-        setTermo(termoData);
+        const compressedTermo = await compressReportImages(termoData);
+        setTermo(compressedTermo);
 
         const [unidadeResult, empreendimentoResult] = await Promise.allSettled([
           termoData.id_unidade ? UnidadeEmpreendimento.get(termoData.id_unidade) : Promise.resolve(null),

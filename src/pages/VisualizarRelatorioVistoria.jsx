@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import EnviarEmailDialog from '@/components/relatorios/EnviarEmailDialog';
 import { chunkItems } from '@/lib/reportPagination';
+import { compressReportImages } from '@/lib/compressReportImages';
 
 // Standardized colors as per request
 const redColor = '#CE2D2D';
@@ -1819,7 +1820,8 @@ export default function VisualizarRelatorioVistoria() {
         if (!vistoriaData) {
           throw new Error("Vistoria não encontrada para o ID fornecido.");
         }
-        setVistoria(vistoriaData);
+        const compressedVistoria = await compressReportImages(vistoriaData);
+        setVistoria(compressedVistoria);
 
         const [unidadeResult, empreendimentoResult] = await Promise.allSettled([
           vistoriaData.id_unidade ? UnidadeEmpreendimento.get(vistoriaData.id_unidade) : Promise.resolve(null),
