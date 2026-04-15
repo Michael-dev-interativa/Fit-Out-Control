@@ -424,7 +424,7 @@ export default function EditarVistoriaTecnica() {
                                 )}
                                 {local.is_sub_local && (
                                 <div className="bg-blue-700 text-white px-4 py-2 flex items-center justify-between">
-                                    <span className="text-sm font-medium text-blue-200">{local.nome_local || 'Local adicional'}</span>
+                                    <span className="text-sm font-medium text-blue-200">Local adicional</span>
                                     <button type="button" onClick={() => {
                                         const l = [...(formData.locais||[])];
                                         l.splice(lIdx, 1);
