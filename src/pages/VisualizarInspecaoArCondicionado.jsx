@@ -84,11 +84,11 @@ const CoverPage = ({ relatorio, empreendimento }) => {
     const year = new Date(relatorio?.data_inspecao || Date.now()).getFullYear();
     const redColor = '#CE2D2D';
     const empreendimentoImageUrl = empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
-    const logoInterativaUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png", 300, 0.3);
-    const coverFrameOriginalUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png", 600, 0.3);
-    const redDecorativeElementUrl = useCompressedImage('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/513d57969_Designsemnome2.png', 400, 0.3);
-    const bottomRightFrameUrl = useCompressedImage('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/10e9b2570_erasebg-transformed.png', 600, 0.3);
-    const logoInterativaBrancoUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/22086ec44_LOGOPNG-branco.png", 300, 0.3);
+    const logoInterativaUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png", 300, 0.45);
+    const coverFrameOriginalUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png", 600, 0.35);
+    const redDecorativeElementUrl = useCompressedImage('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/513d57969_Designsemnome2.png', 400, 0.35);
+    const bottomRightFrameUrl = useCompressedImage('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/10e9b2570_erasebg-transformed.png', 600, 0.35);
+    const logoInterativaBrancoUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/22086ec44_LOGOPNG-branco.png", 300, 0.45);
 
     const defaultResponsaveis = [empreendimento?.cli_empreendimento, empreendimento?.nome_empreendimento].filter(Boolean).join(' | ');
     const responsaveis = empreendimento?.texto_capa_rodape || defaultResponsaveis;
@@ -346,7 +346,7 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
 };
 
 const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreendimento }) => {
-    const logoHorizontalUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png", 300, 0.3);
+    const logoHorizontalUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png", 300, 0.45);
     const HEADER_HEIGHT = pageNumber > 1 ? '50px' : '0px';
     const FOOTER_HEIGHT = '30px';
     const isCover = pageNumber === 1;

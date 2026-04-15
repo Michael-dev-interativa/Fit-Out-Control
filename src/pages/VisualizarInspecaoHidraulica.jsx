@@ -86,7 +86,7 @@ const isConclusaoMatching = (val, key) => {
 const CoverPage = ({ relatorio, empreendimento }) => {
   const year = new Date(relatorio?.data_inspecao || Date.now()).getFullYear();
   const redColor = '#CE2D2D';
-  const empreendimentoImageUrl = useCompressedImage(empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80', 800, 0.7);
+  const empreendimentoImageUrl = useCompressedImage(empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80', 800, 0.35);
   const logoInterativaUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png";
   const coverFrameOriginalUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png";
   const redDecorativeElementUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/513d57969_Designsemnome2.png';
@@ -168,7 +168,7 @@ const FotoInspecao = ({ url, legenda, maxHeight = '66mm' }) => {
   // URL já vem comprimida pelo compressReportImages
   return (
     <div className="text-center foto-inspecao" style={{ overflow: 'hidden', boxSizing: 'border-box' }}>
-      <img src={url} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: '250px', objectFit: 'cover', border: '1px solid #ddd', display: 'block' }} />
+      <img src={url} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: '250px', objectFit: 'contain', border: '1px solid #ddd', display: 'block', backgroundColor: '#f5f5f5' }} />
       {legenda && (
         <p className="text-[9px] text-gray-600 mt-1">{legenda}</p>
       )}
@@ -264,7 +264,7 @@ const ContentPage = ({ local, itensSlice, showHeader = true }) => {
 };
 
 const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreendimento }) => {
-  const logoHorizontalCompressed = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png", 400, 0.7);
+  const logoHorizontalCompressed = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png", 400, 0.45);
   const isCover = pageNumber === 1;
 
   // Precise measurements for A4 portrait
