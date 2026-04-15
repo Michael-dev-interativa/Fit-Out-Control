@@ -329,10 +329,35 @@ const isConclusaoMatching = (val, key) => {
     return s === key;
 };
 
-const ObservacoesGeraisPage = ({ observacoes }) => {
+const paginateObservacoes = (text, charsPerLine = 95, firstPageLines = 34, contPageLines = 46) => {
+  if (!text) return [''];
+  const paragraphs = text.split('\n');
+  const pages = [];
+  let currentLines = 0;
+  let current = [];
+
+  for (const para of paragraphs) {
+    const paraLines = Math.max(1, Math.ceil(para.length / charsPerLine));
+    const limit = pages.length === 0 ? firstPageLines : contPageLines;
+
+    if (currentLines + paraLines > limit && current.length > 0) {
+      pages.push(current.join('\n'));
+      current = [para];
+      currentLines = paraLines;
+    } else {
+      current.push(para);
+      currentLines += paraLines;
+    }
+  }
+
+  if (current.length > 0) pages.push(current.join('\n'));
+  return pages.length > 0 ? pages : [''];
+};
+
+const ObservacoesGeraisPage = ({ observacoes, showHeader = true }) => {
     return (
         <div className="p-4">
-            <h2 className="text-xl font-bold text-center mb-4 bg-blue-900 text-white p-2">Observações Gerais</h2>
+            {showHeader && <h2 className="text-xl font-bold text-center mb-4 bg-blue-900 text-white p-2">Observações Gerais</h2>}
             <div className="border border-black p-4 text-sm whitespace-pre-wrap min-h-[100px]">{observacoes || ''}</div>
         </div>
     );
@@ -432,7 +457,8 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
     }
 
     // Observações e Conclusão sempre em página dedicada
-    const totalPages = 1 + (hasDocumentacao ? 1 : 0) + contentPages.length + 1 + (hasAssinaturas ? 1 : 0);
+    const observacoesPages = paginateObservacoes(relatorio.observacoes_gerais);
+    const totalPages = 1 + (hasDocumentacao ? 1 : 0) + contentPages.length + observacoesPages.length + (hasAssinaturas ? 1 : 0);
     let currentPage = 1;
 
     const handlePrint = async () => {
@@ -573,10 +599,14 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
 
                 {/* Conclusão will be rendered after Observações Gerais (inserted below) */}
 
-                <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                    <ObservacoesGeraisPage observacoes={relatorio.observacoes_gerais} />
-                    <ConclusaoPage conclusaoR01={relatorio?.conclusao_r01} conclusaoR02={relatorio?.conclusao_r02} />
-                </ReportPageLayout>
+                {observacoesPages.map((obsText, obsIdx) => (
+                    <ReportPageLayout key={`obs-${obsIdx}`} pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+                        <ObservacoesGeraisPage observacoes={obsText} showHeader={obsIdx === 0} />
+                        {obsIdx === observacoesPages.length - 1 && (
+                            <ConclusaoPage conclusaoR01={relatorio?.conclusao_r01} conclusaoR02={relatorio?.conclusao_r02} />
+                        )}
+                    </ReportPageLayout>
+                ))}
 
                 {hasAssinaturas && (
                     <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
