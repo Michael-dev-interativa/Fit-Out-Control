@@ -14,17 +14,13 @@ const isValidId = (id) => id && typeof id === 'string' && id.length > 0;
 const compressImage = (url, maxWidth = 800, quality = 0.7) => {
   return new Promise((resolve) => {
     if (!url || typeof url !== 'string' || url.startsWith('data:image')) {
-      console.log('[Compressão] Ignorando URL já comprimida ou inválida:', url?.substring(0, 50));
       resolve(url);
       return;
     }
     if (url.includes('base44.app/api')) {
-      console.log('[Compressão] Ignorando URL da API:', url);
       resolve(url);
       return;
     }
-    console.log('[Compressão] Iniciando compressão de:', url);
-    const startTime = Date.now();
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
@@ -32,7 +28,6 @@ const compressImage = (url, maxWidth = 800, quality = 0.7) => {
       const ctx = canvas.getContext('2d');
       let width = img.width;
       let height = img.height;
-      const originalSize = width * height;
       if (width > maxWidth) {
         height *= maxWidth / width;
         width = maxWidth;
@@ -40,34 +35,21 @@ const compressImage = (url, maxWidth = 800, quality = 0.7) => {
       canvas.width = width;
       canvas.height = height;
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      const compressed = canvas.toDataURL('image/jpeg', quality);
-      const endTime = Date.now();
-      const newSize = width * height;
-      console.log(`[Compressão] ✓ Concluída em ${endTime - startTime}ms - Redução: ${Math.round((1 - newSize / originalSize) * 100)}%`);
-      resolve(compressed);
+      resolve(canvas.toDataURL('image/jpeg', quality));
     };
-    img.onerror = () => {
-      console.error('[Compressão] ✗ Erro ao carregar imagem:', url);
-      resolve(url);
-    };
+    img.onerror = () => resolve(url);
     img.src = url;
   });
 };
 
 const useCompressedImage = (url, maxWidth = 800, quality = 0.7) => {
   const [compressedUrl, setCompressedUrl] = useState(url);
-  const [isCompressing, setIsCompressing] = useState(false);
 
   useEffect(() => {
     if (url && typeof url === 'string' && url.startsWith('http')) {
-      setIsCompressing(true);
-      compressImage(url, maxWidth, quality).then((compressed) => {
-        setCompressedUrl(compressed);
-        setIsCompressing(false);
-      });
+      compressImage(url, maxWidth, quality).then(setCompressedUrl);
     } else {
       setCompressedUrl(url);
-      setIsCompressing(false);
     }
   }, [url, maxWidth, quality]);
 
@@ -164,11 +146,13 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
   );
 };
 
-const FotoInspecao = ({ url, legenda, maxHeight = '66mm' }) => {
+const FotoInspecao = ({ url, legenda }) => {
   // URL já vem comprimida pelo compressReportImages
   return (
     <div className="text-center foto-inspecao" style={{ overflow: 'hidden', boxSizing: 'border-box' }}>
-      <img src={url} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: '250px', objectFit: 'contain', border: '1px solid #ddd', display: 'block', backgroundColor: '#f5f5f5' }} />
+      <div className="foto-inspecao-container" style={{ width: '100%', height: '250px', border: '1px solid #ddd', backgroundColor: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+        <img src={url} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+      </div>
       {legenda && (
         <p className="text-[9px] text-gray-600 mt-1">{legenda}</p>
       )}
@@ -540,14 +524,23 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                       break-inside: avoid !important;
                     }
 
-                    .photos-grid img {
-                      width: 100%;
-                      max-width: 100%;
-                      height: auto !important;
-                      max-height: 66mm !important;
-                      object-fit: contain;
-                      display: block;
-                      border: 1px solid #ddd;
+                    .foto-inspecao-container {
+                      width: 100% !important;
+                      height: 66mm !important;
+                      border: 1px solid #ddd !important;
+                      background-color: #f5f5f5 !important;
+                      display: flex !important;
+                      align-items: center !important;
+                      justify-content: center !important;
+                      overflow: hidden !important;
+                      box-sizing: border-box !important;
+                    }
+
+                    .foto-inspecao-container img {
+                      width: 100% !important;
+                      height: 100% !important;
+                      object-fit: contain !important;
+                      display: block !important;
                     }
 
                     /* Ensure content area reserves space for footer on print */

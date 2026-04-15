@@ -81,7 +81,6 @@ const qualityForKey = (key) => {
   if (key.includes('logo')) return 0.45;
   if (key.includes('capa') || key.includes('cover')) return 0.35;
   if (key.includes('empreendimento') || key.includes('localizacao')) return 0.35;
-  if (key.includes('assinatura')) return 0.35;
   return 0.2;
 };
 
@@ -108,6 +107,7 @@ const compressObjectImages = async (obj) => {
     Object.keys(obj).forEach(key => {
       const value = obj[key];
       if (isImageUrl(value)) {
+        if (key.includes('assinatura')) return; // preservar assinaturas sem compressão (PNG com transparência)
         promises.push(
           compressImage(value, qualityForKey(key) > 0.15 ? 400 : 250, qualityForKey(key)).then(compressed => { obj[key] = compressed; })
         );

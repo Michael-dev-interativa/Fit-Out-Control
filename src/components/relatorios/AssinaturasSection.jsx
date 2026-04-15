@@ -11,11 +11,11 @@ export const AssinaturasPage = ({ assinaturas }) => {
                 <div key={index} className="flex flex-col items-center">
                     <div className="mb-2 border-b-2 border-black w-64 h-24 flex items-end justify-center">
                         {assinatura.assinatura_imagem && (
-                            <img 
-                                src={assinatura.assinatura_imagem} 
-                                alt="Assinatura" 
+                            <img
+                                src={assinatura.assinatura_imagem}
+                                alt="Assinatura"
                                 className="max-h-20 max-w-full object-contain"
-                                style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact', colorAdjust: 'exact' }}
+                                style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact', colorAdjust: 'exact', mixBlendMode: 'multiply' }}
                             />
                         )}
                     </div>
