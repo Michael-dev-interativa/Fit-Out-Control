@@ -10,7 +10,6 @@
 const compressImage = async (url, maxWidth = 250, quality = 0.1) => {
   if (!url || typeof url !== 'string') return url;
   if (url.startsWith('data:image')) return url;
-  if (url.includes('base44.app/api')) return url;
 
   try {
     const controller = new AbortController();

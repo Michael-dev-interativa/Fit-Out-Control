@@ -54,7 +54,6 @@ const isConclusaoMatching = (val, key) => {
 const compressImage = async (url, maxWidth = 600, quality = 0.4) => {
     if (!url || typeof url !== 'string') return url;
     if (url.startsWith('data:image')) return url;
-    if (url.includes('base44.app/api')) return url;
 
     try {
         const controller = new AbortController();
@@ -117,7 +116,7 @@ const useCompressedImage = (url, maxWidth = 600, quality = 0.4) => {
 const CoverPage = ({ relatorio, empreendimento }) => {
     const year = new Date(relatorio?.data_inspecao || Date.now()).getFullYear();
     const redColor = '#CE2D2D';
-    const empreendimentoImageUrl = empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
+    const empreendimentoImageUrl = useCompressedImage(empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80', 450, 0.2);
     const logoInterativaUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png", 300, 0.3);
     const coverFrameOriginalUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png", 600, 0.3);
     const redDecorativeElementUrl = useCompressedImage('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/513d57969_Designsemnome2.png', 400, 0.3);
@@ -205,12 +204,13 @@ const FotoInspecao = ({ foto }) => {
     const rawUrl = foto?.url;
     const legenda = foto?.legenda;
     const objectPosition = foto?.objectPosition || foto?.posicao || 'center center';
+    const url = useCompressedImage(rawUrl, 250, 0.1);
 
     return (
         <div className="imagem-box">
             <div className="foto-container">
                 <img
-                    src={rawUrl}
+                    src={url}
                     alt={legenda || 'Foto da inspeção'}
                     className="foto-img"
                     style={{ objectPosition }}
@@ -342,7 +342,7 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
     const isCover = pageNumber === 1;
 
     return (
-        <div className="report-page" style={{ height: PAGE_HEIGHT, boxSizing: 'border-box', pageBreakAfter: 'always', WebkitPageBreakAfter: 'always', breakAfter: 'page', overflow: isCover ? 'hidden' : 'visible' }}>
+        <div className="report-page" style={{ height: PAGE_HEIGHT, boxSizing: 'border-box', pageBreakAfter: 'always', WebkitPageBreakAfter: 'always', breakAfter: 'page', overflow: 'hidden' }}>
             {!isCover && (
                 <div className="flex justify-between items-center border-b border-gray-200 bg-white" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: HEADER_HEIGHT, zIndex: 100, padding: '4px 8px', maxWidth: '210mm', boxSizing: 'border-box' }}>
                     <img src={logoHorizontalUrl} alt="Logo Interativa Engenharia" style={{ height: '32px', maxWidth: '120px', objectFit: 'contain' }} />
@@ -353,7 +353,7 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
                     </div>
                 </div>
             )}
-            <div className="page-content" style={{ paddingTop: HEADER_HEIGHT, paddingBottom: FOOTER_HEIGHT, minHeight: `calc(${PAGE_HEIGHT} - ${HEADER_HEIGHT} - ${FOOTER_HEIGHT})`, overflow: 'visible', boxSizing: 'border-box' }}>
+            <div className="page-content" style={{ paddingTop: HEADER_HEIGHT, paddingBottom: FOOTER_HEIGHT, minHeight: `calc(${PAGE_HEIGHT} - ${HEADER_HEIGHT} - ${FOOTER_HEIGHT})`, overflow: 'hidden', boxSizing: 'border-box' }}>
                 {children}
             </div>
             <div className="border-t border-gray-200 bg-gray-50 flex justify-between items-center text-[9px] text-gray-500" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: FOOTER_HEIGHT, padding: '4px 8px', maxWidth: '210mm', boxSizing: 'border-box' }}>
@@ -548,7 +548,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     height: auto;
                     position: relative; 
                     background: white; 
-                    overflow: visible;
+                    overflow: hidden;
                 }
 
                 .imagens-container {
