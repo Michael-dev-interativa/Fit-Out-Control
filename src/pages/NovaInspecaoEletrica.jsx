@@ -569,6 +569,17 @@ export default function NovaInspecaoEletrica() {
                                     </Button>
                                 </div>
 
+                                <div className="pl-4 border-l-2 space-y-2">
+                                    <h4 className="font-medium text-purple-700">Descrição Geral / Comentários</h4>
+                                    <Textarea
+                                        placeholder="Descrição geral ou comentários sobre este local..."
+                                        value={local.comentarios || ''}
+                                        onChange={e => handleLocalChange(localIndex, 'comentarios', e.target.value)}
+                                        rows={3}
+                                        className="bg-white"
+                                    />
+                                </div>
+
                                 <div className="pl-4 border-l-2 space-y-3">
                                     <h4 className="font-medium text-green-700">Inspeção Física – Quadros</h4>
                                     {(local.itens_inspecao || []).map((item, itemIndex) => {
@@ -657,17 +668,6 @@ export default function NovaInspecaoEletrica() {
                                             </div>
                                         );
                                     })}
-                                </div>
-
-                                <div className="pl-4 border-l-2 space-y-2">
-                                    <h4 className="font-medium text-purple-700">Comentários</h4>
-                                    <Textarea
-                                        placeholder="Comentários sobre este local..."
-                                        value={local.comentarios || ''}
-                                        onChange={e => handleLocalChange(localIndex, 'comentarios', e.target.value)}
-                                        rows={3}
-                                        className="bg-white"
-                                    />
                                 </div>
 
                                 <div className="pl-4 flex gap-2">

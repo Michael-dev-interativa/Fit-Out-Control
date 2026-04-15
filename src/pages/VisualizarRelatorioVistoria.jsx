@@ -442,7 +442,8 @@ const CompressedPhoto = ({ url, legenda, index }) => {
       <img
         src={compressedUrl}
         alt={legenda || `Foto ${index}`}
-        className="w-full h-96 object-cover rounded border photo-img-print"
+        className="w-full object-cover rounded border photo-img-print"
+        style={{ maxWidth: '100%', height: 'auto', maxHeight: '200px' }}
       />
       {legenda && (
         <p className="text-xs mt-1 font-medium text-black">
@@ -648,7 +649,17 @@ const ContentPage = ({ items, observacoes, sectionOriginalOrder, disciplineStats
               </div>
             }
 
-            <table className="w-full border-collapse border border-gray-300 text-xs mb-6">
+            <table className="w-full border-collapse border border-gray-300 text-xs mb-6" style={{ tableLayout: 'fixed', maxWidth: '100%' }}>
+              <colgroup>
+                {isStatusSection ? (
+                  <col style={{ width: '100%' }} />
+                ) : (
+                  <>
+                    <col style={{ width: '72%' }} />
+                    <col style={{ width: '28%' }} />
+                  </>
+                )}
+              </colgroup>
               <thead>
                 <tr className="bg-gray-100">
                   {isStatusSection ? (
@@ -656,7 +667,7 @@ const ContentPage = ({ items, observacoes, sectionOriginalOrder, disciplineStats
                   ) : (
                     <>
                       <th className="border border-gray-300 p-2 text-left">Seção</th>
-                      <th className="border border-gray-300 p-2 text-center w-56">Status/Resposta</th>
+                      <th className="border border-gray-300 p-2 text-center">Status/Resposta</th>
                     </>
                   )}
                 </tr>
@@ -694,7 +705,7 @@ const ContentPage = ({ items, observacoes, sectionOriginalOrder, disciplineStats
                               {item.pergunta}
                               {item.isContinuation && <span className="text-gray-500 italic ml-2">(continuação)</span>}
                             </td>
-                            <td className="border border-gray-300 p-2 align-middle text-center w-56" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'normal' }}>
+                            <td className="border border-gray-300 p-2 align-middle text-center" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'normal', overflow: 'hidden' }}>
                               {item.assinatura ? (
                                 <CompressedSignatureImage
                                   url={item.assinatura}
@@ -1658,9 +1669,11 @@ const ReportContent = ({ vistoria, formulario, unidade, empreendimento, t, navig
                   .flex > div {
                     page-break-inside: avoid;
                   }
-                  table { page-break-inside: auto; }
+                  table { page-break-inside: auto; table-layout: fixed; width: 100%; max-width: 100%; }
+                  td, th { overflow: hidden; word-wrap: break-word; word-break: break-word; }
                   tr { page-break-inside: avoid; }
                   tbody { page-break-inside: avoid; }
+                  img { max-width: 100%; height: auto; }
                   @page { size: A4; margin: 0; }
 
                   .hyphens-auto {

@@ -316,7 +316,7 @@ const ContentPage = ({ segments, isFirstPage = false }) => (
                     return segments.map((segment, sIdx) => {
                         const { local, items, showHeader } = segment;
                         const showTableHeader = showHeader && items.some((item) => item.tipo !== 'comentario');
-                        const topicKey = (local?.nome_local || 'Inspeção Técnica').trim();
+                        const topicKey = (local?.nome_topico || local?.tipo || 'Inspeção Técnica').trim();
                         const showTopicHeader = showHeader && !renderedTopics.has(topicKey);
                         if (showTopicHeader) renderedTopics.add(topicKey);
                         return (
@@ -339,6 +339,12 @@ const ContentPage = ({ segments, isFirstPage = false }) => (
                                         {local.descricao_geral && (
                                             <div className="mb-2 border border-black p-2 text-xs whitespace-pre-wrap"><strong>Descrição Geral: </strong>{local.descricao_geral}</div>
                                         )}
+                                        {items.some((item) => item.tipo === 'comentario') && (
+                                            <div className="mb-2 border border-black p-2 text-xs whitespace-pre-wrap">
+                                                <strong>Comentários Gerais: </strong>
+                                                {items.find((item) => item.tipo === 'comentario')?.comentarios || ''}
+                                            </div>
+                                        )}
                                     </>
                                 )}
                                 <table className="w-full border-collapse text-xs table-fixed">
@@ -351,21 +357,12 @@ const ContentPage = ({ segments, isFirstPage = false }) => (
                                         </thead>
                                     )}
                                     <tbody>
-                                        {items.map((item, idx) => {
+                                        {items.filter((item) => item.tipo !== 'comentario').map((item, idx) => {
                                             if (item.tipo === 'topico') {
                                                 return (
                                                     <tr key={idx}>
                                                         <td colSpan="3" style={{ backgroundColor: '#1e3a5f', color: 'white', fontWeight: 'bold', padding: '6px 8px', fontSize: '10px', border: '1px solid #1e3a5f' }}>
                                                             {item.titulo || ''}
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            }
-                                            if (item.tipo === 'comentario') {
-                                                return (
-                                                    <tr key={idx}>
-                                                        <td colSpan="3" className="border border-black p-2 text-xs whitespace-pre-wrap">
-                                                            <strong>Comentários Gerais: </strong>{item.comentarios || ''}
                                                         </td>
                                                     </tr>
                                                 );
@@ -751,7 +748,7 @@ export default function VisualizarVistoriaTecnica() {
                         headerHeightPx: 80,
                         footerHeightPx: 45,
                         pagePaddingPx: 40,
-                        footerGuardPx: 22,
+                        footerGuardPx: 60,
                         breakBeforeLimitPx: 16,
                         compactionSlackPx: 36,
                         splitPhotoRows: true,
