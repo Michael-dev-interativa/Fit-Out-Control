@@ -7,7 +7,7 @@
  * Comprime uma imagem de URL para DataURL em JPEG comprimido.
  * Usa fetch + blob URL para evitar taint de canvas cross-origin.
  */
-const compressImage = async (url, maxWidth = 400, quality = 0.3) => {
+const compressImage = async (url, maxWidth = 300, quality = 0.2) => {
   if (!url || typeof url !== 'string') return url;
   if (url.startsWith('data:image')) return url;
   if (url.includes('base44.app/api')) return url;
@@ -79,11 +79,11 @@ const isImageUrl = (value) => {
  * Detecta a qualidade ideal baseada no nome do campo
  */
 const qualityForKey = (key) => {
-  if (key.includes('logo')) return 0.65;
-  if (key.includes('capa') || key.includes('cover')) return 0.45;
-  if (key.includes('empreendimento') || key.includes('localizacao')) return 0.45;
-  if (key.includes('assinatura')) return 0.5;
-  return 0.3;
+  if (key.includes('logo')) return 0.55;
+  if (key.includes('capa') || key.includes('cover')) return 0.4;
+  if (key.includes('empreendimento') || key.includes('localizacao')) return 0.4;
+  if (key.includes('assinatura')) return 0.45;
+  return 0.2;
 };
 
 /**
@@ -99,7 +99,7 @@ const compressObjectImages = async (obj) => {
     obj.forEach((item, i) => {
       if (isImageUrl(item)) {
         promises.push(
-          compressImage(item, 400, 0.3).then(compressed => { obj[i] = compressed; })
+          compressImage(item, 300, 0.2).then(compressed => { obj[i] = compressed; })
         );
       } else if (item && typeof item === 'object') {
         promises.push(compressObjectImages(item));
@@ -110,7 +110,7 @@ const compressObjectImages = async (obj) => {
       const value = obj[key];
       if (isImageUrl(value)) {
         promises.push(
-          compressImage(value, qualityForKey(key) > 0.35 ? 600 : 400, qualityForKey(key)).then(compressed => { obj[key] = compressed; })
+          compressImage(value, qualityForKey(key) > 0.25 ? 500 : 300, qualityForKey(key)).then(compressed => { obj[key] = compressed; })
         );
       } else if (value && typeof value === 'object') {
         promises.push(compressObjectImages(value));

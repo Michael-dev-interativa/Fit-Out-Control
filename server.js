@@ -7574,6 +7574,124 @@ app.get('/api/admin/db-tables', async (req, res) => {
   }
 });
 
+// ---- Atividades Padrão ----
+const mapAtividadeRow = (row) => ({
+  id: row.id,
+  funcao: row.funcao,
+  descricao_atividade: row.descricao_atividade,
+  recorrencia: row.recorrencia,
+  frequencia: row.frequencia,
+  tempo_estimado_horas: row.tempo_estimado_horas != null ? Number(row.tempo_estimado_horas) : null,
+  id_empreendimento: row.id_empreendimento,
+  nome_empreendimento: row.nome_empreendimento,
+  id_unidade: row.id_unidade,
+  nome_unidade: row.nome_unidade,
+  created_at: row.created_at,
+  updated_at: row.updated_at,
+});
+
+app.get('/api/atividades', async (req, res) => {
+  try {
+    const p = requirePool();
+    const { order, funcao, id_empreendimento, id_unidade } = req.query;
+    const conditions = [];
+    const params = [];
+    if (funcao) { params.push(funcao); conditions.push(`funcao = $${params.length}`); }
+    if (id_empreendimento) { params.push(Number(id_empreendimento)); conditions.push(`id_empreendimento = $${params.length}`); }
+    if (id_unidade) { params.push(Number(id_unidade)); conditions.push(`id_unidade = $${params.length}`); }
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const orderClause = order === '-created_at' ? 'ORDER BY created_at DESC' : 'ORDER BY created_at ASC';
+    const { rows } = await p.query(`SELECT * FROM public.atividades ${where} ${orderClause}`, params);
+    res.json(rows.map(mapAtividadeRow));
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.get('/api/atividades/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const { rows } = await p.query('SELECT * FROM public.atividades WHERE id = $1', [Number(req.params.id)]);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapAtividadeRow(rows[0]));
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.post('/api/atividades', async (req, res) => {
+  try {
+    const p = requirePool();
+    const b = req.body || {};
+    const { rows } = await p.query(
+      `INSERT INTO public.atividades(funcao, descricao_atividade, recorrencia, frequencia, tempo_estimado_horas, id_empreendimento, nome_empreendimento, id_unidade, nome_unidade)
+       VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [
+        b.funcao ?? null,
+        b.descricao_atividade,
+        b.recorrencia ?? null,
+        b.frequencia ?? null,
+        b.tempo_estimado_horas != null ? Number(b.tempo_estimado_horas) : null,
+        b.id_empreendimento ? Number(b.id_empreendimento) : null,
+        b.nome_empreendimento ?? null,
+        b.id_unidade ? Number(b.id_unidade) : null,
+        b.nome_unidade ?? null,
+      ]
+    );
+    res.status(201).json(mapAtividadeRow(rows[0]));
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.put('/api/atividades/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const b = req.body || {};
+    const { rows } = await p.query(
+      `UPDATE public.atividades SET
+        funcao = COALESCE($1, funcao),
+        descricao_atividade = COALESCE($2, descricao_atividade),
+        recorrencia = COALESCE($3, recorrencia),
+        frequencia = COALESCE($4, frequencia),
+        tempo_estimado_horas = COALESCE($5, tempo_estimado_horas),
+        id_empreendimento = $6,
+        nome_empreendimento = COALESCE($7, nome_empreendimento),
+        id_unidade = $8,
+        nome_unidade = COALESCE($9, nome_unidade),
+        updated_at = now()
+       WHERE id = $10 RETURNING *`,
+      [
+        b.funcao ?? null,
+        b.descricao_atividade ?? null,
+        b.recorrencia ?? null,
+        b.frequencia ?? null,
+        b.tempo_estimado_horas != null ? Number(b.tempo_estimado_horas) : null,
+        b.id_empreendimento ? Number(b.id_empreendimento) : null,
+        b.nome_empreendimento ?? null,
+        b.id_unidade ? Number(b.id_unidade) : null,
+        b.nome_unidade ?? null,
+        Number(req.params.id),
+      ]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapAtividadeRow(rows[0]));
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.delete('/api/atividades/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const { rowCount } = await p.query('DELETE FROM public.atividades WHERE id = $1', [Number(req.params.id)]);
+    if (!rowCount) return res.status(404).json({ error: 'not_found' });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
 // ---- Servir frontend estático (SPA) ----
 const distPath = path.join(__dirname, 'dist');
 app.use(express.static(distPath));
