@@ -15,7 +15,7 @@ export const AssinaturasPage = ({ assinaturas }) => {
                                 src={assinatura.assinatura_imagem}
                                 alt="Assinatura"
                                 className="max-h-20 max-w-full object-contain"
-                                style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact', colorAdjust: 'exact', mixBlendMode: 'multiply' }}
+                                style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact', colorAdjust: 'exact' }}
                             />
                         )}
                     </div>
