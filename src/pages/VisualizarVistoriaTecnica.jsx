@@ -28,7 +28,7 @@ const escapeHtml = (unsafe) => {
 
 
 
-const compressImage = (url, maxWidth = 600, quality = 0.5) => {
+const compressImage = (url, maxWidth = 800, quality = 0.7) => {
     return new Promise((resolve) => {
         if (!url || typeof url !== 'string' || url.startsWith('data:image')) { resolve(url); return; }
         if (url.includes('base44.app/api')) { resolve(url); return; }
@@ -47,7 +47,7 @@ const compressImage = (url, maxWidth = 600, quality = 0.5) => {
     });
 };
 
-const useCompressedImage = (url, maxWidth = 600, quality = 0.5) => {
+const useCompressedImage = (url, maxWidth = 800, quality = 0.7) => {
     const [compressedUrl, setCompressedUrl] = useState(url);
     useEffect(() => {
         if (url && typeof url === 'string' && url.startsWith('http')) {
@@ -70,11 +70,11 @@ const CoverPage = ({ relatorio, empreendimento }) => {
     const year = new Date(relatorio?.data_vistoria || Date.now()).getFullYear();
     const redColor = '#CE2D2D';
     const empFoto = empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
-    const logoUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png", 300, 0.3);
-    const coverFrame = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png", 600, 0.3);
-    const redDecor = useCompressedImage('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/513d57969_Designsemnome2.png', 400, 0.3);
-    const bottomFrame = useCompressedImage('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/10e9b2570_erasebg-transformed.png', 600, 0.3);
-    const logoWhite = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/22086ec44_LOGOPNG-branco.png", 300, 0.3);
+    const logoUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png", 300, 0.45);
+    const coverFrame = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png", 600, 0.35);
+    const redDecor = useCompressedImage('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/513d57969_Designsemnome2.png', 400, 0.35);
+    const bottomFrame = useCompressedImage('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/10e9b2570_erasebg-transformed.png', 600, 0.35);
+    const logoWhite = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/22086ec44_LOGOPNG-branco.png", 300, 0.45);
     const rodape = relatorio?.texto_rodape_capa || [empreendimento?.cli_empreendimento, empreendimento?.nome_empreendimento].filter(Boolean).join(' | ');
 
     // Campos opcionais para customizar a area central da capa (titulo/subtitulo da vistoria).
@@ -632,7 +632,7 @@ const QuadrosGeraisPage = ({ quadro, itens, showTitle = true, showQuadroHeader =
 // ── CONCLUSÃO ─────────────────────────────────────────────────────────────────
 
 const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreendimento }) => {
-    const logo = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png", 300, 0.3);
+    const logo = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png", 300, 0.45);
     const HEADER = pageNumber > 1 ? '80px' : '0px';
     const FOOTER = '45px';
     const isCover = pageNumber === 1;

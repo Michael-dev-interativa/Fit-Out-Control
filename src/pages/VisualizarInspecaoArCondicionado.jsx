@@ -84,11 +84,11 @@ const CoverPage = ({ relatorio, empreendimento }) => {
     const year = new Date(relatorio?.data_inspecao || Date.now()).getFullYear();
     const redColor = '#CE2D2D';
     const empreendimentoImageUrl = empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
-    const logoInterativaUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png", 300, 0.45);
-    const coverFrameOriginalUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png", 600, 0.35);
-    const redDecorativeElementUrl = useCompressedImage('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/513d57969_Designsemnome2.png', 400, 0.35);
-    const bottomRightFrameUrl = useCompressedImage('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/10e9b2570_erasebg-transformed.png', 600, 0.35);
-    const logoInterativaBrancoUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/22086ec44_LOGOPNG-branco.png", 300, 0.45);
+    const logoInterativaUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png", 300, 0.3);
+    const coverFrameOriginalUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png", 600, 0.3);
+    const redDecorativeElementUrl = useCompressedImage('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/513d57969_Designsemnome2.png', 400, 0.3);
+    const bottomRightFrameUrl = useCompressedImage('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/10e9b2570_erasebg-transformed.png', 600, 0.3);
+    const logoInterativaBrancoUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/22086ec44_LOGOPNG-branco.png", 300, 0.3);
 
     const defaultResponsaveis = [empreendimento?.cli_empreendimento, empreendimento?.nome_empreendimento].filter(Boolean).join(' | ');
     const responsaveis = empreendimento?.texto_capa_rodape || defaultResponsaveis;
@@ -346,7 +346,7 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
 };
 
 const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreendimento }) => {
-    const logoHorizontalUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png", 300, 0.45);
+    const logoHorizontalUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png", 300, 0.3);
     const HEADER_HEIGHT = pageNumber > 1 ? '50px' : '0px';
     const FOOTER_HEIGHT = '30px';
     const isCover = pageNumber === 1;
@@ -379,35 +379,10 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
     );
 };
 
-const paginateObservacoes = (text, charsPerLine = 95, firstPageLines = 34, contPageLines = 46) => {
-  if (!text) return [''];
-  const paragraphs = text.split('\n');
-  const pages = [];
-  let currentLines = 0;
-  let current = [];
-
-  for (const para of paragraphs) {
-    const paraLines = Math.max(1, Math.ceil(para.length / charsPerLine));
-    const limit = pages.length === 0 ? firstPageLines : contPageLines;
-
-    if (currentLines + paraLines > limit && current.length > 0) {
-      pages.push(current.join('\n'));
-      current = [para];
-      currentLines = paraLines;
-    } else {
-      current.push(para);
-      currentLines += paraLines;
-    }
-  }
-
-  if (current.length > 0) pages.push(current.join('\n'));
-  return pages.length > 0 ? pages : [''];
-};
-
-const ObservacoesGeraisPage = ({ observacoes, showHeader = true }) => {
+const ObservacoesGeraisPage = ({ observacoes }) => {
     return (
         <div className="px-4 pt-2 pb-2">
-            {showHeader && <h2 className="text-xl font-bold text-center mb-2 bg-blue-900 text-white p-1.5">Observações Gerais</h2>}
+            <h2 className="text-xl font-bold text-center mb-2 bg-blue-900 text-white p-1.5">Observações Gerais</h2>
             <div className="border border-black p-2 text-sm whitespace-pre-wrap min-h-[100px]" style={{ wordWrap: 'break-word', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{observacoes || ''}</div>
         </div>
     );
@@ -463,8 +438,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
 
     const hasAssinaturas = relatorio.assinaturas && relatorio.assinaturas.length > 0 &&
         relatorio.assinaturas.some(ass => (ass.nome && ass.nome.trim() !== '') || (ass.parte && ass.parte.trim() !== '') || (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== ''));
-    const observacoesPages = paginateObservacoes(relatorio.observacoes_gerais);
-    const totalPages = 1 + (hasEquipamentos && !combineEquipamentosWithDoc ? 1 : 0) + (combineEquipamentosWithDoc ? 1 : 0) + (hasDocumentacao && !combineEquipamentosWithDoc ? 1 : 0) + paginatedSections.length + observacoesPages.length + (hasAssinaturas ? 1 : 0);
+    const totalPages = 1 + (hasEquipamentos && !combineEquipamentosWithDoc ? 1 : 0) + (combineEquipamentosWithDoc ? 1 : 0) + (hasDocumentacao && !combineEquipamentosWithDoc ? 1 : 0) + paginatedSections.length + 1 + (hasAssinaturas ? 1 : 0);
     let currentPage = 1;
 
     const handlePrint = async () => {
@@ -518,11 +492,9 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     </ReportPageLayout>
                 ))}
 
-                {observacoesPages.map((obsText, obsIdx) => (
-                    <ReportPageLayout key={`obs-${obsIdx}`} pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                        <ObservacoesGeraisPage observacoes={obsText} showHeader={obsIdx === 0} />
-                    </ReportPageLayout>
-                ))}
+                <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+                    <ObservacoesGeraisPage observacoes={relatorio.observacoes_gerais} />
+                </ReportPageLayout>
 
                 {hasAssinaturas && (
                     <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>

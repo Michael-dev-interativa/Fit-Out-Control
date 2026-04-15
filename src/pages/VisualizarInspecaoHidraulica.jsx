@@ -14,13 +14,17 @@ const isValidId = (id) => id && typeof id === 'string' && id.length > 0;
 const compressImage = (url, maxWidth = 800, quality = 0.7) => {
   return new Promise((resolve) => {
     if (!url || typeof url !== 'string' || url.startsWith('data:image')) {
+      console.log('[Compressão] Ignorando URL já comprimida ou inválida:', url?.substring(0, 50));
       resolve(url);
       return;
     }
     if (url.includes('base44.app/api')) {
+      console.log('[Compressão] Ignorando URL da API:', url);
       resolve(url);
       return;
     }
+    console.log('[Compressão] Iniciando compressão de:', url);
+    const startTime = Date.now();
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
@@ -28,6 +32,7 @@ const compressImage = (url, maxWidth = 800, quality = 0.7) => {
       const ctx = canvas.getContext('2d');
       let width = img.width;
       let height = img.height;
+      const originalSize = width * height;
       if (width > maxWidth) {
         height *= maxWidth / width;
         width = maxWidth;
@@ -35,21 +40,34 @@ const compressImage = (url, maxWidth = 800, quality = 0.7) => {
       canvas.width = width;
       canvas.height = height;
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      resolve(canvas.toDataURL('image/jpeg', quality));
+      const compressed = canvas.toDataURL('image/jpeg', quality);
+      const endTime = Date.now();
+      const newSize = width * height;
+      console.log(`[Compressão] ✓ Concluída em ${endTime - startTime}ms - Redução: ${Math.round((1 - newSize / originalSize) * 100)}%`);
+      resolve(compressed);
     };
-    img.onerror = () => resolve(url);
+    img.onerror = () => {
+      console.error('[Compressão] ✗ Erro ao carregar imagem:', url);
+      resolve(url);
+    };
     img.src = url;
   });
 };
 
 const useCompressedImage = (url, maxWidth = 800, quality = 0.7) => {
   const [compressedUrl, setCompressedUrl] = useState(url);
+  const [isCompressing, setIsCompressing] = useState(false);
 
   useEffect(() => {
     if (url && typeof url === 'string' && url.startsWith('http')) {
-      compressImage(url, maxWidth, quality).then(setCompressedUrl);
+      setIsCompressing(true);
+      compressImage(url, maxWidth, quality).then((compressed) => {
+        setCompressedUrl(compressed);
+        setIsCompressing(false);
+      });
     } else {
       setCompressedUrl(url);
+      setIsCompressing(false);
     }
   }, [url, maxWidth, quality]);
 
@@ -68,7 +86,7 @@ const isConclusaoMatching = (val, key) => {
 const CoverPage = ({ relatorio, empreendimento }) => {
   const year = new Date(relatorio?.data_inspecao || Date.now()).getFullYear();
   const redColor = '#CE2D2D';
-  const empreendimentoImageUrl = useCompressedImage(empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80', 800, 0.5);
+  const empreendimentoImageUrl = useCompressedImage(empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80', 800, 0.7);
   const logoInterativaUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png";
   const coverFrameOriginalUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png";
   const redDecorativeElementUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/513d57969_Designsemnome2.png';
@@ -146,13 +164,11 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
   );
 };
 
-const FotoInspecao = ({ url, legenda }) => {
+const FotoInspecao = ({ url, legenda, maxHeight = '66mm' }) => {
   // URL já vem comprimida pelo compressReportImages
   return (
     <div className="text-center foto-inspecao" style={{ overflow: 'hidden', boxSizing: 'border-box' }}>
-      <div className="foto-inspecao-container" style={{ width: '100%', height: '250px', border: '1px solid #ddd', backgroundColor: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-        <img src={url} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
-      </div>
+      <img src={url} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: '250px', objectFit: 'cover', border: '1px solid #ddd', display: 'block' }} />
       {legenda && (
         <p className="text-[9px] text-gray-600 mt-1">{legenda}</p>
       )}
@@ -248,7 +264,7 @@ const ContentPage = ({ local, itensSlice, showHeader = true }) => {
 };
 
 const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreendimento }) => {
-  const logoHorizontalCompressed = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png", 400, 0.45);
+  const logoHorizontalCompressed = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png", 400, 0.7);
   const isCover = pageNumber === 1;
 
   // Precise measurements for A4 portrait
@@ -257,10 +273,13 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
   // Convert previous visual px heights to mm approximations for print.
   // 80px @96dpi ≈ 21.17mm, 45px @96dpi ≈ 11.9mm
   const HEADER_HEIGHT_MM = pageNumber > 1 ? 21.17 : 0;
-  const FOOTER_HEIGHT_MM = isCover ? 0 : 11.9;
+  const FOOTER_HEIGHT_MM = 11.9;
 
   const headerHeight = `${HEADER_HEIGHT_MM}mm`;
   const footerHeight = `${FOOTER_HEIGHT_MM}mm`;
+
+  // Content area should exactly fill the remaining space between header and footer
+  const contentHeight = `calc(${PAGE_HEIGHT_MM}mm - ${HEADER_HEIGHT_MM}mm - ${FOOTER_HEIGHT_MM}mm)`;
 
   return (
     <div className="report-page" style={{ height: `${PAGE_HEIGHT_MM}mm` }}>
@@ -275,56 +294,23 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
         </div>
       )}
 
-      <div className="page-content" style={{ position: 'absolute', top: headerHeight, bottom: footerHeight, left: 0, right: 0, overflow: 'hidden', boxSizing: 'border-box' }}>
+      <div className="page-content" style={{ paddingTop: headerHeight, paddingBottom: footerHeight, height: contentHeight, overflow: 'hidden', boxSizing: 'border-box' }}>
         {children}
       </div>
 
-      {!isCover && (
-        <div className="border-t border-gray-200 bg-gray-50 flex justify-between items-center text-[9px] text-gray-500" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: footerHeight, padding: '4px 8px', maxWidth: '210mm', boxSizing: 'border-box' }}>
-          <div className="flex-1 text-left leading-tight truncate" style={{ paddingRight: '8px' }}><span className="font-medium">Arquivo: </span><span>{relatorio.nome_arquivo ? `${relatorio.nome_arquivo}.pdf` : `IHID-${relatorio.id?.slice(-4)}.pdf`}</span></div>
-          <div className="flex-1 flex flex-col items-center leading-tight text-[8px]"><span>INTERATIVA ENGENHARIA</span><span>www.interativaengenharia.com.br</span></div>
-          <div className="flex-1 text-right leading-tight" style={{ paddingLeft: '8px' }}><span>Página {pageNumber} de {totalPages}</span></div>
-        </div>
-      )}
+      <div className="border-t border-gray-200 bg-gray-50 flex justify-between items-center text-[9px] text-gray-500" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: footerHeight, padding: '4px 8px', maxWidth: '210mm', boxSizing: 'border-box' }}>
+        <div className="flex-1 text-left leading-tight truncate" style={{ paddingRight: '8px' }}><span className="font-medium">Arquivo: </span><span>{relatorio.nome_arquivo ? `${relatorio.nome_arquivo}.pdf` : `IHID-${relatorio.id?.slice(-4)}.pdf`}</span></div>
+        <div className="flex-1 flex flex-col items-center leading-tight text-[8px]"><span>INTERATIVA ENGENHARIA</span><span>www.interativaengenharia.com.br</span></div>
+        <div className="flex-1 text-right leading-tight" style={{ paddingLeft: '8px' }}><span>Página {pageNumber} de {totalPages}</span></div>
+      </div>
     </div>
   );
 };
 
-/**
- * Divide o texto de observações em páginas.
- * - firstPageLines: linhas disponíveis na 1ª página (menor, pois compartilha com Conclusão)
- * - contPageLines: linhas disponíveis nas páginas de continuação (página inteira)
- * Usa aproximação baseada em caracteres por linha para estimar quebras.
- */
-const paginateObservacoes = (text, charsPerLine = 95, firstPageLines = 34, contPageLines = 46) => {
-  if (!text) return [''];
-  const paragraphs = text.split('\n');
-  const pages = [];
-  let currentLines = 0;
-  let current = [];
-
-  for (const para of paragraphs) {
-    const paraLines = Math.max(1, Math.ceil(para.length / charsPerLine));
-    const limit = pages.length === 0 ? firstPageLines : contPageLines;
-
-    if (currentLines + paraLines > limit && current.length > 0) {
-      pages.push(current.join('\n'));
-      current = [para];
-      currentLines = paraLines;
-    } else {
-      current.push(para);
-      currentLines += paraLines;
-    }
-  }
-
-  if (current.length > 0) pages.push(current.join('\n'));
-  return pages.length > 0 ? pages : [''];
-};
-
-const ObservacoesGeraisPage = ({ observacoes, showHeader = true }) => {
+const ObservacoesGeraisPage = ({ observacoes }) => {
   return (
     <div className="p-4">
-      {showHeader && <h2 className="text-xl font-bold text-center mb-4 bg-blue-900 text-white p-2">Observações Gerais</h2>}
+      <h2 className="text-xl font-bold text-center mb-4 bg-blue-900 text-white p-2">Observações Gerais</h2>
       <div className="border border-black p-4 text-sm whitespace-pre-wrap min-h-[100px]">{observacoes || ''}</div>
     </div>
   );
@@ -399,10 +385,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
     ? relatorio.locais.flatMap((local) => paginateLocalItems(local))
     : [];
 
-  const observacoesPages = paginateObservacoes(relatorio.observacoes_gerais);
-
-  const totalPages = 1 + (hasDocumentacao ? 1 : 0) + contentPages.length +
-    observacoesPages.length + (hasAssinaturas ? 1 : 0);
+  const totalPages = 1 + (hasDocumentacao ? 1 : 0) + contentPages.length + 1 + (hasAssinaturas ? 1 : 0);
   let currentPage = 1;
 
   const handlePrint = async () => {
@@ -442,14 +425,10 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
           </ReportPageLayout>
         ))}
 
-        {observacoesPages.map((obsText, obsIdx) => (
-          <ReportPageLayout key={`obs-${obsIdx}`} pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-            <ObservacoesGeraisPage observacoes={obsText} showHeader={obsIdx === 0} />
-            {obsIdx === observacoesPages.length - 1 && (
-              <ConclusaoPage conclusaoR01={relatorio?.conclusao_r01} conclusaoR02={relatorio?.conclusao_r02} />
-            )}
-          </ReportPageLayout>
-        ))}
+        <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+          <ObservacoesGeraisPage observacoes={relatorio.observacoes_gerais} />
+          <ConclusaoPage conclusaoR01={relatorio?.conclusao_r01} conclusaoR02={relatorio?.conclusao_r02} />
+        </ReportPageLayout>
 
         {hasAssinaturas && (
           <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
@@ -561,27 +540,18 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                       break-inside: avoid !important;
                     }
 
-                    .foto-inspecao-container {
-                      width: 100% !important;
-                      height: 66mm !important;
-                      border: 1px solid #ddd !important;
-                      background-color: #f5f5f5 !important;
-                      display: flex !important;
-                      align-items: center !important;
-                      justify-content: center !important;
-                      overflow: hidden !important;
-                      box-sizing: border-box !important;
+                    .photos-grid img {
+                      width: 100%;
+                      max-width: 100%;
+                      height: auto !important;
+                      max-height: 66mm !important;
+                      object-fit: contain;
+                      display: block;
+                      border: 1px solid #ddd;
                     }
 
-                    .foto-inspecao-container img {
-                      width: 100% !important;
-                      height: 100% !important;
-                      object-fit: contain !important;
-                      display: block !important;
-                    }
-
-                    /* Ensure content area fills exactly between header and footer */
-                    .page-content { position: absolute !important; left: 0 !important; right: 0 !important; overflow: hidden !important; box-sizing: border-box !important; }
+                    /* Ensure content area reserves space for footer on print */
+                    .page-content { padding-bottom: 11.9mm !important; box-sizing: border-box !important; overflow: hidden !important; }
                     
                     .report-page:last-child { page-break-after: auto; }
                     

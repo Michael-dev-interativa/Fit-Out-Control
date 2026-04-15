@@ -57,7 +57,7 @@ const useCompressedImage = (url, maxWidth = 800, quality = 0.7) => {
 const CoverPage = ({ relatorio, empreendimento }) => {
     const year = new Date(relatorio?.data_inspecao || Date.now()).getFullYear();
     const redColor = '#CE2D2D';
-    const empreendimentoImageUrl = useCompressedImage(empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80', 800, 0.5);
+    const empreendimentoImageUrl = useCompressedImage(empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80', 800, 0.7);
     const logoInterativaUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png";
     const coverFrameOriginalUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png";
     const redDecorativeElementUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/513d57969_Designsemnome2.png';
@@ -149,7 +149,7 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
 };
 
 const FotoInspecao = ({ url, legenda }) => {
-    const compressedUrl = useCompressedImage(url, 600, 0.25);
+    const compressedUrl = useCompressedImage(url, 600, 0.6);
     return (
         <div className="text-center">
             <img src={compressedUrl} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: 'auto', objectFit: 'contain', border: '1px solid #ddd' }} />
@@ -252,7 +252,7 @@ const ContentPage = ({ local, itensSlice, showHeader = true, showComments = fals
 };
 
 const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreendimento }) => {
-    const logoHorizontalCompressed = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png", 400, 0.45);
+    const logoHorizontalCompressed = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png", 400, 0.7);
     const HEADER_HEIGHT = pageNumber > 1 ? '80px' : '0px';
     const FOOTER_HEIGHT = '45px';
     const isCover = pageNumber === 1;
@@ -290,35 +290,10 @@ const isConclusaoMatching = (val, key) => {
     return s === key;
 };
 
-const paginateObservacoes = (text, charsPerLine = 95, firstPageLines = 34, contPageLines = 46) => {
-  if (!text) return [''];
-  const paragraphs = text.split('\n');
-  const pages = [];
-  let currentLines = 0;
-  let current = [];
-
-  for (const para of paragraphs) {
-    const paraLines = Math.max(1, Math.ceil(para.length / charsPerLine));
-    const limit = pages.length === 0 ? firstPageLines : contPageLines;
-
-    if (currentLines + paraLines > limit && current.length > 0) {
-      pages.push(current.join('\n'));
-      current = [para];
-      currentLines = paraLines;
-    } else {
-      current.push(para);
-      currentLines += paraLines;
-    }
-  }
-
-  if (current.length > 0) pages.push(current.join('\n'));
-  return pages.length > 0 ? pages : [''];
-};
-
-const ObservacoesGeraisPage = ({ observacoes, showHeader = true }) => {
+const ObservacoesGeraisPage = ({ observacoes }) => {
     return (
         <div className="p-4">
-            {showHeader && <h2 className="text-xl font-bold text-center mb-4 bg-blue-900 text-white p-2">Observações Gerais</h2>}
+            <h2 className="text-xl font-bold text-center mb-4 bg-blue-900 text-white p-2">Observações Gerais</h2>
             <div className="border border-black p-4 text-sm whitespace-pre-wrap min-h-[100px]">{observacoes || ''}</div>
         </div>
     );
@@ -387,8 +362,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
         paginateLocalItemsForPrinting(local, { splitPhotoRows: true, photoChunkSize: 2, photoMaxHeightPx: 160 })
     );
 
-    const observacoesPages = paginateObservacoes(relatorio.observacoes_gerais);
-    const totalPages = 1 + (hasDocumentacao ? 1 : 0) + contentPages.length + observacoesPages.length;
+    const totalPages = 1 + (hasDocumentacao ? 1 : 0) + contentPages.length + 1;
     let currentPage = 1;
 
     const handlePrint = async () => {
@@ -435,21 +409,17 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     </ReportPageLayout>
                 ))}
 
-                {observacoesPages.map((obsText, obsIdx) => (
-                    <ReportPageLayout key={`obs-${obsIdx}`} pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                        <ObservacoesGeraisPage observacoes={obsText} showHeader={obsIdx === 0} />
-                        {obsIdx === observacoesPages.length - 1 && (
-                            <ConclusaoPage conclusaoR01={relatorio.conclusao_r01} conclusaoR02={relatorio.conclusao_r02} />
-                        )}
-                        {obsIdx === observacoesPages.length - 1 && hasAssinaturas && (
-                            <AssinaturasPage assinaturas={relatorio.assinaturas.filter(ass =>
-                                (ass.nome && ass.nome.trim() !== '') ||
-                                (ass.parte && ass.parte.trim() !== '') ||
-                                (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== '')
-                            )} />
-                        )}
-                    </ReportPageLayout>
-                ))}
+                <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+                    <ObservacoesGeraisPage observacoes={relatorio.observacoes_gerais} />
+                    <ConclusaoPage conclusaoR01={relatorio.conclusao_r01} conclusaoR02={relatorio.conclusao_r02} />
+                    {hasAssinaturas && (
+                        <AssinaturasPage assinaturas={relatorio.assinaturas.filter(ass =>
+                            (ass.nome && ass.nome.trim() !== '') ||
+                            (ass.parte && ass.parte.trim() !== '') ||
+                            (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== '')
+                        )} />
+                    )}
+                </ReportPageLayout>
             </div>
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@700&family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
