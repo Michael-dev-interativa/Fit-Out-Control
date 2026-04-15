@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { paginateLocaisFlowForVistoriaTecnica } from '@/lib/reportPaginationVistoriaTecnica.js';
 import { base44 } from '@/api/base44Client';
+import { compressReportImages } from '@/lib/compressReportImages';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -68,7 +69,7 @@ const toCssUnit = (value, fallback, defaultUnit = 'px') => {
 const CoverPage = ({ relatorio, empreendimento }) => {
     const year = new Date(relatorio?.data_vistoria || Date.now()).getFullYear();
     const redColor = '#CE2D2D';
-    const empFoto = useCompressedImage(empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80', 600, 0.5);
+    const empFoto = useCompressedImage(empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80', 500, 0.4);
     const logoUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png";
     const coverFrame = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png";
     const redDecor = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/513d57969_Designsemnome2.png';
@@ -234,7 +235,7 @@ const paginateCaracteristicasSections = (relatorio) => {
 
 // ── TÓPICO 1 — CARACTERÍSTICAS GERAIS ────────────────────────────────────────
 const CaracteristicasPage = ({ relatorio, sections, showTitle }) => {
-    const fotoUrl = useCompressedImage(relatorio?.foto_localizacao, 600, 0.5);
+    const fotoUrl = useCompressedImage(relatorio?.foto_localizacao, 500, 0.4);
     return (
         <div className="p-4 space-y-4">
             {showTitle && <h2 className="text-base font-bold text-center bg-blue-900 text-white p-2">Características Gerais</h2>}
@@ -292,7 +293,7 @@ const CaracteristicasPage = ({ relatorio, sections, showTitle }) => {
 
 // ── FOTO ITEM ─────────────────────────────────────────────────────────────────
 const FotoInspecao = ({ url, legenda }) => {
-    const compressed = useCompressedImage(url, 500, 0.4);
+    const compressed = useCompressedImage(url, 300, 0.2);
     return (
         <div className="text-center">
             <div className="foto-inspecao-container" style={{ width: '100%', height: '220px', overflow: 'hidden', border: '1px solid #ddd' }}>
@@ -543,7 +544,7 @@ const paginateQuadroItens = (quadro, opts = {}) => {
 
 // ── LAYOUT PROPOSTO ─────────────────────────────────────────────────────────
 const LayoutFotoItem = ({ url, legenda }) => {
-    const compressed = useCompressedImage(url, 600, 0.5);
+    const compressed = useCompressedImage(url, 500, 0.4);
     return (
         <div style={{ width: '100%' }}>
             <img src={compressed} alt={legenda || ''} style={{ maxHeight: '320px', width: '100%', objectFit: 'contain', display: 'block' }} />
@@ -692,7 +693,11 @@ export default function VisualizarVistoriaTecnica() {
                 const data = await base44.entities.VistoriaTecnica.get(vistoriaId);
                 if (!data) throw new Error("Vistoria não encontrada.");
                 const emp = await base44.entities.Empreendimento.get(data.id_empreendimento);
-                setRelatorio(data);
+                
+                // Comprimir imagens do relatório para reduzir peso do PDF
+                const compressedRelatorio = await compressReportImages(data);
+                
+                setRelatorio(compressedRelatorio);
                 setEmpreendimento(emp);
             } catch (err) { setError(err.message); }
             finally { setLoading(false); }
@@ -748,7 +753,7 @@ export default function VisualizarVistoriaTecnica() {
                         headerHeightPx: 80,
                         footerHeightPx: 45,
                         pagePaddingPx: 40,
-                        footerGuardPx: 22,
+                        footerGuardPx: 80,
                         breakBeforeLimitPx: 16,
                         compactionSlackPx: 36,
                         splitPhotoRows: true,
