@@ -117,13 +117,12 @@ const useCompressedImage = (url, maxWidth = 600, quality = 0.4) => {
 const CoverPage = ({ relatorio, empreendimento }) => {
     const year = new Date(relatorio?.data_inspecao || Date.now()).getFullYear();
     const redColor = '#CE2D2D';
-    const rawEmpImageUrl = empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
-    const empreendimentoImageUrl = useCompressedImage(rawEmpImageUrl, 600, 0.4);
-    const logoInterativaUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png";
-    const coverFrameOriginalUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png";
-    const redDecorativeElementUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/513d57969_Designsemnome2.png';
-    const bottomRightFrameUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/10e9b2570_erasebg-transformed.png';
-    const logoInterativaBrancoUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/22086ec44_LOGOPNG-branco.png";
+    const empreendimentoImageUrl = empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
+    const logoInterativaUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png", 300, 0.3);
+    const coverFrameOriginalUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png", 600, 0.3);
+    const redDecorativeElementUrl = useCompressedImage('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/513d57969_Designsemnome2.png', 400, 0.3);
+    const bottomRightFrameUrl = useCompressedImage('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/10e9b2570_erasebg-transformed.png', 600, 0.3);
+    const logoInterativaBrancoUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/22086ec44_LOGOPNG-branco.png", 300, 0.3);
 
     const defaultResponsaveis = [empreendimento?.cli_empreendimento, empreendimento?.nome_empreendimento].filter(Boolean).join(' | ');
     const responsaveis = relatorio?.texto_rodape_capa || empreendimento?.texto_capa_rodape || defaultResponsaveis;
@@ -206,13 +205,12 @@ const FotoInspecao = ({ foto }) => {
     const rawUrl = foto?.url;
     const legenda = foto?.legenda;
     const objectPosition = foto?.objectPosition || foto?.posicao || 'center center';
-    const url = useCompressedImage(rawUrl, 300, 0.2);
 
     return (
         <div className="imagem-box">
             <div className="foto-container">
                 <img
-                    src={url}
+                    src={rawUrl}
                     alt={legenda || 'Foto da inspeção'}
                     className="foto-img"
                     style={{ objectPosition }}
@@ -337,7 +335,7 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, relator
 };
 
 const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreendimento }) => {
-    const logoHorizontalUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png";
+    const logoHorizontalUrl = useCompressedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png", 300, 0.3);
     const HEADER_HEIGHT = pageNumber > 1 ? '80px' : '0px';
     const FOOTER_HEIGHT = '45px';
     const PAGE_HEIGHT = '297mm';
@@ -764,9 +762,12 @@ export default function VisualizarInspecaoEletrica() {
 
                 // Comprimir as imagens do relatório ANTES de renderizar
                 const compressedRelatorio = await compressReportImages(relatorioData);
+                const compressedEmpreendimento = await compressReportImages(empreendimentoData);
+
+                console.log('[InspecaoEletrica] Imagens comprimidas com sucesso');
 
                 setRelatorio(compressedRelatorio);
-                setEmpreendimento(empreendimentoData);
+                setEmpreendimento(compressedEmpreendimento);
             } catch (err) {
                 setError(err.message);
             } finally {
