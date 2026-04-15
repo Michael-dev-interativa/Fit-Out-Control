@@ -304,7 +304,7 @@ const FotoInspecao = ({ url, legenda }) => {
 };
 
 // ── PÁGINA DE INSPEÇÃO ────────────────────────────────────────────────────────
-const ContentPage = ({ segments, isFirstPage = false }) => (
+const ContentPage = ({ segments, isFirstPage = false, alreadyRenderedTopics = new Set() }) => (
     <div className="px-4 pt-6 pb-4">
         {Array.isArray(segments) && segments.length > 0 && (
             <div>
@@ -312,10 +312,10 @@ const ContentPage = ({ segments, isFirstPage = false }) => (
                     <h2 className="text-base font-bold text-center bg-blue-900 text-white p-2 mb-3">Inspeção Técnica</h2>
                 )}
                 {(() => {
-                    const renderedTopics = new Set();
+                    const renderedTopics = new Set(alreadyRenderedTopics);
                     return segments.map((segment, sIdx) => {
                         const { local, items, showHeader } = segment;
-                        const showTableHeader = showHeader && items.some((item) => item.tipo !== 'comentario');
+                        const showTableHeader = items.some((item) => item.tipo !== 'comentario');
                         const topicKey = (local?.nome_topico || local?.tipo || 'Inspeção Técnica').trim();
                         const showTopicHeader = showHeader && !renderedTopics.has(topicKey);
                         if (showTopicHeader) renderedTopics.add(topicKey);
@@ -324,7 +324,7 @@ const ContentPage = ({ segments, isFirstPage = false }) => (
                                 {showHeader && (
                                     <>
                                         {showTopicHeader && (
-                                            <div className="text-sm font-bold mb-2 pt-3 pb-1 text-gray-700 uppercase tracking-widest border-b-2 border-gray-400">{local.nome_local || 'Inspeção Técnica'}</div>
+                                            <div className="text-sm font-bold mb-2 pt-3 pb-1 text-gray-700 uppercase tracking-widest border-b-2 border-gray-400">{local.nome_topico || local.nome_local || 'Inspeção Técnica'}</div>
                                         )}
                                         {local.nome_local_exibicao && (
                                             <div className="mb-2 text-xs font-bold text-gray-800 bg-gray-100 border border-gray-400 px-3 py-2 uppercase tracking-wide">{local.nome_local_exibicao}</div>
@@ -336,28 +336,28 @@ const ContentPage = ({ segments, isFirstPage = false }) => (
                                                 </div>
                                             </div>
                                         )}
-                                        {local.descricao_geral && (
-                                            <div className="mb-2 border border-black p-2 text-xs whitespace-pre-wrap"><strong>Descrição Geral: </strong>{local.descricao_geral}</div>
+                                        </>
                                         )}
-                                        {items.some((item) => item.tipo === 'comentario') && (
-                                            <div className="mb-2 border border-black p-2 text-xs whitespace-pre-wrap">
-                                                <strong>Comentários Gerais: </strong>
-                                                {items.find((item) => item.tipo === 'comentario')?.comentarios || ''}
-                                            </div>
+                                        {/* Descrição Geral e Comentários Gerais sempre antes da tabela */}
+                                        {showHeader && local.descricao_geral && (
+                                        <div className="mb-2 border border-black p-2 text-xs whitespace-pre-wrap"><strong>Descrição Geral: </strong>{local.descricao_geral}</div>
                                         )}
-                                    </>
-                                )}
-                                <table className="w-full border-collapse text-xs table-fixed">
-                                    {showTableHeader && (
-                                        <thead>
-                                            <tr className="bg-gray-100">
-                                                <th className="border border-black p-2 text-left">Descrição</th>
-                                                <th className="border border-black p-2 text-center" style={{ width: '50px' }}>Status</th>
-                                            </tr>
-                                        </thead>
-                                    )}
-                                    <tbody>
-                                        {items.filter((item) => item.tipo !== 'comentario').map((item, idx) => {
+                                        {items.some(item => item.tipo === 'comentario') && (
+                                        <div className="mb-2 border border-black p-2 text-xs whitespace-pre-wrap">
+                                            <strong>Comentários Gerais: </strong>{items.find(item => item.tipo === 'comentario')?.comentarios || ''}
+                                        </div>
+                                        )}
+                                        <table className="w-full border-collapse text-xs table-fixed">
+                                        {showTableHeader && (
+                                            <thead>
+                                                <tr className="bg-gray-100">
+                                                    <th className="border border-black p-2 text-left">Descrição</th>
+                                                    <th className="border border-black p-2 text-center" style={{ width: '50px' }}>Status</th>
+                                                </tr>
+                                            </thead>
+                                        )}
+                                        <tbody>
+                                            {items.filter(item => item.tipo !== 'comentario').map((item, idx) => {
                                             if (item.tipo === 'topico') {
                                                 return (
                                                     <tr key={idx}>
@@ -639,7 +639,7 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
     const FOOTER = '45px';
     const isCover = pageNumber === 1;
     return (
-        <div className="report-page" style={{ overflow: isCover ? 'hidden' : 'visible' }}>
+        <div className="report-page" style={{ overflow: 'hidden' }}>
             {pageNumber > 1 && (
                 <div className="flex justify-between items-center border-b border-gray-200 bg-white" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: HEADER, zIndex: 100, padding: '4px 8px' }}>
                     <img src={logo} alt="Logo" style={{ height: '32px', maxWidth: '120px', objectFit: 'contain' }} />
@@ -650,7 +650,7 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
                     </div>
                 </div>
             )}
-            <div className="page-content" style={{ paddingTop: HEADER, paddingBottom: isCover ? '0px' : FOOTER, height: isCover ? '100%' : 'auto', overflow: isCover ? 'hidden' : 'visible' }}>
+            <div className="page-content" style={{ paddingTop: HEADER, paddingBottom: isCover ? '0px' : FOOTER, height: isCover ? '100%' : 'auto', overflow: 'hidden', maxWidth: '100%' }}>
                 {children}
             </div>
             {!isCover && (
@@ -748,7 +748,7 @@ export default function VisualizarVistoriaTecnica() {
                         headerHeightPx: 80,
                         footerHeightPx: 45,
                         pagePaddingPx: 40,
-                        footerGuardPx: 60,
+                        footerGuardPx: 22,
                         breakBeforeLimitPx: 16,
                         compactionSlackPx: 36,
                         splitPhotoRows: true,
@@ -922,13 +922,23 @@ export default function VisualizarVistoriaTecnica() {
                 )}
 
                 {/* Inspeção por locais */}
-                {contentPages.map((page, idx) => {
-                    return (
-                    <ReportPageLayout key={idx} pageNumber={pg++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                        <ContentPage segments={page.segments} isFirstPage={idx === 0} />
-                    </ReportPageLayout>
-                    );
-                })}
+                {(() => {
+                    const globalRenderedTopics = new Set();
+                    return contentPages.map((page, idx) => {
+                        const pageRenderedTopics = new Set(globalRenderedTopics);
+                        page.segments.forEach(seg => {
+                            if (seg.showHeader) {
+                                const key = (seg.local?.nome_topico || seg.local?.tipo || 'Inspeção Técnica').trim();
+                                globalRenderedTopics.add(key);
+                            }
+                        });
+                        return (
+                            <ReportPageLayout key={idx} pageNumber={pg++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+                                <ContentPage segments={page.segments} isFirstPage={idx === 0} alreadyRenderedTopics={pageRenderedTopics} />
+                            </ReportPageLayout>
+                        );
+                    });
+                })()}
 
                 {/* Quadros Gerais */}
                 {hasQuadros && paginatedQuadros.flatMap((entry, qIdx) => {
@@ -1109,19 +1119,21 @@ export default function VisualizarVistoriaTecnica() {
                 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@700&family=Poppins:wght@400;600;700&display=swap');
                 * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                 @page { size: A4 portrait; margin: 0; }
-                .report-page { width: 210mm; height: 297mm; position: relative; background: white; overflow: visible; }
-                @media screen { .report-page { margin: 20px auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); } }
+                .report-page { width: 210mm; height: 297mm; position: relative; background: white; overflow: hidden; }
+                @media screen { .report-page { margin: 20px auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); overflow: hidden; } }
                 @media print {
                     .no-print, aside, header, nav { display: none !important; }
-                    html, body { margin: 0 !important; padding: 0 !important; background: white !important; width: 210mm !important; }
+                    html, body { margin: 0 !important; padding: 0 !important; background: white !important; width: 210mm !important; scrollbar-width: none !important; }
                     body, body > div, main { padding: 0 !important; margin: 0 !important; }
                     .lg\\:pl-72 { padding-left: 0 !important; }
-                    .report-container { max-width: none !important; margin: 0 !important; padding: 0 !important; width: 210mm !important; }
-                    .report-page { page-break-after: always; page-break-inside: avoid; width: 210mm !important; min-height: 297mm !important; height: 297mm !important; margin: 0 !important; box-shadow: none !important; overflow: hidden !important; }
-                    .report-page:last-child { page-break-after: auto; }
-                    html, body, * { overflow: visible !important; scrollbar-width: none !important; }
                     *::-webkit-scrollbar { display: none !important; }
-                    .foto-inspecao-container { height: 220px !important; width: 100% !important; overflow: hidden !important; }
+                    .report-container { max-width: none !important; margin: 0 !important; padding: 0 !important; width: 210mm !important; }
+                    .report-page { page-break-after: always; page-break-inside: avoid; width: 210mm !important; height: 297mm !important; margin: 0 !important; box-shadow: none !important; overflow: hidden !important; }
+                    .report-page:last-child { page-break-after: auto; }
+                    table { table-layout: fixed !important; width: 100% !important; max-width: 100% !important; }
+                    td, th { overflow: hidden !important; word-wrap: break-word !important; word-break: break-word !important; }
+                    img { max-width: 100% !important; }
+                    .foto-inspecao-container { height: 220px !important; width: 100% !important; overflow: hidden !important; max-width: 100% !important; }
                     .report-page .foto-inspecao-img { height: 100% !important; object-fit: cover !important; width: 100% !important; display: block !important; }
                 }
             `}</style>

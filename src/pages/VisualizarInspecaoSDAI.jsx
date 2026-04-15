@@ -163,8 +163,28 @@ const FotoInstalacao = ({ url, legenda }) => {
     const imageUrl = getUploadUrl(url);
 
     return (
-        <div style={{ textAlign: 'center', overflow: 'hidden', marginBottom: '6px', boxSizing: 'border-box', height: '250px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <img src={imageUrl} alt={legenda || 'Foto da instalação'} style={{ width: '100%', height: '250px', objectFit: 'cover', border: '1px solid #ddd', display: 'block' }} />
+        <div style={{ textAlign: 'center', overflow: 'hidden', marginBottom: '6px', boxSizing: 'border-box' }}>
+            <div
+                style={{
+                    width: '100%',
+                    height: '45mm',
+                    overflow: 'hidden',
+                    border: '1px solid #ddd',
+                    backgroundColor: '#fff',
+                }}
+            >
+                <img
+                    src={imageUrl}
+                    alt={legenda || 'Foto da instalação'}
+                    style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        objectPosition: 'center',
+                        display: 'block',
+                    }}
+                />
+            </div>
             {legenda && (
                 <p style={{ fontSize: '7px', color: '#555', marginTop: '4px', lineHeight: '1.1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{legenda}</p>
             )}
@@ -222,11 +242,11 @@ const InstalacaoPage = ({ itens_instalacao, comentarios_instalacao, showHeader =
             <table className="w-full border-collapse text-xs mb-2" style={{ tableLayout: 'fixed' }}>
                 <thead>
                     <tr className="bg-gray-100">
-                        <th className="border border-black p-1 text-left" style={{ width: '46%' }}>Item de verificação</th>
-                        <th className="border border-black p-1 text-center" style={{ width: '7%' }}>Ok</th>
-                        <th className="border border-black p-1 text-center" style={{ width: '7%' }}>N/OK</th>
-                        <th className="border border-black p-1 text-center" style={{ width: '7%' }}>N.A.</th>
-                        <th className="border border-black p-1 text-left" style={{ width: '33%' }}>Comentário</th>
+                        <th className="border border-black p-1 text-left" style={{ width: '50%' }}>Item de verificação</th>
+                        <th className="border border-black p-1 text-center" style={{ width: '8%' }}>Ok</th>
+                        <th className="border border-black p-1 text-center" style={{ width: '8%' }}>N/OK</th>
+                        <th className="border border-black p-1 text-center" style={{ width: '8%' }}>N.A.</th>
+                        <th className="border border-black p-1 text-left" style={{ width: '26%' }}>Comentário</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -235,10 +255,14 @@ const InstalacaoPage = ({ itens_instalacao, comentarios_instalacao, showHeader =
 
                         if (isComentario) {
                             return (
-                                <tr key={idx} className="bg-gray-50">
-                                    <td className="border border-black p-1 font-bold">Comentários:</td>
-                                    <td colSpan="4" className="border border-black p-1 whitespace-pre-wrap" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.texto || item.comentarios || ''}</td>
-                                </tr>
+                                <React.Fragment key={idx}>
+                                    <tr className="bg-gray-100">
+                                        <td colSpan="5" className="border border-black p-1 font-bold text-xs">Comentários:</td>
+                                    </tr>
+                                    <tr className="bg-gray-50">
+                                        <td colSpan="5" className="border border-black p-1 text-xs whitespace-pre-wrap" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.texto || item.comentarios || ''}</td>
+                                    </tr>
+                                </React.Fragment>
                             );
                         }
 
@@ -247,7 +271,7 @@ const InstalacaoPage = ({ itens_instalacao, comentarios_instalacao, showHeader =
                                 <tr key={idx}>
                                     <td colSpan="5" className="border border-black p-1 pt-3">
                                         <div className="text-xs text-gray-600 italic mb-2">{item.descricao}</div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min((item.fotos || []).length || 1, 3)}, 1fr)`, gap: '4px', maxWidth: '100%' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min((item.fotos || []).length || 1, 3)}, 1fr)`, gap: '4px', maxWidth: '100%', alignItems: 'stretch' }}>
                                             {(item.fotos || []).map((foto, fotoIdx) => (
                                                 <FotoInstalacao key={fotoIdx} url={foto.url} legenda={foto.legenda} />
                                             ))}
@@ -258,18 +282,18 @@ const InstalacaoPage = ({ itens_instalacao, comentarios_instalacao, showHeader =
                         }
 
                         return (
-                            <>
-                                <tr key={`${idx}-main`}>
+                            <React.Fragment key={idx}>
+                                <tr>
                                     <td className="border border-black p-1" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.item_verificacao || item.descricao}</td>
                                     <td className="border border-black p-1 text-center">{item.resultado === 'OK' ? '☑' : '☐'}</td>
                                     <td className="border border-black p-1 text-center">{item.resultado === 'N/OK' ? '☑' : '☐'}</td>
                                     <td className="border border-black p-1 text-center">{item.resultado === 'NA' ? '☑' : '☐'}</td>
-                                    <td className="border border-black p-1" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'pre-wrap' }}>{item.comentario || item.observacoes || ''}</td>
+                                    <td className="border border-black p-1" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.comentario || item.observacoes || ''}</td>
                                 </tr>
                                 {item.fotos && item.fotos.length > 0 && (
-                                    <tr key={`${idx}-fotos`}>
+                                    <tr>
                                         <td colSpan="5" className="border border-black p-1">
-                                            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(item.fotos.length, 3)}, 1fr)`, gap: '4px', maxWidth: '100%' }}>
+                                            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(item.fotos.length, 3)}, 1fr)`, gap: '4px', maxWidth: '100%', alignItems: 'stretch' }}>
                                                 {item.fotos.map((foto, fotoIdx) => (
                                                     <FotoInstalacao key={fotoIdx} url={foto.url} legenda={foto.legenda} />
                                                 ))}
@@ -277,7 +301,7 @@ const InstalacaoPage = ({ itens_instalacao, comentarios_instalacao, showHeader =
                                         </td>
                                     </tr>
                                 )}
-                            </>
+                            </React.Fragment>
                         );
                     })}
                 </tbody>
