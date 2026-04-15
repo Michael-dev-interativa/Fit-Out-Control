@@ -257,13 +257,10 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
   // Convert previous visual px heights to mm approximations for print.
   // 80px @96dpi ≈ 21.17mm, 45px @96dpi ≈ 11.9mm
   const HEADER_HEIGHT_MM = pageNumber > 1 ? 21.17 : 0;
-  const FOOTER_HEIGHT_MM = 11.9;
+  const FOOTER_HEIGHT_MM = isCover ? 0 : 11.9;
 
   const headerHeight = `${HEADER_HEIGHT_MM}mm`;
   const footerHeight = `${FOOTER_HEIGHT_MM}mm`;
-
-  // Content area should exactly fill the remaining space between header and footer
-  const contentHeight = `calc(${PAGE_HEIGHT_MM}mm - ${HEADER_HEIGHT_MM}mm - ${FOOTER_HEIGHT_MM}mm)`;
 
   return (
     <div className="report-page" style={{ height: `${PAGE_HEIGHT_MM}mm` }}>
@@ -282,11 +279,13 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
         {children}
       </div>
 
-      <div className="border-t border-gray-200 bg-gray-50 flex justify-between items-center text-[9px] text-gray-500" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: footerHeight, padding: '4px 8px', maxWidth: '210mm', boxSizing: 'border-box' }}>
-        <div className="flex-1 text-left leading-tight truncate" style={{ paddingRight: '8px' }}><span className="font-medium">Arquivo: </span><span>{relatorio.nome_arquivo ? `${relatorio.nome_arquivo}.pdf` : `IHID-${relatorio.id?.slice(-4)}.pdf`}</span></div>
-        <div className="flex-1 flex flex-col items-center leading-tight text-[8px]"><span>INTERATIVA ENGENHARIA</span><span>www.interativaengenharia.com.br</span></div>
-        <div className="flex-1 text-right leading-tight" style={{ paddingLeft: '8px' }}><span>Página {pageNumber} de {totalPages}</span></div>
-      </div>
+      {!isCover && (
+        <div className="border-t border-gray-200 bg-gray-50 flex justify-between items-center text-[9px] text-gray-500" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: footerHeight, padding: '4px 8px', maxWidth: '210mm', boxSizing: 'border-box' }}>
+          <div className="flex-1 text-left leading-tight truncate" style={{ paddingRight: '8px' }}><span className="font-medium">Arquivo: </span><span>{relatorio.nome_arquivo ? `${relatorio.nome_arquivo}.pdf` : `IHID-${relatorio.id?.slice(-4)}.pdf`}</span></div>
+          <div className="flex-1 flex flex-col items-center leading-tight text-[8px]"><span>INTERATIVA ENGENHARIA</span><span>www.interativaengenharia.com.br</span></div>
+          <div className="flex-1 text-right leading-tight" style={{ paddingLeft: '8px' }}><span>Página {pageNumber} de {totalPages}</span></div>
+        </div>
+      )}
     </div>
   );
 };
