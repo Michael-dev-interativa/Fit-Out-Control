@@ -376,9 +376,9 @@ export function paginateLocaisFlowForVistoriaTecnica(locais = [], opts = {}) {
           usedHeight += headerCost;
           if (!hasRenderedHeader) hasRenderedHeader = true;
 
-          // Se o cabeçalho ocupou quase toda a página, não vale colocar itens aqui.
-          // Faz flush imediato para que os itens comecem numa página fresca.
-          const MIN_USABLE_AFTER_HEADER = 180;
+          // Se o cabeçalho ocupou quase toda a página e não sobrou espaço real,
+          // faz flush para que os itens comecem numa página fresca.
+          const MIN_USABLE_AFTER_HEADER = 60;
           if (headerCost > 0 && (pageLimit - usedHeight) < MIN_USABLE_AFTER_HEADER) {
             flushCurrentPage();
             continue;
