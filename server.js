@@ -3149,7 +3149,7 @@ app.post('/api/vistorias-tecnicas', async (req, res) => {
     if (!b.id_empreendimento) {
       return res.status(400).json({ error: 'missing_id_empreendimento' });
     }
-    const fotosLayoutProposto = b.layout_proposto_imagens ?? b.fotos_layout_proposto ?? [];
+    const fotosLayoutProposto = b.fotos_layout_proposto ?? b.layout_proposto_imagens ?? [];
     const sql = `INSERT INTO public.vistorias_tecnicas (
       id_empreendimento, data_vistoria, titulo_capa, subtitulo_capa, texto_rodape_capa,
       titulo_vistoria, descricao_vistoria, titulo_relatorio, subtitulo_relatorio, cliente,
@@ -3205,7 +3205,7 @@ app.put('/api/vistorias-tecnicas/:id', async (req, res) => {
     const p = requirePool();
     const id = Number(req.params.id);
     const b = req.body || {};
-    const fotosLayoutProposto = b.layout_proposto_imagens ?? b.fotos_layout_proposto ?? [];
+    const fotosLayoutProposto = b.fotos_layout_proposto ?? b.layout_proposto_imagens ?? [];
     const sql = `UPDATE public.vistorias_tecnicas SET
       id_empreendimento = COALESCE($1, id_empreendimento),
       data_vistoria = $2,
