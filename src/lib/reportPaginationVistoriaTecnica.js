@@ -478,7 +478,7 @@ export function paginateLocaisFlowForVistoriaTecnica(locais = [], opts = {}) {
       : 0;
 
     // Se nem o cabecalho cabe, pula
-    if (prevUsed + hdrCost > pageLimit + COMPACTION_SLACK_PX) continue;
+    if (prevUsed + hdrCost > pageLimit) continue;
 
     const newSeg = {
       local: nextFirstSeg.local,
@@ -495,7 +495,7 @@ export function paginateLocaisFlowForVistoriaTecnica(locais = [], opts = {}) {
       const item = nextFirstSeg.items[0];
       const itemH = Number(item?.height || 0);
       const hdr = headerConsumed ? 0 : hdrCost;
-      if (prevUsed + hdr + itemH > pageLimit + COMPACTION_SLACK_PX) break;
+      if (prevUsed + hdr + itemH > pageLimit) break;
       if (!headerConsumed) {
         prevUsed += hdrCost;
         headerConsumed = true;
