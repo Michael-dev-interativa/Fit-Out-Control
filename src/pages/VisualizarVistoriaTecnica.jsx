@@ -325,8 +325,8 @@ const ContentPage = ({ segments, isFirstPage = false, alreadyRenderedTopics = ne
                                         {showTopicHeader && (
                                             <div className="text-sm font-bold mb-2 pt-3 pb-1 text-gray-700 uppercase tracking-widest border-b-2 border-gray-400">{local.nome_topico || local.nome_local || 'Inspeção Técnica'}</div>
                                         )}
-                                        {local.nome_local_exibicao && (
-                                            <div className="mb-2 text-xs font-bold text-gray-800 bg-gray-100 border border-gray-400 px-3 py-2 uppercase tracking-wide">{local.nome_local_exibicao}</div>
+                                        {(local.nome_local_exibicao || local.nome_local) && (
+                                            <div className="mb-2 text-xs font-bold text-gray-800 bg-gray-100 border border-gray-400 px-3 py-2 uppercase tracking-wide">{local.nome_local_exibicao || local.nome_local}</div>
                                         )}
                                         {local.fotos && local.fotos.length > 0 && (
                                             <div className="mb-3 border border-black p-2">
@@ -351,9 +351,10 @@ const ContentPage = ({ segments, isFirstPage = false, alreadyRenderedTopics = ne
                                         ))}
                                         {/* Comentários Gerais após imagens, antes da tabela */}
                                         {items.some(item => item.tipo === 'comentario') && (
-                                        <div className="mb-2 border border-black p-2 text-xs whitespace-pre-wrap">
-                                            <strong>Comentários Gerais: </strong>{items.find(item => item.tipo === 'comentario')?.comentarios || ''}
-                                        </div>
+                                            <div className="mb-2 border border-black p-2 text-xs whitespace-pre-wrap">
+                                                <div className="font-bold mb-1">Comentários Gerais:</div>
+                                                <div>{items.find(item => item.tipo === 'comentario')?.comentarios || ''}</div>
+                                            </div>
                                         )}
                                         <table className="w-full border-collapse text-xs table-fixed">
                                         {showTableHeader && (
@@ -453,7 +454,7 @@ const ListaDocumentosPage = ({ documentos }) => (
                     <tr key={idx}>
                         <td className="border border-black p-2 text-center">{doc.des}</td>
                         <td className="border border-black p-2">{doc.descricao}</td>
-                        <td className="border border-black p-2 text-black-700">{doc.arquivo}</td>
+                        <td className="border border-black p-2" style={{ wordBreak: 'break-all', overflowWrap: 'anywhere' }}>{doc.arquivo}</td>
                         <td className="border border-black p-2 text-center">{doc.rev}</td>
                         <td className="border border-black p-2 text-center">{doc.data}</td>
                     </tr>
@@ -759,9 +760,9 @@ export default function VisualizarVistoriaTecnica() {
                         headerHeightPx: 80,
                         footerHeightPx: 45,
                         pagePaddingPx: 40,
-                        footerGuardPx: 80,
+                        footerGuardPx: 30,
                         breakBeforeLimitPx: 16,
-                        compactionSlackPx: 36,
+                        compactionSlackPx: 80,
                         splitPhotoRows: true,
                         photoChunkSize: 2,
                         photoMaxHeightPx: 220,
