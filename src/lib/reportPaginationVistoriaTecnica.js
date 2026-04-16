@@ -127,6 +127,14 @@ export function paginateLocalItemsForVistoriaTecnica(local, opts = {}) {
 
   // Prepara blocos (item com altura pré-calculada)
   const blocks = [];
+
+  // Comentários gerais como PRIMEIRO bloco (antes dos itens de inspeção)
+  if (local.comentarios) {
+    const blockComentario = { tipo: 'comentario', comentarios: local.comentarios, isComentarioGeral: true };
+    blockComentario.height = calculateBlockHeight(blockComentario);
+    blocks.push(blockComentario);
+  }
+
   for (const originalItem of (local.itens_inspecao || [])) {
     const fotos = (originalItem.fotos || []).filter((foto) => foto && typeof foto.url === 'string' && foto.url.trim() !== '');
 
@@ -153,13 +161,6 @@ export function paginateLocalItemsForVistoriaTecnica(local, opts = {}) {
       block.height = calculateBlockHeight(block);
       blocks.push(block);
     }
-  }
-
-  // Comentários gerais como bloco final
-  if (local.comentarios) {
-    const blockComentario = { tipo: 'comentario', comentarios: local.comentarios, isComentarioGeral: true };
-    blockComentario.height = calculateBlockHeight(blockComentario);
-    blocks.push(blockComentario);
   }
 
   // Aloca blocos às páginas
@@ -243,9 +244,21 @@ export function paginateLocaisFlowForVistoriaTecnica(locais = [], opts = {}) {
     PAGE_HEIGHT_PX - HEADER_HEIGHT_PX - FOOTER_HEIGHT_PX - PAGE_PADDING_PX - FOOTER_GUARD_PX,
   );
 
+  const FOTO_CHUNK_SIZE_LOCAL = 12; // máximo de 12 fotos por bloco extra (1 página)
+  const MAX_FOTOS_PER_HEADER = 9; // max 3 linhas de 3 fotos no cabeçalho (3×248px=744px, cabe na página)
+  const FOTO_ROW_H = (opts.photoMaxHeightPx || 220) + (opts.photoCaptionHeightPx ?? 14) + 8;
+
   const normalizedLocais = locais.map((local, localIndex) => {
+    // Limita fotos do cabeçalho a MAX_FOTOS_PER_HEADER; excedente vira blocos paginados
+    const allFotos = (local.fotos || []).filter(
+      (f) => f && typeof f.url === 'string' && f.url.trim() !== '',
+    );
+    const headerFotos = allFotos.slice(0, MAX_FOTOS_PER_HEADER);
+    const extraFotos = allFotos.slice(MAX_FOTOS_PER_HEADER);
+    const localForHeader = extraFotos.length > 0 ? { ...local, fotos: headerFotos } : local;
+
     // Reusa o mesmo medidor/splitter da função principal para obter os blocos já medidos
-    const measured = paginateLocalItemsForVistoriaTecnica(local, {
+    const measured = paginateLocalItemsForVistoriaTecnica(localForHeader, {
       ...opts,
       pageHeightPx: 999999,
       headerHeightPx: 0,
@@ -256,11 +269,25 @@ export function paginateLocaisFlowForVistoriaTecnica(locais = [], opts = {}) {
       firstPageExtraHeightPx: 0,
     });
 
-    const blocks = measured.flatMap((p) => p.items || []);
+    // Cria blocos para fotos excedentes (aparecem antes dos itens de inspeção)
+    const extraFotoBlocks = [];
+    for (let i = 0; i < extraFotos.length; i += FOTO_CHUNK_SIZE_LOCAL) {
+      const chunk = extraFotos.slice(i, i + FOTO_CHUNK_SIZE_LOCAL);
+      const rows = Math.ceil(chunk.length / 3);
+      extraFotoBlocks.push({
+        tipo: 'foto_local_extra',
+        descricao: '',
+        fotos: chunk,
+        showOnlyPhotos: true,
+        height: rows * FOTO_ROW_H + 20,
+      });
+    }
+
+    const blocks = [...extraFotoBlocks, ...measured.flatMap((p) => p.items || [])];
     return {
-      local,
+      local: localForHeader,
       localIndex,
-      firstExtra: Math.max(0, Number(estimateFirstPageExtra(local) || 0)),
+      firstExtra: Math.max(0, Number(estimateFirstPageExtra(localForHeader) || 0)),
       blocks,
     };
   });
@@ -304,8 +331,36 @@ export function paginateLocaisFlowForVistoriaTecnica(locais = [], opts = {}) {
         const blockHeight = Number(block?.height || 0);
         const projected = usedHeight + headerCost + blockHeight;
 
-        // Só quebra quando já existe conteúdo na página; página vazia recebe o bloco mesmo grande
+        // Quebra de página normal: há conteúdo e o bloco não cabe
         if (usedHeight > 0 && projected > pageLimit) {
+          // Se o cabeçalho do novo local ainda cabe na página atual (mas o bloco não),
+          // coloca o cabeçalho aqui para o local começar junto aos itens anteriores.
+          if (willOpenSegment && !hasRenderedHeader && headerCost > 0 && (usedHeight + headerCost) <= pageLimit) {
+            currentPage.segments.push({
+              local: localData.local,
+              localIndex: localData.localIndex,
+              showHeader: true,
+              headerHeight: headerCost,
+              items: [],
+            });
+            hasRenderedHeader = true;
+          }
+          flushCurrentPage();
+          continue;
+        }
+
+        // Caso especial: página vazia, mas o header (fotos do local) + bloco não cabe.
+        // Cria uma página só com o header e manda o bloco para a próxima.
+        if (usedHeight === 0 && willOpenSegment && !hasRenderedHeader && headerCost > 0 && projected > pageLimit && blockHeight <= pageLimit) {
+          currentPage.segments.push({
+            local: localData.local,
+            localIndex: localData.localIndex,
+            showHeader: true,
+            headerHeight: headerCost,
+            items: [],
+          });
+          usedHeight += headerCost;
+          hasRenderedHeader = true;
           flushCurrentPage();
           continue;
         }
@@ -320,6 +375,14 @@ export function paginateLocaisFlowForVistoriaTecnica(locais = [], opts = {}) {
           });
           usedHeight += headerCost;
           if (!hasRenderedHeader) hasRenderedHeader = true;
+
+          // Se o cabeçalho ocupou quase toda a página, não vale colocar itens aqui.
+          // Faz flush imediato para que os itens comecem numa página fresca.
+          const MIN_USABLE_AFTER_HEADER = 180;
+          if (headerCost > 0 && (pageLimit - usedHeight) < MIN_USABLE_AFTER_HEADER) {
+            flushCurrentPage();
+            continue;
+          }
         }
 
         const targetSegment = currentPage.segments[currentPage.segments.length - 1];

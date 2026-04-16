@@ -314,7 +314,7 @@ const ContentPage = ({ segments, isFirstPage = false, alreadyRenderedTopics = ne
                     const renderedTopics = new Set(alreadyRenderedTopics);
                     return segments.map((segment, sIdx) => {
                         const { local, items, showHeader } = segment;
-                        const showTableHeader = items.some((item) => item.tipo !== 'comentario');
+                        const showTableHeader = items.some((item) => item.tipo !== 'comentario' && !item.showOnlyPhotos);
                         const topicKey = (local?.nome_topico || local?.tipo || 'Inspeção Técnica').trim();
                         const showTopicHeader = showHeader && !renderedTopics.has(topicKey);
                         if (showTopicHeader) renderedTopics.add(topicKey);
@@ -337,10 +337,19 @@ const ContentPage = ({ segments, isFirstPage = false, alreadyRenderedTopics = ne
                                         )}
                                         </>
                                         )}
-                                        {/* Descrição Geral e Comentários Gerais sempre antes da tabela */}
+                                        {/* Descrição Geral antes das fotos extras e comentários */}
                                         {showHeader && local.descricao_geral && (
                                         <div className="mb-2 border border-black p-2 text-xs whitespace-pre-wrap"><strong>Descrição Geral: </strong>{local.descricao_geral}</div>
                                         )}
+                                        {/* Fotos extras do local (além das 9 do cabeçalho) — renderizadas fora da tabela */}
+                                        {items.filter(item => item.tipo === 'foto_local_extra').map((item, fIdx) => (
+                                            <div key={`extra-foto-${fIdx}`} className="mb-3 border border-black p-2">
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    {item.fotos.map((f, fi) => <FotoInspecao key={fi} url={f.url} legenda={f.legenda} />)}
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {/* Comentários Gerais após imagens, antes da tabela */}
                                         {items.some(item => item.tipo === 'comentario') && (
                                         <div className="mb-2 border border-black p-2 text-xs whitespace-pre-wrap">
                                             <strong>Comentários Gerais: </strong>{items.find(item => item.tipo === 'comentario')?.comentarios || ''}
@@ -356,7 +365,7 @@ const ContentPage = ({ segments, isFirstPage = false, alreadyRenderedTopics = ne
                                             </thead>
                                         )}
                                         <tbody>
-                                            {items.filter(item => item.tipo !== 'comentario').map((item, idx) => {
+                                            {items.filter(item => item.tipo !== 'comentario' && item.tipo !== 'foto_local_extra').map((item, idx) => {
                                             if (item.tipo === 'topico') {
                                                 return (
                                                     <tr key={idx}>
@@ -550,17 +559,14 @@ const LayoutFotoItem = ({ url, legenda }) => {
     );
 };
 
-const LayoutPropostoPage = ({ relatorio }) => {
-    const fotos = relatorio?.fotos_layout_proposto || [];
-    // fallback para campo antigo (foto_layout_proposto)
-    const fotosEffective = fotos.length > 0 ? fotos : (relatorio?.foto_layout_proposto ? [{ url: relatorio.foto_layout_proposto, legenda: '' }] : []);
+const LayoutPropostoPage = ({ fotos = [], showTitle = true }) => {
     return (
         <div className="p-4 space-y-4">
-            <h2 className="text-base font-bold text-center bg-blue-900 text-white p-2">Layout de Projeto</h2>
-            {fotosEffective.length > 0 && (
+            {showTitle && <h2 className="text-base font-bold text-center bg-blue-900 text-white p-2">Layout de Projeto</h2>}
+            {fotos.length > 0 && (
                 <div>
                     <div className="border border-black p-2 flex flex-col gap-4 items-center">
-                        {fotosEffective.map((foto, fi) => <LayoutFotoItem key={fi} url={foto.url} legenda={foto.legenda} />)}
+                        {fotos.map((foto, fi) => <LayoutFotoItem key={fi} url={foto.url} legenda={foto.legenda} />)}
                     </div>
                 </div>
             )}
@@ -776,7 +782,18 @@ export default function VisualizarVistoriaTecnica() {
         : 0;
     const hasConclusao = relatorio.conclusao_final && relatorio.conclusao_final.trim().length > 0;
     const hasLayoutProposto = (relatorio.fotos_layout_proposto && relatorio.fotos_layout_proposto.length > 0) || !!relatorio.foto_layout_proposto;
-    const totalPages = 1 + 1 + (hasRemainingPage ? 1 : 0) + docsNormasPageCount + (hasLayoutProposto ? 1 : 0) + contentPages.length + quadrosPageCount + (hasConclusao ? 1 : 0) + (hasAssinaturas ? 1 : 0);
+    const layoutFotosAll = hasLayoutProposto
+        ? ((relatorio.fotos_layout_proposto && relatorio.fotos_layout_proposto.length > 0)
+            ? relatorio.fotos_layout_proposto
+            : [{ url: relatorio.foto_layout_proposto, legenda: '' }])
+        : [];
+    const LAYOUT_FOTOS_PER_PAGE = 2;
+    const layoutPhotoPages = [];
+    for (let i = 0; i < layoutFotosAll.length; i += LAYOUT_FOTOS_PER_PAGE) {
+        layoutPhotoPages.push(layoutFotosAll.slice(i, i + LAYOUT_FOTOS_PER_PAGE));
+    }
+    const layoutPageCount = layoutPhotoPages.length;
+    const totalPages = 1 + 1 + (hasRemainingPage ? 1 : 0) + docsNormasPageCount + layoutPageCount + contentPages.length + quadrosPageCount + (hasConclusao ? 1 : 0) + (hasAssinaturas ? 1 : 0);
     let pg = 1;
 
     const handlePrint = async () => {
@@ -920,11 +937,11 @@ export default function VisualizarVistoriaTecnica() {
                 })()}
 
                 {/* Layout Proposto */}
-                {hasLayoutProposto && (
-                    <ReportPageLayout pageNumber={pg++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                        <LayoutPropostoPage relatorio={relatorio} />
+                {hasLayoutProposto && layoutPhotoPages.map((fotosSlice, idx) => (
+                    <ReportPageLayout key={`layout-${idx}`} pageNumber={pg++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+                        <LayoutPropostoPage fotos={fotosSlice} showTitle={idx === 0} />
                     </ReportPageLayout>
-                )}
+                ))}
 
                 {/* Inspeção por locais */}
                 {(() => {
