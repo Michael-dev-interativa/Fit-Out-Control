@@ -455,5 +455,79 @@ export function paginateLocaisFlowForVistoriaTecnica(locais = [], opts = {}) {
     }
   }
 
+  // Compactacao cruzada: quando a pagina anterior tem espaco disponivel e a proxima
+  // começa com um local diferente, puxa os itens para cá (evita paginas com muito espaco em branco).
+  for (let i = 0; i < pages.length - 1; i++) {
+    const prevPage = pages[i];
+    const nextPage = pages[i + 1];
+
+    let prevUsed = getPageUsedHeight(prevPage);
+    const available = pageLimit - prevUsed;
+    if (available < 60) continue;
+
+    const nextFirstSeg = (nextPage.segments || []).find((s) => (s?.items?.length || 0) > 0);
+    if (!nextFirstSeg) continue;
+
+    const prevLastSeg = (prevPage.segments || []).slice(-1)[0];
+    // Mesmo local ja foi tratado na compactacao anterior
+    if (prevLastSeg && prevLastSeg.localIndex === nextFirstSeg.localIndex) continue;
+
+    // Custo do cabecalho do segmento de origem
+    const hdrCost = (nextFirstSeg.showHeader && nextFirstSeg.headerHeight > 0)
+      ? nextFirstSeg.headerHeight
+      : 0;
+
+    // Se nem o cabecalho cabe, pula
+    if (prevUsed + hdrCost > pageLimit + COMPACTION_SLACK_PX) continue;
+
+    const newSeg = {
+      local: nextFirstSeg.local,
+      localIndex: nextFirstSeg.localIndex,
+      showHeader: nextFirstSeg.showHeader,
+      headerHeight: hdrCost,
+      items: [],
+    };
+
+    let headerConsumed = false;
+    let movedAny = false;
+
+    while ((nextFirstSeg.items || []).length > 0) {
+      const item = nextFirstSeg.items[0];
+      const itemH = Number(item?.height || 0);
+      const hdr = headerConsumed ? 0 : hdrCost;
+      if (prevUsed + hdr + itemH > pageLimit + COMPACTION_SLACK_PX) break;
+      if (!headerConsumed) {
+        prevUsed += hdrCost;
+        headerConsumed = true;
+      }
+      newSeg.items.push(item);
+      nextFirstSeg.items.shift();
+      prevUsed += itemH;
+      movedAny = true;
+    }
+
+    if (!movedAny) continue;
+
+    prevPage.segments.push(newSeg);
+
+    // Ajusta segmento de origem: se foi completamente esvaziado, remove-o
+    if ((nextFirstSeg.items || []).length === 0) {
+      nextPage.segments = nextPage.segments.filter((s) => s !== nextFirstSeg);
+    } else if (nextFirstSeg.showHeader && headerConsumed) {
+      // Cabecalho foi movido para a pagina anterior — remove do segmento de origem
+      nextFirstSeg.showHeader = false;
+      nextFirstSeg.headerHeight = 0;
+    }
+
+    // Remove a proxima pagina se ficou completamente vazia
+    const nextHasContent = (nextPage.segments || []).some(
+      (s) => (s?.items?.length || 0) > 0 || (s?.showHeader && (s?.headerHeight || 0) > 0),
+    );
+    if (!nextHasContent) {
+      pages.splice(i + 1, 1);
+      i--;
+    }
+  }
+
   return pages;
 }
