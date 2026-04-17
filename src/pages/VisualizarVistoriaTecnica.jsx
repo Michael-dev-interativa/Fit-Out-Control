@@ -314,7 +314,9 @@ const ContentPage = ({ segments, isFirstPage = false, alreadyRenderedTopics = ne
                     const renderedTopics = new Set(alreadyRenderedTopics);
                     return segments.map((segment, sIdx) => {
                         const { local, items, showHeader } = segment;
-                        const showTableHeader = items.some((item) => item.tipo !== 'comentario' && !item.showOnlyPhotos);
+                        const tableItems = items.filter((item) => item.tipo !== 'comentario' && item.tipo !== 'foto_local_extra' && item.tipo !== 'local_vazio');
+                        const showTableHeader = tableItems.some((item) => !item.showOnlyPhotos);
+                        const hasTableRows = tableItems.length > 0;
                         const topicKey = (local?.nome_topico || local?.tipo || 'Inspeção Técnica').trim();
                         const showTopicHeader = showHeader && !renderedTopics.has(topicKey);
                         if (showTopicHeader) renderedTopics.add(topicKey);
@@ -356,6 +358,7 @@ const ContentPage = ({ segments, isFirstPage = false, alreadyRenderedTopics = ne
                                                 <div>{items.find(item => item.tipo === 'comentario')?.comentarios || ''}</div>
                                             </div>
                                         )}
+                                        {hasTableRows && (
                                         <table className="w-full border-collapse text-xs table-fixed">
                                         {showTableHeader && (
                                             <thead>
@@ -366,7 +369,7 @@ const ContentPage = ({ segments, isFirstPage = false, alreadyRenderedTopics = ne
                                             </thead>
                                         )}
                                         <tbody>
-                                            {items.filter(item => item.tipo !== 'comentario' && item.tipo !== 'foto_local_extra').map((item, idx) => {
+                                            {tableItems.map((item, idx) => {
                                             if (item.tipo === 'topico') {
                                                 return (
                                                     <tr key={idx}>
@@ -412,6 +415,7 @@ const ContentPage = ({ segments, isFirstPage = false, alreadyRenderedTopics = ne
                                         })}
                                     </tbody>
                                 </table>
+                                )}
                             </div>
                         );
                     });

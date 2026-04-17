@@ -18,6 +18,14 @@ export function paginateLocalItemsForVistoriaTecnica(local, opts = {}) {
   const PHOTO_CHUNK_SIZE = Math.max(1, opts.photoChunkSize || 3);
   const SPLIT_PHOTO_ROWS = opts.splitPhotoRows === true;
 
+  const getLocalItems = (localValue) => {
+    if (!localValue || typeof localValue !== 'object') return [];
+    if (Array.isArray(localValue.itens_inspecao)) return localValue.itens_inspecao;
+    if (Array.isArray(localValue.itensInspecao)) return localValue.itensInspecao;
+    if (Array.isArray(localValue.itens)) return localValue.itens;
+    return [];
+  };
+
   // Calcula altura usável da página
   const getUsableHeight = (isFirstPage) => {
     const base = PAGE_HEIGHT_PX - HEADER_HEIGHT_PX - FOOTER_HEIGHT_PX - PAGE_PADDING_PX;
@@ -135,7 +143,7 @@ export function paginateLocalItemsForVistoriaTecnica(local, opts = {}) {
     blocks.push(blockComentario);
   }
 
-  for (const originalItem of (local.itens_inspecao || [])) {
+  for (const originalItem of getLocalItems(local)) {
     const fotos = (originalItem.fotos || []).filter((foto) => foto && typeof foto.url === 'string' && foto.url.trim() !== '');
 
     if (SPLIT_PHOTO_ROWS && fotos.length > 0) {
@@ -284,6 +292,16 @@ export function paginateLocaisFlowForVistoriaTecnica(locais = [], opts = {}) {
     }
 
     const blocks = [...extraFotoBlocks, ...measured.flatMap((p) => p.items || [])];
+
+    // Garante que locais sem itens ainda sejam renderizados com cabeçalho/fotos/descrição.
+    if (blocks.length === 0) {
+      blocks.push({
+        tipo: 'local_vazio',
+        isPlaceholder: true,
+        height: 1,
+      });
+    }
+
     return {
       local: localForHeader,
       localIndex,
