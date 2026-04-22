@@ -611,7 +611,15 @@ export default function NovaVistoriaTecnica() {
                                         </div>
                                     </div>
                                     <div>
-                                        <Label className="text-sm font-semibold mb-2 block">Detalhamento Técnico</Label>
+                                        <Label className="text-sm font-semibold">Comentários Gerais</Label>
+                                        <Textarea value={quadro.comentarios_gerais || ''} onChange={e => { const q = [...(formData.quadros_gerais||[])]; q[qIdx] = {...q[qIdx], comentarios_gerais: e.target.value}; handleChange('quadros_gerais', q); }} rows={3} className="mt-1" placeholder="Comentários gerais sobre o quadro..." />
+                                    </div>
+                                    <div>
+                                        <Label className="text-sm font-semibold">Detalhamento Técnico</Label>
+                                        <Textarea value={quadro.detalhamento_tecnico || ''} onChange={e => { const q = [...(formData.quadros_gerais||[])]; q[qIdx] = {...q[qIdx], detalhamento_tecnico: e.target.value}; handleChange('quadros_gerais', q); }} rows={3} className="mt-1" placeholder="Detalhamento técnico do quadro..." />
+                                    </div>
+                                    <div>
+                                        <Label className="text-sm font-semibold mb-2 block">Itens de Inspeção</Label>
                                         <table className="w-full text-sm border-collapse" style={{tableLayout:'fixed'}}>
                                             <thead>
                                                 <tr className="bg-blue-900 text-white">

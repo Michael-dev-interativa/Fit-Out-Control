@@ -302,6 +302,33 @@ const FotoInspecao = ({ url, legenda }) => {
     );
 };
 
+const getTopicName = (local) => {
+    if (!local || typeof local !== 'object') return 'Inspeção Técnica';
+    return (
+        local.nome_topico ||
+        local.nomeTopico ||
+        local.tipo ||
+        local.topico ||
+        'Inspeção Técnica'
+    );
+};
+
+const getLocalDisplayName = (local) => {
+    if (!local || typeof local !== 'object') return '';
+    return (
+        local.nome_local_exibicao ||
+        local.nomeLocalExibicao ||
+        local.nome_local ||
+        local.nomeLocal ||
+        local.local ||
+        local.ambiente ||
+        local.nome ||
+        local.titulo_local ||
+        local.tituloLocal ||
+        ''
+    );
+};
+
 // ── PÁGINA DE INSPEÇÃO ────────────────────────────────────────────────────────
 const ContentPage = ({ segments, isFirstPage = false, alreadyRenderedTopics = new Set() }) => (
     <div className="px-4 pt-6 pb-4">
@@ -314,21 +341,26 @@ const ContentPage = ({ segments, isFirstPage = false, alreadyRenderedTopics = ne
                     const renderedTopics = new Set(alreadyRenderedTopics);
                     return segments.map((segment, sIdx) => {
                         const { local, items, showHeader } = segment;
+                        const prevSegment = sIdx > 0 ? segments[sIdx - 1] : null;
+                        const localChangedWithinPage = !prevSegment || prevSegment.localIndex !== segment.localIndex;
+                        const mustShowHeader = showHeader || localChangedWithinPage;
                         const tableItems = items.filter((item) => item.tipo !== 'comentario' && item.tipo !== 'foto_local_extra' && item.tipo !== 'local_vazio');
                         const showTableHeader = tableItems.some((item) => !item.showOnlyPhotos);
                         const hasTableRows = tableItems.length > 0;
-                        const topicKey = (local?.nome_topico || local?.tipo || 'Inspeção Técnica').trim();
-                        const showTopicHeader = showHeader && !renderedTopics.has(topicKey);
+                        const topicName = String(getTopicName(local) || 'Inspeção Técnica').trim();
+                        const localDisplayName = String(getLocalDisplayName(local) || '').trim();
+                        const topicKey = topicName;
+                        const showTopicHeader = mustShowHeader && !renderedTopics.has(topicKey);
                         if (showTopicHeader) renderedTopics.add(topicKey);
                         return (
-                            <div key={`${segment.localIndex}-${sIdx}`} className={showHeader ? 'mt-0' : 'mt-3'}>
-                                {showHeader && (
+                            <div key={`${segment.localIndex}-${sIdx}`} className={mustShowHeader ? 'mt-0' : 'mt-3'}>
+                                {mustShowHeader && (
                                     <>
                                         {showTopicHeader && (
-                                            <div className="text-sm font-bold mb-2 pt-3 pb-1 text-gray-700 uppercase tracking-widest border-b-2 border-gray-400">{local.nome_topico || local.nome_local || 'Inspeção Técnica'}</div>
+                                            <div className="text-sm font-bold mb-2 pt-3 pb-1 text-gray-700 uppercase tracking-widest border-b-2 border-gray-400">{topicName}</div>
                                         )}
-                                        {(local.nome_local_exibicao || local.nome_local) && (
-                                            <div className="mb-2 text-xs font-bold text-gray-800 bg-gray-100 border border-gray-400 px-3 py-2 uppercase tracking-wide">{local.nome_local_exibicao || local.nome_local}</div>
+                                        {localDisplayName && (
+                                            <div className="mb-2 text-xs font-bold text-gray-800 bg-gray-100 border border-gray-400 px-3 py-2 uppercase tracking-wide">{localDisplayName}</div>
                                         )}
                                         {local.fotos && local.fotos.length > 0 && (
                                             <div className="mb-3 border border-black p-2">
@@ -340,7 +372,7 @@ const ContentPage = ({ segments, isFirstPage = false, alreadyRenderedTopics = ne
                                         </>
                                         )}
                                         {/* Descrição Geral antes das fotos extras e comentários */}
-                                        {showHeader && local.descricao_geral && (
+                                        {mustShowHeader && local.descricao_geral && (
                                         <div className="mb-2 border border-black p-2 text-xs whitespace-pre-wrap"><strong>Descrição Geral: </strong>{local.descricao_geral}</div>
                                         )}
                                         {/* Fotos extras do local (além das 9 do cabeçalho) — renderizadas fora da tabela */}
@@ -598,6 +630,16 @@ const QuadrosGeraisPage = ({ quadro, itens, showTitle = true, showQuadroHeader =
                             </div>
                         </div>
                     )}
+                    {quadro?.comentarios_gerais && (
+                        <div className="border border-black border-t-0 p-2 text-xs whitespace-pre-wrap mb-2">
+                            <strong>Comentários Gerais: </strong>{quadro.comentarios_gerais}
+                        </div>
+                    )}
+                    {quadro?.detalhamento_tecnico && (
+                        <div className="border border-black border-t-0 p-2 text-xs whitespace-pre-wrap mb-2">
+                            <strong>Detalhamento Técnico: </strong>{quadro.detalhamento_tecnico}
+                        </div>
+                    )}
                 </>
             ) : (
                 <div className="border border-black border-t-0 p-2 text-[10px] text-gray-600 mb-2">
@@ -729,7 +771,7 @@ export default function VisualizarVistoriaTecnica() {
     const estimateFirstPageExtra = (local) => {
             // Base: titulo do local + thead + diferenca de padding entre paginas
             let extra = 66;
-      if (local.nome_local_exibicao) extra += 26;
+            if (getLocalDisplayName(local)) extra += 26;
       if (local.fotos && local.fotos.length > 0) {
         const rows = Math.ceil(local.fotos.length / 3);
                 // 220px imagem + legenda eventual + espacamentos

@@ -337,6 +337,8 @@ const answerOptions = [
   { value: 'Não se Aplica', labelKey: 'answerNotApplicable', colorClass: 'bg-gray-400' },
 ];
 
+const CLEAR_SELECTION_VALUE = '__CLEAR_SELECTION__';
+
 
 const Pergunta = React.memo(({
   secaoIndex,
@@ -466,13 +468,19 @@ const Pergunta = React.memo(({
         {(pergunta.tipo === 'select' || pergunta.tipo === 'select_with_photo') ? (
           <div className="space-y-3">
             <Select
-              onValueChange={(value) => handleAnswerChange(secaoIndex, perguntaIndex, 'resposta', value)}
-              value={respostaAtual.resposta || ''}
+              onValueChange={(value) => handleAnswerChange(
+                secaoIndex,
+                perguntaIndex,
+                'resposta',
+                value === CLEAR_SELECTION_VALUE ? '' : value,
+              )}
+              value={respostaAtual.resposta || undefined}
             >
               <SelectTrigger className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}>
                 <SelectValue placeholder={t.chooseOption} />
               </SelectTrigger>
               <SelectContent className={isDark ? 'bg-gray-800 text-white' : ''}>
+                <SelectItem value={CLEAR_SELECTION_VALUE}>{t.clear}</SelectItem>
                 {(pergunta.opcoes && pergunta.opcoes.length > 0) ? (
                     pergunta.opcoes.map((opcao, idx) => ( // Now 'opcao' is an object {texto, cor}
                         <SelectItem key={idx} value={opcao.texto}>
