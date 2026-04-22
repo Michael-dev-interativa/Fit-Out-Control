@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, ArrowLeft, Edit2, Upload, X, Info, Plus, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useOfflinePhoto } from '@/lib/useOfflinePhoto';
+import { useFormDraft } from '@/lib/useFormDraft';
+import DraftBanner from '@/components/DraftBanner';
 import { toast } from 'sonner';
 
 export default function EditarVistoriaTecnica() {
@@ -22,10 +24,15 @@ export default function EditarVistoriaTecnica() {
     const { uploadPhoto, resolveDataForSave } = useOfflinePhoto();
 
     const [empreendimento, setEmpreendimento] = useState(null);
-    const [formData, setFormData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [initialLoaded, setInitialLoaded] = useState(false);
     const [uploadingFoto, setUploadingFoto] = useState(false);
+    const { formData, setFormData, clearDraft, hasDraft, draftSavedAt } = useFormDraft(
+        `vistoria-tecnica-editar-${vistoriaId}`,
+        null
+    );
+
     const [showEditCoverDialog, setShowEditCoverDialog] = useState(false);
     const [coverData, setCoverData] = useState({
         titulo_capa: 'RELATÓRIO',
@@ -52,7 +59,11 @@ export default function EditarVistoriaTecnica() {
             try {
                 const data = await base44.entities.VistoriaTecnica.get(vistoriaId);
                 if (!data) throw new Error("Vistoria não encontrada.");
-                setFormData(data);
+                // Só sobrescreve com dados do servidor se não houver draft local
+                if (!hasDraft) {
+                    setFormData(data);
+                }
+                setInitialLoaded(true);
                 setCoverData({
                     titulo_capa: data.titulo_capa || 'RELATÓRIO',
                     subtitulo_capa: data.subtitulo_capa || 'Vistoria Técnica',
@@ -126,6 +137,7 @@ export default function EditarVistoriaTecnica() {
                 dataToSave.data_vistoria = dataToSave.data_vistoria + 'T12:00:00';
             }
             await base44.entities.VistoriaTecnica.update(vistoriaId, dataToSave);
+            clearDraft();
             toast.success("Vistoria técnica atualizada com sucesso!");
             navigate(createPageUrl(`EmpreendimentoVistoriaTecnica?empreendimentoId=${empreendimentoId || formData.id_empreendimento}`));
         } catch (error) {
@@ -136,13 +148,11 @@ export default function EditarVistoriaTecnica() {
         }
     };
 
-    if (loading) return (
+    if (loading || !formData) return (
         <div className="flex items-center justify-center min-h-screen">
             <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
         </div>
     );
-
-    if (!formData) return null;
 
     return (
         <div className="p-6 max-w-6xl mx-auto">
@@ -160,6 +170,8 @@ export default function EditarVistoriaTecnica() {
                     </Button>
                 </div>
             </div>
+
+            <DraftBanner draftSavedAt={draftSavedAt} hasDraft={hasDraft} onClearDraft={() => { clearDraft(); window.location.reload(); }} />
 
             <form onSubmit={handleSubmit} className="space-y-6">
 

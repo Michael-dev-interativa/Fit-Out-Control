@@ -16,6 +16,17 @@ import { toast } from 'sonner';
 
 const isValidId = (id) => id && typeof id === 'string' && id.length > 0;
 
+// Evita o problema de fuso: strings 'YYYY-MM-DD' são tratadas como UTC,
+// causando 1 dia a menos no Brasil. Adicionar 'T12:00:00' força horário local.
+const parseLocalDate = (dateStr) => {
+    if (!dateStr) return null;
+    const s = String(dateStr);
+    // Se já tem hora (ex: ISO com T), usa direto
+    if (s.includes('T')) return new Date(s);
+    // Se é só data, fixa ao meio-dia para evitar offset de fuso
+    return new Date(s + 'T12:00:00');
+};
+
 const escapeHtml = (unsafe) => {
   if (!unsafe && unsafe !== 0) return '';
   return String(unsafe)
@@ -67,7 +78,7 @@ const toCssUnit = (value, fallback, defaultUnit = 'px') => {
 
 // ── CAPA ──────────────────────────────────────────────────────────────────────
 const CoverPage = ({ relatorio, empreendimento }) => {
-    const year = new Date(relatorio?.data_vistoria || Date.now()).getFullYear();
+    const year = (relatorio?.data_vistoria ? parseLocalDate(relatorio.data_vistoria) : new Date()).getFullYear();
     const redColor = '#CE2D2D';
     const empFoto = empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
     const logoUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png";
@@ -181,7 +192,7 @@ const DadosPage = ({ relatorio, empreendimento }) => (
                 </tr>
                 <tr>
                     <td className="border border-black p-2 font-bold bg-gray-50">Data da Vistoria</td>
-                    <td className="border border-black p-2">{relatorio?.data_vistoria ? format(new Date(relatorio.data_vistoria), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</td>
+                    <td className="border border-black p-2">{relatorio?.data_vistoria ? format(parseLocalDate(relatorio.data_vistoria), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</td>
                     <td className="border border-black p-2 font-bold bg-gray-50">Revisão</td>
                     <td className="border border-black p-2">{relatorio?.revisao || '-'}</td>
                 </tr>
@@ -193,7 +204,7 @@ const DadosPage = ({ relatorio, empreendimento }) => (
                     <td className="border border-black p-2 font-bold bg-gray-50">Consultor Responsável</td>
                     <td className="border border-black p-2 whitespace-pre-wrap">{relatorio?.consultor_responsavel || '-'}</td>
                     <td className="border border-black p-2 font-bold bg-gray-50">Data do Relatório</td>
-                    <td className="border border-black p-2">{relatorio?.data_relatorio ? format(new Date(relatorio.data_relatorio), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</td>
+                    <td className="border border-black p-2">{relatorio?.data_relatorio ? format(parseLocalDate(relatorio.data_relatorio), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</td>
                 </tr>
             </tbody>
         </table>
@@ -302,33 +313,6 @@ const FotoInspecao = ({ url, legenda }) => {
     );
 };
 
-const getTopicName = (local) => {
-    if (!local || typeof local !== 'object') return 'Inspeção Técnica';
-    return (
-        local.nome_topico ||
-        local.nomeTopico ||
-        local.tipo ||
-        local.topico ||
-        'Inspeção Técnica'
-    );
-};
-
-const getLocalDisplayName = (local) => {
-    if (!local || typeof local !== 'object') return '';
-    return (
-        local.nome_local_exibicao ||
-        local.nomeLocalExibicao ||
-        local.nome_local ||
-        local.nomeLocal ||
-        local.local ||
-        local.ambiente ||
-        local.nome ||
-        local.titulo_local ||
-        local.tituloLocal ||
-        ''
-    );
-};
-
 // ── PÁGINA DE INSPEÇÃO ────────────────────────────────────────────────────────
 const ContentPage = ({ segments, isFirstPage = false, alreadyRenderedTopics = new Set() }) => (
     <div className="px-4 pt-6 pb-4">
@@ -341,26 +325,19 @@ const ContentPage = ({ segments, isFirstPage = false, alreadyRenderedTopics = ne
                     const renderedTopics = new Set(alreadyRenderedTopics);
                     return segments.map((segment, sIdx) => {
                         const { local, items, showHeader } = segment;
-                        const prevSegment = sIdx > 0 ? segments[sIdx - 1] : null;
-                        const localChangedWithinPage = !prevSegment || prevSegment.localIndex !== segment.localIndex;
-                        const mustShowHeader = showHeader || localChangedWithinPage;
-                        const tableItems = items.filter((item) => item.tipo !== 'comentario' && item.tipo !== 'foto_local_extra' && item.tipo !== 'local_vazio');
-                        const showTableHeader = tableItems.some((item) => !item.showOnlyPhotos);
-                        const hasTableRows = tableItems.length > 0;
-                        const topicName = String(getTopicName(local) || 'Inspeção Técnica').trim();
-                        const localDisplayName = String(getLocalDisplayName(local) || '').trim();
-                        const topicKey = topicName;
-                        const showTopicHeader = mustShowHeader && !renderedTopics.has(topicKey);
+                        const showTableHeader = items.length > 0 && items.some((item) => item.tipo !== 'comentario' && !item.showOnlyPhotos);
+                        const topicKey = (local?.nome_topico || local?.tipo || 'Inspeção Técnica').trim();
+                        const showTopicHeader = showHeader && !renderedTopics.has(topicKey);
                         if (showTopicHeader) renderedTopics.add(topicKey);
                         return (
-                            <div key={`${segment.localIndex}-${sIdx}`} className={mustShowHeader ? 'mt-0' : 'mt-3'}>
-                                {mustShowHeader && (
+                            <div key={`${segment.localIndex}-${sIdx}`} className={showHeader ? 'mt-0' : 'mt-3'}>
+                                {showHeader && (
                                     <>
                                         {showTopicHeader && (
-                                            <div className="text-sm font-bold mb-2 pt-3 pb-1 text-gray-700 uppercase tracking-widest border-b-2 border-gray-400">{topicName}</div>
+                                            <div className="text-sm font-bold mb-2 pt-3 pb-1 text-gray-700 uppercase tracking-widest border-b-2 border-gray-400">{local.nome_topico || local.nome_local || 'Inspeção Técnica'}</div>
                                         )}
-                                        {localDisplayName && (
-                                            <div className="mb-2 text-xs font-bold text-gray-800 bg-gray-100 border border-gray-400 px-3 py-2 uppercase tracking-wide">{localDisplayName}</div>
+                                        {(local.nome_local_exibicao || local.nome_local) && (
+                                            <div className="mb-2 text-xs font-bold text-gray-900 bg-gray-300 border border-gray-600 px-3 py-2 uppercase tracking-wide">{local.nome_local_exibicao || local.nome_local}</div>
                                         )}
                                         {local.fotos && local.fotos.length > 0 && (
                                             <div className="mb-3 border border-black p-2">
@@ -372,7 +349,7 @@ const ContentPage = ({ segments, isFirstPage = false, alreadyRenderedTopics = ne
                                         </>
                                         )}
                                         {/* Descrição Geral antes das fotos extras e comentários */}
-                                        {mustShowHeader && local.descricao_geral && (
+                                        {showHeader && local.descricao_geral && (
                                         <div className="mb-2 border border-black p-2 text-xs whitespace-pre-wrap"><strong>Descrição Geral: </strong>{local.descricao_geral}</div>
                                         )}
                                         {/* Fotos extras do local (além das 9 do cabeçalho) — renderizadas fora da tabela */}
@@ -390,18 +367,17 @@ const ContentPage = ({ segments, isFirstPage = false, alreadyRenderedTopics = ne
                                                 <div>{items.find(item => item.tipo === 'comentario')?.comentarios || ''}</div>
                                             </div>
                                         )}
-                                        {hasTableRows && (
-                                        <table className="w-full border-collapse text-xs table-fixed">
+                                        {items.filter(item => item.tipo !== 'comentario' && item.tipo !== 'foto_local_extra').length > 0 && <table className="w-full border-collapse text-xs table-fixed">
                                         {showTableHeader && (
                                             <thead>
                                                 <tr className="bg-gray-100">
-                                                    <th className="border border-black p-2 text-left">Descrição</th>
-                                                    <th className="border border-black p-2 text-center" style={{ width: '50px' }}>Status</th>
+                                                    <th className="border border-black p-2 text-left" style={{ width: '88%' }}>Descrição</th>
+                                                    <th className="border border-black p-2 text-center" style={{ width: '12%' }}>Status</th>
                                                 </tr>
                                             </thead>
                                         )}
                                         <tbody>
-                                            {tableItems.map((item, idx) => {
+                                            {items.filter(item => item.tipo !== 'comentario' && item.tipo !== 'foto_local_extra').map((item, idx) => {
                                             if (item.tipo === 'topico') {
                                                 return (
                                                     <tr key={idx}>
@@ -425,14 +401,14 @@ const ContentPage = ({ segments, isFirstPage = false, alreadyRenderedTopics = ne
                                             return (
                                                 <React.Fragment key={idx}>
                                                     <tr data-item-group={`item-${idx}`}>
-                                                        <td className="border border-black p-2 align-top font-semibold text-xs">{item.descricao}</td>
-                                                        <td className="border border-black p-2 text-center align-top" style={{ width: '50px' }}>
+                                                        <td className="border border-black p-2 align-top font-semibold text-xs" style={{ width: '88%' }}>{item.descricao}</td>
+                                                        <td className="border border-black p-2 text-center align-top" style={{ width: '12%' }}>
                                                             {item.resultado && <span style={{ color: statusColor, fontWeight: 'bold', fontSize: '11px' }}>{item.resultado}</span>}
                                                         </td>
                                                     </tr>
                                                     {item.observacoes && (
                                                         <tr data-item-group={`item-${idx}`}>
-                                                            <td colSpan="2" className="border border-black px-3 py-2 text-xs text-gray-700 whitespace-pre-wrap bg-gray-50"><div className="font-semibold text-gray-500 mb-1">Comentários:</div>{item.observacoes}</td>
+                                                            <td colSpan="2" className="border border-black px-3 py-2 text-xs text-gray-700 bg-gray-50" style={{whiteSpace:'pre-wrap', wordBreak:'break-word', overflowWrap:'break-word'}}><div className="font-semibold text-gray-500 mb-1">Comentários:</div>{item.observacoes}</td>
                                                         </tr>
                                                     )}
                                                     {item.fotos && item.fotos.length > 0 && (
@@ -446,8 +422,7 @@ const ContentPage = ({ segments, isFirstPage = false, alreadyRenderedTopics = ne
                                             );
                                         })}
                                     </tbody>
-                                </table>
-                                )}
+                                </table>}
                             </div>
                         );
                     });
@@ -650,8 +625,8 @@ const QuadrosGeraisPage = ({ quadro, itens, showTitle = true, showQuadroHeader =
                 <table className="w-full border-collapse text-xs table-fixed mb-2">
                     <thead>
                         <tr className="bg-gray-100">
-                            <th className="border border-black p-2 text-left">Descrição</th>
-                            <th className="border border-black p-2 text-center" style={{width:'50px'}}>Status</th>
+                            <th className="border border-black p-2 text-left" style={{width:'88%'}}>Descrição</th>
+                            <th className="border border-black p-2 text-center" style={{width:'12%'}}>Status</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -697,11 +672,11 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
                     <div className="text-right" style={{ flex: 1, paddingLeft: '8px' }}>
                         <h2 className="text-[10px] font-bold text-gray-800 uppercase truncate">{relatorio?.titulo_relatorio || 'VISTORIA TÉCNICA'}</h2>
                         <p className="text-[9px] text-gray-600 truncate">{empreendimento?.nome_empreendimento} - {relatorio?.cliente}</p>
-                        <p className="text-[9px] font-medium text-gray-800">{relatorio?.data_vistoria ? format(new Date(relatorio.data_vistoria), 'dd/MM/yyyy', { locale: ptBR }) : ''}</p>
+                        <p className="text-[9px] font-medium text-gray-800">{relatorio?.data_vistoria ? format(parseLocalDate(relatorio.data_vistoria), 'dd/MM/yyyy', { locale: ptBR }) : ''}</p>
                     </div>
                 </div>
             )}
-            <div className="page-content" style={{ paddingTop: HEADER, paddingBottom: isCover ? '0px' : FOOTER, height: isCover ? '100%' : 'auto', overflow: 'hidden', maxWidth: '100%' }}>
+            <div className="page-content" style={{ paddingTop: HEADER, paddingBottom: isCover ? '0px' : FOOTER, height: isCover ? '100%' : 'auto', overflow: 'hidden', maxWidth: '100%', maxHeight: '297mm' }}>
                 {children}
             </div>
             {!isCover && (
@@ -769,19 +744,20 @@ export default function VisualizarVistoriaTecnica() {
     );
 
     const estimateFirstPageExtra = (local) => {
-            // Base: titulo do local + thead + diferenca de padding entre paginas
-            let extra = 66;
-            if (getLocalDisplayName(local)) extra += 26;
-      if (local.fotos && local.fotos.length > 0) {
-        const rows = Math.ceil(local.fotos.length / 3);
-                // 220px imagem + legenda eventual + espacamentos
-                extra += rows * 248;
-      }
-      if (local.descricao_geral) {
-        const lines = Math.ceil((local.descricao_geral.length || 0) / 85);
-        extra += 24 + lines * 16;
-      }
-      return extra;
+        // Base: titulo do topico + padding
+        let extra = 50;
+        // Nome do local exibicao (sub-header cinza)
+        if (local.nome_local_exibicao || local.nome_local) extra += 32;
+        if (local.fotos && local.fotos.length > 0) {
+            const rows = Math.ceil(local.fotos.length / 3);
+            // 220px imagem + legenda eventual + espacamentos
+            extra += rows * 248 + 16;
+        }
+        if (local.descricao_geral) {
+            const lines = Math.ceil((local.descricao_geral.length || 0) / 85);
+            extra += 24 + lines * 16;
+        }
+        return extra;
     };
 
     const hasLocais = relatorio.locais && relatorio.locais.length > 0;
@@ -800,8 +776,23 @@ export default function VisualizarVistoriaTecnica() {
         : [];
     const hasAssinaturas = relatorio.assinaturas && relatorio.assinaturas.length > 0 &&
         relatorio.assinaturas.some(ass => (ass.nome && ass.nome.trim() !== '') || (ass.parte && ass.parte.trim() !== '') || (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== ''));
+        // Normaliza os locais: garante que nome_topico e nome_local_exibicao estejam preenchidos
+        const locaisNormalizados = (relatorio.locais || []).map(local => {
+            const normalized = { ...local };
+            // nome_topico = nome do tópico/seção (header azul escuro)
+            if (!normalized.nome_topico) {
+                normalized.nome_topico = normalized.nome_local || '';
+            }
+            // Para sub-locais: se nome_local_exibicao não foi preenchido mas nome_local tem valor
+            // (caso de locais criados antes da separação dos campos), usa nome_local como fallback
+            if (!normalized.nome_local_exibicao && normalized.nome_local && normalized.is_sub_local) {
+                normalized.nome_local_exibicao = normalized.nome_local;
+            }
+            return normalized;
+        });
+
         const contentPages = hasLocais
-                ? paginateLocaisFlowForVistoriaTecnica(relatorio.locais, {
+                ? paginateLocaisFlowForVistoriaTecnica(locaisNormalizados, {
                         pageHeightPx: 1122,
                         headerHeightPx: 80,
                         footerHeightPx: 45,
@@ -1197,10 +1188,11 @@ export default function VisualizarVistoriaTecnica() {
                     .lg\\:pl-72 { padding-left: 0 !important; }
                     *::-webkit-scrollbar { display: none !important; }
                     .report-container { max-width: none !important; margin: 0 !important; padding: 0 !important; width: 210mm !important; }
-                    .report-page { page-break-after: always; page-break-inside: avoid; width: 210mm !important; height: 297mm !important; margin: 0 !important; box-shadow: none !important; overflow: hidden !important; }
+                    .report-page { page-break-after: always; page-break-inside: avoid; width: 210mm !important; height: 297mm !important; max-height: 297mm !important; margin: 0 !important; box-shadow: none !important; overflow: hidden !important; }
                     .report-page:last-child { page-break-after: auto; }
-                    table { table-layout: fixed !important; width: 100% !important; max-width: 100% !important; }
-                    td, th { overflow: hidden !important; word-wrap: break-word !important; word-break: break-word !important; }
+                    .page-content { overflow: hidden !important; max-height: 297mm !important; }
+                    table { table-layout: fixed !important; width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; }
+                    td, th { overflow: hidden !important; word-wrap: break-word !important; word-break: break-word !important; overflow-wrap: break-word !important; }
                     img { max-width: 100% !important; }
                     .foto-inspecao-container { height: 220px !important; width: 100% !important; overflow: hidden !important; max-width: 100% !important; }
                     .report-page .foto-inspecao-img { height: 100% !important; object-fit: cover !important; width: 100% !important; display: block !important; }
