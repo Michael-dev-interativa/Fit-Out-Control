@@ -510,11 +510,13 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
             if (instalacao && instalacao.itens && instalacao.itens.length > 0) {
                 const paginatedItems = paginateInstallationItems(instalacao);
                 paginatedItems.forEach((pageData, pageIndex) => {
+                    const isLastInstPage = pageIndex === paginatedItems.length - 1;
                     contentPages.push([{
                         type: 'instalacao',
                         items: pageData.items,
-                        comentarios: pageData.items.some((item) => item.tipo === 'comentario' || item.isComentarioGeral) ? null : (pageIndex === paginatedItems.length - 1 ? instalacao.comentarios : null),
-                        showHeader: pageData.isFirstPageOfLocal
+                        comentarios: pageData.items.some((item) => item.tipo === 'comentario' || item.isComentarioGeral) ? null : (isLastInstPage ? instalacao.comentarios : null),
+                        showHeader: pageData.isFirstPageOfLocal,
+                        remainingHeightPx: isLastInstPage ? (pageData.pageMap?.remainingHeightPx ?? 0) : 0,
                     }]);
                 });
             }
@@ -524,7 +526,45 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
     const hasAssinaturas = relatorio.assinaturas && relatorio.assinaturas.length > 0 &&
         relatorio.assinaturas.some(ass => (ass.nome && ass.nome.trim() !== '') || (ass.parte && ass.parte.trim() !== '') || (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== ''));
 
-    const totalPages = 1 + (hasDocumentacao ? 1 : 0) + contentPages.length + 1 + (hasAssinaturas ? 1 : 0);
+    // Mede a altura de ObservacoesGerais + Conclusão para decidir se cabem na última página de conteúdo
+    const measureObsAndConclusaoHeight = () => {
+        if (typeof document === 'undefined' || !document.body) return 500;
+        const escHtml = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const tempDiv = document.createElement('div');
+        tempDiv.style.cssText = 'position:absolute;visibility:hidden;width:190mm;box-sizing:border-box;font-family:Inter,Poppins,sans-serif;font-size:12px;';
+        tempDiv.innerHTML = `
+            <div style="padding:16px 16px 8px;">
+                <div style="font-size:1.25rem;font-weight:bold;text-align:center;background:#1e3a8a;color:white;padding:8px;margin-bottom:8px;">Observações Gerais</div>
+                <div style="border:1px solid #000;padding:4px 8px;font-weight:700;font-size:12px;background:#f3f4f6;">Observações Gerais:</div>
+                <div style="border:1px solid #000;border-top:0;padding:8px;font-size:12px;white-space:pre-wrap;word-break:break-word;min-height:60px;">${escHtml(relatorio.observacoes_gerais)}</div>
+            </div>
+            <div style="padding:0 16px 16px;">
+                <div style="font-size:1.25rem;font-weight:bold;text-align:center;background:#1e3a8a;color:white;padding:8px;margin-bottom:12px;">Conclusão</div>
+                <div style="border:1px solid #ccc;padding:10px 14px;">
+                    <p style="font-weight:bold;font-size:12px;margin-bottom:8px;">1ª Vistoria</p>
+                    <div style="font-size:12px;margin-bottom:5px;">☐ Aprovado com totalidade</div>
+                    <div style="font-size:12px;margin-bottom:5px;">☐ Aprovado com ressalvas</div>
+                    <div style="font-size:12px;margin-bottom:5px;">☐ Reprovado</div>
+                </div>
+                <div style="padding:12px;background:#f9fafb;border:1px solid #ccc;font-size:12px;margin-top:12px;">
+                    <p style="font-weight:bold;margin-bottom:4px;">Observação:</p>
+                    <p>Em caso de sistema não aprovado com totalidade na 1ª vistoria, a inspeção deverá ser refeita para confirmação de correções e aprovação com totalidade.</p>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(tempDiv);
+        const h = tempDiv.offsetHeight;
+        document.body.removeChild(tempDiv);
+        return h + 24;
+    };
+
+    const lastContentPage = contentPages[contentPages.length - 1];
+    const lastSection = lastContentPage ? lastContentPage[lastContentPage.length - 1] : null;
+    const lastPageRemainingPx = lastSection?.remainingHeightPx ?? 0;
+    const obsAndConclusaoHeightPx = measureObsAndConclusaoHeight();
+    const inlineObsAndConclusao = contentPages.length > 0 && lastPageRemainingPx >= obsAndConclusaoHeightPx;
+
+    const totalPages = 1 + (hasDocumentacao ? 1 : 0) + contentPages.length + (inlineObsAndConclusao ? 0 : 1) + (hasAssinaturas ? 1 : 0);
     let currentPage = 1;
 
     const handlePrint = async () => {
@@ -569,16 +609,27 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                                 )}
                             </div>
                         ))}
+                        {inlineObsAndConclusao && index === contentPages.length - 1 && (
+                            <>
+                                <ObservacoesGeraisPage observacoes={relatorio.observacoes_gerais} />
+                                <ConclusaoPage
+                                    conclusaoR01={relatorio.conclusao_r01 || relatorio.conclusao}
+                                    conclusaoR02={relatorio.conclusao_r02 || relatorio.conclusao}
+                                />
+                            </>
+                        )}
                     </ReportPageLayout>
                 ))}
 
-                <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                    <ObservacoesGeraisPage observacoes={relatorio.observacoes_gerais} />
-                    <ConclusaoPage
-                        conclusaoR01={relatorio.conclusao_r01 || relatorio.conclusao}
-                        conclusaoR02={relatorio.conclusao_r02 || relatorio.conclusao}
-                    />
-                </ReportPageLayout>
+                {!inlineObsAndConclusao && (
+                    <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+                        <ObservacoesGeraisPage observacoes={relatorio.observacoes_gerais} />
+                        <ConclusaoPage
+                            conclusaoR01={relatorio.conclusao_r01 || relatorio.conclusao}
+                            conclusaoR02={relatorio.conclusao_r02 || relatorio.conclusao}
+                        />
+                    </ReportPageLayout>
+                )}
 
                 {hasAssinaturas && (
                     <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
