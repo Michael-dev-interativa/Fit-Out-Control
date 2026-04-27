@@ -561,7 +561,7 @@ function PagesContent() {
 
                     <Route path="/VisualizarAprovacaoAmostra" element={<VisualizarAprovacaoAmostra />} />
 
-                    <Route path="/EmpreendimentoVistoriasTerminalidade" element={<EmpreendimentoVistoriasTerminalidade />} />
+                    <Route path="/EmpreendimentoVistoriasTerminalidade" element={<EmpreendimentoNaoConformidades />} />
 
                     <Route path="/EmpreendimentoAtaReuniao" element={<EmpreendimentoAtaReuniao />} />
                     <Route path="/empreendimentoatareuniao" element={<EmpreendimentoAtaReuniao />} />
