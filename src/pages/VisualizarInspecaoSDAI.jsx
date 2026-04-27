@@ -230,7 +230,92 @@ const CentraisInfoPage = ({ centrais }) => {
     );
 };
 
+const ComentarioBlock = ({ texto }) => (
+    <div className="comentario-block" style={{ pageBreakInside: 'auto', breakInside: 'auto' }}>
+        <div className="border border-black px-2 py-1 font-bold text-xs bg-gray-100">Comentários:</div>
+        <div className="border border-black border-t-0 px-2 py-1 text-xs whitespace-pre-wrap bg-gray-50" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{texto}</div>
+    </div>
+);
+
 const InstalacaoPage = ({ itens_instalacao, comentarios_instalacao, showHeader = true }) => {
+    // Separar itens em grupos: itens normais/fotos formam blocos de tabela, comentários ficam fora
+    const grupos = [];
+    let currentTableItems = [];
+
+    (itens_instalacao || []).forEach((item, idx) => {
+        const isComentario = item.tipo === 'comentario' || item.isComentarioGeral;
+        if (isComentario) {
+            if (currentTableItems.length > 0) {
+                grupos.push({ type: 'table', items: currentTableItems });
+                currentTableItems = [];
+            }
+            grupos.push({ type: 'comentario', texto: item.texto || item.comentarios || '', key: idx });
+        } else {
+            currentTableItems.push({ ...item, key: idx });
+        }
+    });
+    if (currentTableItems.length > 0) {
+        grupos.push({ type: 'table', items: currentTableItems });
+    }
+
+    const renderTableItems = (items, showTableHeader) => (
+        <table className="w-full border-collapse text-xs mb-0" style={{ tableLayout: 'fixed' }}>
+            {showTableHeader && (
+                <thead>
+                    <tr className="bg-gray-100">
+                        <th className="border border-black p-1 text-left" style={{ width: '46%' }}>Item de verificação</th>
+                        <th className="border border-black p-1 text-center" style={{ width: '7%' }}>Ok</th>
+                        <th className="border border-black p-1 text-center" style={{ width: '7%' }}>N.A.</th>
+                        <th className="border border-black p-1 text-center" style={{ width: '7%' }}>N/OK</th>
+                        <th className="border border-black p-1 text-left" style={{ width: '33%' }}>Comentário</th>
+                    </tr>
+                </thead>
+            )}
+            <tbody>
+                {items.map((item, idx) => {
+                    if (item.showOnlyPhotos) {
+                        return (
+                            <tr key={item.key ?? idx}>
+                                <td colSpan="5" className="border border-black p-1 pt-3">
+                                    <div className="text-xs text-gray-600 italic mb-2">{item.descricao}</div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min((item.fotos || []).length || 1, 3)}, 1fr)`, gap: '4px', maxWidth: '100%', alignItems: 'stretch' }}>
+                                        {(item.fotos || []).map((foto, fotoIdx) => (
+                                            <FotoInstalacao key={fotoIdx} url={foto.url} legenda={foto.legenda} />
+                                        ))}
+                                    </div>
+                                </td>
+                            </tr>
+                        );
+                    }
+                    return (
+                        <React.Fragment key={item.key ?? idx}>
+                            <tr>
+                                <td className="border border-black p-1" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.item_verificacao || item.descricao}</td>
+                                <td className="border border-black p-1 text-center">{item.resultado === 'OK' ? '☑' : '☐'}</td>
+                                <td className="border border-black p-1 text-center">{item.resultado === 'NA' ? '☑' : '☐'}</td>
+                                <td className="border border-black p-1 text-center">{item.resultado === 'N/OK' ? '☑' : '☐'}</td>
+                                <td className="border border-black p-1" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.comentario || item.observacoes || ''}</td>
+                            </tr>
+                            {item.fotos && item.fotos.length > 0 && (
+                                <tr>
+                                    <td colSpan="5" className="border border-black p-1">
+                                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(item.fotos.length, 3)}, 1fr)`, gap: '4px', maxWidth: '100%', alignItems: 'stretch' }}>
+                                            {item.fotos.map((foto, fotoIdx) => (
+                                                <FotoInstalacao key={fotoIdx} url={foto.url} legenda={foto.legenda} />
+                                            ))}
+                                        </div>
+                                    </td>
+                                </tr>
+                            )}
+                        </React.Fragment>
+                    );
+                })}
+            </tbody>
+        </table>
+    );
+
+    let firstTableRendered = false;
+
     return (
         <div className="px-4 pt-2 pb-2">
             {showHeader && (
@@ -239,79 +324,15 @@ const InstalacaoPage = ({ itens_instalacao, comentarios_instalacao, showHeader =
                     <p className="text-[9px] text-gray-600 italic mb-1">Tique se for OK ✓, NA - Não se aplica. Caso contrário, faça um comentário.</p>
                 </>
             )}
-            <table className="w-full border-collapse text-xs mb-2" style={{ tableLayout: 'fixed' }}>
-                <thead>
-                    <tr className="bg-gray-100">
-                        <th className="border border-black p-1 text-left" style={{ width: '50%' }}>Item de verificação</th>
-                        <th className="border border-black p-1 text-center" style={{ width: '8%' }}>Ok</th>
-                        <th className="border border-black p-1 text-center" style={{ width: '8%' }}>N/OK</th>
-                        <th className="border border-black p-1 text-center" style={{ width: '8%' }}>N.A.</th>
-                        <th className="border border-black p-1 text-left" style={{ width: '26%' }}>Comentário</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {(itens_instalacao || []).map((item, idx) => {
-                        const isComentario = item.tipo === 'comentario' || item.isComentarioGeral;
-
-                        if (isComentario) {
-                            return (
-                                <React.Fragment key={idx}>
-                                    <tr className="bg-gray-100">
-                                        <td colSpan="5" className="border border-black p-1 font-bold text-xs">Comentários:</td>
-                                    </tr>
-                                    <tr className="bg-gray-50">
-                                        <td colSpan="5" className="border border-black p-1 text-xs whitespace-pre-wrap" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.texto || item.comentarios || ''}</td>
-                                    </tr>
-                                </React.Fragment>
-                            );
-                        }
-
-                        if (item.showOnlyPhotos) {
-                            return (
-                                <tr key={idx}>
-                                    <td colSpan="5" className="border border-black p-1 pt-3">
-                                        <div className="text-xs text-gray-600 italic mb-2">{item.descricao}</div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min((item.fotos || []).length || 1, 3)}, 1fr)`, gap: '4px', maxWidth: '100%', alignItems: 'stretch' }}>
-                                            {(item.fotos || []).map((foto, fotoIdx) => (
-                                                <FotoInstalacao key={fotoIdx} url={foto.url} legenda={foto.legenda} />
-                                            ))}
-                                        </div>
-                                    </td>
-                                </tr>
-                            );
-                        }
-
-                        return (
-                            <React.Fragment key={idx}>
-                                <tr>
-                                    <td className="border border-black p-1" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.item_verificacao || item.descricao}</td>
-                                    <td className="border border-black p-1 text-center">{item.resultado === 'OK' ? '☑' : '☐'}</td>
-                                    <td className="border border-black p-1 text-center">{item.resultado === 'N/OK' ? '☑' : '☐'}</td>
-                                    <td className="border border-black p-1 text-center">{item.resultado === 'NA' ? '☑' : '☐'}</td>
-                                    <td className="border border-black p-1" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.comentario || item.observacoes || ''}</td>
-                                </tr>
-                                {item.fotos && item.fotos.length > 0 && (
-                                    <tr>
-                                        <td colSpan="5" className="border border-black p-1">
-                                            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(item.fotos.length, 3)}, 1fr)`, gap: '4px', maxWidth: '100%', alignItems: 'stretch' }}>
-                                                {item.fotos.map((foto, fotoIdx) => (
-                                                    <FotoInstalacao key={fotoIdx} url={foto.url} legenda={foto.legenda} />
-                                                ))}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )}
-                            </React.Fragment>
-                        );
-                    })}
-                </tbody>
-            </table>
-            {comentarios_instalacao && (
-                <>
-                    <h4 className="text-sm font-bold mb-1 bg-gray-100 p-1 border border-black">Comentários:</h4>
-                    <div className="border border-black p-1 text-xs min-h-[30px] whitespace-pre-wrap" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{comentarios_instalacao}</div>
-                </>
-            )}
+            {grupos.map((grupo, gIdx) => {
+                if (grupo.type === 'table') {
+                    const showHead = !firstTableRendered || gIdx === 0;
+                    firstTableRendered = true;
+                    return <div key={gIdx} className="mb-0">{renderTableItems(grupo.items, true)}</div>;
+                }
+                return <ComentarioBlock key={grupo.key} texto={grupo.texto} />;
+            })}
+            {comentarios_instalacao && <ComentarioBlock texto={comentarios_instalacao} />}
         </div>
     );
 };
@@ -353,8 +374,11 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
 const ObservacoesGeraisPage = ({ observacoes }) => {
     return (
         <div className="p-4">
-            <h2 className="text-xl font-bold text-center mb-4 bg-blue-900 text-white p-2">Observações Gerais</h2>
-            <div className="border border-black p-4 text-sm min-h-[100px]" style={{ wordWrap: 'break-word', overflowWrap: 'break-word', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{observacoes || ''}</div>
+            <h2 className="text-xl font-bold text-center mb-2 bg-blue-900 text-white p-2">Observações Gerais</h2>
+            <div className="observacoes-block" style={{ pageBreakInside: 'auto', breakInside: 'auto' }}>
+                <div className="border border-black px-2 py-1 font-bold text-xs bg-gray-100">Observações Gerais:</div>
+                <div className="border border-black border-t-0 px-2 py-2 text-xs whitespace-pre-wrap" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word', minHeight: '60px' }}>{observacoes || ''}</div>
+            </div>
         </div>
     );
 };
@@ -651,6 +675,8 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     img { max-width: 100%; }
                     table { page-break-inside: auto; }
                     tr { page-break-inside: avoid; }
+                    .comentario-block { page-break-inside: auto; }
+                    .observacoes-block { page-break-inside: auto; }
                 }
                 
                 @media screen {

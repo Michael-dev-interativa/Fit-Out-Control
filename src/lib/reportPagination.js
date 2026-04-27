@@ -139,7 +139,7 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
     if (!supportsDOM) {
       if (item.tipo === 'comentario' || item.isComentarioGeral) {
         const len = (item.texto || item.comentarios || '').length;
-        return Math.max(40, ITEM_BUFFER_PX + Math.ceil(len / 120) * 18);
+        return Math.max(64, ITEM_BUFFER_PX + 28 + Math.ceil(len / 100) * 18);
       }
 
       const descricaoLen = (item.descricao || '').length;
@@ -166,7 +166,9 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
     let inner = '';
     if (item.tipo === 'comentario' || item.isComentarioGeral) {
       const text = item.texto || item.comentarios || '';
-      inner = `<div style="border:1px solid #000; padding:8px; font-size:11px; line-height:1.2; white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere;">${escapeHtml(text)}</div>`;
+      inner = '';
+      inner += '<div style="border:1px solid #000; padding:4px 8px; font-weight:700; font-size:12px; line-height:1.2; background:#f3f4f6;">Comentários:</div>';
+      inner += `<div style="border:1px solid #000; border-top:0; padding:4px 8px; font-size:12px; line-height:1.2; white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere; background:#f9fafb;">${escapeHtml(text)}</div>`;
     } else if (item.showOnlyPhotos) {
       const fotos = item.fotos || [];
       const hasLabel = !!(item.descricao && String(item.descricao).trim());
