@@ -230,10 +230,10 @@ const CentraisInfoPage = ({ centrais }) => {
     );
 };
 
-const ComentarioBlock = ({ texto }) => (
+const ComentarioBlock = ({ texto, isNotFirstChunk }) => (
     <div className="comentario-block" style={{ pageBreakInside: 'auto', breakInside: 'auto' }}>
-        <div className="border border-black px-2 py-1 font-bold text-xs bg-gray-100">Comentários:</div>
-        <div className="border border-black border-t-0 px-2 py-1 text-xs whitespace-pre-wrap bg-gray-50" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{texto}</div>
+        {!isNotFirstChunk && <div className="border border-black px-2 py-1 font-bold text-xs bg-gray-100">Comentários:</div>}
+        <div className={`border border-black ${!isNotFirstChunk ? 'border-t-0 ' : ''}px-2 py-1 text-xs whitespace-pre-wrap bg-gray-50`} style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{texto}</div>
     </div>
 );
 
@@ -249,7 +249,7 @@ const InstalacaoPage = ({ itens_instalacao, comentarios_instalacao, showHeader =
                 grupos.push({ type: 'table', items: currentTableItems });
                 currentTableItems = [];
             }
-            grupos.push({ type: 'comentario', texto: item.texto || item.comentarios || '', key: idx });
+            grupos.push({ type: 'comentario', texto: item.texto || item.comentarios || '', key: idx, isNotFirstChunk: item.isNotFirstChunk });
         } else {
             currentTableItems.push({ ...item, key: idx });
         }
@@ -330,7 +330,7 @@ const InstalacaoPage = ({ itens_instalacao, comentarios_instalacao, showHeader =
                     firstTableRendered = true;
                     return <div key={gIdx} className="mb-0">{renderTableItems(grupo.items, true)}</div>;
                 }
-                return <ComentarioBlock key={grupo.key} texto={grupo.texto} />;
+                return <ComentarioBlock key={grupo.key} texto={grupo.texto} isNotFirstChunk={grupo.isNotFirstChunk} />;
             })}
             {comentarios_instalacao && <ComentarioBlock texto={comentarios_instalacao} />}
         </div>

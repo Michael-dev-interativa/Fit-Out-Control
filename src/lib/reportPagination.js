@@ -167,8 +167,10 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
     if (item.tipo === 'comentario' || item.isComentarioGeral) {
       const text = item.texto || item.comentarios || '';
       inner = '';
-      inner += '<div style="border:1px solid #000; padding:4px 8px; font-weight:700; font-size:12px; line-height:1.2; background:#f3f4f6;">Comentários:</div>';
-      inner += `<div style="border:1px solid #000; border-top:0; padding:4px 8px; font-size:12px; line-height:1.2; white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere; background:#f9fafb;">${escapeHtml(text)}</div>`;
+      if (!item.isNotFirstChunk) {
+        inner += '<div style="border:1px solid #000; padding:4px 8px; font-weight:700; font-size:12px; line-height:1.2; background:#f3f4f6;">Comentários:</div>';
+      }
+      inner += `<div style="border:1px solid #000; ${!item.isNotFirstChunk ? 'border-top:0; ' : ''}padding:4px 8px; font-size:12px; line-height:1.2; white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere; background:#f9fafb;">${escapeHtml(text)}</div>`;
     } else if (item.showOnlyPhotos) {
       const fotos = item.fotos || [];
       const hasLabel = !!(item.descricao && String(item.descricao).trim());
@@ -208,6 +210,37 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
     return height;
   };
 
+  const splitComentarioIfNeeded = (item) => {
+    const fullHeight = measureItemHeight(item);
+    const fullPageLimit = getBottomLimit(false);
+    if (fullHeight <= fullPageLimit) return [item];
+
+    const texto = item.comentarios || item.texto || '';
+    const lines = texto.split('\n');
+    if (lines.length <= 1) return [item];
+
+    const chunks = [];
+    let currentLines = [];
+
+    for (const line of lines) {
+      const testLines = [...currentLines, line];
+      const testItem = { ...item, comentarios: testLines.join('\n'), isNotFirstChunk: chunks.length > 0 };
+      if (currentLines.length > 0 && measureItemHeight(testItem) > fullPageLimit) {
+        chunks.push(currentLines.join('\n'));
+        currentLines = [line];
+      } else {
+        currentLines = testLines;
+      }
+    }
+    if (currentLines.length > 0) chunks.push(currentLines.join('\n'));
+
+    return chunks.map((chunkText, i) => ({
+      ...item,
+      comentarios: chunkText,
+      isNotFirstChunk: i > 0,
+    }));
+  };
+
   const allItems = [];
   for (const originalItem of (local.itens_inspecao || [])) {
     const fotos = (originalItem.fotos || []).filter((foto) => foto && typeof foto.url === 'string' && foto.url.trim() !== '');
@@ -244,7 +277,8 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
   }
 
   if (local.comentarios) {
-    allItems.push({ tipo: 'comentario', comentarios: local.comentarios, isComentarioGeral: true });
+    const comentarioItem = { tipo: 'comentario', comentarios: local.comentarios, isComentarioGeral: true };
+    allItems.push(...splitComentarioIfNeeded(comentarioItem));
   }
 
   let currentPage = [];
