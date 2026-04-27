@@ -168,9 +168,9 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
       const text = item.texto || item.comentarios || '';
       inner = '';
       if (!item.isNotFirstChunk) {
-        inner += '<div style="border:1px solid #000; padding:4px 8px; font-weight:700; font-size:12px; line-height:1.2; background:#f3f4f6;">Comentários:</div>';
+        inner += '<div style="border:1px solid #000; padding:4px 8px; font-weight:700; font-size:12px; line-height:1.4; background:#f3f4f6;">Comentários:</div>';
       }
-      inner += `<div style="border:1px solid #000; ${!item.isNotFirstChunk ? 'border-top:0; ' : ''}padding:4px 8px; font-size:12px; line-height:1.2; white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere; background:#f9fafb;">${escapeHtml(text)}</div>`;
+      inner += `<div style="border:1px solid #000; ${!item.isNotFirstChunk ? 'border-top:0; ' : ''}padding:4px 8px; font-size:12px; line-height:1.4; white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere; background:#f9fafb;">${escapeHtml(text)}</div>`;
     } else if (item.showOnlyPhotos) {
       const fotos = item.fotos || [];
       const hasLabel = !!(item.descricao && String(item.descricao).trim());
@@ -212,7 +212,8 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
 
   const splitComentarioIfNeeded = (item) => {
     const fullHeight = measureItemHeight(item);
-    const fullPageLimit = getBottomLimit(false);
+    // Usa 88% do limite para compensar discrepâncias de renderização entre tela e impressão
+    const fullPageLimit = Math.floor(getBottomLimit(false) * 0.88);
     if (fullHeight <= fullPageLimit) return [item];
 
     const texto = item.comentarios || item.texto || '';
@@ -328,9 +329,14 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
       itemHeight = 28 + (fotos > 0 ? (fotoRows * 160) : 0);
     }
 
+    // Para itens de comentário, aplica fator de segurança na decisão de quebra de página
+    // para compensar diferenças de renderização entre tela e impressão (line-height, DPI)
+    const isComentarioItem = item.tipo === 'comentario' || item.isComentarioGeral || item.isNotFirstChunk;
+    const effectiveHeight = isComentarioItem ? Math.ceil(itemHeight * 1.12) : itemHeight;
+
     const isFirstPage = pages.length === 0;
     const bottomLimit = getBottomLimit(isFirstPage);
-    const projectedHeight = currentHeight + itemHeight;
+    const projectedHeight = currentHeight + effectiveHeight;
     const remainingAfterProjection = bottomLimit - projectedHeight;
     const shouldBreakBeforeItem = currentPage.length > 0 && (projectedHeight > bottomLimit || remainingAfterProjection < BREAK_BEFORE_LIMIT_PX);
 
