@@ -210,6 +210,38 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
     return height;
   };
 
+  const splitComentarioIfNeeded = (item) => {
+    const fullHeight = measureItemHeight(item);
+    // Usa 88% do limite para compensar discrepâncias de renderização entre tela e impressão
+    const fullPageLimit = Math.floor(getBottomLimit(false) * 0.88);
+    if (fullHeight <= fullPageLimit) return [item];
+
+    const texto = item.comentarios || item.texto || '';
+    const lines = texto.split('\n');
+    if (lines.length <= 1) return [item];
+
+    const chunks = [];
+    let currentLines = [];
+
+    for (const line of lines) {
+      const testLines = [...currentLines, line];
+      const testItem = { ...item, comentarios: testLines.join('\n'), isNotFirstChunk: chunks.length > 0 };
+      if (currentLines.length > 0 && measureItemHeight(testItem) > fullPageLimit) {
+        chunks.push(currentLines.join('\n'));
+        currentLines = [line];
+      } else {
+        currentLines = testLines;
+      }
+    }
+    if (currentLines.length > 0) chunks.push(currentLines.join('\n'));
+
+    return chunks.map((chunkText, i) => ({
+      ...item,
+      comentarios: chunkText,
+      isNotFirstChunk: i > 0,
+    }));
+  };
+
   const allItems = [];
   for (const originalItem of (local.itens_inspecao || [])) {
     const fotos = (originalItem.fotos || []).filter((foto) => foto && typeof foto.url === 'string' && foto.url.trim() !== '');
@@ -246,47 +278,9 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
   }
 
   if (local.comentarios) {
-    allItems.push({ tipo: 'comentario', comentarios: local.comentarios, isComentarioGeral: true });
+    const comentarioItem = { tipo: 'comentario', comentarios: local.comentarios, isComentarioGeral: true };
+    allItems.push(...splitComentarioIfNeeded(comentarioItem));
   }
-
-  const splitCommentToFitHeight = (item, availableHeightPx) => {
-    const texto = item.comentarios || item.texto || '';
-    const lines = texto.split('\n');
-    if (lines.length <= 1) return null;
-
-    const targetHeightPx = Math.floor(availableHeightPx);
-    const minimumStartHeightPx = item.isNotFirstChunk ? 70 : 96;
-    if (targetHeightPx < minimumStartHeightPx) return null;
-
-    let fittingCount = 0;
-
-    for (let i = 0; i < lines.length; i += 1) {
-      const candidateItem = {
-        ...item,
-        comentarios: lines.slice(0, i + 1).join('\n'),
-      };
-
-      if (measureItemHeight(candidateItem) <= targetHeightPx) {
-        fittingCount = i + 1;
-      } else {
-        break;
-      }
-    }
-
-    if (fittingCount <= 0 || fittingCount >= lines.length) return null;
-
-    return [
-      {
-        ...item,
-        comentarios: lines.slice(0, fittingCount).join('\n'),
-      },
-      {
-        ...item,
-        comentarios: lines.slice(fittingCount).join('\n'),
-        isNotFirstChunk: true,
-      },
-    ];
-  };
 
   let currentPage = [];
   let currentHeight = 0;
@@ -312,8 +306,7 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
   if (typeof opts === 'number') firstPageMaxItems = opts;
   else if (opts && typeof opts.firstPageMaxItems === 'number') firstPageMaxItems = opts.firstPageMaxItems;
 
-  for (let itemIndex = 0; itemIndex < allItems.length; itemIndex += 1) {
-    const item = allItems[itemIndex];
+  for (const item of allItems) {
     // If configured, enforce an item-count cap on the first page of this local
     if (pages.length === 0 && typeof firstPageMaxItems === 'number' && currentPage.length >= firstPageMaxItems) {
       pages.push({
@@ -336,6 +329,8 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
       itemHeight = 28 + (fotos > 0 ? (fotoRows * 160) : 0);
     }
 
+    // Para itens de comentário, aplica fator de segurança na decisão de quebra de página
+    // para compensar diferenças de renderização entre tela e impressão (line-height, DPI)
     const isComentarioItem = item.tipo === 'comentario' || item.isComentarioGeral || item.isNotFirstChunk;
     const effectiveHeight = isComentarioItem ? Math.ceil(itemHeight * 1.12) : itemHeight;
 
@@ -343,20 +338,7 @@ export function paginateLocalItemsForPrinting(local, opts = {}) {
     const bottomLimit = getBottomLimit(isFirstPage);
     const projectedHeight = currentHeight + effectiveHeight;
     const remainingAfterProjection = bottomLimit - projectedHeight;
-    const shouldBreakBeforeItem = currentPage.length > 0 && (
-      projectedHeight > bottomLimit || (!isComentarioItem && remainingAfterProjection < BREAK_BEFORE_LIMIT_PX)
-    );
-
-    if (isComentarioItem && projectedHeight > bottomLimit) {
-      const availableHeightPx = bottomLimit - currentHeight;
-      const splitItems = splitCommentToFitHeight(item, availableHeightPx);
-
-      if (splitItems) {
-        allItems.splice(itemIndex, 1, ...splitItems);
-        itemIndex -= 1;
-        continue;
-      }
-    }
+    const shouldBreakBeforeItem = currentPage.length > 0 && (projectedHeight > bottomLimit || remainingAfterProjection < BREAK_BEFORE_LIMIT_PX);
 
     if (shouldBreakBeforeItem) {
       pages.push({

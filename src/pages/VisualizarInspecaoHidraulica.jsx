@@ -168,7 +168,7 @@ const FotoInspecao = ({ url, legenda, maxHeight = '66mm' }) => {
   // URL já vem comprimida pelo compressReportImages
   return (
     <div className="text-center foto-inspecao" style={{ overflow: 'hidden', boxSizing: 'border-box' }}>
-      <img src={url} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: '250px', objectFit: 'cover', border: '1px solid #ddd', display: 'block' }} />
+      <img src={url} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: '225px', objectFit: 'cover', border: '1px solid #ddd', display: 'block' }} />
       {legenda && (
         <p className="text-[9px] text-gray-600 mt-1">{legenda}</p>
       )}
@@ -210,7 +210,7 @@ const ContentPage = ({ local, itensSlice, showHeader = true }) => {
                   return (
                     <tr key={idx} className="bg-gray-50 no-break-inside">
                       <td className="border border-black p-2 font-bold">Comentários:</td>
-                      <td className="border border-black p-2" colSpan="4">{item.texto || ''}</td>
+                      <td className="border border-black p-2 whitespace-pre-wrap" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }} colSpan="4">{item.texto || ''}</td>
                     </tr>
                   );
                 }
@@ -220,7 +220,10 @@ const ContentPage = ({ local, itensSlice, showHeader = true }) => {
                     <tr key={idx}>
                       <td colSpan="5" className="border border-black p-2 pt-4">
                         <div className="text-xs text-gray-600 italic mb-2">{item.descricao}</div>
-                        <div className="grid grid-cols-3 gap-2 photos-grid">
+                        <div
+                          className="grid gap-2 photos-grid"
+                          style={{ gridTemplateColumns: `repeat(${Math.max(1, Math.min(item.fotos.length, 3))}, 1fr)` }}
+                        >
                           {item.fotos.map((foto, fotoIdx) => (
                             <FotoInspecao key={`${idx}-foto-${fotoIdx}-${foto.url}`} url={foto.url} legenda={foto.legenda} />
                           ))}
@@ -233,16 +236,19 @@ const ContentPage = ({ local, itensSlice, showHeader = true }) => {
                 return (
                   <>
                     <tr key={idx} className="no-break-inside">
-                      <td className="border border-black p-2" style={{ width: '40%' }}>{item.descricao}</td>
+                      <td className="border border-black p-2 whitespace-pre-wrap" style={{ width: '40%', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{item.descricao}</td>
                       <td className="border border-black p-2 text-center" style={{ width: '7%' }}>{item.resultado === 'OK' ? '☑' : '☐'}</td>
                       <td className="border border-black p-2 text-center" style={{ width: '7%' }}>{item.resultado === 'N/OK' ? '☑' : '☐'}</td>
                       <td className="border border-black p-2 text-center" style={{ width: '7%' }}>{item.resultado === 'NA' ? '☑' : '☐'}</td>
-                      <td className="border border-black p-2" style={{ width: '39%' }}>{item.observacoes || ''}</td>
+                      <td className="border border-black p-2 whitespace-pre-wrap" style={{ width: '39%', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{item.observacoes || ''}</td>
                     </tr>
                     {item.fotos && item.fotos.length > 0 && (
                       <tr key={`${idx}-fotos`}>
                         <td colSpan="5" className="border border-black p-2">
-                          <div className="grid grid-cols-3 gap-2 photos-grid">
+                          <div
+                            className="grid gap-2 photos-grid"
+                            style={{ gridTemplateColumns: `repeat(${Math.max(1, Math.min(item.fotos.length, 3))}, 1fr)` }}
+                          >
                             {item.fotos.map((foto, fotoIdx) => (
                               <FotoInspecao key={`item-${idx}-foto-${fotoIdx}-${foto.url}`} url={foto.url} legenda={foto.legenda} />
                             ))}
@@ -359,6 +365,7 @@ const ConclusaoPage = ({ conclusaoR01, conclusaoR02 }) => {
 
 const ReportContent = ({ relatorio, empreendimento, navigate }) => {
   const [isPrintingMode, setIsPrintingMode] = useState(false);
+  const TAIL_PAGE_LIMIT_PX = 980;
 
   const hasDocumentacao = relatorio.itens_documentacao && relatorio.itens_documentacao.length > 0;
   const hasAssinaturas = relatorio.assinaturas && relatorio.assinaturas.length > 0 &&
@@ -369,10 +376,10 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
     headerHeightPx: 80,
     footerHeightPx: 45,
     pagePaddingPx: 12,
-    footerGuardPx: 16,
-    breakBeforeLimitPx: 20,
-    itemBufferPx: 10,
-    photoMaxHeightPx: 250,
+    footerGuardPx: 18,
+    breakBeforeLimitPx: 22,
+    itemBufferPx: 16,
+    photoMaxHeightPx: 255,
     maxPhotosPerItem: 6,
     splitPhotoRows: true,
     photoChunkSize: 3,
@@ -385,7 +392,120 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
     ? relatorio.locais.flatMap((local) => paginateLocalItems(local))
     : [];
 
-  const totalPages = 1 + (hasDocumentacao ? 1 : 0) + contentPages.length + 1 + (hasAssinaturas ? 1 : 0);
+  const measureObservacoesHeight = (texto) => {
+    if (typeof document === 'undefined' || !document.body) {
+      const content = String(texto || '');
+      return Math.max(220, 180 + Math.ceil(content.length / 110) * 18);
+    }
+
+    const escapeHtml = (value) => String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    const tempDiv = document.createElement('div');
+    tempDiv.style.cssText = 'position:absolute;visibility:hidden;width:190mm;box-sizing:border-box;font-family:Inter,Poppins,sans-serif;font-size:12px;left:-9999px;';
+    tempDiv.innerHTML = `
+      <div style="padding:16px;">
+        <div style="font-size:1.25rem;font-weight:bold;text-align:center;background:#1e3a8a;color:white;padding:8px;margin-bottom:16px;">Observações Gerais</div>
+        <div style="border:1px solid #000;padding:16px;font-size:14px;line-height:1.4;white-space:pre-wrap;word-break:break-word;min-height:100px;">${escapeHtml(texto)}</div>
+      </div>
+    `;
+    document.body.appendChild(tempDiv);
+    const height = tempDiv.offsetHeight;
+    document.body.removeChild(tempDiv);
+    return height + 16;
+  };
+
+  const measureConclusaoHeight = () => {
+    if (typeof document === 'undefined' || !document.body) return 260;
+
+    const tempDiv = document.createElement('div');
+    tempDiv.style.cssText = 'position:absolute;visibility:hidden;width:190mm;box-sizing:border-box;font-family:Inter,Poppins,sans-serif;font-size:12px;left:-9999px;';
+    tempDiv.innerHTML = `
+      <div style="padding:0 16px 16px;">
+        <div style="font-size:1.25rem;font-weight:bold;text-align:center;background:#1e3a8a;color:white;padding:8px;margin-bottom:12px;">Conclusão</div>
+        <div style="border:1px solid #ccc;padding:10px 14px;min-height:110px;"></div>
+        <div style="padding:12px;background:#f9fafb;border:1px solid #ccc;margin-top:12px;min-height:56px;"></div>
+      </div>
+    `;
+    document.body.appendChild(tempDiv);
+    const height = tempDiv.offsetHeight;
+    document.body.removeChild(tempDiv);
+    return height + 20;
+  };
+
+  const splitObservacoesIntoChunks = (texto, maxHeightPx) => {
+    const normalizedText = String(texto || '').trim();
+    if (!normalizedText) return [''];
+    if (measureObservacoesHeight(normalizedText) <= maxHeightPx) return [normalizedText];
+
+    const baseLines = normalizedText.split('\n').filter((line, index, arr) => line.trim() !== '' || (index > 0 && arr[index - 1].trim() !== ''));
+    const tokens = baseLines.length > 1 ? baseLines : normalizedText.split(/(?<=[.!?;])\s+/);
+    const joinTokens = (items) => (baseLines.length > 1 ? items.join('\n').trim() : items.join(' ').trim());
+
+    const chunks = [];
+    let currentTokens = [];
+
+    for (const token of tokens) {
+      const candidateTokens = [...currentTokens, token];
+      const candidateText = joinTokens(candidateTokens);
+
+      if (currentTokens.length > 0 && measureObservacoesHeight(candidateText) > maxHeightPx) {
+        chunks.push(joinTokens(currentTokens));
+        currentTokens = [token];
+      } else {
+        currentTokens = candidateTokens;
+      }
+    }
+
+    if (currentTokens.length > 0) {
+      chunks.push(joinTokens(currentTokens));
+    }
+
+    const isNumericMarkerLine = (line) => /^\d+\.$/.test(String(line || '').trim());
+
+    // Avoid leaving section markers like "09." alone at the page bottom.
+    for (let i = 0; i < chunks.length - 1; i += 1) {
+      const currentLines = String(chunks[i] || '').split('\n');
+
+      while (currentLines.length > 0 && currentLines[currentLines.length - 1].trim() === '') {
+        currentLines.pop();
+      }
+
+      if (currentLines.length === 0) continue;
+
+      const lastLine = currentLines[currentLines.length - 1];
+      if (!isNumericMarkerLine(lastLine)) continue;
+
+      currentLines.pop();
+      chunks[i] = currentLines.join('\n').trim();
+      chunks[i + 1] = `${lastLine.trim()}\n${String(chunks[i + 1] || '').trim()}`.trim();
+    }
+
+    return chunks.filter(Boolean);
+  };
+
+  const conclusaoHeightPx = measureConclusaoHeight();
+  const observacoesChunks = splitObservacoesIntoChunks(relatorio.observacoes_gerais, TAIL_PAGE_LIMIT_PX);
+  const tailPages = [];
+
+  if (observacoesChunks.length === 1 && (measureObservacoesHeight(observacoesChunks[0]) + conclusaoHeightPx) <= TAIL_PAGE_LIMIT_PX) {
+    tailPages.push({ observacoes: observacoesChunks[0], includeConclusao: true });
+  } else {
+    observacoesChunks.forEach((chunk, index) => {
+      const isLastChunk = index === observacoesChunks.length - 1;
+      const chunkHeight = measureObservacoesHeight(chunk);
+      const includeConclusao = isLastChunk && (chunkHeight + conclusaoHeightPx) <= TAIL_PAGE_LIMIT_PX;
+      tailPages.push({ observacoes: chunk, includeConclusao });
+    });
+
+    if (!tailPages[tailPages.length - 1]?.includeConclusao) {
+      tailPages.push({ observacoes: null, includeConclusao: true });
+    }
+  }
+
+  const totalPages = 1 + (hasDocumentacao ? 1 : 0) + contentPages.length + tailPages.length + (hasAssinaturas ? 1 : 0);
   let currentPage = 1;
 
   const handlePrint = async () => {
@@ -425,10 +545,12 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
           </ReportPageLayout>
         ))}
 
-        <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-          <ObservacoesGeraisPage observacoes={relatorio.observacoes_gerais} />
-          <ConclusaoPage conclusaoR01={relatorio?.conclusao_r01} conclusaoR02={relatorio?.conclusao_r02} />
-        </ReportPageLayout>
+        {tailPages.map((tailPage, index) => (
+          <ReportPageLayout key={`tail-${index}`} pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+            {tailPage.observacoes !== null && <ObservacoesGeraisPage observacoes={tailPage.observacoes} />}
+            {tailPage.includeConclusao && <ConclusaoPage conclusaoR01={relatorio?.conclusao_r01} conclusaoR02={relatorio?.conclusao_r02} />}
+          </ReportPageLayout>
+        ))}
 
         {hasAssinaturas && (
           <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
@@ -523,15 +645,14 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                       -moz-column-break-inside: avoid !important;
                     }
 
-                    /* Make the photo grid an atomic block so browser will move it to next page if it doesn't fit */
+                    /* Keep photo groups together without reserving excessive blank space at page bottom */
                     .photos-grid {
                       page-break-inside: avoid !important;
                       break-inside: avoid !important;
                       -webkit-column-break-inside: avoid !important;
                       -moz-column-break-inside: avoid !important;
-                      margin-bottom: 12mm; /* safe space for footer */
+                      margin-bottom: 2mm;
                       display: grid;
-                      grid-template-columns: repeat(3, 1fr);
                       gap: 8px;
                     }
 
@@ -543,14 +664,14 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     .photos-grid img {
                       width: 100%;
                       max-width: 100%;
-                      height: auto !important;
-                      max-height: 66mm !important;
-                      object-fit: contain;
+                      height: 225px !important;
+                      max-height: 225px !important;
+                      object-fit: cover;
                       display: block;
                       border: 1px solid #ddd;
                     }
 
-                    /* Ensure content area reserves space for footer on print */
+                    /* Ensure content area reserves only the footer height on print */
                     .page-content { padding-bottom: 11.9mm !important; box-sizing: border-box !important; overflow: hidden !important; }
                     
                     .report-page:last-child { page-break-after: auto; }

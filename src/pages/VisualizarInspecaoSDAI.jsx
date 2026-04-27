@@ -293,11 +293,11 @@ const InstalacaoPage = ({ itens_instalacao, comentarios_instalacao, showHeader =
                     return (
                         <React.Fragment key={item.key ?? idx}>
                             <tr>
-                                <td className="border border-black p-1" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.item_verificacao || item.descricao}</td>
+                                <td className="border border-black p-1" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'pre-wrap' }}>{item.item_verificacao || item.descricao}</td>
                                 <td className="border border-black p-1 text-center">{item.resultado === 'OK' ? '☑' : '☐'}</td>
                                 <td className="border border-black p-1 text-center">{item.resultado === 'NA' ? '☑' : '☐'}</td>
                                 <td className="border border-black p-1 text-center">{item.resultado === 'N/OK' ? '☑' : '☐'}</td>
-                                <td className="border border-black p-1" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.comentario || item.observacoes || ''}</td>
+                                <td className="border border-black p-1" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'pre-wrap' }}>{item.comentario || item.observacoes || ''}</td>
                             </tr>
                             {item.fotos && item.fotos.length > 0 && (
                                 <tr>
@@ -649,8 +649,8 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                         {inlineConclusao && index === contentPages.length - 1 && (
                             <>
                                 <ConclusaoPage
-                                    conclusaoR01={relatorio.conclusao_r01 || relatorio.conclusao}
-                                    conclusaoR02={relatorio.conclusao_r02 || relatorio.conclusao}
+                                    conclusaoR01={relatorio.conclusao_1_vistoria || relatorio.conclusao_r01 || relatorio.conclusao}
+                                    conclusaoR02={relatorio.conclusao_2_vistoria || relatorio.conclusao_r02 || relatorio.conclusao}
                                 />
                             </>
                         )}
@@ -673,8 +673,8 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                                 return (
                                     <ConclusaoPage
                                         key={`tail-conc-${blockIndex}`}
-                                        conclusaoR01={relatorio.conclusao_r01 || relatorio.conclusao}
-                                        conclusaoR02={relatorio.conclusao_r02 || relatorio.conclusao}
+                                        conclusaoR01={relatorio.conclusao_1_vistoria || relatorio.conclusao_r01 || relatorio.conclusao}
+                                        conclusaoR02={relatorio.conclusao_2_vistoria || relatorio.conclusao_r02 || relatorio.conclusao}
                                     />
                                 );
                             }

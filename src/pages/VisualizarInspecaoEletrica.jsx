@@ -344,7 +344,7 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
     const isCover = pageNumber === 1;
 
     return (
-        <div className="report-page" style={{ height: PAGE_HEIGHT, boxSizing: 'border-box', pageBreakAfter: 'always', WebkitPageBreakAfter: 'always', breakAfter: 'page', overflow: 'hidden' }}>
+        <div className="report-page" style={{ height: PAGE_HEIGHT, boxSizing: 'border-box', overflow: 'hidden' }}>
             {!isCover && (
                 <div className="flex justify-between items-center border-b border-gray-200 bg-white" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: HEADER_HEIGHT, zIndex: 100, padding: '4px 8px', maxWidth: '210mm', boxSizing: 'border-box' }}>
                     <img src={logoHorizontalUrl} alt="Logo Interativa Engenharia" style={{ height: '32px', maxWidth: '120px', objectFit: 'contain' }} />
@@ -436,6 +436,7 @@ const ConclusaoPage = ({ conclusaoR01, conclusaoR02 }) => {
 
 const ReportContent = ({ relatorio, empreendimento, navigate }) => {
     const [isPrintingMode, setIsPrintingMode] = useState(false);
+    const TAIL_PAGE_LIMIT_PX = 980;
 
     const hasDocumentacao = relatorio.itens_documentacao && relatorio.itens_documentacao.length > 0;
 
@@ -467,7 +468,128 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
     const hasAssinaturas = relatorio.assinaturas && relatorio.assinaturas.length > 0 &&
         relatorio.assinaturas.some(ass => (ass.nome && ass.nome.trim() !== '') || (ass.parte && ass.parte.trim() !== '') || (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== ''));
 
-    const totalPages = 1 + (hasDocumentacao && !combineDocWithContent ? 1 : 0) + contentPages.length + 1 + (hasAssinaturas ? 1 : 0);
+    const measureObservacoesHeight = (texto) => {
+        if (typeof document === 'undefined' || !document.body) {
+            const content = String(texto || '');
+            return Math.max(220, 180 + Math.ceil(content.length / 110) * 18);
+        }
+
+        const escapeHtml = (value) => String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+
+        const tempDiv = document.createElement('div');
+        tempDiv.style.cssText = 'position:absolute;visibility:hidden;width:190mm;box-sizing:border-box;font-family:Inter,Poppins,sans-serif;font-size:12px;left:-9999px;';
+        tempDiv.innerHTML = `
+            <div style="padding:16px;">
+                <div style="font-size:1.25rem;font-weight:bold;text-align:center;background:#1e3a8a;color:white;padding:8px;margin-bottom:16px;">Observações Gerais</div>
+                <div style="border:1px solid #000;padding:16px;font-size:12px;white-space:pre-wrap;word-break:break-word;min-height:100px;">${escapeHtml(texto)}</div>
+            </div>
+        `;
+        document.body.appendChild(tempDiv);
+        const height = tempDiv.offsetHeight;
+        document.body.removeChild(tempDiv);
+        return height + 16;
+    };
+
+    const measureConclusaoHeight = () => {
+        if (typeof document === 'undefined' || !document.body) return 260;
+
+        const tempDiv = document.createElement('div');
+        tempDiv.style.cssText = 'position:absolute;visibility:hidden;width:190mm;box-sizing:border-box;font-family:Inter,Poppins,sans-serif;font-size:12px;left:-9999px;';
+        tempDiv.innerHTML = `
+            <div style="padding:0 16px 16px;">
+                <div style="font-size:1.25rem;font-weight:bold;text-align:center;background:#1e3a8a;color:white;padding:8px;margin-bottom:12px;">Conclusão</div>
+                <div style="border:1px solid #ccc;padding:10px 14px;min-height:110px;"></div>
+                <div style="padding:12px;background:#f9fafb;border:1px solid #ccc;margin-top:12px;min-height:56px;"></div>
+            </div>
+        `;
+        document.body.appendChild(tempDiv);
+        const height = tempDiv.offsetHeight;
+        document.body.removeChild(tempDiv);
+        return height + 20;
+    };
+
+    const splitObservacoesIntoChunks = (texto, maxHeightPx) => {
+        const normalizedText = String(texto || '').trim();
+        if (!normalizedText) return [''];
+        if (measureObservacoesHeight(normalizedText) <= maxHeightPx) return [normalizedText];
+
+        const baseLines = normalizedText.includes('\n')
+            ? normalizedText.split('\n')
+            : normalizedText.split(/(?<=[.!?;])\s+/);
+        const tokens = baseLines.length > 1
+            ? baseLines
+            : normalizedText.split(/\s+/);
+
+        const joinTokens = (items) => {
+            if (baseLines.length > 1) return items.join('\n').trim();
+            return items.join(' ').trim();
+        };
+
+        const chunks = [];
+        let currentTokens = [];
+
+        for (const token of tokens) {
+            const candidateTokens = [...currentTokens, token];
+            const candidateText = joinTokens(candidateTokens);
+
+            if (currentTokens.length > 0 && measureObservacoesHeight(candidateText) > maxHeightPx) {
+                chunks.push(joinTokens(currentTokens));
+                currentTokens = [token];
+            } else {
+                currentTokens = candidateTokens;
+            }
+        }
+
+        if (currentTokens.length > 0) {
+            chunks.push(joinTokens(currentTokens));
+        }
+
+        const isNumericMarkerLine = (line) => /^\d+\.$/.test(String(line || '').trim());
+
+        // Avoid leaving section markers like "25." alone at the page bottom.
+        for (let i = 0; i < chunks.length - 1; i += 1) {
+            const currentLines = String(chunks[i] || '').split('\n');
+
+            while (currentLines.length > 0 && currentLines[currentLines.length - 1].trim() === '') {
+                currentLines.pop();
+            }
+
+            if (currentLines.length === 0) continue;
+
+            const lastLine = currentLines[currentLines.length - 1];
+            if (!isNumericMarkerLine(lastLine)) continue;
+
+            currentLines.pop();
+            chunks[i] = currentLines.join('\n').trim();
+            chunks[i + 1] = `${lastLine.trim()}\n${String(chunks[i + 1] || '').trim()}`.trim();
+        }
+
+        return chunks.filter(Boolean);
+    };
+
+    const conclusaoHeightPx = measureConclusaoHeight();
+    const observacoesChunks = splitObservacoesIntoChunks(relatorio.observacoes_gerais, TAIL_PAGE_LIMIT_PX);
+    const tailPages = [];
+
+    if (observacoesChunks.length === 1 && (measureObservacoesHeight(observacoesChunks[0]) + conclusaoHeightPx) <= TAIL_PAGE_LIMIT_PX) {
+        tailPages.push({ observacoes: observacoesChunks[0], includeConclusao: true });
+    } else {
+        observacoesChunks.forEach((chunk, index) => {
+            const isLastChunk = index === observacoesChunks.length - 1;
+            const chunkHeight = measureObservacoesHeight(chunk);
+            const includeConclusao = isLastChunk && (chunkHeight + conclusaoHeightPx) <= TAIL_PAGE_LIMIT_PX;
+            tailPages.push({ observacoes: chunk, includeConclusao });
+        });
+
+        if (!tailPages[tailPages.length - 1]?.includeConclusao) {
+            tailPages.push({ observacoes: null, includeConclusao: true });
+        }
+    }
+
+    const totalPages = 1 + (hasDocumentacao && !combineDocWithContent ? 1 : 0) + contentPages.length + tailPages.length + (hasAssinaturas ? 1 : 0);
     let currentPage = 1;
 
     const handlePrint = async () => {
@@ -515,13 +637,17 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     );
                 })}
 
-                <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                    <ObservacoesGeraisPage observacoes={relatorio.observacoes_gerais} />
-                    <ConclusaoPage
-                        conclusaoR01={relatorio.conclusao_r01}
-                        conclusaoR02={relatorio.conclusao_r02}
-                    />
-                </ReportPageLayout>
+                {tailPages.map((tailPage, index) => (
+                    <ReportPageLayout key={`tail-${index}`} pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+                        {tailPage.observacoes !== null && <ObservacoesGeraisPage observacoes={tailPage.observacoes} />}
+                        {tailPage.includeConclusao && (
+                            <ConclusaoPage
+                                conclusaoR01={relatorio.conclusao_r01}
+                                conclusaoR02={relatorio.conclusao_r02}
+                            />
+                        )}
+                    </ReportPageLayout>
+                ))}
 
                 {hasAssinaturas && (
                     <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
