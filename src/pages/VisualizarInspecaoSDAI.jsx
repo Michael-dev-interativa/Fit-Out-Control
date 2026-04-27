@@ -163,24 +163,27 @@ const FotoInstalacao = ({ url, legenda }) => {
     const imageUrl = getUploadUrl(url);
 
     return (
-        <div style={{ textAlign: 'center', overflow: 'hidden', marginBottom: '6px', boxSizing: 'border-box' }}>
+        <div style={{ textAlign: 'center', marginBottom: '6px', boxSizing: 'border-box' }}>
             <div
                 style={{
                     width: '100%',
                     height: '45mm',
-                    overflow: 'hidden',
                     border: '1px solid #ddd',
-                    backgroundColor: '#fff',
+                    backgroundColor: '#f9fafb',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                 }}
             >
                 <img
                     src={imageUrl}
                     alt={legenda || 'Foto da instalação'}
                     style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        objectPosition: 'center',
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        width: 'auto',
+                        height: 'auto',
+                        objectFit: 'contain',
                         display: 'block',
                     }}
                 />
