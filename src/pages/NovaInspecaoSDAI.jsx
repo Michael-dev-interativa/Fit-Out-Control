@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { Empreendimento, InspecaoSDAI } from '@/api/entities';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -120,7 +121,7 @@ export default function NovaInspecaoSDAI() {
         }
         const loadEmpreendimento = async () => {
             try {
-                const data = await base44.entities.Empreendimento.get(empreendimentoId);
+                const data = await Empreendimento.get(empreendimentoId);
                 setEmpreendimento(data);
                 setFormData(prev => ({
                     ...prev,
@@ -218,7 +219,7 @@ export default function NovaInspecaoSDAI() {
                 ...((dataToSave.centrais || []).map((_, i) => ({ tipo: 'central', indice: i })))
             ];
 
-            await base44.entities.InspecaoSDAI.create(dataToSave);
+            await InspecaoSDAI.create(dataToSave);
             clearDraft();
             toast.success("Inspeção criada com sucesso!");
             navigate(createPageUrl(`EmpreendimentoInspecaoSDAI?empreendimentoId=${empreendimentoId}`));

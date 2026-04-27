@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { InspecaoSDAI } from '@/api/entities';
 import { base44 } from '@/api/base44Client';
 import { useOfflinePhoto } from '@/lib/useOfflinePhoto';
 import { Button } from '@/components/ui/button';
@@ -88,7 +89,7 @@ export default function EditarInspecaoSDAI() {
             try {
                 let data = null;
                 try {
-                    data = await base44.entities.InspecaoSDAI.get(inspecaoIdFromUrl);
+                    data = await InspecaoSDAI.get(inspecaoIdFromUrl);
                 } catch (getError) {
                     console.error("Erro ao buscar inspeção por ID:", getError);
                 }
@@ -340,7 +341,7 @@ export default function EditarInspecaoSDAI() {
 
             // Resolve fotos offline antes de salvar
             const resolvedData = await resolveDataForSave(dataToSave);
-            await base44.entities.InspecaoSDAI.update(inspecaoId, resolvedData);
+            await InspecaoSDAI.update(inspecaoId, resolvedData);
             toast.success("Inspeção atualizada com sucesso!");
             setTimeout(() => {
                 navigate(createPageUrl(`EmpreendimentoInspecaoSDAI?empreendimentoId=${formData.id_empreendimento}`), { replace: true });
