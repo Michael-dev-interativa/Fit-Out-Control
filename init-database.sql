@@ -241,6 +241,25 @@ CREATE TABLE IF NOT EXISTS public.vistorias_terminalidade (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS public.nao_conformidades (
+    id SERIAL PRIMARY KEY,
+    id_empreendimento INTEGER REFERENCES public.empreendimentos(id) ON DELETE CASCADE,
+    data_vistoria DATE,
+    titulo_capa VARCHAR(255) DEFAULT 'RELATÓRIO',
+    subtitulo_capa VARCHAR(255) DEFAULT 'Gerenciamento de Obra',
+    texto_rodape_capa TEXT,
+    titulo_relatorio VARCHAR(255),
+    subtitulo_relatorio VARCHAR(255),
+    cliente VARCHAR(255),
+    revisao VARCHAR(100),
+    eng_obra VARCHAR(255),
+    nome_arquivo VARCHAR(255),
+    secoes JSONB,
+    assinaturas JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 
 INSERT INTO public.usuarios (email, nome, password_hash, role, perfil_cliente)
 VALUES (

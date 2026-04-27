@@ -273,6 +273,7 @@ export const VistoriaTecnica = makeEntity('vistorias-tecnicas');
 export const RelatorioPrimeirosServicos = makeEntity('relatorios-primeiros-servicos');
 export const AprovacaoAmostra = makeEntity('aprovacoes-amostra');
 export const VistoriaTerminalidade = makeEntity('vistorias-terminalidade');
+export const NaoConformidade = makeEntity('nao-conformidades');
 export const InspecaoHidrantes = makeEntity('inspecoes-hidrantes');
 export const InspecaoHidraulica = makeEntity('inspecoes-hidraulica');
 export const InspecaoSprinklers = makeEntity('inspecoes-sprinklers');
@@ -420,6 +421,7 @@ try {
   base44.entities.RelatorioSaida = RelatorioSaida;
   base44.entities.RelatorioAnaliseTecnica = RelatorioAnaliseTecnica;
   base44.entities.VistoriaTecnica = VistoriaTecnica;
+  base44.entities.NaoConformidade = NaoConformidade;
   base44.entities.InspecaoEletrica = InspecaoEletrica;
   base44.entities.InspecaoArCondicionado = InspecaoArCondicionado;
   base44.entities.InspecaoHidrantes = InspecaoHidrantes;

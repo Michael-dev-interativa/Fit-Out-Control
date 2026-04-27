@@ -556,6 +556,7 @@ const memory = {
   atividades_planejamento: [],
   execucoes: [],
   vistorias_terminalidade: [],
+  nao_conformidades: [],
   usuarios_empreendimentos: [], // { user_id, empreendimento_id }
 };
 let memoryIdSeq = 1;
@@ -5749,6 +5750,212 @@ app.delete('/api/vistorias-terminalidade/:id', async (req, res) => {
     const idx = memory.vistorias_terminalidade.findIndex(v => v.id === id);
     if (idx === -1) return res.status(404).json({ error: 'not_found' });
     memory.vistorias_terminalidade.splice(idx, 1);
+    res.json({ ok: true });
+  }
+});
+
+// ---- Não Conformidades ----
+function mapNaoConformidade(row) {
+  return {
+    id: row.id,
+    id_empreendimento: row.id_empreendimento,
+    data_vistoria: row.data_vistoria,
+    titulo_capa: row.titulo_capa,
+    subtitulo_capa: row.subtitulo_capa,
+    texto_rodape_capa: row.texto_rodape_capa,
+    titulo_relatorio: row.titulo_relatorio,
+    subtitulo_relatorio: row.subtitulo_relatorio,
+    cliente: row.cliente,
+    revisao: row.revisao,
+    eng_obra: row.eng_obra,
+    nome_arquivo: row.nome_arquivo,
+    secoes: row.secoes,
+    assinaturas: row.assinaturas,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+app.get('/api/nao-conformidades', async (req, res) => {
+  try {
+    const p = requirePool();
+    const { id_empreendimento, order } = req.query;
+    const where = [];
+    const params = [];
+    if (id_empreendimento) {
+      where.push('id_empreendimento = $' + (params.length + 1));
+      params.push(Number(id_empreendimento));
+    }
+    const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+    const orderClause = buildOrderClause(typeof order === 'string' ? order : undefined);
+    const { rows } = await p.query(`SELECT * FROM public.nao_conformidades ${whereClause} ${orderClause} `, params);
+    res.json(rows.map(mapNaoConformidade));
+  } catch (err) {
+    if (!shouldReturnEmptyOnDbError(err)) {
+      res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+      return;
+    }
+    const { id_empreendimento } = req.query;
+    let data = memory.nao_conformidades;
+    if (id_empreendimento) data = data.filter(v => Number(v.id_empreendimento) === Number(id_empreendimento));
+    res.json(data);
+  }
+});
+
+app.get('/api/nao-conformidades/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const { rows } = await p.query('SELECT * FROM public.nao_conformidades WHERE id = $1', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapNaoConformidade(rows[0]));
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.post('/api/nao-conformidades', async (req, res) => {
+  try {
+    const p = requirePool();
+    const b = req.body || {};
+    const sql = `INSERT INTO public.nao_conformidades(
+      id_empreendimento, data_vistoria, titulo_capa, subtitulo_capa,
+      texto_rodape_capa, titulo_relatorio, subtitulo_relatorio, cliente,
+      revisao, eng_obra, nome_arquivo, secoes, assinaturas
+    ) VALUES(
+      $1, $2, $3, $4,
+      $5, $6, $7, $8,
+      $9, $10, $11, $12, $13
+    ) RETURNING * `;
+    const params = [
+      b.id_empreendimento,
+      normalizeDate(b.data_vistoria) ?? null,
+      b.titulo_capa ?? null,
+      b.subtitulo_capa ?? null,
+      b.texto_rodape_capa ?? null,
+      b.titulo_relatorio ?? null,
+      b.subtitulo_relatorio ?? null,
+      b.cliente ?? null,
+      b.revisao ?? null,
+      b.eng_obra ?? null,
+      b.nome_arquivo ?? null,
+      toJson(b.secoes),
+      toJson(b.assinaturas),
+    ];
+    const { rows } = await p.query(sql, params);
+    res.status(201).json(mapNaoConformidade(rows[0]));
+  } catch (err) {
+    if (!shouldReturnEmptyOnDbError(err)) {
+      res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+      return;
+    }
+    const b = req.body || {};
+    const id = ++memoryIdSeq;
+    const payload = {
+      id,
+      id_empreendimento: Number(b.id_empreendimento),
+      data_vistoria: normalizeDate(b.data_vistoria) ?? null,
+      titulo_capa: b.titulo_capa ?? null,
+      subtitulo_capa: b.subtitulo_capa ?? null,
+      texto_rodape_capa: b.texto_rodape_capa ?? null,
+      titulo_relatorio: b.titulo_relatorio ?? null,
+      subtitulo_relatorio: b.subtitulo_relatorio ?? null,
+      cliente: b.cliente ?? null,
+      revisao: b.revisao ?? null,
+      eng_obra: b.eng_obra ?? null,
+      nome_arquivo: b.nome_arquivo ?? null,
+      secoes: b.secoes ?? null,
+      assinaturas: b.assinaturas ?? null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    memory.nao_conformidades.push(payload);
+    res.status(201).json(payload);
+  }
+});
+
+app.put('/api/nao-conformidades/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const b = req.body || {};
+    const sql = `UPDATE public.nao_conformidades SET
+    id_empreendimento = COALESCE($1, id_empreendimento),
+    data_vistoria = COALESCE($2, data_vistoria),
+    titulo_capa = COALESCE($3, titulo_capa),
+    subtitulo_capa = COALESCE($4, subtitulo_capa),
+    texto_rodape_capa = COALESCE($5, texto_rodape_capa),
+    titulo_relatorio = COALESCE($6, titulo_relatorio),
+    subtitulo_relatorio = COALESCE($7, subtitulo_relatorio),
+    cliente = COALESCE($8, cliente),
+    revisao = COALESCE($9, revisao),
+    eng_obra = COALESCE($10, eng_obra),
+    nome_arquivo = COALESCE($11, nome_arquivo),
+    secoes = COALESCE($12, secoes),
+    assinaturas = COALESCE($13, assinaturas)
+    WHERE id = $14 RETURNING * `;
+    const params = [
+      b.id_empreendimento ?? null,
+      normalizeDate(b.data_vistoria) ?? null,
+      b.titulo_capa ?? null,
+      b.subtitulo_capa ?? null,
+      b.texto_rodape_capa ?? null,
+      b.titulo_relatorio ?? null,
+      b.subtitulo_relatorio ?? null,
+      b.cliente ?? null,
+      b.revisao ?? null,
+      b.eng_obra ?? null,
+      b.nome_arquivo ?? null,
+      toJson(b.secoes),
+      toJson(b.assinaturas),
+      id,
+    ];
+    const { rows } = await p.query(sql, params);
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapNaoConformidade(rows[0]));
+  } catch (err) {
+    if (!shouldReturnEmptyOnDbError(err)) {
+      res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+      return;
+    }
+    const id = Number(req.params.id);
+    const b = req.body || {};
+    const x = memory.nao_conformidades.find(v => v.id === id);
+    if (!x) return res.status(404).json({ error: 'not_found' });
+    x.id_empreendimento = b.id_empreendimento ?? x.id_empreendimento;
+    x.data_vistoria = normalizeDate(b.data_vistoria) ?? x.data_vistoria;
+    x.titulo_capa = b.titulo_capa ?? x.titulo_capa;
+    x.subtitulo_capa = b.subtitulo_capa ?? x.subtitulo_capa;
+    x.texto_rodape_capa = b.texto_rodape_capa ?? x.texto_rodape_capa;
+    x.titulo_relatorio = b.titulo_relatorio ?? x.titulo_relatorio;
+    x.subtitulo_relatorio = b.subtitulo_relatorio ?? x.subtitulo_relatorio;
+    x.cliente = b.cliente ?? x.cliente;
+    x.revisao = b.revisao ?? x.revisao;
+    x.eng_obra = b.eng_obra ?? x.eng_obra;
+    x.nome_arquivo = b.nome_arquivo ?? x.nome_arquivo;
+    x.secoes = b.secoes ?? x.secoes;
+    x.assinaturas = b.assinaturas ?? x.assinaturas;
+    x.updated_at = new Date().toISOString();
+    res.json(x);
+  }
+});
+
+app.delete('/api/nao-conformidades/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const { rowCount } = await p.query('DELETE FROM public.nao_conformidades WHERE id = $1', [id]);
+    if (!rowCount) return res.status(404).json({ error: 'not_found' });
+    res.json({ ok: true });
+  } catch (err) {
+    if (!shouldReturnEmptyOnDbError(err)) {
+      res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+      return;
+    }
+    const id = Number(req.params.id);
+    const idx = memory.nao_conformidades.findIndex(v => v.id === id);
+    if (idx === -1) return res.status(404).json({ error: 'not_found' });
+    memory.nao_conformidades.splice(idx, 1);
     res.json({ ok: true });
   }
 });

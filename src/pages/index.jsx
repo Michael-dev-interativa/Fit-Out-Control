@@ -62,6 +62,10 @@ const NovaVistoriaTerminalidade = lazy(() => import("./NovaVistoriaTerminalidade
 const VisualizarVistoriaTerminalidade = lazy(() => import("./VisualizarVistoriaTerminalidade"));
 const EditarVistoriaTerminalidade = lazy(() => import("./EditarVistoriaTerminalidade"));
 const GaleriaVistoriaTerminalidade = lazy(() => import("./GaleriaVistoriaTerminalidade"));
+const EmpreendimentoNaoConformidades = lazy(() => import("./EmpreendimentoNaoConformidades"));
+const NovaNaoConformidade = lazy(() => import("./NovaNaoConformidade"));
+const EditarNaoConformidade = lazy(() => import("./EditarNaoConformidade"));
+const VisualizarNaoConformidade = lazy(() => import("./VisualizarNaoConformidade"));
 const EmpreendimentoRelatoriosSemanais = lazy(() => import("./EmpreendimentoRelatoriosSemanais"));
 const NovoRelatorioSemanal = lazy(() => import("./NovoRelatorioSemanal"));
 const EmpreendimentoPrimeirosServicos = lazy(() => import("./EmpreendimentoPrimeirosServicos"));
@@ -288,6 +292,14 @@ const PAGES = {
     EditarVistoriaTerminalidade: EditarVistoriaTerminalidade,
 
     GaleriaVistoriaTerminalidade: GaleriaVistoriaTerminalidade,
+
+    EmpreendimentoNaoConformidades: EmpreendimentoNaoConformidades,
+
+    NovaNaoConformidade: NovaNaoConformidade,
+
+    EditarNaoConformidade: EditarNaoConformidade,
+
+    VisualizarNaoConformidade: VisualizarNaoConformidade,
 
     EmpreendimentoVistoriaTecnica: EmpreendimentoVistoriaTecnica,
 
@@ -571,6 +583,11 @@ function PagesContent() {
                     <Route path="/EditarVistoriaTerminalidade" element={<EditarVistoriaTerminalidade />} />
 
                     <Route path="/GaleriaVistoriaTerminalidade" element={<GaleriaVistoriaTerminalidade />} />
+
+                    <Route path="/EmpreendimentoNaoConformidades" element={<EmpreendimentoNaoConformidades />} />
+                    <Route path="/NovaNaoConformidade" element={<NovaNaoConformidade />} />
+                    <Route path="/EditarNaoConformidade" element={<EditarNaoConformidade />} />
+                    <Route path="/VisualizarNaoConformidade" element={<VisualizarNaoConformidade />} />
 
                     <Route path="/EmpreendimentoVistoriaTecnica" element={<EmpreendimentoVistoriaTecnica />} />
                     <Route path="/NovaVistoriaTecnica" element={<NovaVistoriaTecnica />} />
