@@ -27,6 +27,17 @@ const parseLocalDate = (dateStr) => {
     return new Date(s + 'T12:00:00');
 };
 
+const resolvePublicAppOrigin = () => {
+    const fallbackPublicOrigin = 'https://front-fitout.onrender.com';
+    const envOrigin = import.meta.env.VITE_PUBLIC_APP_URL;
+    if (typeof envOrigin === 'string' && envOrigin.trim() !== '') return envOrigin.replace(/\/$/, '');
+    const currentOrigin = window.location.origin;
+    const host = window.location.hostname || '';
+    const isLocalOrPrivateHost = host === 'localhost' || host === '127.0.0.1' || /^10\./.test(host) || /^192\.168\./.test(host) || /^172\.(1[6-9]|2\d|3[0-1])\./.test(host);
+    if (currentOrigin.includes('backend-fitout.onrender.com') || isLocalOrPrivateHost) return fallbackPublicOrigin;
+    return currentOrigin;
+};
+
 const escapeHtml = (unsafe) => {
   if (!unsafe && unsafe !== 0) return '';
   return String(unsafe)
@@ -501,12 +512,14 @@ const NormasTecnicasPage = ({ normas }) => (
 const estimateQuadroItemHeight = (item) => {
     const descricao = String(item?.descricao || '');
     const comentarios = String(item?.comentarios || '');
-    const descricaoLines = Math.max(1, Math.ceil(descricao.length / 90));
-    const comentariosLines = comentarios ? Math.max(1, Math.ceil(comentarios.length / 95)) : 0;
+    const descricaoLines = Math.max(1, Math.ceil(descricao.length / 80));
+    const comentariosLines = comentarios ? Math.max(1, Math.ceil(comentarios.length / 90)) : 0;
 
-    let height = 34 + (descricaoLines - 1) * 14;
+    // Linha da descrição: p-2 (16px) + texto 16px = 32px base → 34px com bordas
+    let height = 34 + (descricaoLines - 1) * 16;
     if (comentarios) {
-        height += 28 + comentariosLines * 14;
+        // Label "Comentários:" (16px + mb-1 4px) + py-2 (16px) + texto = 36px overhead
+        height += 36 + comentariosLines * 16;
     }
     return height;
 };
@@ -523,9 +536,20 @@ const paginateQuadroItens = (quadro, opts = {}) => {
     const fotoRows = Math.ceil(fotosCount / 3);
     const fotosHeight = fotoRows > 0 ? (fotoRows * 248) + 12 : 0;
 
-    // Reserva conservadora do topo da pagina para evitar estouro no rodape.
-    const firstPageOverhead = 120 + fotosHeight;
-    const nextPageOverhead = 52;
+    const estimateTextBlockHeight = (text) => {
+        if (!text) return 0;
+        const lines = Math.max(1, Math.ceil(String(text).length / 88));
+        return 26 + lines * 16;
+    };
+    const comentariosGeraisHeight = estimateTextBlockHeight(quadro?.comentarios_gerais);
+    const detalhamentoTecnicoHeight = estimateTextBlockHeight(quadro?.detalhamento_tecnico);
+    // h2 "Quadros Gerais" (~34px) + space-y-6 gap (~24px) — só na primeira página do primeiro quadro
+    const titleExtraHeight = opts.showTitle ? 58 : 0;
+
+    // Reserva do topo: h3 + info block + p-4 + campos novos + fotos + título opcional
+    const firstPageOverhead = 120 + titleExtraHeight + fotosHeight + comentariosGeraisHeight + detalhamentoTecnicoHeight;
+    // h3 nome_topico (~24px) + div continuação (~36px) + p-4 top (~16px)
+    const nextPageOverhead = 80;
 
     const pageLimit = Math.max(120, PAGE_HEIGHT - HEADER - FOOTER - PADDING - FOOTER_GUARD);
     const items = Array.isArray(quadro?.itens) ? quadro.itens : [];
@@ -606,12 +630,12 @@ const QuadrosGeraisPage = ({ quadro, itens, showTitle = true, showQuadroHeader =
                         </div>
                     )}
                     {quadro?.comentarios_gerais && (
-                        <div className="border border-black border-t-0 p-2 text-xs whitespace-pre-wrap mb-2">
+                        <div className="border border-black border-t-0 p-2 text-xs whitespace-pre-wrap break-words mb-2">
                             <strong>Comentários Gerais: </strong>{quadro.comentarios_gerais}
                         </div>
                     )}
                     {quadro?.detalhamento_tecnico && (
-                        <div className="border border-black border-t-0 p-2 text-xs whitespace-pre-wrap mb-2">
+                        <div className="border border-black border-t-0 p-2 text-xs whitespace-pre-wrap break-words mb-2">
                             <strong>Detalhamento Técnico: </strong>{quadro.detalhamento_tecnico}
                         </div>
                     )}
@@ -656,6 +680,30 @@ const QuadrosGeraisPage = ({ quadro, itens, showTitle = true, showQuadroHeader =
         </div>
     </div>
 );
+
+// ── QR CODE ───────────────────────────────────────────────────────────────────
+const QRCodesPage = ({ relatorio, photosCount }) => {
+    const reportRoute = createPageUrl(`VisualizarVistoriaTecnica?vistoriaId=${relatorio?.id}&empreendimentoId=${relatorio?.id_empreendimento}`);
+    const reportUrl = `${resolvePublicAppOrigin()}/#${reportRoute}`;
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(reportUrl)}`;
+    return (
+        <div className="p-8 flex flex-col items-center justify-center h-full">
+            <h2 className="text-2xl font-bold text-gray-800 mb-8 text-center">Galeria de Imagens do Relatório</h2>
+            <div className="text-center bg-white p-8 rounded-lg shadow-lg border-2 border-gray-200 max-w-md">
+                <img src={qrCodeUrl} alt="QR Code - Relatório" className="w-72 h-72 mx-auto mb-6 rounded-lg border" />
+                <h2 className="text-2xl font-bold mb-2">Acesse o Relatório Completo</h2>
+                <p className="text-gray-600 mb-6 border-b pb-4">{photosCount} imagens no relatório</p>
+                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6">
+                    <p><strong>Escaneie o QR Code</strong> para acessar o relatório completo com todas as imagens em alta resolução.</p>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg text-left">
+                    <p className="text-xs font-semibold text-gray-700 mb-2">Link do relatório:</p>
+                    <p className="text-xs text-gray-600 break-all">{reportUrl}</p>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 // ── CONCLUSÃO ─────────────────────────────────────────────────────────────────
 
@@ -763,7 +811,7 @@ export default function VisualizarVistoriaTecnica() {
     const hasLocais = relatorio.locais && relatorio.locais.length > 0;
     const hasQuadros = relatorio.quadros_gerais && relatorio.quadros_gerais.length > 0;
     const paginatedQuadros = hasQuadros
-        ? relatorio.quadros_gerais.map((quadro) => ({
+        ? relatorio.quadros_gerais.map((quadro, qIdx) => ({
             quadro,
             itemPages: paginateQuadroItens(quadro, {
                 pageHeightPx: 1122,
@@ -771,18 +819,32 @@ export default function VisualizarVistoriaTecnica() {
                 footerHeightPx: 45,
                 pagePaddingPx: 40,
                 footerGuardPx: 22,
+                showTitle: qIdx === 0,
             }),
         }))
         : [];
     const hasAssinaturas = relatorio.assinaturas && relatorio.assinaturas.length > 0 &&
         relatorio.assinaturas.some(ass => (ass.nome && ass.nome.trim() !== '') || (ass.parte && ass.parte.trim() !== '') || (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== ''));
+    const allPhotosCount = [
+        ...(relatorio.locais || []).flatMap(l => [...(l.fotos || []), ...(l.itens || []).flatMap(i => i.fotos || [])]),
+        ...(relatorio.quadros_gerais || []).flatMap(q => [...(q.fotos || []), ...(q.itens || []).flatMap(i => i.fotos || [])]),
+    ].filter(f => f && f.url).length;
+    const hasQR = allPhotosCount > 0;
         // Normaliza os locais: garante que nome_topico e nome_local_exibicao estejam preenchidos
+        let lastTopico = '';
         const locaisNormalizados = (relatorio.locais || []).map(local => {
             const normalized = { ...local };
             // nome_topico = nome do tópico/seção (header azul escuro)
             if (!normalized.nome_topico) {
-                normalized.nome_topico = normalized.nome_local || '';
+                // Sub-local com nome_local_exibicao: herda o tópico anterior para não criar
+                // um novo cabeçalho de tópico a partir de nome_local (ex: "AMBIENTE 01")
+                if (normalized.nome_local_exibicao && lastTopico) {
+                    normalized.nome_topico = lastTopico;
+                } else {
+                    normalized.nome_topico = normalized.nome_local || '';
+                }
             }
+            if (normalized.nome_topico) lastTopico = normalized.nome_topico;
             // Para sub-locais: se nome_local_exibicao não foi preenchido mas nome_local tem valor
             // (caso de locais criados antes da separação dos campos), usa nome_local como fallback
             if (!normalized.nome_local_exibicao && normalized.nome_local && normalized.is_sub_local) {
@@ -831,7 +893,7 @@ export default function VisualizarVistoriaTecnica() {
         layoutPhotoPages.push(layoutFotosAll.slice(i, i + LAYOUT_FOTOS_PER_PAGE));
     }
     const layoutPageCount = layoutPhotoPages.length;
-    const totalPages = 1 + 1 + (hasRemainingPage ? 1 : 0) + docsNormasPageCount + layoutPageCount + contentPages.length + quadrosPageCount + (hasConclusao ? 1 : 0) + (hasAssinaturas ? 1 : 0);
+    const totalPages = 1 + 1 + (hasRemainingPage ? 1 : 0) + docsNormasPageCount + layoutPageCount + contentPages.length + quadrosPageCount + (hasConclusao ? 1 : 0) + (hasAssinaturas ? 1 : 0) + (hasQR ? 1 : 0);
     let pg = 1;
 
     const handlePrint = async () => {
@@ -1065,6 +1127,13 @@ export default function VisualizarVistoriaTecnica() {
                             (ass.parte && ass.parte.trim() !== '') ||
                             (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== '')
                         )} />
+                    </ReportPageLayout>
+                )}
+
+                {/* QR Code - Última página */}
+                {hasQR && (
+                    <ReportPageLayout pageNumber={pg++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+                        <QRCodesPage relatorio={relatorio} photosCount={allPhotosCount} />
                     </ReportPageLayout>
                 )}
             </div>

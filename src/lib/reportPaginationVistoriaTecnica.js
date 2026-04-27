@@ -18,14 +18,6 @@ export function paginateLocalItemsForVistoriaTecnica(local, opts = {}) {
   const PHOTO_CHUNK_SIZE = Math.max(1, opts.photoChunkSize || 3);
   const SPLIT_PHOTO_ROWS = opts.splitPhotoRows === true;
 
-  const getLocalItems = (localValue) => {
-    if (!localValue || typeof localValue !== 'object') return [];
-    if (Array.isArray(localValue.itens_inspecao)) return localValue.itens_inspecao;
-    if (Array.isArray(localValue.itensInspecao)) return localValue.itensInspecao;
-    if (Array.isArray(localValue.itens)) return localValue.itens;
-    return [];
-  };
-
   // Calcula altura usável da página
   const getUsableHeight = (isFirstPage) => {
     const base = PAGE_HEIGHT_PX - HEADER_HEIGHT_PX - FOOTER_HEIGHT_PX - PAGE_PADDING_PX;
@@ -143,7 +135,7 @@ export function paginateLocalItemsForVistoriaTecnica(local, opts = {}) {
     blocks.push(blockComentario);
   }
 
-  for (const originalItem of getLocalItems(local)) {
+  for (const originalItem of (local.itens_inspecao || [])) {
     const fotos = (originalItem.fotos || []).filter((foto) => foto && typeof foto.url === 'string' && foto.url.trim() !== '');
 
     if (SPLIT_PHOTO_ROWS && fotos.length > 0) {
@@ -292,16 +284,6 @@ export function paginateLocaisFlowForVistoriaTecnica(locais = [], opts = {}) {
     }
 
     const blocks = [...extraFotoBlocks, ...measured.flatMap((p) => p.items || [])];
-
-    // Garante que locais sem itens ainda sejam renderizados com cabeçalho/fotos/descrição.
-    if (blocks.length === 0) {
-      blocks.push({
-        tipo: 'local_vazio',
-        isPlaceholder: true,
-        height: 1,
-      });
-    }
-
     return {
       local: localForHeader,
       localIndex,
@@ -338,6 +320,26 @@ export function paginateLocaisFlowForVistoriaTecnica(locais = [], opts = {}) {
 
   for (const localData of normalizedLocais) {
     let hasRenderedHeader = false;
+
+    // Se o local não tem blocos (sem itens e sem comentários), ainda renderiza o cabeçalho
+    if (localData.blocks.length === 0) {
+      const headerCost = localData.firstExtra;
+      if (headerCost > 0 && usedHeight + headerCost > pageLimit && usedHeight > 0) {
+        flushCurrentPage();
+      }
+      currentPage.segments.push({
+        local: localData.local,
+        localIndex: localData.localIndex,
+        showHeader: true,
+        headerHeight: headerCost,
+        items: [],
+      });
+      usedHeight += headerCost;
+      if (usedHeight >= pageLimit) {
+        flushCurrentPage();
+      }
+      continue;
+    }
 
     for (const block of localData.blocks) {
       // Tenta encaixar o bloco na página atual; se não couber, abre nova página e tenta novamente
@@ -439,7 +441,9 @@ export function paginateLocaisFlowForVistoriaTecnica(locais = [], opts = {}) {
     previousSegment.items.pop();
     currentSegment.items.unshift(candidate);
 
-    previous.segments = (previous.segments || []).filter((segment) => (segment?.items?.length || 0) > 0);
+    previous.segments = (previous.segments || []).filter(
+      (segment) => (segment?.items?.length || 0) > 0 || (segment?.showHeader && (segment?.headerHeight || 0) > 0),
+    );
   }
 
   // Compactacao: puxa itens da pagina de baixo para a de cima quando
@@ -465,7 +469,9 @@ export function paginateLocaisFlowForVistoriaTecnica(locais = [], opts = {}) {
       currentFirstSegment.items.shift();
     }
 
-    current.segments = (current.segments || []).filter((segment) => (segment?.items?.length || 0) > 0);
+    current.segments = (current.segments || []).filter(
+      (segment) => (segment?.items?.length || 0) > 0 || (segment?.showHeader && (segment?.headerHeight || 0) > 0),
+    );
 
     if ((current.segments || []).length === 0) {
       pages.splice(i, 1);
@@ -483,7 +489,9 @@ export function paginateLocaisFlowForVistoriaTecnica(locais = [], opts = {}) {
     const available = pageLimit - prevUsed;
     if (available < 60) continue;
 
-    const nextFirstSeg = (nextPage.segments || []).find((s) => (s?.items?.length || 0) > 0);
+    const nextFirstSeg = (nextPage.segments || []).find(
+      (s) => (s?.items?.length || 0) > 0 || (s?.showHeader && (s?.headerHeight || 0) > 0),
+    );
     if (!nextFirstSeg) continue;
 
     const prevLastSeg = (prevPage.segments || []).slice(-1)[0];
@@ -508,6 +516,13 @@ export function paginateLocaisFlowForVistoriaTecnica(locais = [], opts = {}) {
 
     let headerConsumed = false;
     let movedAny = false;
+
+    // Caso especial: local só com cabeçalho (sem itens) — move só o cabeçalho
+    if ((nextFirstSeg.items || []).length === 0 && hdrCost > 0 && prevUsed + hdrCost <= pageLimit) {
+      prevUsed += hdrCost;
+      headerConsumed = true;
+      movedAny = true;
+    }
 
     while ((nextFirstSeg.items || []).length > 0) {
       const item = nextFirstSeg.items[0];
@@ -537,10 +552,13 @@ export function paginateLocaisFlowForVistoriaTecnica(locais = [], opts = {}) {
       nextFirstSeg.headerHeight = 0;
     }
 
-    // Remove a proxima pagina se ficou completamente vazia
-    const nextHasContent = (nextPage.segments || []).some(
+    // Remove segmentos vazios da proxima pagina
+    nextPage.segments = (nextPage.segments || []).filter(
       (s) => (s?.items?.length || 0) > 0 || (s?.showHeader && (s?.headerHeight || 0) > 0),
     );
+
+    // Remove a proxima pagina se ficou completamente vazia
+    const nextHasContent = (nextPage.segments || []).length > 0;
     if (!nextHasContent) {
       pages.splice(i + 1, 1);
       i--;

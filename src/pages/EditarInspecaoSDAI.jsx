@@ -47,7 +47,7 @@ export default function EditarInspecaoSDAI() {
     const navigate = useNavigate();
     const location = useLocation();
     const urlParams = new URLSearchParams(location.search);
-    const inspecaoIdFromUrl = urlParams.get('inspecaoId');
+    const inspecaoIdFromUrl = urlParams.get('inspecaoId') || urlParams.get('relatorioId');
     
     const [inspecaoId, setInspecaoId] = useState(inspecaoIdFromUrl);
     const [formData, setFormData] = useState(null);

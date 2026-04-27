@@ -664,12 +664,16 @@ function PagesContent() {
                     <Route path="/VisualizarInspecaoCFTV" element={<VisualizarInspecaoCFTV />} />
 
                     <Route path="/EmpreendimentoInspecaoSDAI" element={<EmpreendimentoInspecaoSDAI />} />
+                    <Route path="/empreendimentoinspecaosdai" element={<EmpreendimentoInspecaoSDAI />} />
 
                     <Route path="/NovaInspecaoSDAI" element={<NovaInspecaoSDAI />} />
+                    <Route path="/novainspecaosdai" element={<NovaInspecaoSDAI />} />
 
                     <Route path="/EditarInspecaoSDAI" element={<EditarInspecaoSDAI />} />
+                    <Route path="/editarinspecaosdai" element={<EditarInspecaoSDAI />} />
 
                     <Route path="/VisualizarInspecaoSDAI" element={<VisualizarInspecaoSDAI />} />
+                    <Route path="/visualizarinspecaosdai" element={<VisualizarInspecaoSDAI />} />
 
                     <Route path="/DashboardCliente" element={<DashboardCliente />} />
 
