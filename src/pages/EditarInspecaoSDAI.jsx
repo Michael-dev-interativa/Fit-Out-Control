@@ -47,12 +47,19 @@ export default function EditarInspecaoSDAI() {
     const navigate = useNavigate();
     const location = useLocation();
     const urlParams = new URLSearchParams(location.search);
-    const inspecaoIdFromUrl = urlParams.get('inspecaoId') || urlParams.get('relatorioId');
+    const inspecaoSnapshot = location.state?.inspecaoSnapshot || null;
+    const inspecaoIdFromUrl = (
+        urlParams.get('inspecaoId') ||
+        urlParams.get('relatorioId') ||
+        inspecaoSnapshot?.id ||
+        ''
+    ).toString().trim();
     
     const [inspecaoId, setInspecaoId] = useState(inspecaoIdFromUrl);
     const [formData, setFormData] = useState(null);
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(null);
     
     const [showSignatureDialog, setShowSignatureDialog] = useState(false);
     const [activeSignatureIndex, setActiveSignatureIndex] = useState(null);
@@ -65,10 +72,13 @@ export default function EditarInspecaoSDAI() {
 
     useEffect(() => {
         if (saving) return;
+        setLoadError(null);
         
         if (!inspecaoIdFromUrl || inspecaoIdFromUrl === 'null' || inspecaoIdFromUrl === 'undefined') {
-            toast.error("ID da inspeção não encontrado.");
-            navigate(-1);
+            const msg = "ID da inspeção não encontrado.";
+            toast.error(msg);
+            setLoadError(msg);
+            setLoading(false);
             return;
         }
         
@@ -76,10 +86,21 @@ export default function EditarInspecaoSDAI() {
         
         const loadData = async () => {
             try {
-                const data = await base44.entities.InspecaoSDAI.get(inspecaoIdFromUrl);
+                let data = null;
+                try {
+                    data = await base44.entities.InspecaoSDAI.get(inspecaoIdFromUrl);
+                } catch (getError) {
+                    console.error("Erro ao buscar inspeção por ID:", getError);
+                }
+
+                if (!data && inspecaoSnapshot && String(inspecaoSnapshot.id) === String(inspecaoIdFromUrl)) {
+                    data = inspecaoSnapshot;
+                }
+
                 if (!data) {
-                    toast.error("Inspeção não encontrada.");
-                    navigate(-1);
+                    const msg = "Inspeção não encontrada para edição.";
+                    toast.error(msg);
+                    setLoadError(msg);
                     return;
                 }
                 
@@ -130,17 +151,30 @@ export default function EditarInspecaoSDAI() {
                     texto_rodape_capa: data.texto_rodape_capa || ''
                 });
             } catch (error) {
-                toast.error("Falha ao carregar dados da inspeção.");
-                navigate(-1);
+                const msg = "Falha ao carregar dados da inspeção.";
+                toast.error(msg);
+                setLoadError(msg);
             } finally {
                 setLoading(false);
             }
         };
         loadData();
-    }, [inspecaoIdFromUrl, navigate, saving]);
+    }, [inspecaoIdFromUrl, saving, inspecaoSnapshot]);
 
     if (loading) return <div className="flex justify-center items-center h-screen"><Loader2 className="w-8 h-8 animate-spin" /></div>;
-    if (!formData) return null;
+    if (!formData) {
+        return (
+            <div className="p-6">
+                <div className="max-w-2xl mx-auto border border-red-200 bg-red-50 text-red-700 rounded-lg p-4">
+                    <p className="font-semibold mb-2">Não foi possível abrir esta inspeção para edição.</p>
+                    <p className="text-sm mb-4">{loadError || 'Tente novamente a partir da lista de inspeções.'}</p>
+                    <Button variant="outline" onClick={() => navigate(-1)}>
+                        <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
+                    </Button>
+                </div>
+            </div>
+        );
+    }
 
     const handleInputChange = (field, value) => setFormData(p => ({ ...p, [field]: value }));
 

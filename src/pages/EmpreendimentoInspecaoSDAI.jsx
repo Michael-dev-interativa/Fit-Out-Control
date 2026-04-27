@@ -115,7 +115,10 @@ export default function EmpreendimentoInspecaoSDAI({ language: initialLanguage, 
                                     <Link to={createPageUrl(`VisualizarInspecaoSDAI?relatorioId=${inspecao.id}`)}>
                                         <Button variant="ghost" size="icon"><Eye className="w-4 h-4" /></Button>
                                     </Link>
-                                    <Link to={createPageUrl(`EditarInspecaoSDAI?inspecaoId=${inspecao.id}`)}>
+                                    <Link
+                                        to={createPageUrl(`EditarInspecaoSDAI?inspecaoId=${inspecao.id}`)}
+                                        state={{ inspecaoSnapshot: inspecao }}
+                                    >
                                         <Button variant="ghost" size="icon"><Pencil className="w-4 h-4" /></Button>
                                     </Link>
                                 </div>
