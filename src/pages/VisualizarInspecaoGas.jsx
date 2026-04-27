@@ -375,6 +375,7 @@ const ConclusaoPage = ({ conclusaoR01, conclusaoR02 }) => {
 
 const ReportContent = ({ relatorio, empreendimento, navigate }) => {
     const [isPrintingMode, setIsPrintingMode] = useState(false);
+    const TAIL_PAGE_LIMIT_PX = 980;
     
     const hasDocumentacao = relatorio.itens_documentacao && relatorio.itens_documentacao.length > 0;
     const hasAssinaturas = relatorio.assinaturas && relatorio.assinaturas.length > 0;
@@ -383,7 +384,13 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
         paginateLocalItemsForPrinting(local, { splitPhotoRows: true, photoChunkSize: 2, photoMaxHeightPx: 160 })
     );
 
-    const measureObsAndConclusaoHeight = () => {
+    const assinaturasValidas = (relatorio.assinaturas || []).filter(ass =>
+        (ass.nome && ass.nome.trim() !== '') ||
+        (ass.parte && ass.parte.trim() !== '') ||
+        (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== '')
+    );
+
+    const measureObsGeraisHeight = () => {
         if (typeof document === 'undefined' || !document.body) return 500;
         const escHtml = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const tempDiv = document.createElement('div');
@@ -393,11 +400,6 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 <h2 style="font-size:1.25rem;font-weight:700;text-align:center;margin-bottom:16px;background:#1e3a8a;color:white;padding:8px;">Observações Gerais</h2>
                 <div style="border:1px solid #000;padding:16px;font-size:14px;white-space:pre-wrap;min-height:100px;">${escHtml(relatorio.observacoes_gerais)}</div>
             </div>
-            <div style="padding:0 16px 16px;">
-                <h2 style="font-size:1.25rem;font-weight:700;text-align:center;margin-bottom:12px;background:#1e3a8a;color:white;padding:8px;">Conclusão</h2>
-                <div style="border:1px solid #ccc;padding:10px 14px;display:flex;gap:40px;"><div style="flex:1;"><p style="font-size:12px;font-weight:700;margin-bottom:8px;">1ª Vistoria</p><div style="margin-bottom:5px;font-size:12px;">☐ Aprovado com totalidade</div><div style="margin-bottom:5px;font-size:12px;">☐ Aprovado com ressalvas</div><div style="margin-bottom:5px;font-size:12px;">☐ Reprovado</div></div><div style="flex:1;"><p style="font-size:12px;font-weight:700;margin-bottom:8px;">2ª Vistoria</p><div style="margin-bottom:5px;font-size:12px;">☐ Aprovado com totalidade</div><div style="margin-bottom:5px;font-size:12px;">☐ Aprovado com ressalvas</div><div style="margin-bottom:5px;font-size:12px;">☐ Reprovado</div></div></div>
-                <div style="border:1px solid #ccc;padding:12px;font-size:12px;background:#f9fafb;margin-top:12px;"><p style="font-weight:700;margin-bottom:4px;">Observação:</p><p>Em caso de sistema não aprovado com totalidade na 1º vistoria, a inspeção deverá ser refeita para confirmação de correções apontadas nas Observações Gerais deste relatório.</p></div>
-            </div>
         `;
         document.body.appendChild(tempDiv);
         const h = tempDiv.offsetHeight;
@@ -405,12 +407,84 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
         return h + 24;
     };
 
+    const measureConclusaoHeight = () => {
+        if (typeof document === 'undefined' || !document.body) return 260;
+        const tempDiv = document.createElement('div');
+        tempDiv.style.cssText = 'position:absolute;visibility:hidden;width:190mm;box-sizing:border-box;font-family:Inter,Poppins,sans-serif;font-size:10px;left:-9999px;';
+        tempDiv.innerHTML = `
+            <div style="padding:0 16px 16px 16px;">
+                <h2 style="font-size:1.25rem;font-weight:700;text-align:center;margin:0 0 12px 0;background:#1e3a8a;color:white;padding:8px;">Conclusão</h2>
+                <div style="border:1px solid #ccc;padding:10px 14px;display:flex;gap:40px;margin-bottom:12px;min-height:110px;"></div>
+                <div style="border:1px solid #ccc;padding:12px;background:#f9fafb;min-height:56px;"></div>
+            </div>
+        `;
+        document.body.appendChild(tempDiv);
+        const h = tempDiv.offsetHeight;
+        document.body.removeChild(tempDiv);
+        return h + 20;
+    };
+
+    const measureAssinaturasHeight = () => {
+        if (!hasAssinaturas) return 0;
+        if (typeof document === 'undefined' || !document.body) {
+            return 120 + (assinaturasValidas.length * 120);
+        }
+        const tempDiv = document.createElement('div');
+        tempDiv.style.cssText = 'position:absolute;visibility:hidden;width:190mm;box-sizing:border-box;font-family:Inter,Poppins,sans-serif;font-size:10px;left:-9999px;';
+        tempDiv.innerHTML = `
+            <div style="padding:16px;">
+                <h2 style="font-size:1.25rem;font-weight:700;text-align:center;margin:0 0 16px 0;background:#1e3a8a;color:white;padding:8px;">Assinaturas</h2>
+                <div style="margin-top:32px;display:flex;flex-direction:column;gap:24px;">
+                    ${assinaturasValidas.map(() => `
+                        <div style="display:flex;flex-direction:column;align-items:center;">
+                            <div style="margin-bottom:8px;border-bottom:2px solid #000;width:256px;height:96px;"></div>
+                            <div style="text-align:center;height:32px;"></div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        document.body.appendChild(tempDiv);
+        const h = tempDiv.offsetHeight;
+        document.body.removeChild(tempDiv);
+        return h + 20;
+    };
+
     const lastContentPage = contentPages[contentPages.length - 1];
     const lastPageRemainingPx = lastContentPage?.pageMap?.remainingHeightPx ?? 0;
-    const obsAndConclusaoHeightPx = contentPages.length > 0 ? measureObsAndConclusaoHeight() : Infinity;
-    const inlineObsAndConclusao = contentPages.length > 0 && lastPageRemainingPx >= obsAndConclusaoHeightPx;
+    const obsGeraisHeightPx = measureObsGeraisHeight();
+    const conclusaoHeightPx = measureConclusaoHeight();
+    const assinaturasHeightPx = measureAssinaturasHeight();
 
-    const totalPages = 1 + (hasDocumentacao ? 1 : 0) + contentPages.length + (inlineObsAndConclusao ? 0 : 1);
+    const inlineObsGerais = contentPages.length > 0 && lastPageRemainingPx >= obsGeraisHeightPx;
+    const remainingAfterInlineObsPx = inlineObsGerais ? (lastPageRemainingPx - obsGeraisHeightPx) : 0;
+    const inlineConclusao = inlineObsGerais && remainingAfterInlineObsPx >= conclusaoHeightPx;
+    const remainingAfterInlineConclusaoPx = inlineConclusao ? (remainingAfterInlineObsPx - conclusaoHeightPx) : 0;
+    const inlineAssinaturas = hasAssinaturas && inlineConclusao && remainingAfterInlineConclusaoPx >= assinaturasHeightPx;
+
+    const tailBlocks = [];
+    if (!inlineObsGerais) tailBlocks.push({ type: 'observacoes', estimatedHeightPx: obsGeraisHeightPx });
+    if (!inlineConclusao) tailBlocks.push({ type: 'conclusao', estimatedHeightPx: conclusaoHeightPx });
+    if (hasAssinaturas && !inlineAssinaturas) tailBlocks.push({ type: 'assinaturas', estimatedHeightPx: assinaturasHeightPx });
+
+    const tailPages = [];
+    let currentTailPage = [];
+    let currentTailHeight = 0;
+
+    tailBlocks.forEach((block) => {
+        const blockHeight = block.estimatedHeightPx || 220;
+        if (currentTailPage.length > 0 && (currentTailHeight + blockHeight) > TAIL_PAGE_LIMIT_PX) {
+            tailPages.push(currentTailPage);
+            currentTailPage = [];
+            currentTailHeight = 0;
+        }
+        currentTailPage.push(block);
+        currentTailHeight += blockHeight;
+    });
+
+    if (currentTailPage.length > 0) tailPages.push(currentTailPage);
+
+    const totalPages = 1 + (hasDocumentacao ? 1 : 0) + contentPages.length + tailPages.length;
     let currentPage = 1;
 
     const handlePrint = async () => {
@@ -454,35 +528,45 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                             showHeader={page.isFirstPageOfLocal}
                             showComments={false}
                         />
-                        {inlineObsAndConclusao && index === contentPages.length - 1 && (
-                            <>
-                                <ObservacoesGeraisPage observacoes={relatorio.observacoes_gerais} />
-                                <ConclusaoPage conclusaoR01={relatorio.conclusao_r01} conclusaoR02={relatorio.conclusao_r02} />
-                                {hasAssinaturas && (
-                                    <AssinaturasPage assinaturas={relatorio.assinaturas.filter(ass =>
-                                        (ass.nome && ass.nome.trim() !== '') ||
-                                        (ass.parte && ass.parte.trim() !== '') ||
-                                        (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== '')
-                                    )} />
-                                )}
-                            </>
+                        {inlineObsGerais && index === contentPages.length - 1 && (
+                            <ObservacoesGeraisPage observacoes={relatorio.observacoes_gerais} />
+                        )}
+                        {inlineConclusao && index === contentPages.length - 1 && (
+                            <ConclusaoPage conclusaoR01={relatorio.conclusao_r01} conclusaoR02={relatorio.conclusao_r02} />
+                        )}
+                        {inlineAssinaturas && index === contentPages.length - 1 && (
+                            <AssinaturasPage assinaturas={assinaturasValidas} />
                         )}
                     </ReportPageLayout>
                 ))}
 
-                {!inlineObsAndConclusao && (
-                    <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                        <ObservacoesGeraisPage observacoes={relatorio.observacoes_gerais} />
-                        <ConclusaoPage conclusaoR01={relatorio.conclusao_r01} conclusaoR02={relatorio.conclusao_r02} />
-                        {hasAssinaturas && (
-                            <AssinaturasPage assinaturas={relatorio.assinaturas.filter(ass =>
-                                (ass.nome && ass.nome.trim() !== '') ||
-                                (ass.parte && ass.parte.trim() !== '') ||
-                                (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== '')
-                            )} />
-                        )}
+                {tailPages.map((tailPageBlocks, tailPageIndex) => (
+                    <ReportPageLayout
+                        key={`tail-${tailPageIndex}`}
+                        pageNumber={currentPage++}
+                        totalPages={totalPages}
+                        relatorio={relatorio}
+                        empreendimento={empreendimento}
+                    >
+                        {tailPageBlocks.map((block, blockIndex) => {
+                            if (block.type === 'observacoes') {
+                                return <ObservacoesGeraisPage key={`tail-obs-${blockIndex}`} observacoes={relatorio.observacoes_gerais} />;
+                            }
+                            if (block.type === 'conclusao') {
+                                return <ConclusaoPage key={`tail-conc-${blockIndex}`} conclusaoR01={relatorio.conclusao_r01} conclusaoR02={relatorio.conclusao_r02} />;
+                            }
+                            if (block.type === 'assinaturas') {
+                                return (
+                                    <AssinaturasPage
+                                        key={`tail-sign-${blockIndex}`}
+                                        assinaturas={assinaturasValidas}
+                                    />
+                                );
+                            }
+                            return null;
+                        })}
                     </ReportPageLayout>
-                )}
+                ))}
             </div>
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@700&family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');

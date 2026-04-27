@@ -442,6 +442,7 @@ const ConclusaoPage = ({ conclusaoR01, conclusaoR02 }) => {
 
 const ReportContent = ({ relatorio, empreendimento, navigate }) => {
     const [isPrintingMode, setIsPrintingMode] = useState(false);
+    const TAIL_PAGE_LIMIT_PX = 980;
 
     const hasDocumentacao = relatorio.itens_documentacao && relatorio.itens_documentacao.length > 0;
 
@@ -529,45 +530,73 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
     const hasAssinaturas = relatorio.assinaturas && relatorio.assinaturas.length > 0 &&
         relatorio.assinaturas.some(ass => (ass.nome && ass.nome.trim() !== '') || (ass.parte && ass.parte.trim() !== '') || (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== ''));
 
-    // Mede a altura de ObservacoesGerais + Conclusão para decidir se cabem na última página de conteúdo
-    const measureObsAndConclusaoHeight = () => {
-        if (typeof document === 'undefined' || !document.body) return 500;
+    const measureObsGeraisHeight = () => {
+        if (typeof document === 'undefined' || !document.body) return 420;
         const escHtml = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const tempDiv = document.createElement('div');
-        tempDiv.style.cssText = 'position:absolute;visibility:hidden;width:190mm;box-sizing:border-box;font-family:Inter,Poppins,sans-serif;font-size:12px;';
+        tempDiv.style.cssText = 'position:absolute;visibility:hidden;width:190mm;box-sizing:border-box;font-family:Inter,Poppins,sans-serif;font-size:12px;left:-9999px;';
         tempDiv.innerHTML = `
-            <div style="padding:16px 16px 8px;">
+            <div style="padding:16px;">
                 <div style="font-size:1.25rem;font-weight:bold;text-align:center;background:#1e3a8a;color:white;padding:8px;margin-bottom:8px;">Observações Gerais</div>
                 <div style="border:1px solid #000;padding:4px 8px;font-weight:700;font-size:12px;background:#f3f4f6;">Observações Gerais:</div>
                 <div style="border:1px solid #000;border-top:0;padding:8px;font-size:12px;white-space:pre-wrap;word-break:break-word;min-height:60px;">${escHtml(relatorio.observacoes_gerais)}</div>
-            </div>
-            <div style="padding:0 16px 16px;">
-                <div style="font-size:1.25rem;font-weight:bold;text-align:center;background:#1e3a8a;color:white;padding:8px;margin-bottom:12px;">Conclusão</div>
-                <div style="border:1px solid #ccc;padding:10px 14px;">
-                    <p style="font-weight:bold;font-size:12px;margin-bottom:8px;">1ª Vistoria</p>
-                    <div style="font-size:12px;margin-bottom:5px;">☐ Aprovado com totalidade</div>
-                    <div style="font-size:12px;margin-bottom:5px;">☐ Aprovado com ressalvas</div>
-                    <div style="font-size:12px;margin-bottom:5px;">☐ Reprovado</div>
-                </div>
-                <div style="padding:12px;background:#f9fafb;border:1px solid #ccc;font-size:12px;margin-top:12px;">
-                    <p style="font-weight:bold;margin-bottom:4px;">Observação:</p>
-                    <p>Em caso de sistema não aprovado com totalidade na 1ª vistoria, a inspeção deverá ser refeita para confirmação de correções e aprovação com totalidade.</p>
-                </div>
             </div>
         `;
         document.body.appendChild(tempDiv);
         const h = tempDiv.offsetHeight;
         document.body.removeChild(tempDiv);
-        return h + 24;
+        return h + 20;
+    };
+
+    const measureConclusaoHeight = () => {
+        if (typeof document === 'undefined' || !document.body) return 260;
+        const tempDiv = document.createElement('div');
+        tempDiv.style.cssText = 'position:absolute;visibility:hidden;width:190mm;box-sizing:border-box;font-family:Inter,Poppins,sans-serif;font-size:12px;left:-9999px;';
+        tempDiv.innerHTML = `
+            <div style="padding:0 16px 16px;">
+                <div style="font-size:1.25rem;font-weight:bold;text-align:center;background:#1e3a8a;color:white;padding:8px;margin-bottom:12px;">Conclusão</div>
+                <div style="border:1px solid #ccc;padding:10px 14px;min-height:110px;"></div>
+                <div style="padding:12px;background:#f9fafb;border:1px solid #ccc;margin-top:12px;min-height:56px;"></div>
+            </div>
+        `;
+        document.body.appendChild(tempDiv);
+        const h = tempDiv.offsetHeight;
+        document.body.removeChild(tempDiv);
+        return h + 20;
     };
 
     const lastContentPage = contentPages[contentPages.length - 1];
     const lastSection = lastContentPage ? lastContentPage[lastContentPage.length - 1] : null;
     const lastPageRemainingPx = lastSection?.remainingHeightPx ?? 0;
-    const obsAndConclusaoHeightPx = measureObsAndConclusaoHeight();
-    const inlineObsAndConclusao = contentPages.length > 0 && lastPageRemainingPx >= obsAndConclusaoHeightPx;
+    const obsGeraisHeightPx = measureObsGeraisHeight();
+    const conclusaoHeightPx = measureConclusaoHeight();
 
-    const totalPages = 1 + (hasDocumentacao ? 1 : 0) + contentPages.length + (inlineObsAndConclusao ? 0 : 1) + (hasAssinaturas ? 1 : 0);
+    const inlineObsGerais = contentPages.length > 0 && lastPageRemainingPx >= obsGeraisHeightPx;
+    const remainingAfterInlineObsPx = inlineObsGerais ? (lastPageRemainingPx - obsGeraisHeightPx) : 0;
+    const inlineConclusao = inlineObsGerais && remainingAfterInlineObsPx >= conclusaoHeightPx;
+
+    const tailBlocks = [];
+    if (!inlineObsGerais) tailBlocks.push({ type: 'observacoes', estimatedHeightPx: obsGeraisHeightPx });
+    if (!inlineConclusao) tailBlocks.push({ type: 'conclusao', estimatedHeightPx: conclusaoHeightPx });
+
+    const tailPages = [];
+    let currentTailPage = [];
+    let currentTailHeight = 0;
+
+    tailBlocks.forEach((block) => {
+        const blockHeight = block.estimatedHeightPx || 220;
+        if (currentTailPage.length > 0 && (currentTailHeight + blockHeight) > TAIL_PAGE_LIMIT_PX) {
+            tailPages.push(currentTailPage);
+            currentTailPage = [];
+            currentTailHeight = 0;
+        }
+        currentTailPage.push(block);
+        currentTailHeight += blockHeight;
+    });
+
+    if (currentTailPage.length > 0) tailPages.push(currentTailPage);
+
+    const totalPages = 1 + (hasDocumentacao ? 1 : 0) + contentPages.length + tailPages.length + (hasAssinaturas ? 1 : 0);
     let currentPage = 1;
 
     const handlePrint = async () => {
@@ -612,9 +641,13 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                                 )}
                             </div>
                         ))}
-                        {inlineObsAndConclusao && index === contentPages.length - 1 && (
+                        {inlineObsGerais && index === contentPages.length - 1 && (
                             <>
                                 <ObservacoesGeraisPage observacoes={relatorio.observacoes_gerais} />
+                            </>
+                        )}
+                        {inlineConclusao && index === contentPages.length - 1 && (
+                            <>
                                 <ConclusaoPage
                                     conclusaoR01={relatorio.conclusao_r01 || relatorio.conclusao}
                                     conclusaoR02={relatorio.conclusao_r02 || relatorio.conclusao}
@@ -624,15 +657,31 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     </ReportPageLayout>
                 ))}
 
-                {!inlineObsAndConclusao && (
-                    <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                        <ObservacoesGeraisPage observacoes={relatorio.observacoes_gerais} />
-                        <ConclusaoPage
-                            conclusaoR01={relatorio.conclusao_r01 || relatorio.conclusao}
-                            conclusaoR02={relatorio.conclusao_r02 || relatorio.conclusao}
-                        />
+                {tailPages.map((tailPageBlocks, tailPageIndex) => (
+                    <ReportPageLayout
+                        key={`tail-${tailPageIndex}`}
+                        pageNumber={currentPage++}
+                        totalPages={totalPages}
+                        relatorio={relatorio}
+                        empreendimento={empreendimento}
+                    >
+                        {tailPageBlocks.map((block, blockIndex) => {
+                            if (block.type === 'observacoes') {
+                                return <ObservacoesGeraisPage key={`tail-obs-${blockIndex}`} observacoes={relatorio.observacoes_gerais} />;
+                            }
+                            if (block.type === 'conclusao') {
+                                return (
+                                    <ConclusaoPage
+                                        key={`tail-conc-${blockIndex}`}
+                                        conclusaoR01={relatorio.conclusao_r01 || relatorio.conclusao}
+                                        conclusaoR02={relatorio.conclusao_r02 || relatorio.conclusao}
+                                    />
+                                );
+                            }
+                            return null;
+                        })}
                     </ReportPageLayout>
-                )}
+                ))}
 
                 {hasAssinaturas && (
                     <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
