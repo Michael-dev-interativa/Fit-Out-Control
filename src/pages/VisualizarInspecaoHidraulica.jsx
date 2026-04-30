@@ -167,10 +167,8 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
 const FotoInspecao = ({ url, legenda, maxHeight = '66mm' }) => {
   // Cada imagem em seu próprio container, sem recorte, com espaçamento e borda
   return (
-    <div className="text-center foto-inspecao bg-white rounded border border-gray-300 p-2 flex flex-col items-center justify-center" style={{ margin: '4px', maxWidth: '100%', maxHeight }}>
-      <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#fff', borderRadius: '4px', padding: '2px', border: '1px solid #e0e0e0' }}>
-        <img src={url} alt={legenda || 'Foto da inspeção'} style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '2px', border: 'none', background: '#fff' }} />
-      </div>
+    <div className="text-center foto-inspecao bg-white rounded border border-gray-300 p-2 flex flex-col items-center justify-center" style={{ margin: '4px', maxWidth: '100%', maxHeight, border: '1px solid #e0e0e0', padding: '8px' }}>
+      <img src={url} alt={legenda || 'Foto da inspeção'} style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '2px', border: 'none', background: '#fff' }} />
       {legenda && (
         <p className="text-[9px] text-gray-600 mt-1">{legenda}</p>
       )}
