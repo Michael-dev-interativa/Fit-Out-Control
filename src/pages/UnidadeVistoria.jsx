@@ -78,7 +78,7 @@ export default function UnidadeVistoria({ language = 'pt', theme = 'light' }) {
                   <ArrowLeft className="w-4 h-4" />
                 </Button>
                 <h1 className={`text-2xl font-bold ${isDark ? 'text-white' : ''}`}>{t.title}</h1>
-                <Button onClick={() => navigate(createPageUrl(`NovaVistoriaFormulario?unidadeId=${unidadeId}&empreendimentoId=${empreendimentoId}`))}>
+                <Button onClick={() => navigate(createPageUrl(`NovoVistoriadeObra?unidadeId=${unidadeId}&empreendimentoId=${empreendimentoId}`))}>
                     <Plus className="w-4 h-4 mr-2" />
                     {t.newInspection}
                 </Button>
