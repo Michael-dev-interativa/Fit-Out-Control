@@ -140,7 +140,7 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
                 </thead>
                 <tbody>
                     {itens.map((item, idx) => (
-                        <tr key={idx}>
+                        <tr key={idx} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                             <td className="border border-black p-2 text-left" style={{ width: '40%' }}>{item.descricao}</td>
                             <td className="border border-black p-2 text-center" style={{ width: '10%' }}>{item.resultado === 'OK' ? '☑' : '☐'}</td>
                             <td className="border border-black p-2 text-left" style={{ width: '50%' }}>{item.observacoes}</td>
