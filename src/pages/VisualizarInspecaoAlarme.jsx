@@ -133,13 +133,22 @@ const DocumentacaoPage = ({ itens }) => {
     );
 };
 
-const FotoInspecao = ({ url, legenda }) => {
-    // URL já vem comprimida pelo compressReportImages, apenas renderizar
+const FotoInspecao = ({ foto }) => {
+    const url = foto?.url;
+    const legenda = foto?.legenda;
+    const objectPosition = foto?.objectPosition || foto?.posicao || 'center center';
     return (
-        <div className="text-center" style={{ minHeight: '250px', maxHeight: '250px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <img src={url} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: '250px', objectFit: 'cover', border: '1px solid #ddd' }} />
+        <div className="imagem-box">
+            <div className="foto-container">
+                <img
+                    src={url}
+                    alt={legenda || 'Foto da inspeção'}
+                    className="foto-img"
+                    style={{ objectPosition }}
+                />
+            </div>
             {legenda && (
-                <p className="text-[9px] text-gray-600 mt-1">{legenda}</p>
+                <p style={{ fontSize: '7px', color: '#555', marginTop: '3px', lineHeight: '1.1', overflowWrap: 'anywhere', whiteSpace: 'normal' }}>{legenda}</p>
             )}
         </div>
     );
@@ -183,11 +192,11 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc }) => {
                                 if (item.showOnlyPhotos) {
                                     return (
                                         <tr key={idx}>
-                                            <td colSpan="4" className="border border-black p-2 pt-4">
-                                                <div className="text-xs text-gray-600 italic mb-2">{item.descricao}</div>
-                                                <div className="grid grid-cols-3 gap-2">
+                                            <td colSpan="4" className="photo-cell border border-black">
+                                                {item.descricao && <div style={{ fontSize: '9px', color: '#666', fontStyle: 'italic', margin: '4px 4px 3px 4px' }}>{item.descricao}</div>}
+                                                <div className="imagens-container">
                                                     {item.fotos.map((foto, fotoIdx) => (
-                                                        <FotoInspecao key={fotoIdx} url={foto.url} legenda={foto.legenda} />
+                                                        <FotoInspecao key={fotoIdx} foto={foto} />
                                                     ))}
                                                 </div>
                                             </td>
@@ -205,10 +214,10 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc }) => {
                                         </tr>
                                         {item.fotos && item.fotos.length > 0 && (
                                             <tr key={`${idx}-fotos`}>
-                                                <td colSpan="4" className="border border-black p-2">
-                                                    <div className="grid grid-cols-3 gap-2">
+                                                <td colSpan="4" className="photo-cell border border-black">
+                                                    <div className="imagens-container">
                                                         {item.fotos.map((foto, fotoIdx) => (
-                                                            <FotoInspecao key={fotoIdx} url={foto.url} legenda={foto.legenda} />
+                                                            <FotoInspecao key={fotoIdx} foto={foto} />
                                                         ))}
                                                     </div>
                                                 </td>
@@ -275,11 +284,12 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
 
     const paginateLocalItems = (local, maxItemsForFirstPage) => paginateLocalItemsForPrinting(local, {
         firstPageMaxItems: maxItemsForFirstPage,
-        photoMaxHeightPx: 265,
+        photoMaxHeightPx: 215,
     });
 
     const docItemCount = hasDocumentacao ? (relatorio.itens_documentacao.length || 0) : 0;
-    const combineDocWithContent = hasDocumentacao && docItemCount <= 6;
+    const firstLocalHasPhotos = relatorio.locais?.[0]?.itens_inspecao?.some(item => item.fotos?.length > 0) ?? false;
+    const combineDocWithContent = hasDocumentacao && docItemCount <= 6 && !firstLocalHasPhotos;
 
     const firstPageItemLimit = combineDocWithContent ? Math.max(6, 12 - docItemCount) : 14;
 
@@ -382,13 +392,57 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 }
                 
                 @page { size: A4 portrait; margin: 0; }
-                
-                .report-page { 
-                    width: 210mm; 
-                    height: 297mm; 
-                    position: relative; 
-                    background: white; 
+
+                .report-page {
+                    width: 210mm;
+                    height: 297mm;
+                    position: relative;
+                    background: white;
                     overflow: hidden;
+                }
+
+                .imagens-container {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 8px;
+                    width: 100%;
+                    padding: 6px;
+                    align-items: flex-start;
+                    justify-content: flex-start;
+                    break-inside: avoid;
+                    page-break-inside: avoid;
+                    box-sizing: border-box;
+                }
+
+                .photo-cell {
+                    padding: 0 !important;
+                    background: #fff;
+                    box-sizing: border-box;
+                }
+
+                .imagem-box {
+                    flex: 0 0 calc((100% - 28px) / 3);
+                    max-width: calc((100% - 28px) / 3);
+                    width: calc((100% - 28px) / 3);
+                    box-sizing: border-box;
+                    break-inside: avoid;
+                    page-break-inside: avoid;
+                }
+
+                .foto-container {
+                    width: 100%;
+                    height: 200px;
+                    overflow: hidden;
+                    border: 1px solid #e5e7eb;
+                    background: #f9fafb;
+                    box-sizing: border-box;
+                }
+
+                .foto-img {
+                    width: 100%;
+                    height: 200px;
+                    object-fit: cover;
+                    display: block;
                 }
                 
                 @media screen { 
@@ -453,10 +507,16 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     }
                     
                     .report-page:last-child { page-break-after: auto; }
-                    
+
                     img { max-width: 100%; }
                     table { page-break-inside: auto; }
                     tr { page-break-inside: avoid; }
+
+                    .photo-cell { padding: 0 !important; background: #fff !important; box-sizing: border-box !important; }
+                    .imagens-container { display: flex !important; flex-wrap: wrap !important; gap: 8px !important; width: 100% !important; padding: 6px !important; align-items: flex-start !important; justify-content: flex-start !important; break-inside: avoid !important; page-break-inside: avoid !important; box-sizing: border-box !important; }
+                    .imagem-box { flex: 0 0 calc((100% - 28px) / 3) !important; max-width: calc((100% - 28px) / 3) !important; width: calc((100% - 28px) / 3) !important; box-sizing: border-box !important; break-inside: avoid !important; page-break-inside: avoid !important; }
+                    .foto-container { width: 100% !important; height: 200px !important; overflow: hidden !important; border: 1px solid #e5e7eb !important; background: #f9fafb !important; box-sizing: border-box !important; }
+                    .foto-img { width: 100% !important; height: 200px !important; object-fit: cover !important; display: block !important; }
                 }
                 
                 @media screen {
