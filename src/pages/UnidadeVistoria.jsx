@@ -68,21 +68,25 @@ export default function UnidadeVistoria({ language = 'pt', theme = 'light' }) {
 
     return (
         <div className={`p-4 md:p-6 space-y-6 ${isDark ? 'bg-gray-900' : ''}`}>
-            <div className="flex items-center justify-between gap-4">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => navigate(createPageUrl(`Unidade?unidadeId=${unidadeId}&empreendimentoId=${empreendimentoId}`))}
-                  className={isDark ? 'text-white border-gray-600 hover:bg-gray-800' : ''}
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </Button>
-                <h1 className={`text-2xl font-bold ${isDark ? 'text-white' : ''}`}>{t.title}</h1>
-                <Button onClick={() => navigate(createPageUrl(`NovoVistoriadeObra?unidadeId=${unidadeId}&empreendimentoId=${empreendimentoId}`))}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    {t.newInspection}
-                </Button>
-            </div>
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                <div className="flex items-center gap-4 mb-2 md:mb-0">
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={() => navigate(createPageUrl(`Unidade?unidadeId=${unidadeId}&empreendimentoId=${empreendimentoId}`))}
+                                        className={isDark ? 'text-white border-gray-600 hover:bg-gray-800' : ''}
+                                    >
+                                        <ArrowLeft className="w-4 h-4" />
+                                    </Button>
+                                    <h1 className={`text-2xl font-bold ${isDark ? 'text-white' : ''}`}>{t.title}</h1>
+                                </div>
+                                <div className="flex justify-center md:justify-end">
+                                    <Button onClick={() => navigate(createPageUrl(`NovoVistoriadeObra?unidadeId=${unidadeId}&empreendimentoId=${empreendimentoId}`))} className="bg-blue-700 hover:bg-blue-800 text-white font-semibold">
+                                        <Plus className="w-4 h-4 mr-2" />
+                                        Nova Vistoria
+                                    </Button>
+                                </div>
+                        </div>
 
             <UnidadeHeader 
                 unidade={unidade} 
