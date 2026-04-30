@@ -3,6 +3,32 @@
  * Encontra e comprime todas as imagens no objeto de relatório antes da renderização
  */
 
+// Cache global: evita re-comprimir a mesma URL na mesma sessão
+const imageCache = new Map();
+
+// Semáforo: limita requisições simultâneas para não sobrecarregar o servidor
+const MAX_CONCURRENT = 8;
+let activeCount = 0;
+const waitQueue = [];
+
+const acquireSemaphore = () =>
+  new Promise(resolve => {
+    if (activeCount < MAX_CONCURRENT) {
+      activeCount++;
+      resolve();
+    } else {
+      waitQueue.push(resolve);
+    }
+  });
+
+const releaseSemaphore = () => {
+  activeCount--;
+  if (waitQueue.length > 0) {
+    activeCount++;
+    waitQueue.shift()();
+  }
+};
+
 /**
  * Comprime uma imagem de URL para DataURL em JPEG comprimido.
  * Usa fetch + blob URL para evitar taint de canvas cross-origin.
@@ -11,11 +37,15 @@ const compressImage = async (url, maxWidth = 250, quality = 0.2) => {
   if (!url || typeof url !== 'string') return url;
   if (url.startsWith('data:image')) return url;
 
+  const cacheKey = `${url}|${maxWidth}|${quality}`;
+  if (imageCache.has(cacheKey)) return imageCache.get(cacheKey);
+
+  await acquireSemaphore();
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-    const response = await fetch(url, { signal: controller.signal });
+    const response = await fetch(url, { signal: controller.signal, cache: 'force-cache' });
     clearTimeout(timeoutId);
 
     if (!response.ok) return url;
@@ -51,9 +81,12 @@ const compressImage = async (url, maxWidth = 250, quality = 0.2) => {
       img.src = objectUrl;
     });
 
+    imageCache.set(cacheKey, result);
     return result;
   } catch {
     return url;
+  } finally {
+    releaseSemaphore();
   }
 };
 
@@ -64,11 +97,8 @@ const isImageUrl = (value) => {
   if (typeof value !== 'string') return false;
   if (value.startsWith('data:image')) return true;
   if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/')) {
-    // URLs com extensão de imagem
     if (/\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(value)) return true;
-    // Endpoint interno de arquivos do banco (sem extensão)
     if (value.includes('/api/files/')) return true;
-    // Uploads locais
     if (value.includes('/uploads/')) return true;
   }
   return false;
@@ -85,8 +115,8 @@ const qualityForKey = (key) => {
 };
 
 /**
- * Percorre recursivamente o objeto (clone) e comprime todas as imagens em paralelo.
- * Modifica o objeto in-place — não usa path strings, sem risco de erro de travessia.
+ * Percorre recursivamente o objeto (clone) e comprime todas as imagens.
+ * O semáforo garante no máximo MAX_CONCURRENT requisições simultâneas.
  */
 const compressObjectImages = async (obj) => {
   if (!obj || typeof obj !== 'object') return;
@@ -107,7 +137,7 @@ const compressObjectImages = async (obj) => {
     Object.keys(obj).forEach(key => {
       const value = obj[key];
       if (isImageUrl(value)) {
-        if (key.includes('assinatura')) return; // preservar assinaturas sem compressão (PNG com transparência)
+        if (key.includes('assinatura')) return;
         promises.push(
           compressImage(value, qualityForKey(key) > 0.15 ? 400 : 250, qualityForKey(key)).then(compressed => { obj[key] = compressed; })
         );

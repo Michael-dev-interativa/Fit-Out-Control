@@ -2,13 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Empreendimento, NaoConformidade } from '@/api/entities';
 import { Button } from '@/components/ui/button';
-import { Loader2, Printer, ArrowLeft, AlertTriangle, Edit2 } from 'lucide-react';
+import { Loader2, Printer, ArrowLeft, AlertTriangle, Edit2, Filter, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { createPageUrl } from '@/utils';
 import { AssinaturasPage } from '@/components/relatorios/AssinaturasSection';
@@ -71,7 +72,7 @@ const CoverPage = ({ relatorio, empreendimento, pdfMode }) => {
 
 const ITEMS_ON_CHARTS_PAGE = 8;
 
-const ChartsPage = ({ chartData, relatorio, itensMais30Dias }) => {
+const ChartsPage = ({ chartData, relatorio, itensMais30Dias, filtroResponsavel }) => {
     const { barChartData, pieChartData, responsavelData } = chartData;
     const itemsToShow = itensMais30Dias ? itensMais30Dias.slice(0, ITEMS_ON_CHARTS_PAGE) : [];
     const hasMore = itensMais30Dias && itensMais30Dias.length > ITEMS_ON_CHARTS_PAGE;
@@ -106,6 +107,11 @@ const ChartsPage = ({ chartData, relatorio, itensMais30Dias }) => {
     return (
         <div className="p-3 space-y-2">
             <h2 className="text-sm font-bold mb-4 text-center">RELATÓRIO DE NÃO CONFORMIDADES</h2>
+            {filtroResponsavel && (
+                <div className="text-center text-[9px] bg-blue-50 border border-blue-200 rounded p-1 mb-2">
+                    Filtrado por responsável: <strong>{filtroResponsavel}</strong>
+                </div>
+            )}
             {/* Primeiro: Gráfico de Pizza - Situação Geral */}
             <div>
                 <div className="grid grid-cols-2 gap-3 items-center">
@@ -299,7 +305,7 @@ const measure30DiasItemHeight = (item) => {
     if (!supportsDOM) return 30;
     const tempDiv = document.createElement('div');
     // Use narrower width to account for container padding (12px each side) + safety margin
-    tempDiv.style.cssText = 'position:absolute;visibility:hidden;width:168mm;box-sizing:border-box;font-family:Inter,sans-serif;font-size:8px;';
+    tempDiv.style.cssText = 'position:absolute;visibility:hidden;width:calc(210mm - 24px);box-sizing:border-box;font-family:Inter,sans-serif;font-size:8px;';
     tempDiv.innerHTML = `<table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:8px;">
         <tr>
             <td style="border:1px solid #ccc;padding:2px;width:4%;word-break:break-word;">${escHtml(item.itemNumber)}</td>
@@ -451,7 +457,7 @@ const ContentPage = ({ relatorio, empreendimento, items }) => {
 const PAGE_HEIGHT_PX = 1122;
 const HEADER_HEIGHT_NC = 80;
 const FOOTER_HEIGHT_NC = 45;
-const FOOTER_GUARD_PX = 24;
+const FOOTER_GUARD_PX = 8;
 const CONTENT_HEADER_HEIGHT = 100; // header da tabela na primeira página de conteúdo
 const USABLE_HEIGHT_NC = PAGE_HEIGHT_PX - HEADER_HEIGHT_NC - FOOTER_HEIGHT_NC - FOOTER_GUARD_PX;
 
@@ -470,7 +476,7 @@ const measureNCItemHeightDOM = (item) => {
     }
     const tempDiv = document.createElement('div');
     // Use narrower width to account for p-4 padding (16px each side) + safety margin
-    tempDiv.style.cssText = 'position:absolute;visibility:hidden;width:168mm;box-sizing:border-box;font-family:Inter,sans-serif;font-size:12px;';
+    tempDiv.style.cssText = 'position:absolute;visibility:hidden;width:calc(210mm - 32px);box-sizing:border-box;font-family:Inter,sans-serif;font-size:12px;';
     tempDiv.innerHTML = `<table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px;">
         <tr>
             <td style="border:1px solid #000;padding:4px;word-break:break-word;">${escHtml(item.local)}</td>
@@ -497,19 +503,15 @@ const paginateContent = (relatorio) => {
 
     let currentPage = [];
     let currentHeight = 0;
-    let isFirstPage = true;
+    const usable = USABLE_HEIGHT_NC - CONTENT_HEADER_HEIGHT;
 
     allItems.forEach((item) => {
         const itemHeight = measureNCItemHeightDOM(item);
-        const usable = isFirstPage
-            ? USABLE_HEIGHT_NC - CONTENT_HEADER_HEIGHT
-            : USABLE_HEIGHT_NC;
 
         if (currentPage.length > 0 && currentHeight + itemHeight > usable) {
             pages.push(currentPage);
             currentPage = [];
             currentHeight = 0;
-            isFirstPage = false;
         }
 
         currentPage.push(item);
@@ -554,13 +556,36 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
 const ReportContent = ({ relatorio: relatorioInitial, empreendimento, navigate }) => {
     const [relatorio, setRelatorio] = useState(relatorioInitial);
     const [isPrintingMode, setIsPrintingMode] = useState(false);
-    
+    const [filtroResponsavel, setFiltroResponsavel] = useState('');
+
+    const responsaveisUnicos = useMemo(() => {
+        const set = new Set();
+        (relatorio.secoes || []).forEach(s => (s.itens || []).forEach(item => {
+            const r = item.responsavel?.trim();
+            if (r) set.add(r);
+        }));
+        return Array.from(set).sort();
+    }, [relatorio.secoes]);
+
+    const filteredSecoes = useMemo(() => {
+        if (!filtroResponsavel) return relatorio.secoes || [];
+        return (relatorio.secoes || []).map(s => ({
+            ...s,
+            itens: (s.itens || []).filter(item => item.responsavel?.trim() === filtroResponsavel)
+        }));
+    }, [relatorio.secoes, filtroResponsavel]);
+
+    const filteredRelatorio = useMemo(() => ({
+        ...relatorio,
+        secoes: filteredSecoes
+    }), [relatorio, filteredSecoes]);
+
     const summaryStats = useMemo(() => {
-        if (!relatorio?.secoes) return [];
+        if (!filteredSecoes.length) return [];
 
         const disciplineMap = new Map();
 
-        relatorio.secoes.forEach(secao => {
+        filteredSecoes.forEach(secao => {
             if (secao.itens && Array.isArray(secao.itens)) {
                 secao.itens.forEach(item => {
                     const disciplina = item.disciplina || 'Sem Disciplina';
@@ -582,13 +607,13 @@ const ReportContent = ({ relatorio: relatorioInitial, empreendimento, navigate }
             }
         });
 
-        return Array.from(disciplineMap.values()).sort((a, b) => 
+        return Array.from(disciplineMap.values()).sort((a, b) =>
             a.name.localeCompare(b.name)
         );
-    }, [relatorio]);
+    }, [filteredSecoes]);
 
     const pieChartData = useMemo(() => {
-        const allItems = relatorio.secoes.flatMap(s => s.itens || []);
+        const allItems = filteredSecoes.flatMap(s => s.itens || []);
         const statusData = { OK: 0, Pendente: 0, Parcial: 0 };
         allItems.forEach(item => {
             const status = item.cronograma_atividade;
@@ -601,10 +626,10 @@ const ReportContent = ({ relatorio: relatorioInitial, empreendimento, navigate }
             { name: 'Pendente', value: statusData.Pendente },
             { name: 'Parcial', value: statusData.Parcial },
         ].filter(d => d.value > 0);
-    }, [relatorio]);
+    }, [filteredSecoes]);
 
     const responsavelData = useMemo(() => {
-        const allItems = relatorio.secoes.flatMap(s => s.itens || []);
+        const allItems = filteredSecoes.flatMap(s => s.itens || []);
         const responsavelMap = new Map();
 
         allItems.forEach(item => {
@@ -624,7 +649,7 @@ const ReportContent = ({ relatorio: relatorioInitial, empreendimento, navigate }
         return Array.from(responsavelMap.values()).sort((a, b) => 
             a.responsavel.localeCompare(b.responsavel)
         );
-    }, [relatorio]);
+    }, [filteredSecoes]);
 
     const chartData = useMemo(() => ({
         barChartData: summaryStats,
@@ -632,12 +657,12 @@ const ReportContent = ({ relatorio: relatorioInitial, empreendimento, navigate }
         responsavelData: responsavelData
     }), [summaryStats, pieChartData, responsavelData]);
 
-    const contentPages = useMemo(() => paginateContent(relatorio), [relatorio]);
+    const contentPages = useMemo(() => paginateContent(filteredRelatorio), [filteredRelatorio]);
 
     const itensMais30Dias = useMemo(() => {
-        if (!relatorio?.secoes) return [];
+        if (!filteredSecoes.length) return [];
         const hoje = new Date();
-        const allItems = relatorio.secoes.flatMap(s => s.itens || []).map((item, idx) => ({ ...item, itemNumber: idx + 1 }));
+        const allItems = filteredSecoes.flatMap(s => s.itens || []).map((item, idx) => ({ ...item, itemNumber: idx + 1 }));
         const filtered = allItems.filter(item => {
             if (item.cronograma_atividade === 'OK') return false;
             if (!item.data_status) return false;
@@ -645,7 +670,7 @@ const ReportContent = ({ relatorio: relatorioInitial, empreendimento, navigate }
             return (hoje - dataStatus) / (1000 * 60 * 60 * 24) >= 30;
         });
         return filtered.map((item, idx) => ({ ...item, itemNumber: idx + 1 }));
-    }, [relatorio]);
+    }, [filteredSecoes]);
 
     const itens30Pages = useMemo(() => {
         const overflow = itensMais30Dias.slice(ITEMS_ON_CHARTS_PAGE);
@@ -700,9 +725,34 @@ const ReportContent = ({ relatorio: relatorioInitial, empreendimento, navigate }
                     <h1 className="text-xl font-semibold text-gray-800">Visualizar Não Conformidade</h1>
                     <div className="flex gap-2">
                         <Button onClick={() => setEditCoverOpen(true)} variant="outline" className="bg-blue-50"><Edit2 className="w-4 h-4 mr-2" />Editar Capa</Button>
-                        <Button onClick={handlePrint} className="bg-green-600 hover:bg-green-700 text-white"><Printer className="w-4 h-4 mr-2" />Gerar PDF</Button>
+                        <Button onClick={handlePrint} disabled={isPrintingMode} className="bg-green-600 hover:bg-green-700 text-white">
+                            {isPrintingMode ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Printer className="w-4 h-4 mr-2" />}
+                            {isPrintingMode ? 'Preparando...' : 'Gerar PDF'}
+                        </Button>
                     </div>
                 </div>
+                {responsaveisUnicos.length > 0 && (
+                    <div className="flex items-center gap-2 max-w-4xl mx-auto mt-3 pt-3 border-t border-gray-100">
+                        <Filter className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                        <span className="text-sm text-gray-600 flex-shrink-0">Filtrar por Responsável:</span>
+                        <Select value={filtroResponsavel || '__all__'} onValueChange={v => setFiltroResponsavel(v === '__all__' ? '' : v)}>
+                            <SelectTrigger className="w-64 h-8 text-sm">
+                                <SelectValue placeholder="Todos os Responsáveis" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="__all__">Todos os Responsáveis</SelectItem>
+                                {responsaveisUnicos.map(r => (
+                                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        {filtroResponsavel && (
+                            <Button variant="ghost" size="sm" onClick={() => setFiltroResponsavel('')} className="h-8 text-xs text-gray-500 gap-1">
+                                <X className="w-3 h-3" />Limpar
+                            </Button>
+                        )}
+                    </div>
+                )}
             </div>
 
             <Dialog open={editCoverOpen} onOpenChange={setEditCoverOpen}>
@@ -795,7 +845,7 @@ const ReportContent = ({ relatorio: relatorioInitial, empreendimento, navigate }
                     empreendimento={empreendimento}
                     pdfMode={isPrintingMode}
                 >
-                    <ChartsPage chartData={chartData} relatorio={relatorio} itensMais30Dias={itensMais30Dias} />
+                    <ChartsPage chartData={chartData} relatorio={relatorio} itensMais30Dias={itensMais30Dias} filtroResponsavel={filtroResponsavel} />
                 </ReportPageLayout>
 
                 {/* Pages 3+: Itens sem atualização há mais de 30 dias */}

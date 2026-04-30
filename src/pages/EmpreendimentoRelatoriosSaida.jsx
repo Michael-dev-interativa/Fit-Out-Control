@@ -324,6 +324,33 @@ export default function EmpreendimentoRelatoriosSaida({ language: initialLanguag
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          title="Criar cópia"
+                          onClick={async () => {
+                            try {
+                              const { id, created_at, updated_at, data_relatorio, data_saida, data_segunda_vistoria, status_saida, nome_arquivo, ...rest } = relatorio;
+                              const novoRelatorio = {
+                                ...rest,
+                                nome_relatorio: (relatorio.nome_relatorio || '') + ' (Cópia)',
+                                status_saida: 'Em Andamento',
+                                data_relatorio: null,
+                                data_saida: null,
+                                data_segunda_vistoria: null,
+                                created_at: undefined,
+                                updated_at: undefined,
+                              };
+                              const result = await RelatorioSaida.create(novoRelatorio);
+                              navigate(createPageUrl(`PreencherRelatorioSaida?relatorioId=${result.id}&unidadeId=${result.id_unidade}&empreendimentoId=${result.id_empreendimento}`));
+                            } catch (e) {
+                              alert('Erro ao criar cópia do relatório: ' + (e.message || e));
+                            }
+                          }}
+                          className={isDark ? 'border-gray-600 text-blue-400 hover:bg-gray-600' : 'text-blue-600'}
+                        >
+                          <span role="img" aria-label="copiar" className="w-4 h-4">📄</span>
+                        </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button 

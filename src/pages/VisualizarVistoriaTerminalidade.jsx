@@ -15,59 +15,11 @@ import { AssinaturasPage } from '@/components/relatorios/AssinaturasSection';
 // Helper function to check if an ID is valid
 const isValidId = (id) => id && typeof id === 'string' && id.length > 0;
 
-// Função para comprimir imagens usando dimensões de exibição (150x120px)
-const compressImage = (url, quality = 0.4) => {
-    return new Promise((resolve) => {
-        if (!url || typeof url !== 'string' || url.startsWith('data:image')) {
-            resolve(url);
-            return;
-        }
-
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-
-            // Redimensiona para o tamanho de exibição: 150x120px
-            canvas.width = 150;
-            canvas.height = 120;
-
-            ctx.drawImage(img, 0, 0, 150, 120);
-
-            const compressedUrl = canvas.toDataURL('image/jpeg', quality);
-            resolve(compressedUrl);
-        };
-
-        img.onerror = () => {
-            console.warn(`Erro ao comprimir imagem: ${url}`);
-            resolve(url);
-        };
-
-        img.src = url;
-    });
-};
-
-// Hook para comprimir imagens
-const useCompressedImage = (url, quality = 0.4) => {
-    const [compressedUrl, setCompressedUrl] = React.useState(url);
-
-    React.useEffect(() => {
-        if (url && typeof url === 'string' && url.startsWith('http')) {
-            compressImage(url, quality).then(setCompressedUrl);
-        } else {
-            setCompressedUrl(url);
-        }
-    }, [url, quality]);
-
-    return compressedUrl;
-};
 
 
 
 // Report Pages Components
-const CoverPage = ({ relatorio, empreendimento, pdfMode }) => {
+const CoverPage = ({ relatorio, empreendimento }) => {
     const year = new Date(relatorio?.data_vistoria || Date.now()).getFullYear();
     const redColor = '#CE2D2D';
     const empreendimentoImageUrl = empreendimento?.foto_empreendimento || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
@@ -136,7 +88,7 @@ const ChartsPage = ({ chartData, relatorio }) => {
         const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
         if (percent * 100 < 5) return null;
         return (
-            <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central">
+            <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central">
                 {`${(percent * 100).toFixed(0)}%`}
             </text>
         );
@@ -343,7 +295,7 @@ const ContentPage = ({ relatorio, empreendimento, items }) => {
                                         <td className="border border-black p-1 text-center italic text-gray-600" colSpan="3">(Continuação)</td>
                                         <td className="border border-black p-1 foto-cell">
                                             {item.fotos && item.fotos.length > 0 && (
-                                                <div className="flex flex-col gap-1 foto-container">
+                                                <div className="imagens-container">
                                                     {item.fotos.map((foto, fotoIdx) => (
                                                         <FotoInspecao key={fotoIdx} url={foto.url} alt={`Anomalia ${fotoIdx + 1}`} />
                                                     ))}
@@ -377,7 +329,7 @@ const ContentPage = ({ relatorio, empreendimento, items }) => {
                                     <td className="border border-black p-1">{item.anomalia}</td>
                                     <td className="border border-black p-1 foto-cell">
                                         {item.fotos && item.fotos.length > 0 && (
-                                            <div className="flex flex-col gap-1 foto-container">
+                                            <div className="imagens-container">
                                                 {item.fotos.map((foto, fotoIdx) => (
                                                     <FotoInspecao key={fotoIdx} url={foto.url} alt={`Anomalia ${fotoIdx + 1}`} />
                                                 ))}
@@ -405,24 +357,15 @@ const ContentPage = ({ relatorio, empreendimento, items }) => {
 };
 
 const FotoInspecao = ({ url, alt = 'Foto da inspeção' }) => {
-    const compressedUrl = useCompressedImage(url, 0.4);
     return (
-        <div className="foto-wrapper">
-            <img
-                src={compressedUrl}
-                alt={alt}
-                className="foto-inspecao-print"
-                style={{
-                    width: '150px',
-                    height: '120px',
-                    objectFit: 'cover',
-                    display: 'block',
-                    margin: '0 auto',
-                    WebkitPrintColorAdjust: 'exact',
-                    printColorAdjust: 'exact',
-                    colorAdjust: 'exact'
-                }}
-            />
+        <div className="imagem-box">
+            <div className="foto-container">
+                <img
+                    src={url}
+                    alt={alt}
+                    className="foto-img"
+                />
+            </div>
         </div>
     );
 };
@@ -585,7 +528,7 @@ const PlanoCell = ({ text }) => {
     return <div ref={contentRef} className="plano-content">{text}</div>;
 };
 
-// Paginação por contagem: limita fotos por página e divide itens e textos em continuações
+// Paginação por orçamento de altura: garante que nenhuma linha cruze a borda da página
 const paginateContent = (relatorio) => {
     const pages = [];
     const allItems = relatorio.secoes
@@ -596,116 +539,96 @@ const paginateContent = (relatorio) => {
         })))
         .map((item, index) => ({ ...item, itemNumber: index + 1 }));
 
-    const MAX_PHOTOS_PER_PAGE = 6;      // número máximo de fotos por página
-    const MAX_ROWS_PER_PAGE = 12;       // limite de linhas por página (segurança)
+    // Orçamento de altura por página (pixels CSS a 96dpi)
+    // A4 = 1122px; menos: header(80) + footer(45) + section-header(129) + table-header(28) + table-top-padding(16) + folga(24)
+    // section-header real: p-4(16+16) + flex-content(87) + mb-2(8) + border-b(2) = 129px
+    const PAGE_BUDGET_PX = 800;
+    const PHOTO_PX = 144;      // altura por foto empilhada: 120px img + 8px margin-bottom + 16px padding (td + container) = 144px
+    const MIN_ROW_PX = 36;     // linha mínima (sem fotos, poucas linhas de texto)
+    const CHARS_PER_LINE = 34; // chars estimados por linha na coluna Plano (fonte 11px)
+    const LINE_PX = 16;        // line-height a 11px (11 * 1.45)
+    const CELL_PAD_PX = 10;    // padding top+bottom da célula
+    const MAX_PHOTOS_PER_ROW = 3; // máximo de fotos empilhadas por linha
 
-    // Estimativas conservadoras para capacidade de texto por altura
-    const IMAGE_UNIT_PX = 140; // 120px de imagem + margem (mais conservador)
-    const BASE_CELL_PX = 120;  // altura base sem fotos
-    const MIN_FONT = 7;
-    const LINE_HEIGHT = Math.ceil(MIN_FONT * 1.3);
-    const CHARS_PER_LINE_AT_MIN = 32; // ainda mais conservador
-
-    const charsCapacityForHeight = (px) => {
-        const lines = Math.max(1, Math.floor(px / LINE_HEIGHT) - 2); // 2 linhas de folga
-        return lines * CHARS_PER_LINE_AT_MIN;
-    };
-    const takeFirst = (str, n) => {
-        const s = String(str || "");
-        if (s.length <= n) return [s, ""];
-        const spaceIdx = s.lastIndexOf(' ', n);
-        if (spaceIdx > n * 0.6) return [s.slice(0, spaceIdx), s.slice(spaceIdx + 1)];
-        return [s.slice(0, n), s.slice(n)];
+    // Altura estimada de uma linha com N fotos e T chars de texto
+    const rowPx = (photoCount, textLen) => {
+        const ph = photoCount * PHOTO_PX;
+        const th = Math.max(1, Math.ceil(textLen / CHARS_PER_LINE)) * LINE_PX + CELL_PAD_PX;
+        return Math.max(MIN_ROW_PX, ph, th);
     };
 
-    let currentPage = [];
-    let photosInPage = 0;
-    let rowsInPage = 0;
-
-    const pushPage = () => {
-        if (currentPage.length > 0) {
-            pages.push(currentPage);
-            currentPage = [];
-            photosInPage = 0;
-            rowsInPage = 0;
-        }
+    // Quantos chars cabem em PX pixels na coluna de plano
+    const charsForPx = (px) => {
+        const lines = Math.max(1, Math.floor((Math.max(0, px - CELL_PAD_PX)) / LINE_PX));
+        return lines * CHARS_PER_LINE;
     };
 
-    allItems.forEach((item) => {
-        const fotos = Array.isArray(item.fotos) ? item.fotos : [];
-        const fotoTotal = fotos.length;
-        let remainingText = String(item.plano_melhoria || "");
+    // Divide texto preservando palavras
+    const splitAt = (text, capacity) => {
+        const s = String(text || '');
+        if (!s || s.length <= capacity) return [s, ''];
+        const words = s.split(/\s+/);
+        let out = '';
+        for (const w of words) {
+            const candidate = out ? out + ' ' + w : w;
+            if (candidate.length > capacity) { if (!out) out = w; break; }
+            out = candidate;
+        }
+        return [out, s.slice(out.length).trimStart()];
+    };
 
-        // Caso sem fotos: apenas controla número de linhas
-        if (fotoTotal === 0) {
-            if (rowsInPage + 1 > MAX_ROWS_PER_PAGE) pushPage();
-            const cap = charsCapacityForHeight(BASE_CELL_PX);
-            let [cut, rest] = takeFirst(remainingText, cap);
-            currentPage.push({ ...item, plano_melhoria: cut });
-            rowsInPage += 1;
-            remainingText = rest;
-            while (remainingText && remainingText.length > 0) {
-                if (rowsInPage + 1 > MAX_ROWS_PER_PAGE) pushPage();
-                [cut, remainingText] = takeFirst(remainingText, cap);
-                currentPage.push({ ...item, plano_melhoria: cut, isTextContinuation: true });
-                rowsInPage += 1;
+    let curPage = [];
+    let curH = 0;
+    const flush = () => { if (curPage.length) pages.push(curPage); curPage = []; curH = 0; };
+
+    for (const item of allItems) {
+        let remFotos = Array.isArray(item.fotos) ? [...item.fotos] : [];
+        let remText = String(item.plano_melhoria || '');
+        let isFirst = true;
+
+        while (isFirst || remFotos.length > 0 || remText.length > 0) {
+            const spaceLeft = Math.max(MIN_ROW_PX, PAGE_BUDGET_PX - curH);
+
+            if (remFotos.length > 0) {
+                // Linha com fotos
+                const maxBySpace = Math.max(1, Math.floor(spaceLeft / PHOTO_PX));
+                const sliceN = Math.min(maxBySpace, remFotos.length, MAX_PHOTOS_PER_ROW);
+                const sliceFotos = remFotos.slice(0, sliceN);
+                const slicePhotoPx = sliceFotos.length * PHOTO_PX;
+                const textCap = charsForPx(Math.max(MIN_ROW_PX, slicePhotoPx));
+                const [textChunk, textRest] = splitAt(remText, textCap);
+                const rh = rowPx(sliceFotos.length, textChunk.length);
+
+                if (curPage.length > 0 && curH + rh > PAGE_BUDGET_PX) { flush(); continue; }
+
+                curPage.push({ ...item, fotos: sliceFotos, plano_melhoria: textChunk, ...(isFirst ? {} : { isContinuation: true }) });
+                curH += rh;
+                remFotos = remFotos.slice(sliceN);
+                remText = textRest;
+            } else {
+                // Linha de texto puro (sem fotos)
+                const textCap = charsForPx(spaceLeft);
+                const [textChunk, textRest] = splitAt(remText, textCap);
+                if (!textChunk && !isFirst) break;
+                const rh = rowPx(0, (textChunk || '').length);
+
+                if (curPage.length > 0 && curH + rh > PAGE_BUDGET_PX) { flush(); continue; }
+
+                curPage.push({ ...item, fotos: [], plano_melhoria: textChunk, ...(isFirst ? {} : { isTextContinuation: true }) });
+                curH += rh;
+                remText = textRest;
             }
-            return;
-        }
 
-        // Se cabe inteiro na página atual
-        if (photosInPage + fotoTotal <= MAX_PHOTOS_PER_PAGE && rowsInPage + 1 <= MAX_ROWS_PER_PAGE) {
-            const cap = charsCapacityForHeight(Math.max(BASE_CELL_PX, fotoTotal * IMAGE_UNIT_PX));
-            let [cut, rest] = takeFirst(remainingText, cap);
-            currentPage.push({ ...item, plano_melhoria: cut });
-            photosInPage += fotoTotal;
-            rowsInPage += 1;
-            remainingText = rest;
-            while (remainingText && remainingText.length > 0) {
-                if (rowsInPage + 1 > MAX_ROWS_PER_PAGE) pushPage();
-                const capText = charsCapacityForHeight(BASE_CELL_PX);
-                [cut, remainingText] = takeFirst(remainingText, capText);
-                currentPage.push({ ...item, plano_melhoria: cut, isTextContinuation: true });
-                rowsInPage += 1;
-            }
-            return;
+            isFirst = false;
+            if (remFotos.length === 0 && !remText) break;
         }
+    }
 
-        // Caso contrário, dividir em chunks de fotos por página
-        let index = 0;
-        while (index < fotoTotal) {
-            const remainingSlots = MAX_PHOTOS_PER_PAGE - photosInPage;
-            // Se não há espaço na página atual, quebrar página
-            if (remainingSlots <= 0 || rowsInPage + 1 > MAX_ROWS_PER_PAGE) {
-                pushPage();
-            }
-            const sliceCount = Math.min(Math.max(remainingSlots, 1), fotoTotal - index);
-            const chunkFotos = fotos.slice(index, index + sliceCount);
-            const isFirst = index === 0;
-            const cap = charsCapacityForHeight(Math.max(BASE_CELL_PX, chunkFotos.length * IMAGE_UNIT_PX));
-            let [cut, rest] = takeFirst(remainingText, cap);
-            currentPage.push(isFirst ? { ...item, fotos: chunkFotos, plano_melhoria: cut } : { ...item, fotos: chunkFotos, plano_melhoria: cut, isContinuation: true });
-            photosInPage += chunkFotos.length;
-            rowsInPage += 1;
-            index += sliceCount;
-            remainingText = rest;
-        }
-
-        while (remainingText && remainingText.length > 0) {
-            if (rowsInPage + 1 > MAX_ROWS_PER_PAGE) pushPage();
-            const cap = charsCapacityForHeight(BASE_CELL_PX);
-            const [cut, rest] = takeFirst(remainingText, cap);
-            currentPage.push({ ...item, plano_melhoria: cut, isTextContinuation: true });
-            rowsInPage += 1;
-            remainingText = rest;
-        }
-    });
-
-    pushPage();
+    flush();
     // Fallback: se por algum motivo não houve páginas, dividir por linhas
     if (pages.length === 0 && allItems.length > 0) {
-        for (let i = 0; i < allItems.length; i += MAX_ROWS_PER_PAGE) {
-            pages.push(allItems.slice(i, i + MAX_ROWS_PER_PAGE));
+        for (let i = 0; i < allItems.length; i += 8) {
+            pages.push(allItems.slice(i, i + 8));
         }
     }
     try { console.debug('[paginateContent] items:', allItems.length, 'pages:', pages.length); } catch { }
@@ -734,7 +657,7 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
                 {children}
             </div>
             <div className="border-t border-gray-200 bg-gray-50 flex justify-between items-center text-[9px] text-gray-500" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: FOOTER_HEIGHT, padding: '4px 8px', maxWidth: '210mm', boxSizing: 'border-box' }}>
-                <div className="flex-1 text-left leading-tight truncate" style={{ paddingRight: '8px' }}><span className="font-medium">Arquivo: </span><span>{`VT-${relatorio.id?.slice(-4)}.pdf`}</span></div>
+                <div className="flex-1 text-left leading-tight truncate" style={{ paddingRight: '8px' }}><span className="font-medium">Arquivo: </span><span>{relatorio.nome_arquivo || `VT-${relatorio.id?.slice(-4)}.pdf`}</span></div>
                 <div className="flex-1 flex flex-col items-center leading-tight text-[8px]"><span>INTERATIVA ENGENHARIA</span><span>www.interativaengenharia.com.br</span></div>
                 <div className="flex-1 text-right leading-tight" style={{ paddingLeft: '8px' }}><span>Página {pageNumber} de {totalPages}</span></div>
             </div>
@@ -742,8 +665,21 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
     );
 };
 
-const ReportContent = ({ relatorio, empreendimento, navigate }) => {
+const ReportContent = ({ relatorio, empreendimento, setRelatorio, setEmpreendimento, navigate }) => {
     const [isPrintingMode, setIsPrintingMode] = useState(false);
+
+    const waitForImages = () => new Promise(resolve => {
+        const imgs = Array.from(document.querySelectorAll('.report-container img'));
+        const unloaded = imgs.filter(img => !img.complete || img.naturalWidth === 0);
+        if (unloaded.length === 0) { resolve(); return; }
+        let count = unloaded.length;
+        const done = () => { if (--count === 0) resolve(); };
+        unloaded.forEach(img => {
+            img.addEventListener('load', done, { once: true });
+            img.addEventListener('error', done, { once: true });
+        });
+        setTimeout(resolve, 20000);
+    });
 
     // Compute statistics for the summary table (discipline-based bar chart data)
     const summaryStats = useMemo(() => {
@@ -843,9 +779,19 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
 
     const handlePrint = async () => {
         setIsPrintingMode(true);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        window.print();
-        setTimeout(() => setIsPrintingMode(false), 1000);
+        try {
+            await waitForImages();
+            const [compressedRelatorio, compressedEmpreendimento] = await Promise.all([
+                compressReportImages(relatorio),
+                compressReportImages(empreendimento),
+            ]);
+            setRelatorio(compressedRelatorio);
+            setEmpreendimento(compressedEmpreendimento);
+            await new Promise(resolve => setTimeout(resolve, 300));
+            window.print();
+        } finally {
+            setTimeout(() => setIsPrintingMode(false), 1000);
+        }
     };
 
     let currentPage = 1;
@@ -856,7 +802,11 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 <div className="flex justify-between items-center max-w-4xl mx-auto">
                     <Button onClick={() => navigate(-1)} variant="outline"><ArrowLeft className="w-4 h-4 mr-2" />Voltar</Button>
                     <h1 className="text-xl font-semibold text-gray-800">Visualizar Vistoria de Terminalidade</h1>
-                    <Button onClick={handlePrint} className="bg-green-600 hover:bg-green-700 text-white"><Printer className="w-4 h-4 mr-2" />Gerar PDF</Button>
+                    <Button onClick={handlePrint} disabled={isPrintingMode} className="bg-green-600 hover:bg-green-700 text-white">
+                        {isPrintingMode
+                            ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Preparando PDF...</>
+                            : <><Printer className="w-4 h-4 mr-2" />Gerar PDF</>}
+                    </Button>
                 </div>
             </div>
             <div className="report-container max-w-4xl mx-auto" style={{ padding: 0 }}>
@@ -921,12 +871,33 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     overflow: hidden;
                 }
 
-                .foto-inspecao-print {
-                    max-width: 150px !important;
-                    max-height: 120px !important;
-                    width: 150px !important;
-                    height: 120px !important;
-                    object-fit: cover !important;
+                .imagens-container {
+                    display: block;
+                    width: 100%;
+                    padding: 4px 0;
+                }
+                .imagem-box {
+                    margin-bottom: 8px;
+                    page-break-inside: avoid;
+                    break-inside: avoid;
+                }
+                .foto-container {
+                    width: 150px;
+                    height: 120px;
+                    overflow: hidden;
+                    border: 1px solid #e5e7eb;
+                    background: #f9fafb;
+                    box-sizing: border-box;
+                    margin: 0 auto;
+                }
+                .foto-img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    display: block;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                    color-adjust: exact;
                 }
                 .plano-cell {
                     white-space: pre-wrap;
@@ -937,8 +908,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     text-align: center;
                 }
                 .plano-content {
-                    max-height: 120px;
-                    overflow: hidden;
+                    overflow: visible;
                     text-align: center;
                     display: inline-block;
                 }
@@ -1010,31 +980,35 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     table { page-break-inside: auto; }
                     tr { page-break-inside: avoid; }
 
-                    /* Wrapper de cada foto individual */
-                    .foto-wrapper {
-                        margin-bottom: 8px !important;
-                        page-break-inside: avoid !important;
-                        display: block !important;
-                    }
-
-                    /* Força as imagens a ficarem dentro da coluna */
-                    .foto-inspecao-print {
-                        max-width: 150px !important;
-                        max-height: 120px !important;
-                        width: 150px !important;
-                        height: 120px !important;
-                        min-height: 120px !important;
-                        display: block !important;
-                        margin: 0 auto !important;
-                        object-fit: cover !important;
-                        page-break-inside: avoid !important;
-                    }
-
-                    /* Container das fotos em coluna vertical */
-                    .foto-container {
+                    .imagens-container {
                         display: block !important;
                         width: 100% !important;
-                        padding: 8px 0 !important;
+                        padding: 4px 0 !important;
+                    }
+
+                    .imagem-box {
+                        margin-bottom: 8px !important;
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
+                        display: block !important;
+                    }
+
+                    .foto-container {
+                        width: 150px !important;
+                        height: 120px !important;
+                        overflow: hidden !important;
+                        border: 1px solid #e5e7eb !important;
+                        background: #f9fafb !important;
+                        box-sizing: border-box !important;
+                        margin: 0 auto !important;
+                    }
+
+                    .foto-img {
+                        width: 100% !important;
+                        height: 100% !important;
+                        object-fit: cover !important;
+                        display: block !important;
+                        page-break-inside: avoid !important;
                     }
 
                     /* Garante que a célula de imagem tenha largura fixa */
@@ -1058,8 +1032,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                         text-align: center !important;
                     }
                     .plano-content {
-                        max-height: 120px !important;
-                        overflow: hidden !important;
+                        overflow: visible !important;
                         text-align: center !important;
                         display: inline-block !important;
                     }
@@ -1092,13 +1065,10 @@ export default function VisualizarVistoriaTerminalidade() {
                 const relatorioData = await VistoriaTerminalidade.get(relatorioId);
                 if (!relatorioData) throw new Error("Relatório não encontrado.");
 
-                console.log('[FETCH] Dados do relatório carregados:', JSON.stringify(relatorioData.secoes?.[0]?.itens?.[0], null, 2));
-
                 const empreendimentoData = await Empreendimento.get(relatorioData.id_empreendimento);
                 if (!empreendimentoData) throw new Error("Empreendimento associado não encontrado.");
 
-                const compressedRelatorio = await compressReportImages(relatorioData);
-                setRelatorio(compressedRelatorio);
+                setRelatorio(relatorioData);
                 setEmpreendimento(empreendimentoData);
                 setError(null);
             } catch (err) {
@@ -1155,5 +1125,5 @@ export default function VisualizarVistoriaTerminalidade() {
         );
     }
 
-    return <ReportContent relatorio={relatorio} empreendimento={empreendimento} navigate={navigate} />;
+    return <ReportContent relatorio={relatorio} empreendimento={empreendimento} setRelatorio={setRelatorio} setEmpreendimento={setEmpreendimento} navigate={navigate} />;
 }

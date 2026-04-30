@@ -296,6 +296,7 @@ export default function EditarVistoriaTerminalidade() {
                         <div className="space-y-2"><Label>{t.engineer}</Label><Input value={formData.eng_obra} onChange={e => handleInputChange('eng_obra', e.target.value)} /></div>
                         <div className="space-y-2"><Label>{t.revision}</Label><Input value={formData.revisao} onChange={e => handleInputChange('revisao', e.target.value)} /></div>
                         <div className="space-y-2"><Label>{t.surveyDate}</Label><Input type="date" value={formData.data_vistoria} onChange={e => handleInputChange('data_vistoria', e.target.value)} /></div>
+                        <div className="space-y-2"><Label>Nome do Arquivo</Label><Input placeholder="Ex: VT-OBRA-2025-01.pdf" value={formData.nome_arquivo || ''} onChange={e => handleInputChange('nome_arquivo', e.target.value)} /><p className="text-xs text-gray-500">Exibido no rodapé do relatório</p></div>
                     </CardContent>
                 </Card>
 

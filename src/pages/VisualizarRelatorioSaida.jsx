@@ -1037,13 +1037,49 @@ export default function VisualizarRelatorioSaida() {
     </div>
   );
 
+
+  // Função para criar cópia do relatório
+  const handleCopy = async () => {
+    if (!relatorio) return;
+    try {
+      // Monta payload removendo campos que não devem ser copiados
+      const {
+        id, created_at, updated_at, data_relatorio, data_saida, data_segunda_vistoria, status_saida,
+        nome_arquivo, // pode ser mantido ou limpo
+        ...rest
+      } = relatorio;
+      const novoRelatorio = {
+        ...rest,
+        nome_relatorio: (relatorio.nome_relatorio || '') + ' (Cópia)',
+        status_saida: 'Em Andamento',
+        data_relatorio: null,
+        data_saida: null,
+        data_segunda_vistoria: null,
+        created_at: undefined,
+        updated_at: undefined,
+        // id_empreendimento, id_unidade, id_formulario são mantidos
+      };
+      // Cria novo relatório
+      const result = await base44.entities.RelatorioSaida.create(novoRelatorio);
+      // Redireciona para edição do novo relatório
+      navigate(createPageUrl(`PreencherRelatorioSaida?relatorioId=${result.id}&unidadeId=${result.id_unidade}&empreendimentoId=${result.id_empreendimento}`));
+    } catch (e) {
+      alert('Erro ao criar cópia do relatório: ' + (e.message || e));
+    }
+  };
+
   return (
     <div className="bg-gray-200 print:bg-white min-h-screen font-sans">
       <div className="no-print shadow-sm border-b p-4 mb-4 bg-white">
-        <div className="flex justify-between items-center max-w-4xl mx-auto">
+        <div className="flex justify-between items-center max-w-4xl mx-auto gap-2">
           <Button onClick={() => navigate(-1)} variant="outline"><ArrowLeft className="w-4 h-4 mr-2" />Voltar</Button>
           <h1 className="text-xl font-semibold text-gray-800">Visualizar Relatório de Saída</h1>
-          <Button onClick={handlePrint} className="bg-green-600 hover:bg-green-700 text-white"><Printer className="w-4 h-4 mr-2" />Gerar PDF</Button>
+          <div className="flex gap-2">
+            <Button onClick={handleCopy} variant="outline" className="border-blue-600 text-blue-700 hover:bg-blue-50">
+              <span className="mr-2">📄</span>Criar Cópia
+            </Button>
+            <Button onClick={handlePrint} className="bg-green-600 hover:bg-green-700 text-white"><Printer className="w-4 h-4 mr-2" />Gerar PDF</Button>
+          </div>
         </div>
       </div>
 

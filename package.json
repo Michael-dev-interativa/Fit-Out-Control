@@ -25,6 +25,7 @@
     "import:atas-reuniao": "node scripts/import-atas-reuniao.js",
     "import:unidades-empreendimento": "node scripts/import-unidades-empreendimento.js",
     "import:respostas-vistoria": "node scripts/import-respostas-vistoria.js",
+    "import:nao-conformidades": "node scripts/import-nao-conformidades.js",
     "compress-uploads": "node scripts/compress-uploads.js"
   },
   "dependencies": {
