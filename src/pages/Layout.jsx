@@ -386,12 +386,12 @@ export default function Layout({ children }) {
         icon: Users,
         adminOnly: true
       },
-      {
-        title: t.standardActivities,
-        url: createPageUrl("AtividadesPadrao"),
-        icon: ListChecks,
-        adminOnly: true
-      },
+      // { // Atividades Padrão removido do menu
+      //   title: t.standardActivities,
+      //   url: createPageUrl("AtividadesPadrao"),
+      //   icon: ListChecks,
+      //   adminOnly: true
+      // },
     ];
   };
 
