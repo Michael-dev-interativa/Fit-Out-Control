@@ -111,9 +111,32 @@ const CoverPage = ({ relatorio, empreendimento }) => {
     );
 };
 
-// --- Conteúdo do relatório (placeholder, será adaptado para as seções/perguntas do CSV)
+
+const SecaoVistoria = ({ secao }) => (
+    <div className="mb-8">
+        <h2 className="text-lg font-bold mb-2 bg-blue-900 text-white p-2 rounded">{secao.nome_secao}</h2>
+        <table className="w-full border-collapse text-xs table-fixed mb-2">
+            <thead>
+                <tr className="bg-gray-100">
+                    <th className="border border-black p-2 text-left" style={{ width: '60%' }}>Pergunta</th>
+                    <th className="border border-black p-2 text-center" style={{ width: '20%' }}>Resposta</th>
+                    <th className="border border-black p-2 text-center" style={{ width: '20%' }}>Observação</th>
+                </tr>
+            </thead>
+            <tbody>
+                {secao.perguntas.map((p, idx) => (
+                    <tr key={idx}>
+                        <td className="border border-black p-2">{p.pergunta}</td>
+                        <td className="border border-black p-2 text-center">{p.resposta || '-'}</td>
+                        <td className="border border-black p-2 text-center">{p.observacao || '-'}</td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+    </div>
+);
+
 const ReportContent = ({ relatorio, empreendimento, navigate }) => {
-    // TODO: Implementar renderização das seções e perguntas do relatorio.secoes
     return (
         <div className="bg-gray-200 print:bg-white min-h-screen font-sans">
             <div className="no-print shadow-sm border-b p-4 mb-4 bg-white">
@@ -128,8 +151,19 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 <div className="report-page" style={{ height: '297mm', overflow: 'hidden' }}>
                     <CoverPage relatorio={relatorio} empreendimento={empreendimento} />
                 </div>
-                {/* TODO: Renderizar páginas de conteúdo, observações e assinaturas */}
-                <div className="p-8 text-center text-gray-500">Conteúdo do relatório em construção...</div>
+                {/* Seções do relatório */}
+                <div className="bg-white p-8">
+                    {(relatorio.secoes || []).map((secao, idx) => (
+                        <SecaoVistoria key={idx} secao={secao} />
+                    ))}
+                </div>
+                {/* Observações Gerais */}
+                {relatorio.observacoes_gerais && (
+                    <div className="bg-white p-8 mt-4">
+                        <h2 className="text-lg font-bold mb-2 bg-blue-900 text-white p-2 rounded">Observações Gerais</h2>
+                        <div className="border border-black p-4 text-sm whitespace-pre-wrap min-h-[100px]">{relatorio.observacoes_gerais}</div>
+                    </div>
+                )}
             </div>
         </div>
     );
