@@ -166,14 +166,37 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
 
 const FotoInspecao = ({ url, legenda, maxHeight = '66mm' }) => {
   // Cada imagem em seu próprio container, sem recorte, com espaçamento e borda
-  return (
-    <div className="text-center foto-inspecao bg-white rounded border border-gray-800 p-2 flex flex-col items-center justify-center print:border print:border-black" style={{ margin: '4px', maxWidth: '100%', maxHeight, border: '1px solid #222', padding: '8px' }}>
-      <img src={url} alt={legenda || 'Foto da inspeção'} style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '2px', border: 'none', background: '#fff' }} />
-      {legenda && (
-        <p className="text-[9px] text-gray-600 mt-1">{legenda}</p>
-      )}
-    </div>
-  );
+    return (
+      <div style={{ textAlign: 'center', marginBottom: '6px', boxSizing: 'border-box' }}>
+        <div
+          style={{
+            width: '100%',
+            height: maxHeight,
+            border: '1px solid #ddd',
+            backgroundColor: '#f9fafb',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <img
+            src={url}
+            alt={legenda || 'Foto da inspeção'}
+            style={{
+              maxWidth: '100%',
+              maxHeight: '100%',
+              width: 'auto',
+              height: 'auto',
+              objectFit: 'contain',
+              display: 'block',
+            }}
+          />
+        </div>
+        {legenda && (
+          <p style={{ fontSize: '9px', color: '#555', marginTop: '4px', lineHeight: '1.1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{legenda}</p>
+        )}
+      </div>
+    );
 };
 
 const ContentPage = ({ local, itensSlice, showHeader = true }) => {

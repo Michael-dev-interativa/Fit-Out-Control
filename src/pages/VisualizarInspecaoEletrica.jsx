@@ -209,30 +209,13 @@ const FotoInspecao = ({ foto }) => {
     const url = useCompressedImage(rawUrl, 250, 0.25);
 
     return (
-        <div style={{ textAlign: 'center', marginBottom: '6px', boxSizing: 'border-box' }}>
-            <div
-                style={{
-                    width: '100%',
-                    height: '215px',
-                    border: '1px solid #ddd',
-                    backgroundColor: '#f9fafb',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                }}
-            >
+        <div className="imagem-box">
+            <div className="foto-container">
                 <img
                     src={url}
                     alt={legenda || 'Foto da inspeção'}
-                    style={{
-                        maxWidth: '100%',
-                        maxHeight: '100%',
-                        width: 'auto',
-                        height: 'auto',
-                        objectFit: 'contain',
-                        objectPosition,
-                        display: 'block',
-                    }}
+                    className="foto-img"
+                    style={{ objectPosition }}
                 />
             </div>
             {legenda && (
