@@ -152,35 +152,17 @@ const getItemFotos = (item) => {
 const FotoInspecao = ({ foto }) => {
     const fotoUrl = typeof foto === 'string' ? foto : (foto?.url || foto?.path || foto?.file_url || foto?.filePath || foto?.src);
     const legenda = typeof foto === 'string' ? '' : (foto?.legenda || '');
-    const objectFit = typeof foto === 'string' ? 'contain' : (foto?.objectFit || foto?.fit || 'contain');
     const objectPosition = typeof foto === 'string' ? 'center center' : (foto?.objectPosition || foto?.posicao || 'center center');
     const resolvedUrl = getUploadUrl(fotoUrl) || fotoUrl;
-    // URL já vem comprimida pelo compressReportImages, apenas usar resolvedUrl
 
     if (!resolvedUrl) return null;
 
     return (
-        <div className="imagem-box" style={{ textAlign: 'left', marginBottom: '0px', boxSizing: 'border-box' }}>
-            <img
-                src={resolvedUrl}
-                alt={legenda || 'Foto da inspecao'}
-                style={{
-                    width: 'auto',
-                    height: 'auto',
-                    maxWidth: '100%',
-                    maxHeight: '100%',
-                    objectFit,
-                    objectPosition,
-                    display: 'block'
-                }}
-                loading="lazy"
-                onError={(e) => {
-                    if (e.currentTarget.src !== resolvedUrl) {
-                        e.currentTarget.src = resolvedUrl;
-                    }
-                }}
-            />
-            {legenda && <p style={{ fontSize: '7px', color: '#555', marginTop: '4px', lineHeight: '1.1', overflowWrap: 'anywhere', whiteSpace: 'normal' }}>{legenda}</p>}
+        <div className="imagem-box">
+            <div className="foto-container">
+                <img src={resolvedUrl} alt={legenda || 'Foto da inspeção'} className="foto-img" style={{ objectPosition }} />
+            </div>
+            {legenda && <p style={{ fontSize: '7px', color: '#555', marginTop: '3px', lineHeight: '1.1', overflowWrap: 'anywhere', whiteSpace: 'normal' }}>{legenda}</p>}
         </div>
     );
 };
@@ -358,13 +340,11 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, tituloS
                                         <React.Fragment key={idx}>
                                             {linhasFotos.map((linha, linhaIdx) => (
                                                 <tr key={`${idx}-only-photos-${linhaIdx}`} className="photo-row" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                                    <td colSpan="5" className="border border-black p-2 photo-cell">
-                                                        <div className="photo-inner-wrap">
-                                                            <div className="imagens-container">
+                                                    <td colSpan="5" className="photo-cell border border-black">
+                                                        <div className="imagens-container">
                                                             {linha.map((foto, fotoIdx) => (
                                                                 <FotoInspecao key={`${idx}-only-photos-${linhaIdx}-${fotoIdx}`} foto={foto} />
                                                             ))}
-                                                            </div>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -384,13 +364,11 @@ const ContentPage = ({ local, items, isFirstPageOfLocal, combineWithDoc, tituloS
                                         </tr>
                                         {linhasFotos.map((linha, linhaIdx) => (
                                             <tr key={`${idx}-fotos-${linhaIdx}`} className="photo-row" style={{ pageBreakInside: 'avoid', breakInside: 'avoid', pageBreakBefore: 'auto' }}>
-                                                <td colSpan="5" className="border border-black p-2 photo-cell">
-                                                    <div className="photo-inner-wrap">
-                                                        <div className="imagens-container">
+                                                <td colSpan="5" className="photo-cell border border-black">
+                                                    <div className="imagens-container">
                                                         {linha.map((foto, fotoIdx) => (
                                                             <FotoInspecao key={`${idx}-fotos-${linhaIdx}-${fotoIdx}`} foto={foto} />
                                                         ))}
-                                                        </div>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -486,7 +464,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 firstPageMaxItems: firstPageItemLimit,
                 splitPhotoRows: true,
                 photoChunkSize: 3,
-                photoMaxHeightPx: 150,
+                photoMaxHeightPx: 215,
                 breakBeforeLimitPx: 18,
                 footerGuardPx: 20,
                 firstPageExtraHeightPx: combineDocWithContent ? 180 : 0,
@@ -586,48 +564,15 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     color-adjust: exact !important;
                 }
 
-                .photo-cell {
-                    padding: 0;
-                    background: #fff;
-                    box-sizing: border-box;
-                }
+                .photo-cell { padding: 0 !important; background: #fff; box-sizing: border-box; }
 
-                .photo-inner-wrap {
-                    padding: 0;
-                    background: #fff;
-                }
+                .imagens-container { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; padding: 6px; align-items: flex-start; justify-content: flex-start; break-inside: avoid; page-break-inside: avoid; box-sizing: border-box; }
 
-                .imagens-container {
-                    display: grid;
-                    grid-template-columns: repeat(3, minmax(0, 1fr));
-                    gap: 0;
-                    width: 100%;
-                }
+                .imagem-box { flex: 0 0 calc((100% - 28px) / 3); max-width: calc((100% - 28px) / 3); width: calc((100% - 28px) / 3); box-sizing: border-box; break-inside: avoid; page-break-inside: avoid; }
 
-                .imagem-box {
-                    width: 100%;
-                    height: 180px;
-                    overflow: hidden;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    break-inside: avoid;
-                    page-break-inside: avoid;
-                    line-height: 0;
-                }
+                .foto-container { width: 100%; height: 200px; overflow: hidden; border: 1px solid #e5e7eb; background: #f9fafb; box-sizing: border-box; display: flex; align-items: center; justify-content: center; }
 
-                .imagem-box img {
-                    width: auto;
-                    height: auto;
-                    max-width: 100%;
-                    max-height: 100%;
-                    object-fit: contain;
-                    object-position: center center;
-                    background: #f0f0f0;
-                    border-radius: 6px;
-                    break-inside: avoid;
-                    page-break-inside: avoid;
-                }
+                .foto-img { width: 100%; height: 200px; object-fit: contain; display: block; }
                 
                 @page { size: A4 portrait; margin: 0; }
                 
@@ -707,46 +652,11 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     thead { display: table-header-group; }
                     tr { page-break-inside: avoid; }
                     .photo-row { page-break-inside: avoid !important; break-inside: avoid !important; }
-                    .photo-cell {
-                        padding: 0 !important;
-                        background: #fff !important;
-                        box-sizing: border-box !important;
-                    }
-                    .photo-inner-wrap {
-                        padding: 0 !important;
-                        background: #fff !important;
-                    }
-                    .imagens-container {
-                        display: grid !important;
-                        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-                        gap: 0 !important;
-                        page-break-inside: avoid !important;
-                        break-inside: avoid !important;
-                    }
-                    .imagem-box {
-                        width: 100% !important;
-                        height: 180px !important;
-                        overflow: hidden !important;
-                        display: flex !important;
-                        align-items: center !important;
-                        justify-content: center !important;
-                        line-height: 0 !important;
-                        page-break-inside: avoid !important;
-                        break-inside: avoid !important;
-                    }
-                    .imagem-box img {
-                        width: auto !important;
-                        height: auto !important;
-                        max-width: 100% !important;
-                        max-height: 100% !important;
-                        object-fit: contain !important;
-                        object-position: center center !important;
-                        background: #f0f0f0 !important;
-                        border-radius: 6px !important;
-                        display: block !important;
-                        page-break-inside: avoid !important;
-                        break-inside: avoid !important;
-                    }
+                    .photo-cell { padding: 0 !important; background: #fff !important; box-sizing: border-box !important; }
+                    .imagens-container { display: flex !important; flex-wrap: wrap !important; gap: 8px !important; width: 100% !important; padding: 6px !important; align-items: flex-start !important; justify-content: flex-start !important; page-break-inside: avoid !important; break-inside: avoid !important; box-sizing: border-box !important; }
+                    .imagem-box { flex: 0 0 calc((100% - 28px) / 3) !important; max-width: calc((100% - 28px) / 3) !important; width: calc((100% - 28px) / 3) !important; box-sizing: border-box !important; page-break-inside: avoid !important; break-inside: avoid !important; }
+                    .foto-container { width: 100% !important; height: 200px !important; overflow: hidden !important; border: 1px solid #e5e7eb !important; background: #f9fafb !important; box-sizing: border-box !important; display: flex !important; align-items: center !important; justify-content: center !important; }
+                    .foto-img { width: 100% !important; height: 200px !important; object-fit: contain !important; display: block !important; }
                 }
                 
                 @media screen {
