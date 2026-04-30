@@ -136,7 +136,7 @@ const DocumentacaoPage = ({ itens }) => {
 const FotoInspecao = ({ url, legenda }) => {
     // URL já vem comprimida pelo compressReportImages, apenas renderizar
     return (
-        <div className="text-center">
+        <div className="text-center" style={{ minHeight: '250px', maxHeight: '250px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <img src={url} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: '250px', objectFit: 'cover', border: '1px solid #ddd' }} />
             {legenda && (
                 <p className="text-[9px] text-gray-600 mt-1">{legenda}</p>
