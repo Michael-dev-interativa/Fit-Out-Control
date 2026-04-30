@@ -8,6 +8,8 @@ import NovaVistoriaTecnica from "./NovaVistoriaTecnica.jsx";
 import EditarVistoriaTecnica from "./EditarVistoriaTecnica.jsx";
 import VisualizarVistoriaTecnica from "./VisualizarVistoriaTecnica.jsx";
 
+import EmpreendimentoVistoriaObra from "./EmpreendimentoVistoriaObra.jsx";
+
 // Lazy-load large pages to reduce initial bundle size
 const Empreendimentos = lazy(() => import("./Empreendimentos"));
 const Usuarios = lazy(() => import("./Usuarios"));
@@ -460,6 +462,9 @@ function PagesContent() {
         <Layout currentPageName={currentPage}>
             <Suspense fallback={<div className="p-6">Carregando...</div>}>
                 <Routes>
+
+                    {/* Rota direta para Vistoria de Obra Padrão */}
+                    <Route path="/EmpreendimentoVistoriaObra" element={<EmpreendimentoVistoriaObra />} />
 
                     <Route path="/" element={hasToken() ? <Empreendimentos /> : <Login />} />
                     {/* Garantir variação minúscula com guarda */}
