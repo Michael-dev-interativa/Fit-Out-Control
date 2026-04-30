@@ -467,7 +467,8 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 photoMaxHeightPx: 215,
                 breakBeforeLimitPx: 18,
                 footerGuardPx: 20,
-                firstPageExtraHeightPx: combineDocWithContent ? 180 : 0,
+                headerHeightPx: 150,
+                firstPageExtraHeightPx: combineDocWithContent ? 100 : 30,
                 itemBufferPx: 10,
             })
         )
