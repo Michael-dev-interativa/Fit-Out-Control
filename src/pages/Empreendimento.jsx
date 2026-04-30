@@ -436,7 +436,7 @@ const EmpreendimentoPage = () => {
                   onClick={() => {
                     if ((unidades || []).length === 1) {
                       const targetUnidadeId = unidades[0]?.id;
-                      navigate(createPageUrl(`IniciarVistoria?unidadeId=${targetUnidadeId}&empreendimentoId=${empreendimentoId}`));
+                      navigate(createPageUrl(`NovoVistoriadeObra?unidadeId=${targetUnidadeId}&empreendimentoId=${empreendimentoId}`));
                       return;
                     }
 

@@ -313,27 +313,7 @@ export default function IniciarVistoria(props) {
         theme={theme}
       />
       
-      <Card className={isDark ? 'bg-gray-800' : ''}>
-        <CardContent className="p-4">
-          <Button 
-            className="w-full bg-black text-white hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600"
-            onClick={() => setIsNewInspectionDialogOpen(true)}
-            disabled={!isValidId(unidadeId) || !isValidId(empreendimentoId)}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            {t.newInspection}
-          </Button>
-        </CardContent>
-      </Card>
-      
-      <NovaVistoriaDialog 
-        open={isNewInspectionDialogOpen}
-        onOpenChange={setIsNewInspectionDialogOpen}
-        unidade={unidade}
-        empreendimento={empreendimento}
-        language={language}
-        theme={theme}
-      />
+
 
       <Card className={isDark ? 'bg-gray-800' : ''}>
         <CardHeader>
