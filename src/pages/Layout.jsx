@@ -385,13 +385,7 @@ export default function Layout({ children }) {
         url: createPageUrl("Usuarios"),
         icon: Users,
         adminOnly: true
-      },
-      {
-        title: 'Vistoria de Obra Padrão',
-        url: createPageUrl('VisualizarInspecaoVistoriaObraPadrao'),
-        icon: FileText,
-        adminOnly: true
-      },
+      }
     ];
   };
 
