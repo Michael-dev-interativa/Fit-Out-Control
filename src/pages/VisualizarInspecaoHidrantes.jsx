@@ -145,7 +145,7 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
     );
 };
 
-const FotoInspecao = ({ url, legenda, maxHeight = '150px' }) => {
+const FotoInspecao = ({ url, legenda, maxHeight = '110px' }) => {
     // URL já vem comprimida pelo compressReportImages
     const printing = typeof document !== 'undefined' && document.body && document.body.dataset && document.body.dataset.printing === 'true';
 
@@ -160,6 +160,8 @@ const FotoInspecao = ({ url, legenda, maxHeight = '150px' }) => {
                     style={{
                         width: '100%',
                         height: maxHeight,
+                        minHeight: '80px',
+                        maxHeight: '140px',
                         backgroundImage: `url(${url})`,
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
@@ -176,7 +178,7 @@ const FotoInspecao = ({ url, legenda, maxHeight = '150px' }) => {
 
     return (
         <div className="text-center foto-inspecao">
-            <img className="foto-inspecao-img" src={url} data-original={url} height={maxHeight} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: maxHeight, objectFit: 'cover', border: '1px solid #ddd', display: 'block' }} />
+            <img className="foto-inspecao-img" src={url} data-original={url} height={maxHeight} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: maxHeight, minHeight: '80px', maxHeight: '140px', objectFit: 'cover', border: '1px solid #ddd', display: 'block' }} />
             {legenda && (
                 <p className="text-[9px] text-gray-600 mt-1">{legenda}</p>
             )}
