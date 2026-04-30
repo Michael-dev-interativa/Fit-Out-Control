@@ -165,10 +165,12 @@ const DocumentacaoPage = ({ itens, comentarios }) => {
 };
 
 const FotoInspecao = ({ url, legenda, maxHeight = '66mm' }) => {
-  // URL já vem comprimida pelo compressReportImages
+  // Cada imagem em seu próprio container, sem recorte, com espaçamento e borda
   return (
-    <div className="text-center foto-inspecao" style={{ overflow: 'hidden', boxSizing: 'border-box' }}>
-      <img src={url} alt={legenda || 'Foto da inspeção'} style={{ width: '100%', height: '225px', objectFit: 'cover', border: '1px solid #ddd', display: 'block' }} />
+    <div className="text-center foto-inspecao bg-white rounded shadow border border-gray-300 p-2 flex flex-col items-center justify-center" style={{ margin: '4px', maxWidth: '100%', maxHeight }}>
+      <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f8f8f8', borderRadius: '6px', padding: '4px' }}>
+        <img src={url} alt={legenda || 'Foto da inspeção'} style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '4px', border: '1px solid #e0e0e0', background: '#fff' }} />
+      </div>
       {legenda && (
         <p className="text-[9px] text-gray-600 mt-1">{legenda}</p>
       )}
