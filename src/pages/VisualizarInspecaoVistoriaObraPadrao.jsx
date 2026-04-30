@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Loader2, AlertTriangle, ArrowLeft, Printer } from 'lucide-react';
-import Button from '../components/Button';
+import { Button } from '@/components/ui/button';
 import { Empreendimento } from '../api/entities';
 import { InspecaoVistoriaObraPadrao } from '../api/entities';
 import { compressReportImages } from '../utils/compressImage';
