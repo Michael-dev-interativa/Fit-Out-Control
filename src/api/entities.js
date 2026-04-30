@@ -284,6 +284,8 @@ export const InspecaoCFTV = makeEntity('inspecoes-cftv');
 export const InspecaoSDAI = makeEntity('inspecoes-sdai');
 export const InspecaoEletrica = makeEntity('inspecoes-eletrica');
 export const InspecaoGas = makeEntity('inspecoes-gas');
+// Novo relatório: Vistoria de Obra Padrão
+export const InspecaoVistoriaObraPadrao = makeEntity('inspecoes-vistoria-obra-padrao');
 
 // Placeholders para entidades ainda não mapeadas no backend
 export const Usuario = makeEntity('usuarios');

@@ -1,3 +1,5 @@
+const VisualizarInspecaoVistoriaObraPadrao = lazy(() => import("./VisualizarInspecaoVistoriaObraPadrao"));
+    VisualizarInspecaoVistoriaObraPadrao: VisualizarInspecaoVistoriaObraPadrao,
 import React, { lazy, Suspense } from "react";
 import Layout from "./Layout.jsx";
 import Login from "./Login.jsx";

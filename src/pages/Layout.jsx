@@ -386,12 +386,12 @@ export default function Layout({ children }) {
         icon: Users,
         adminOnly: true
       },
-      // { // Atividades Padrão removido do menu
-      //   title: t.standardActivities,
-      //   url: createPageUrl("AtividadesPadrao"),
-      //   icon: ListChecks,
-      //   adminOnly: true
-      // },
+      {
+        title: 'Vistoria de Obra Padrão',
+        url: createPageUrl('VisualizarInspecaoVistoriaObraPadrao'),
+        icon: FileText,
+        adminOnly: true
+      },
     ];
   };
 
