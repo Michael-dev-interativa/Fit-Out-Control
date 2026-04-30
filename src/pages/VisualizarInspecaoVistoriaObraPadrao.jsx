@@ -6,7 +6,7 @@ import { Loader2, AlertTriangle, ArrowLeft, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Empreendimento } from '../api/entities';
 import { InspecaoVistoriaObraPadrao } from '../api/entities';
-import { compressReportImages } from '../utils/compressImage';
+import { compressReportImages } from '@/lib/compressReportImages';
 
 // --- Utilitários de imagem (copiados do padrão)
 const isValidId = (id) => id && typeof id === 'string' && id.length > 0;
