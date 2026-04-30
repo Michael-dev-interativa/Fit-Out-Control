@@ -273,7 +273,10 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
 
     const hasDocumentacao = relatorio.itens_documentacao && relatorio.itens_documentacao.length > 0;
 
-    const paginateLocalItems = (local, maxItemsForFirstPage) => paginateLocalItemsForPrinting(local, maxItemsForFirstPage);
+    const paginateLocalItems = (local, maxItemsForFirstPage) => paginateLocalItemsForPrinting(local, {
+        firstPageMaxItems: maxItemsForFirstPage,
+        photoMaxHeightPx: 265,
+    });
 
     const docItemCount = hasDocumentacao ? (relatorio.itens_documentacao.length || 0) : 0;
     const combineDocWithContent = hasDocumentacao && docItemCount <= 6;
