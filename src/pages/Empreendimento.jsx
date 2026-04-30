@@ -434,6 +434,10 @@ const EmpreendimentoPage = () => {
                   variant="outline"
                   className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
                   onClick={() => {
+                    if (!empreendimentoId) {
+                      alert('ID do empreendimento não encontrado. Não é possível criar vistoria.');
+                      return;
+                    }
                     let url = `EmpreendimentoVistoriaObra?empreendimentoId=${empreendimentoId}`;
                     if ((unidades || []).length === 1) {
                       url += `&unidadeId=${unidades[0]?.id}`;
