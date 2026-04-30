@@ -434,18 +434,11 @@ const EmpreendimentoPage = () => {
                   variant="outline"
                   className={`h-20 flex flex-col gap-1 text-xs ${isDark ? 'border-gray-600 hover:bg-gray-700' : ''}`}
                   onClick={() => {
+                    let url = `EmpreendimentoVistoriaObra?empreendimentoId=${empreendimentoId}`;
                     if ((unidades || []).length === 1) {
-                      const targetUnidadeId = unidades[0]?.id;
-                      navigate(createPageUrl(`NovoVistoriadeObra?unidadeId=${targetUnidadeId}&empreendimentoId=${empreendimentoId}`));
-                      return;
+                      url += `&unidadeId=${unidades[0]?.id}`;
                     }
-
-                    if ((unidades || []).length > 1) {
-                      setShowUnidades(true);
-                      return;
-                    }
-
-                    setShowNovaUnidade(true);
+                    navigate(createPageUrl(url));
                   }}
                 >
                   <ClipboardCheck className="w-5 h-5" />
