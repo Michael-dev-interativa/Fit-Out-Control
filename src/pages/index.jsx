@@ -1,6 +1,5 @@
-const VisualizarInspecaoVistoriaObraPadrao = lazy(() => import("./VisualizarInspecaoVistoriaObraPadrao"));
-    VisualizarInspecaoVistoriaObraPadrao: VisualizarInspecaoVistoriaObraPadrao,
 import React, { lazy, Suspense } from "react";
+const VisualizarInspecaoVistoriaObraPadrao = lazy(() => import("./VisualizarInspecaoVistoriaObraPadrao"));
 import Layout from "./Layout.jsx";
 import Login from "./Login.jsx";
 import Register from "./Register.jsx";
@@ -192,6 +191,7 @@ const EditarListaDocumentosReport = lazy(() => import("./EditarListaDocumentosRe
 import { HashRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 
 const PAGES = {
+    VisualizarInspecaoVistoriaObraPadrao: VisualizarInspecaoVistoriaObraPadrao,
 
     // Dashboard removed: redirects elsewhere
 
