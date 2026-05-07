@@ -14,6 +14,7 @@ import {
   Calendar,
   Building2,
   Eye,
+  EyeOff,
   Settings,
   X,
   Check,
@@ -113,6 +114,8 @@ export default function Usuarios({ language: initialLanguage }) {
   const [selectedRole, setSelectedRole] = useState('user');
   const [saving, setSaving] = useState(false);
   const [editedEmail, setEditedEmail] = useState('');
+  const [editedPassword, setEditedPassword] = useState('');
+  const [showEditedPassword, setShowEditedPassword] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'user', isCliente: false, empreendimentos: [] });
 
@@ -213,6 +216,8 @@ export default function Usuarios({ language: initialLanguage }) {
       setSelectedEmpreendimentos(toIds(usuario.empreendimentos_vinculados));
     }
     setEditedEmail(usuario.email || '');
+    setEditedPassword('');
+    setShowEditedPassword(false);
     setConfigDialogOpen(true);
   };
 
@@ -261,6 +266,11 @@ export default function Usuarios({ language: initialLanguage }) {
       // Permitir que administradores ajustem o email do usuário
       if (editedEmail && editedEmail !== selectedUser.email) {
         updateData.email = editedEmail.trim();
+      }
+
+      // Atualizar senha se preenchida
+      if (editedPassword && editedPassword.trim()) {
+        updateData.password = editedPassword.trim();
       }
 
       // Quando não for cliente, garantir role coerente
@@ -571,6 +581,31 @@ export default function Usuarios({ language: initialLanguage }) {
               />
               <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                 Defina ou ajuste o email de login deste usuário. O usuário não precisa criar o próprio email.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label className={isDark ? 'text-gray-300' : ''}>Nova Senha</Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    type={showEditedPassword ? 'text' : 'password'}
+                    value={editedPassword}
+                    onChange={(e) => setEditedPassword(e.target.value)}
+                    placeholder="Deixe em branco para manter a senha atual"
+                    className={`pr-10 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowEditedPassword(v => !v)}
+                    className={`absolute right-3 top-1/2 -translate-y-1/2 ${isDark ? 'text-gray-400 hover:text-gray-200' : 'text-gray-400 hover:text-gray-700'}`}
+                  >
+                    {showEditedPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                <Button type="button" variant="outline" onClick={() => { const p = generatePassword(); setEditedPassword(p); setShowEditedPassword(true); }}>Gerar</Button>
+              </div>
+              <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                Deixe em branco para não alterar a senha atual do usuário.
               </p>
             </div>
             <div className="space-y-2">
