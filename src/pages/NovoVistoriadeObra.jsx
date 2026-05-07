@@ -21,7 +21,7 @@ export default function NovoVistoriadeObra() {
         });
         if (!nova?.id) throw new Error('Falha ao criar vistoria');
         // Redireciona para a visualização do relatório
-        navigate(`/VisualizarInspecaoVistoriaObraPadrao?relatorioId=${nova.id}`);
+        navigate(`/VisualizarInspecaoVistoriaObraPadrao?relatorioId=${nova.id}`, { replace: true });
       } catch (err) {
         setError(err.message || 'Erro ao criar vistoria');
       }

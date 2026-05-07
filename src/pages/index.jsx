@@ -9,6 +9,7 @@ import EditarVistoriaTecnica from "./EditarVistoriaTecnica.jsx";
 import VisualizarVistoriaTecnica from "./VisualizarVistoriaTecnica.jsx";
 
 import EmpreendimentoVistoriaObra from "./EmpreendimentoVistoriaObra.jsx";
+const EmpreendimentoListarVistoriaObra = lazy(() => import("./EmpreendimentoListarVistoriaObra"));
 
 // Lazy-load large pages to reduce initial bundle size
 const Empreendimentos = lazy(() => import("./Empreendimentos"));
@@ -465,6 +466,7 @@ function PagesContent() {
 
                     {/* Rota direta para Vistoria de Obra Padrão */}
                     <Route path="/EmpreendimentoVistoriaObra" element={<EmpreendimentoVistoriaObra />} />
+                    <Route path="/EmpreendimentoListarVistoriaObra" element={<EmpreendimentoListarVistoriaObra />} />
 
                     <Route path="/" element={hasToken() ? <Empreendimentos /> : <Login />} />
                     {/* Garantir variação minúscula com guarda */}
