@@ -9,6 +9,7 @@ import { UnidadeEmpreendimento } from '@/api/entities';
 import { User } from '@/api/entities';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
+import { parseLocalDate } from '../lib/dateUtils';
 import { ArrowLeft, Loader2, AlertTriangle, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -221,7 +222,7 @@ const ReportPage = ({ children, pageNumber, totalPages, vistoria, unidade, empre
               {empreendimento?.nome_empreendimento} - {unidade?.unidade_empreendimento}
             </p>
             <p className="text-xs font-medium text-gray-800 mt-1">
-              {vistoria?.data_vistoria ? format(new Date(vistoria.data_vistoria), 'dd/MM/yyyy', { locale: pt }) : ''}
+              {vistoria?.data_vistoria ? format(parseLocalDate(vistoria.data_vistoria), 'dd/MM/yyyy', { locale: pt }) : ''}
             </p>
           </div>
         </div>
@@ -547,11 +548,11 @@ const DadosEmpreendimentoPage = ({ vistoria, empreendimento, unidade, t, formula
         </div>
         <div>
           <p className="font-semibold text-gray-700">Data da Vistoria:</p>
-          <span>{vistoria?.data_vistoria ? format(new Date(vistoria.data_vistoria), "dd/MM/yyyy", { locale: pt }) : t.notApplicable}</span>
+          <span>{vistoria?.data_vistoria ? format(parseLocalDate(vistoria.data_vistoria), "dd/MM/yyyy", { locale: pt }) : t.notApplicable}</span>
         </div>
         <div>
           <p className="font-semibold text-gray-700">Data do Relatório:</p>
-          <span>{vistoria?.data_relatorio ? format(new Date(vistoria.data_relatorio), "dd/MM/yyyy", { locale: pt }) : format(new Date(), "dd/MM/yyyy", { locale: pt })}</span>
+          <span>{vistoria?.data_relatorio ? format(parseLocalDate(vistoria.data_relatorio), "dd/MM/yyyy", { locale: pt }) : format(new Date(), "dd/MM/yyyy", { locale: pt })}</span>
         </div>
         <div className="col-span-2">
           <p className="font-semibold text-gray-700">Resp. Gerência:</p>
@@ -1311,13 +1312,13 @@ const processReportData = (vistoria, formulario) => {
     if (valor === undefined || valor === null || valor === '') return '-';
     if (tipo === 'signature' && typeof valor === 'string' && valor.startsWith('data:image')) return 'Assinado';
     if (typeof valor === 'object' && valor !== null && valor.type === 'date') {
-      try { return format(new Date(valor.value), 'dd/MM/yyyy', { locale: pt }); } catch (e) { return valor.value; }
+      try { return format(parseLocalDate(valor.value), 'dd/MM/yyyy', { locale: pt }); } catch (e) { return valor.value; }
     }
     if (typeof valor === 'string' && valor.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
       try { return format(new Date(valor), 'dd/MM/yyyy', { locale: pt }); } catch (e) { return valor; }
     }
     if (typeof valor === 'string' && valor.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      try { return format(new Date(valor), 'dd/MM/yyyy', { locale: pt }); } catch (e) { return valor; }
+      try { return format(parseLocalDate(valor), 'dd/MM/yyyy', { locale: pt }); } catch (e) { return valor; }
     }
     if (typeof valor === 'object' && valor !== null) {
       if (valor.value !== undefined) return String(valor.value);

@@ -8,7 +8,7 @@ dotenv.config();
 
 const { Pool } = pg;
 
-const DEFAULT_CSV_PATH = 'C:/Users/Michael Rocha/Desktop/import/ListadeDocumentos.csv';
+const DEFAULT_CSV_PATH = 'C:/Users/Michael Rocha/Desktop/import/RDO.csv';
 
 function maybeFixMojibake(value) {
   if (typeof value !== 'string') return value;

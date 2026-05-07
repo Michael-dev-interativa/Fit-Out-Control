@@ -26,7 +26,20 @@
     "import:unidades-empreendimento": "node scripts/import-unidades-empreendimento.js",
     "import:respostas-vistoria": "node scripts/import-respostas-vistoria.js",
     "import:nao-conformidades": "node scripts/import-nao-conformidades.js",
-    "compress-uploads": "node scripts/compress-uploads.js"
+    "compress-uploads": "node scripts/compress-uploads.js",
+    "import:all": "node scripts/import-all-csv.js",
+    "import:relatorios-semanais": "node scripts/import-all-csv.js relatorios_semanais",
+    "import:vistorias-tecnicas": "node scripts/import-all-csv.js vistorias_tecnicas",
+    "import:vistorias-terminalidade": "node scripts/import-all-csv.js vistorias_terminalidade",
+    "import:inspecoes-alarme-incendio": "node scripts/import-all-csv.js inspecoes_alarme_incendio",
+    "import:inspecoes-ar-condicionado": "node scripts/import-all-csv.js inspecoes_ar_condicionado",
+    "import:inspecoes-cftv": "node scripts/import-all-csv.js inspecoes_cftv",
+    "import:inspecoes-controle-acesso": "node scripts/import-all-csv.js inspecoes_controle_acesso",
+    "import:inspecoes-gas": "node scripts/import-all-csv.js inspecoes_gas",
+    "import:inspecoes-hidrantes": "node scripts/import-all-csv.js inspecoes_hidrantes",
+    "import:inspecoes-sprinklers": "node scripts/import-all-csv.js inspecoes_sprinklers",
+    "import:relatorios-analise-tecnica": "node scripts/import-all-csv.js relatorios_analise_tecnica",
+    "import:relatorios-primeiros-servicos": "node scripts/import-all-csv.js relatorios_primeiros_servicos"
   },
   "dependencies": {
     "@base44/sdk": "^0.1.2",

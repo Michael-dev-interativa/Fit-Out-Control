@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseLocalDate } from '../lib/dateUtils';
 
 const translations = {
   pt: {
@@ -110,7 +111,7 @@ export default function EmpreendimentoPrimeirosServicos({ language: initialLangu
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <p className="text-sm text-gray-400">{relatorio.cliente}</p>
-                                <p className="text-sm text-gray-500">{format(new Date(relatorio.data_relatorio), "PPP", { locale: ptBR })}</p>
+                                <p className="text-sm text-gray-500">{format(parseLocalDate(relatorio.data_relatorio), "PPP", { locale: ptBR })}</p>
                                 <div className="flex justify-between items-center gap-2">
                                      <Link to={createPageUrl(`VisualizarRelatorioPrimeirosServicos?relatorioId=${relatorio.id}`)} className="flex-1">
                                         <Button variant="outline" className="w-full">{t.view}</Button>

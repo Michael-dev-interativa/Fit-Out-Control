@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Eye, ArrowLeft, Loader2, AlertTriangle, ListChecks, Edit, Trash2 } from 'lucide-react';
 import { useUnidadeData } from '@/components/hooks/useUnidadeData';
 import { format } from 'date-fns';
+import { parseLocalDate } from '../lib/dateUtils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -333,7 +334,7 @@ export default function IniciarVistoria(props) {
                 <div key={vistoria.id} className={`p-3 rounded-lg flex items-center justify-between transition-colors ${isDark ? 'bg-gray-700/50 hover:bg-gray-700' : 'bg-gray-100 hover:bg-gray-200'}`}>
                   <div>
                     <p className={`font-semibold ${isDark ? 'text-white' : ''}`}>{vistoria.nome_vistoria || `Vistoria ${vistoria.id}`}</p>
-                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t.inspectionDate}: {format(new Date(vistoria.data_vistoria || vistoria.created_date), "dd/MM/yyyy")}</p>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t.inspectionDate}: {format(parseLocalDate(vistoria.data_vistoria || vistoria.created_date), "dd/MM/yyyy")}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge className={getStatusBadgeClass(vistoria.status_vistoria || 'Em Andamento')}>

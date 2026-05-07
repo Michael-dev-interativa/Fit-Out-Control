@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Printer } from 'lucide-react';
 import { format } from 'date-fns';
+import { parseLocalDate } from '../lib/dateUtils';
 
 export default function RelatorioKickOff() {
     const navigate = useNavigate();
@@ -119,7 +120,7 @@ export default function RelatorioKickOff() {
                     </CardHeader>
                     <CardContent className="space-y-6">
                          <div className="border rounded-lg overflow-hidden">
-                            <ReportField label="Data e Hora" value={`${format(new Date(registro.data_reuniao), 'dd/MM/yyyy')} às ${registro.hora_reuniao}`} />
+                            <ReportField label="Data e Hora" value={`${format(parseLocalDate(registro.data_reuniao), 'dd/MM/yyyy')} às ${registro.hora_reuniao}`} />
                             <ReportField label="Participantes (Interativa)" value={registro.participantes_interativa} />
                             <ReportField label="Participantes (Condomínio)" value={registro.participantes_condominio} />
                             <ReportField label="Participantes (Locatário)" value={registro.participantes_locatario} />
@@ -138,9 +139,9 @@ export default function RelatorioKickOff() {
                         </div>
                         
                         <div className="border rounded-lg overflow-hidden">
-                            <ReportField label="Envio dos projetos" value={registro.data_envio_projetos ? format(new Date(registro.data_envio_projetos), 'dd/MM/yyyy') : '-'} />
-                            <ReportField label="Início das atividades em campo" value={registro.data_inicio_atividades ? format(new Date(registro.data_inicio_atividades), 'dd/MM/yyyy') : '-'} />
-                            <ReportField label="Previsão de ocupação" value={registro.data_previsao_ocupacao ? format(new Date(registro.data_previsao_ocupacao), 'dd/MM/yyyy') : '-'} />
+                            <ReportField label="Envio dos projetos" value={registro.data_envio_projetos ? format(parseLocalDate(registro.data_envio_projetos), 'dd/MM/yyyy') : '-'} />
+                            <ReportField label="Início das atividades em campo" value={registro.data_inicio_atividades ? format(parseLocalDate(registro.data_inicio_atividades), 'dd/MM/yyyy') : '-'} />
+                            <ReportField label="Previsão de ocupação" value={registro.data_previsao_ocupacao ? format(parseLocalDate(registro.data_previsao_ocupacao), 'dd/MM/yyyy') : '-'} />
                         </div>
 
                         <div className="border rounded-lg overflow-hidden">

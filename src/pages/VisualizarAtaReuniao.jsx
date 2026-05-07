@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Printer, ArrowLeft, AlertTriangle, Edit2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseLocalDate } from '../lib/dateUtils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -53,7 +54,7 @@ const CoverPage = ({ ata, empreendimento, pdfMode }) => {
       </div>
       <div className="absolute z-30" style={{ top: '50%', right: '-3%', width: '45%', padding: '1.3% 2.5%', textAlign: 'center' }}>
         <h1 className="font-black uppercase" style={{ fontSize: '28px', lineHeight: '1.0', fontFamily: "'Inter', sans-serif", marginBottom: '6px', color: 'black' }}>{ata?.titulo_reuniao || 'Reunião'}</h1>
-        <h2 className="text-gray-600 font-medium" style={{ fontSize: '16px', fontFamily: "'Inter', sans-serif" }}>{ata?.subtitulo_reuniao || format(new Date(ata?.data_reuniao), 'dd/MM/yyyy', { locale: ptBR })}</h2>
+        <h2 className="text-gray-600 font-medium" style={{ fontSize: '16px', fontFamily: "'Inter', sans-serif" }}>{ata?.subtitulo_reuniao || format(parseLocalDate(ata?.data_reuniao), 'dd/MM/yyyy', { locale: ptBR })}</h2>
       </div>
       <div className="absolute z-20" style={{ top: '-350px', right: '-30%', width: '1700px', height: '1150px', backgroundColor: redColor, WebkitMaskImage: `url(${redDecorativeElementUrl})`, maskImage: `url(${redDecorativeElementUrl})`, WebkitMaskSize: '100% 100%', WebkitMaskRepeat: 'no-repeat', maskPosition: 'center' }} />
       <div className="absolute z-50" style={{ top: '-10%', right: '-20%', width: '1800px', height: '800px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -80,7 +81,7 @@ const ContentPage = ({ ata, empreendimento }) => {
         <div className="grid grid-cols-2 gap-4">
           <div><strong>Edifício:</strong> {ata?.edificio}</div>
           <div><strong>Cliente:</strong> {ata?.locatario}</div>
-          <div><strong>Data:</strong> {format(new Date(ata?.data_reuniao), 'dd/MM/yyyy', { locale: ptBR })}</div>
+          <div><strong>Data:</strong> {format(parseLocalDate(ata?.data_reuniao), 'dd/MM/yyyy', { locale: ptBR })}</div>
         </div>
       </div>
 
@@ -167,7 +168,7 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, ata, empreendiment
         <div className="text-right" style={{ flex: 1, paddingLeft: '8px', overflow: 'hidden' }}>
           <h2 className="text-[10px] font-bold text-gray-800 uppercase leading-tight truncate">{ata?.titulo_reuniao || 'ATA DE REUNIÃO'}</h2>
           <p className="text-[9px] text-gray-600 leading-tight truncate">{empreendimento?.nome_empreendimento}</p>
-          <p className="text-[9px] font-medium text-gray-800 leading-tight">{ata?.data_reuniao ? format(new Date(ata.data_reuniao), 'dd/MM/yyyy', { locale: ptBR }) : ''}</p>
+          <p className="text-[9px] font-medium text-gray-800 leading-tight">{ata?.data_reuniao ? format(parseLocalDate(ata.data_reuniao), 'dd/MM/yyyy', { locale: ptBR }) : ''}</p>
         </div>
       </div>
       <div className="overflow-hidden" style={{ paddingTop: HEADER_HEIGHT, paddingBottom: FOOTER_HEIGHT }}>

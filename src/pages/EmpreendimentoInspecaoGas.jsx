@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseLocalDate } from '../lib/dateUtils';
 
 const t = {
     title: "Inspeção de Gás",
@@ -104,7 +105,7 @@ export default function EmpreendimentoInspecaoGas({ language: initialLanguage, t
                                 <CardTitle className={`flex justify-between items-center ${isDark ? 'text-white' : ''}`}>
                                   {inspecao.titulo_relatorio || 'Inspeção sem título'}
                                 </CardTitle>
-                                <p className="text-sm text-gray-500">{t.date}: {inspecao.data_inspecao ? format(new Date(inspecao.data_inspecao), "PPP", { locale: ptBR }) : '-'}</p>
+                                <p className="text-sm text-gray-500">{t.date}: {inspecao.data_inspecao ? format(parseLocalDate(inspecao.data_inspecao), "PPP", { locale: ptBR }) : '-'}</p>
                             </CardHeader>
                             <CardContent>
                                 <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t.client}: {inspecao.cliente || '-'}</p>

@@ -5,6 +5,7 @@ import { ListaDocumentosReport, Empreendimento } from '@/api/entities';
 import { ArrowLeft, Loader2, AlertTriangle, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { paginateItemsByCount } from '@/lib/reportPagination';
+import { parseLocalDate } from '../lib/dateUtils';
 
 const redColor = '#CE2D2D';
 
@@ -12,24 +13,8 @@ const redColor = '#CE2D2D';
 const formatDate = (value) => {
   if (!value) return '';
   try {
-    let d;
-    if (typeof value === 'number') {
-      d = new Date(value);
-    } else if (typeof value === 'string') {
-      // ISO date (YYYY-MM-DD) -> normalizar adicionando horário
-      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) d = new Date(value + 'T00:00:00');
-      // dd/mm/yyyy
-      else if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
-        const [dd, mm, yyyy] = value.split('/');
-        d = new Date(`${yyyy}-${mm}-${dd}T00:00:00`);
-      } else {
-        d = new Date(value);
-      }
-    } else {
-      d = new Date(value);
-    }
-
-    if (isNaN(d.getTime())) return '';
+    const d = parseLocalDate(value);
+    if (!d || isNaN(d.getTime())) return '';
     return d.toLocaleDateString('pt-BR');
   } catch (e) {
     return '';

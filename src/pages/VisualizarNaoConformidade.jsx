@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Printer, ArrowLeft, AlertTriangle, Edit2, Filter, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseLocalDate } from '../lib/dateUtils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -404,7 +405,7 @@ const ContentPage = ({ relatorio, empreendimento, items }) => {
                     </div>
                 <div className="text-sm border border-black ml-2 whitespace-nowrap">
                     <div className="p-1 border-b border-black"><strong>ENGª OBRA:</strong> {relatorio?.eng_obra || ''}</div>
-                    <div className="p-1 border-b border-black"><strong>DATA:</strong> {relatorio?.data_vistoria ? format(new Date(relatorio.data_vistoria), 'dd/MM/yyyy', { locale: ptBR }) : ''}</div>
+                    <div className="p-1 border-b border-black"><strong>DATA:</strong> {relatorio?.data_vistoria ? format(parseLocalDate(relatorio.data_vistoria), 'dd/MM/yyyy', { locale: ptBR }) : ''}</div>
                     <div className="p-1"><strong>REVISÃO:</strong> {relatorio?.revisao || ''}</div>
                 </div>
             </div>
@@ -537,7 +538,7 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
                     <div className="text-right" style={{ flex: 1, paddingLeft: '8px', overflow: 'hidden' }}>
                         <h2 className="text-[10px] font-bold text-gray-800 uppercase leading-tight truncate">{relatorio?.titulo_relatorio || 'NÃO CONFORMIDADE'}</h2>
                         <p className="text-[9px] text-gray-600 leading-tight truncate">{empreendimento?.nome_empreendimento} - {relatorio?.cliente}</p>
-                        <p className="text-[9px] font-medium text-gray-800 leading-tight">{relatorio?.data_vistoria ? format(new Date(relatorio.data_vistoria), 'dd/MM/yyyy', { locale: ptBR }) : ''}</p>
+                        <p className="text-[9px] font-medium text-gray-800 leading-tight">{relatorio?.data_vistoria ? format(parseLocalDate(relatorio.data_vistoria), 'dd/MM/yyyy', { locale: ptBR }) : ''}</p>
                     </div>
                 </div>
             )}

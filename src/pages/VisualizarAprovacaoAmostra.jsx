@@ -7,6 +7,7 @@ import { getUploadUrl } from '@/api/config.js';
 import { compressReportImages } from '@/lib/compressReportImages';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseLocalDate } from '../lib/dateUtils';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft, Printer, AlertTriangle, CheckSquare, Square } from 'lucide-react';
 import { chunkItems } from '@/lib/reportPagination';
@@ -89,7 +90,7 @@ const ReportPage = ({ children, pageNumber, totalPages, relatorio, empreendiment
                     <div className="text-right">
                         <h2 className="text-sm font-bold text-gray-800 uppercase">APROVAÇÃO DE AMOSTRAS</h2>
                         <p className="text-xs text-gray-600">{empreendimento?.nome_empreendimento} - {relatorio?.cliente}</p>
-                        <p className="text-xs font-medium text-gray-800 mt-1">{relatorio?.data_relatorio ? format(new Date(relatorio.data_relatorio), 'dd/MM/yyyy', { locale: ptBR }) : ''}</p>
+                        <p className="text-xs font-medium text-gray-800 mt-1">{relatorio?.data_relatorio ? format(parseLocalDate(relatorio.data_relatorio), 'dd/MM/yyyy', { locale: ptBR }) : ''}</p>
                     </div>
                 </div>
             )}
@@ -162,7 +163,7 @@ const AmostraContentPage = ({ relatorio, photos }) => {
             <div className="border-t border-l grid grid-cols-4">
                 <div className="border-b border-r p-2 col-span-2"><p className="text-xs font-bold text-gray-600">Cliente</p><p>{relatorio?.cliente}</p></div>
                 <div className="border-b border-r p-2"><p className="text-xs font-bold text-gray-600">Disciplina</p><p>{relatorio?.disciplina}</p></div>
-                <div className="border-b border-r p-2"><p className="text-xs font-bold text-gray-600">Data</p><p>{relatorio?.data_relatorio ? format(new Date(relatorio.data_relatorio), 'dd/MM/yyyy') : ''}</p></div>
+                <div className="border-b border-r p-2"><p className="text-xs font-bold text-gray-600">Data</p><p>{relatorio?.data_relatorio ? format(parseLocalDate(relatorio.data_relatorio), 'dd/MM/yyyy') : ''}</p></div>
                 <div className="border-b border-r p-2 col-span-2"><p className="text-xs font-bold text-gray-600">Local</p><p>{relatorio?.local}</p></div>
                 <div className="border-b border-r p-2 col-span-2"><p className="text-xs font-bold text-gray-600">Assunto da Amostra</p><p>{relatorio?.assunto_amostra}</p></div>
                 <div className="border-b border-r p-2"><p className="text-xs font-bold text-gray-600">Solicitante</p><p>{relatorio?.solicitante}</p></div>

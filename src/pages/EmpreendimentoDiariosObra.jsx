@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseLocalDate } from '../lib/dateUtils';
 
 const translations = {
     pt: {
@@ -138,7 +139,7 @@ export default function EmpreendimentoDiariosObra({ language: initialLanguage, t
                                 <CardTitle className="text-lg">{diario._entity === 'rdo' ? `Relatório #${diario.numero_relatorio || String(diario.id ?? '').slice(-4)}` : `Diário #${diario.numero_diario || String(diario.id ?? '').slice(-4)}`}</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <p className="text-sm text-gray-500">{diario._date ? format(new Date(diario._date), "PPP", { locale: ptBR }) : 'Sem data'}</p>
+                                <p className="text-sm text-gray-500">{diario._date ? format(parseLocalDate(diario._date), "PPP", { locale: ptBR }) : 'Sem data'}</p>
                                 <div className="flex justify-between items-center gap-2">
                                     <Link to={createPageUrl(`${diario._entity === 'rdo' ? 'VisualizarListaDocumentos' : 'VisualizarDiarioObra'}?${diario._entity === 'rdo' ? 'documentoId' : 'diarioId'}=${diario.id}`)} className="flex-1">
                                         <Button variant="outline" className="w-full">{t.view}</Button>

@@ -6,6 +6,7 @@ import { Empreendimento } from '@/api/entities';
 import { UnidadeEmpreendimento } from '@/api/entities';
 import { User } from '@/api/entities'; // Adicionar import
 import { format } from 'date-fns';
+import { parseLocalDate } from '../lib/dateUtils';
 import { useUnidadeData } from '@/components/hooks/useUnidadeData';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Printer, Loader2 } from 'lucide-react';
@@ -260,7 +261,7 @@ export default function VisualizarRelatorioKickOff() {
                     <div className="break-inside-avoid-page">
                         <h3 className="text-lg font-semibold text-gray-800 mb-3 pt-4 border-t-2 border-gray-200 mt-6 first:mt-0 first:border-t-0 first:pt-0 print:border-gray-300">{t.meetingDetails}</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                            <InfoItem label={t.meetingDate} value={kickOff?.data_reuniao ? format(new Date(kickOff.data_reuniao), 'dd/MM/yyyy') : 'N/A'} />
+                            <InfoItem label={t.meetingDate} value={kickOff?.data_reuniao ? format(parseLocalDate(kickOff.data_reuniao), 'dd/MM/yyyy') : 'N/A'} />
                             <InfoItem label={t.meetingTime} value={kickOff?.hora_reuniao || 'N/A'} />
                         </div>
                     </div>
@@ -298,9 +299,9 @@ export default function VisualizarRelatorioKickOff() {
                     <div className="break-inside-avoid-page">
                         <h3 className="text-lg font-semibold text-gray-800 mb-3 pt-4 border-t-2 border-gray-200 print:border-gray-300">{t.timeline}</h3>
                         <div className="space-y-4">
-                            <InfoBlock label={t.sendProjects} value={kickOff?.data_envio_projetos ? format(new Date(kickOff.data_envio_projetos), 'dd/MM/yyyy') : 'N/A'} />
-                            <InfoBlock label={t.startActivities} value={kickOff?.data_inicio_atividades ? format(new Date(kickOff.data_inicio_atividades), 'dd/MM/yyyy') : 'N/A'} />
-                            <InfoBlock label={t.occupancyForecast} value={kickOff?.data_previsao_ocupacao ? format(new Date(kickOff.data_previsao_ocupacao), 'dd/MM/yyyy') : 'N/A'} />
+                            <InfoBlock label={t.sendProjects} value={kickOff?.data_envio_projetos ? format(parseLocalDate(kickOff.data_envio_projetos), 'dd/MM/yyyy') : 'N/A'} />
+                            <InfoBlock label={t.startActivities} value={kickOff?.data_inicio_atividades ? format(parseLocalDate(kickOff.data_inicio_atividades), 'dd/MM/yyyy') : 'N/A'} />
+                            <InfoBlock label={t.occupancyForecast} value={kickOff?.data_previsao_ocupacao ? format(parseLocalDate(kickOff.data_previsao_ocupacao), 'dd/MM/yyyy') : 'N/A'} />
                         </div>
                     </div>
 

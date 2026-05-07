@@ -1,5 +1,6 @@
 import React from 'react';
 import { format } from 'date-fns';
+import { parseLocalDate } from '../../lib/dateUtils';
 
 const ReportHeader = ({ vistoria, unidade, empreendimento }) => {
   const logoUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/f1e898ee3_logo_Interativa_versao_final_sem_fundo_0002.png";
@@ -15,7 +16,7 @@ const ReportHeader = ({ vistoria, unidade, empreendimento }) => {
           {empreendimento?.nome_empreendimento} - {unidade?.unidade_empreendimento}
         </p>
         <p className="text-xs text-gray-600">
-          {format(new Date(vistoria?.data_vistoria || Date.now()), 'dd/MM/yyyy')}
+          {format(parseLocalDate(vistoria?.data_vistoria) || new Date(), 'dd/MM/yyyy')}
         </p>
       </div>
     </header>

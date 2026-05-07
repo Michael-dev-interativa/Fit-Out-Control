@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, FileText, Filter, Download, Eye } from "lucide-react";
 import { format } from "date-fns";
+import { parseLocalDate } from '../lib/dateUtils';
 import { groupBy } from '@/lib/utils';
 import { useUnidadeData } from '@/components/hooks/useUnidadeData';
 
@@ -387,7 +388,7 @@ export default function RelatorioAnalise({ language = 'pt', theme = 'light' }) {
 
                                   {analise.data_inclusao_ap && (
                                     <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                      {t.includedOn}: {format(new Date(analise.data_inclusao_ap), 'dd/MM/yyyy HH:mm')}
+                                      {t.includedOn}: {format(parseLocalDate(analise.data_inclusao_ap), 'dd/MM/yyyy HH:mm')}
                                     </p>
                                   )}
                                 </div>

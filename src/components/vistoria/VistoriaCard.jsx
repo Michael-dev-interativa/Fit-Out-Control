@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Eye, Edit, Calendar, User, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { parseLocalDate } from '../../lib/dateUtils';
 import { RespostaVistoria } from "@/api/entities";
 import { toast } from 'react-hot-toast';
 import {
@@ -62,7 +63,7 @@ export default function VistoriaCard({ vistoria, unidadeId, empreendimentoId, on
         <div className="space-y-2 text-sm">
           <div className={`flex items-center gap-2 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
             <Calendar className="w-4 h-4" />
-            <span>Data: {format(new Date(vistoria.data_vistoria), "dd/MM/yyyy")}</span>
+            <span>Data: {format(parseLocalDate(vistoria.data_vistoria), "dd/MM/yyyy")}</span>
           </div>
           <div className={`flex items-center gap-2 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
             <User className="w-4 h-4" />

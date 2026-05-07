@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Printer, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseLocalDate } from '../lib/dateUtils';
 import { AssinaturasPage } from '@/components/relatorios/AssinaturasSection';
 
 const isValidId = (id) => id && typeof id === 'string' && id.length > 0;
@@ -242,7 +243,7 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
                     <div className="text-right" style={{ flex: 1, paddingLeft: '8px', overflow: 'hidden' }}>
                         <h2 className="text-[10px] font-bold text-gray-800 uppercase leading-tight truncate">{relatorio?.titulo_relatorio || 'INSPEÇÃO DE SPRINKLERS'}</h2>
                         <p className="text-[9px] text-gray-600 leading-tight truncate">{empreendimento?.nome_empreendimento} - {relatorio?.cliente}</p>
-                        <p className="text-[9px] font-medium text-gray-800 leading-tight">{relatorio?.data_inspecao ? format(new Date(relatorio.data_inspecao), 'dd/MM/yyyy', { locale: ptBR }) : ''}</p>
+                        <p className="text-[9px] font-medium text-gray-800 leading-tight">{relatorio?.data_inspecao ? format(parseLocalDate(relatorio.data_inspecao), 'dd/MM/yyyy', { locale: ptBR }) : ''}</p>
                     </div>
                 </div>
             )}

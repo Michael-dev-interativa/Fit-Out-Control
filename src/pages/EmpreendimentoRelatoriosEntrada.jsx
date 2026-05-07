@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Loader2, Plus, Eye, Edit, Trash2, AlertTriangle, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
+import { parseLocalDate } from '../lib/dateUtils';
 import {
   Dialog,
   DialogContent,
@@ -314,7 +315,7 @@ export default function EmpreendimentoRelatoriosEntrada({ language: initialLangu
                       <div className={`text-sm mt-2 space-y-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                         <p><strong>{t.unit}:</strong> {getUnidadeNome(relatorio.id_unidade)}</p>
                         <p><strong>{t.tenant}:</strong> {relatorio.locatario || '-'}</p>
-                        <p><strong>{t.date}:</strong> {relatorio.data_entrada ? format(new Date(relatorio.data_entrada), "dd/MM/yyyy", { locale: pt }) : '-'}</p>
+                        <p><strong>{t.date}:</strong> {relatorio.data_entrada ? format(parseLocalDate(relatorio.data_entrada), "dd/MM/yyyy", { locale: pt }) : '-'}</p>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">

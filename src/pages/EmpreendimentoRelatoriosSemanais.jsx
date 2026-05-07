@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Loader2, Plus, ArrowLeft, Eye, Edit, Trash2, CalendarClock, HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { parseLocalDate } from '../lib/dateUtils';
 import {
   Dialog,
   DialogContent,
@@ -154,7 +155,7 @@ export default function EmpreendimentoRelatoriosSemanais() {
                                 {relatorios.map(relatorio => (
                                     <TableRow key={relatorio.id}>
                                         <TableCell>
-                                            {format(new Date(relatorio.data_inicio_semana), 'dd/MM/yyyy')} {t.to} {format(new Date(relatorio.data_fim_semana), 'dd/MM/yyyy')}
+                                            {format(parseLocalDate(relatorio.data_inicio_semana), 'dd/MM/yyyy')} {t.to} {format(parseLocalDate(relatorio.data_fim_semana), 'dd/MM/yyyy')}
                                         </TableCell>
                                         <TableCell className="text-center">{relatorio.numero_relatorio || '-'}</TableCell>
                                         <TableCell className="text-center">{format(new Date(relatorio.created_date), 'dd/MM/yyyy HH:mm')}</TableCell>

@@ -4,6 +4,7 @@ import { AtaReuniao, Empreendimento as EmpreendimentoEntity } from '@/api/entiti
 import { Button } from '@/components/ui/button';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
+import { parseLocalDate } from '../lib/dateUtils';
 
 export default function EmpreendimentoAtasReuniao() {
   const navigate = useNavigate();
@@ -51,7 +52,7 @@ export default function EmpreendimentoAtasReuniao() {
             <div key={a.id} className="p-4 border rounded bg-white flex items-center justify-between">
               <div>
                 <div className="font-semibold">{a.titulo_reuniao || a.titulo_capa || `Ata ${a.id}`}</div>
-                <div className="text-sm text-gray-600">{a.data_reuniao ? format(new Date(a.data_reuniao), 'dd/MM/yyyy') : ''}</div>
+                <div className="text-sm text-gray-600">{a.data_reuniao ? format(parseLocalDate(a.data_reuniao), 'dd/MM/yyyy') : ''}</div>
               </div>
               <div className="flex gap-2">
                 <Button onClick={() => navigate(createPageUrl(`VisualizarAtaReuniao?ataId=${a.id}`))}>Visualizar</Button>

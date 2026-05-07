@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseLocalDate } from '../lib/dateUtils';
 
 const t = {
     title: "Não Conformidades",
@@ -114,7 +115,7 @@ export default function EmpreendimentoNaoConformidades({ language: initialLangua
                                 <CardTitle className={`flex justify-between items-center ${isDark ? 'text-white' : ''}`}>
                                   {item.titulo_relatorio || 'Não conformidade sem título'}
                                 </CardTitle>
-                                <p className="text-sm text-gray-500">{t.date}: {format(new Date(item.data_vistoria), "PPP", { locale: ptBR })}</p>
+                                <p className="text-sm text-gray-500">{t.date}: {format(parseLocalDate(item.data_vistoria), "PPP", { locale: ptBR })}</p>
                             </CardHeader>
                             <CardContent>
                                 <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t.client}: {item.cliente}</p>

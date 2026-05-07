@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseLocalDate } from '../lib/dateUtils';
 
 const t = {
     title: "Vistoria Técnica",
@@ -105,7 +106,7 @@ export default function EmpreendimentoVistoriaTecnica({ language: initialLanguag
                                     {vistoria.titulo_relatorio || 'Vistoria sem título'}
                                 </CardTitle>
                                 <p className="text-sm text-gray-500">
-                                    {t.date}: {vistoria.data_vistoria ? format(new Date(vistoria.data_vistoria), "PPP", { locale: ptBR }) : '-'}
+                                    {t.date}: {vistoria.data_vistoria ? format(parseLocalDate(vistoria.data_vistoria), "PPP", { locale: ptBR }) : '-'}
                                 </p>
                             </CardHeader>
                             <CardContent>

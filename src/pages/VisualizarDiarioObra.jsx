@@ -10,6 +10,7 @@ import { UnidadeEmpreendimento } from '@/api/entities';
 import { User } from '@/api/entities';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseLocalDate } from '../lib/dateUtils';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft, Printer, AlertTriangle } from 'lucide-react';
 import { paginateBlocksForPrinting, paginateItemsByCount } from '@/lib/reportPagination';
@@ -86,7 +87,7 @@ const ReportPage = ({ children, pageNumber, totalPages, diario, unidade, empreen
                     <div className="text-right">
                         <h2 className="text-sm font-bold text-gray-800 uppercase">LISTA DE DOCUMENTOS</h2>
                         <p className="text-xs text-gray-600">{empreendimento?.nome_empreendimento} - {unidade?.unidade_empreendimento || diario?.unidade_texto}</p>
-                        <p className="text-xs font-medium text-gray-800 mt-1">{diario?.data_diario ? format(new Date(diario.data_diario), 'dd/MM/yyyy', { locale: ptBR }) : ''}</p>
+                        <p className="text-xs font-medium text-gray-800 mt-1">{diario?.data_diario ? format(parseLocalDate(diario.data_diario), 'dd/MM/yyyy', { locale: ptBR }) : ''}</p>
                     </div>
                 </div>
             )}
@@ -182,7 +183,7 @@ const DiarioContentPage = ({ diario, empreendimento, unidade, t }) => {
 
     totalEfetivo.total = totalEfetivo.presente + totalEfetivo.aus_com + totalEfetivo.aus_sem;
 
-    const diaDaSemana = diario.data_diario ? format(new Date(diario.data_diario), 'eeee', { locale: ptBR }) : '';
+    const diaDaSemana = diario.data_diario ? format(parseLocalDate(diario.data_diario), 'eeee', { locale: ptBR }) : '';
 
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
@@ -325,7 +326,7 @@ const AnexosEControlePage = ({ diario, empreendimento, unidade }) => {
                     <tr>
                         <td className="border border-black p-1 w-1/3"><strong>Obra</strong><br />{empreendimento?.nome_empreendimento || 'N/A'}</td>
                         <td className="border border-black p-1 w-1/3"><strong>Sigla</strong><br />{empreendimento?.sigla_obra || 'N/A'}</td>
-                        <td className="border border-black p-1 w-1/3"><strong>Data</strong><br />{diario?.data_diario ? format(new Date(diario.data_diario), 'dd/MM/yyyy') : 'N/A'}</td>
+                        <td className="border border-black p-1 w-1/3"><strong>Data</strong><br />{diario?.data_diario ? format(parseLocalDate(diario.data_diario), 'dd/MM/yyyy') : 'N/A'}</td>
                     </tr>
                     <tr>
                         <td colSpan="3" className="border border-black p-1 text-left"><strong>Cliente:</strong> {unidade?.cliente_unidade || 'N/A'}</td>
@@ -416,7 +417,7 @@ const AnexosEControlePage = ({ diario, empreendimento, unidade }) => {
                                         <tr key={index}>
                                             <td className="p-1 border-b border-dotted border-gray-400">{visto.responsavel || 'N/A'}</td>
                                             <td className="p-1 border-b border-dotted border-gray-400">
-                                                {visto.data_visto ? format(new Date(visto.data_visto), 'dd/MM/yyyy') : 'N/A'}
+                                                {visto.data_visto ? format(parseLocalDate(visto.data_visto), 'dd/MM/yyyy') : 'N/A'}
                                             </td>
                                             <td className="p-1 border-b border-dotted border-gray-400">{visto.nome_visto || 'N/A'}</td>
                                         </tr>
@@ -452,7 +453,7 @@ const VistosPage = ({ diario, pdfMode }) => {
                         <tr key={index}>
                             <td className="p-1 border-b border-dotted border-gray-400">{visto.responsavel}</td>
                             <td className="p-1 border-b border-dotted border-gray-400">
-                                {visto.data_visto ? format(new Date(visto.data_visto), 'dd/MM/yyyy') : ''}
+                                {visto.data_visto ? format(parseLocalDate(visto.data_visto), 'dd/MM/yyyy') : ''}
                             </td>
                             <td className="p-1 border-b border-dotted border-gray-400">{visto.nome_visto}</td>
                         </tr>

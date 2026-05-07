@@ -7,31 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Plus, FileText, Calendar, Loader2, Eye, Edit, Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { parseLocalDate } from '../lib/dateUtils';
 
 // Formata datas aceitando strings 'YYYY-MM-DD', 'DD/MM/YYYY' ou Date objects
 const formatDate = (value) => {
   if (!value) return '';
   try {
-    let d;
-    if (value instanceof Date) {
-      d = value;
-    } else if (typeof value === 'string') {
-      // YYYY-MM-DD -> criar Date no horário local para evitar shift de fuso
-      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-        const [yyyy, mm, dd] = value.split('-').map(Number);
-        d = new Date(yyyy, mm - 1, dd);
-        // DD/MM/YYYY -> criar Date no horário local
-      } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
-        const [dd, mm, yyyy] = value.split('/').map(Number);
-        d = new Date(yyyy, mm - 1, dd);
-      } else {
-        d = new Date(value);
-      }
-    } else {
-      d = new Date(value);
-    }
-
-    if (isNaN(d.getTime())) return '';
+    const d = parseLocalDate(value);
+    if (!d || isNaN(d.getTime())) return '';
     return d.toLocaleDateString('pt-BR');
   } catch {
     return '';

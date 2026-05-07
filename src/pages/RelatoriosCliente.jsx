@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { parseLocalDate } from '../lib/dateUtils';
 
 const tiposRelatorio = [
   {
@@ -231,7 +232,7 @@ export default function RelatoriosCliente({ language: initialLanguage, theme: in
                           <div className={`flex items-center gap-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                             <Calendar className="w-4 h-4" />
                             {relatorio.data_inspecao ?
-                              format(new Date(relatorio.data_inspecao), "dd/MM/yyyy", { locale: ptBR }) :
+                              format(parseLocalDate(relatorio.data_inspecao), "dd/MM/yyyy", { locale: ptBR }) :
                               'Data não informada'
                             }
                             {relatorio.revisao && (

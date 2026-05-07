@@ -4,6 +4,7 @@ import { createPageUrl } from '@/utils';
 import { TermoDeAceite, FormularioVistoria as FormularioVistoriaEntity, Empreendimento, UnidadeEmpreendimento, User } from '@/api/entities';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
+import { parseLocalDate } from '../lib/dateUtils';
 import { ArrowLeft, Loader2, AlertTriangle, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import EnviarEmailDialog from '@/components/relatorios/EnviarEmailDialog';
@@ -149,7 +150,7 @@ const ReportPage = ({ children, pageNumber, totalPages, termo, unidade, empreend
               {empreendimento?.nome_empreendimento} - {unidade?.unidade_empreendimento}
             </p>
             <p className="text-xs font-medium text-gray-800 mt-1">
-              {termo?.data_termo ? format(new Date(termo.data_termo), 'dd/MM/yyyy', { locale: pt }) : ''}
+              {termo?.data_termo ? format(parseLocalDate(termo.data_termo), 'dd/MM/yyyy', { locale: pt }) : ''}
             </p>
           </div>
         </div>
@@ -479,11 +480,11 @@ const DadosEmpreendimentoPage = ({ termo, empreendimento, unidade, t, formulario
         </div>
         <div>
           <p className="font-semibold text-gray-700">Data do Termo:</p>
-          <span>{termo?.data_termo ? format(new Date(termo.data_termo), "dd/MM/yyyy", { locale: pt }) : t.notApplicable}</span>
+          <span>{termo?.data_termo ? format(parseLocalDate(termo.data_termo), "dd/MM/yyyy", { locale: pt }) : t.notApplicable}</span>
         </div>
         <div>
           <p className="font-semibold text-gray-700">Data do Relatório:</p>
-          <span>{termo?.data_relatorio ? format(new Date(termo.data_relatorio), "dd/MM/yyyy", { locale: pt }) : format(new Date(), "dd/MM/yyyy", { locale: pt })}</span>
+          <span>{termo?.data_relatorio ? format(parseLocalDate(termo.data_relatorio), "dd/MM/yyyy", { locale: pt }) : format(new Date(), "dd/MM/yyyy", { locale: pt })}</span>
         </div>
         <div>
           <p className="font-semibold text-gray-700">Revisão:</p>
@@ -1323,13 +1324,13 @@ const processReportData = (termo, formulario) => {
     if (valor === undefined || valor === null || valor === '') return '-';
     if (tipo === 'signature' && typeof valor === 'string' && valor.startsWith('data:image')) return 'Assinado';
     if (typeof valor === 'object' && valor !== null && valor.type === 'date') {
-      try { return format(new Date(valor.value), 'dd/MM/yyyy', { locale: pt }); } catch (e) { return valor.value; }
+      try { return format(parseLocalDate(valor.value), 'dd/MM/yyyy', { locale: pt }); } catch (e) { return valor.value; }
     }
     if (typeof valor === 'string' && valor.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
       try { return format(new Date(valor), 'dd/MM/yyyy', { locale: pt }); } catch (e) { return valor; }
     }
     if (typeof valor === 'string' && valor.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      try { return format(new Date(valor), 'dd/MM/yyyy', { locale: pt }); } catch (e) { return valor; }
+      try { return format(parseLocalDate(valor), 'dd/MM/yyyy', { locale: pt }); } catch (e) { return valor; }
     }
     if (typeof valor === 'object' && valor !== null) {
       if (valor.value !== undefined) return String(valor.value);

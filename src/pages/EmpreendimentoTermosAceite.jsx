@@ -21,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Plus, Eye, Edit, Loader2, AlertTriangle, CheckSquare, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
+import { parseLocalDate } from '../lib/dateUtils';
 
 const translations = {
   pt: {
@@ -279,7 +280,7 @@ export default function EmpreendimentoTermosAceite({ language: initialLanguage, 
                             </span>
                             {termo.data_termo && (
                               <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-                                {t.date}: {format(new Date(termo.data_termo), 'dd/MM/yyyy', { locale: pt })}
+                                {t.date}: {format(parseLocalDate(termo.data_termo), 'dd/MM/yyyy', { locale: pt })}
                               </span>
                             )}
                           </div>

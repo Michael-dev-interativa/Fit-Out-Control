@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, FileText, Edit, Trash2, Eye, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseLocalDate } from '../lib/dateUtils';
 
 const STATUS_COLORS = {
   'Rascunho': 'bg-gray-100 text-gray-700',
@@ -123,7 +124,7 @@ export default function EmpreendimentoRelatorioAnaliseTecnica({ theme }) {
                     <div>
                       <p className="font-semibold text-sm">{rel.nome_arquivo || 'Sem nome'}</p>
                       <p className="text-xs text-gray-400">
-                        {rel.data_emissao ? format(new Date(rel.data_emissao), 'dd/MM/yyyy', { locale: ptBR }) : '—'}
+                        {rel.data_emissao ? format(parseLocalDate(rel.data_emissao), 'dd/MM/yyyy', { locale: ptBR }) : '—'}
                         {rel.edificio_pavimento && ` · ${rel.edificio_pavimento}`}
                         {rel.fase_emissao && ` · ${rel.fase_emissao}`}
                       </p>

@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseLocalDate } from '../lib/dateUtils';
 
 const t = {
     title: "Vistorias de Terminalidade",
@@ -118,7 +119,7 @@ export default function EmpreendimentoVistoriasTerminalidade({ language: initial
                                 <CardTitle className={`flex justify-between items-center ${isDark ? 'text-white' : ''}`}>
                                   {vistoria.titulo_relatorio || 'Vistoria sem título'}
                                 </CardTitle>
-                                <p className="text-sm text-gray-500">{t.date}: {format(new Date(vistoria.data_vistoria), "PPP", { locale: ptBR })}</p>
+                                <p className="text-sm text-gray-500">{t.date}: {format(parseLocalDate(vistoria.data_vistoria), "PPP", { locale: ptBR })}</p>
                             </CardHeader>
                             <CardContent>
                                 <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t.client}: {vistoria.cliente}</p>

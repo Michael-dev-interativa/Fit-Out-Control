@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Loader2, Printer, ArrowLeft, AlertTriangle, Edit2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseLocalDate } from '../lib/dateUtils';
 import { AssinaturasPage } from '@/components/relatorios/AssinaturasSection';
 import { toast } from 'sonner';
 
@@ -151,7 +152,7 @@ const DadosPage = ({ relatorio, empreendimento }) => (
                 </tr>
                 <tr>
                     <td className="border border-black p-2 font-bold bg-gray-50">Data da Vistoria</td>
-                    <td className="border border-black p-2">{relatorio?.data_vistoria ? format(new Date(relatorio.data_vistoria), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</td>
+                    <td className="border border-black p-2">{relatorio?.data_vistoria ? format(parseLocalDate(relatorio.data_vistoria), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</td>
                     <td className="border border-black p-2 font-bold bg-gray-50">Revisão</td>
                     <td className="border border-black p-2">{relatorio?.revisao || '-'}</td>
                 </tr>
@@ -163,7 +164,7 @@ const DadosPage = ({ relatorio, empreendimento }) => (
                     <td className="border border-black p-2 font-bold bg-gray-50">Consultor Responsável</td>
                     <td className="border border-black p-2 whitespace-pre-wrap">{relatorio?.consultor_responsavel || '-'}</td>
                     <td className="border border-black p-2 font-bold bg-gray-50">Data do Relatório</td>
-                    <td className="border border-black p-2">{relatorio?.data_relatorio ? format(new Date(relatorio.data_relatorio), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</td>
+                    <td className="border border-black p-2">{relatorio?.data_relatorio ? format(parseLocalDate(relatorio.data_relatorio), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</td>
                 </tr>
             </tbody>
         </table>
@@ -622,7 +623,7 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
                     <div className="text-right" style={{ flex: 1, paddingLeft: '8px' }}>
                         <h2 className="text-[10px] font-bold text-gray-800 uppercase truncate">{relatorio?.titulo_relatorio || 'VISTORIA TÉCNICA'}</h2>
                         <p className="text-[9px] text-gray-600 truncate">{empreendimento?.nome_empreendimento} - {relatorio?.cliente}</p>
-                        <p className="text-[9px] font-medium text-gray-800">{relatorio?.data_vistoria ? format(new Date(relatorio.data_vistoria), 'dd/MM/yyyy', { locale: ptBR }) : ''}</p>
+                        <p className="text-[9px] font-medium text-gray-800">{relatorio?.data_vistoria ? format(parseLocalDate(relatorio.data_vistoria), 'dd/MM/yyyy', { locale: ptBR }) : ''}</p>
                     </div>
                 </div>
             )}

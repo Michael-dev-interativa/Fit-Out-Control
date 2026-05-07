@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseLocalDate } from '../lib/dateUtils';
 import { ArrowLeft, Loader2, AlertTriangle, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { paginateBlocksForPrinting } from '@/lib/reportPagination';
@@ -141,8 +142,8 @@ const DadosPage = ({ relatorio, empreendimento, unidade }) => (
       </div>
 
       <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-        <div><p className="font-semibold text-gray-700">Data da 1ª Vistoria:</p><span>{relatorio?.data_saida ? format(new Date(relatorio.data_saida), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span></div>
-        <div><p className="font-semibold text-gray-700">Data da 2ª Vistoria:</p><span>{relatorio?.data_segunda_vistoria ? format(new Date(relatorio.data_segunda_vistoria), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span></div>
+        <div><p className="font-semibold text-gray-700">Data da 1ª Vistoria:</p><span>{relatorio?.data_saida ? format(parseLocalDate(relatorio.data_saida), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span></div>
+        <div><p className="font-semibold text-gray-700">Data da 2ª Vistoria:</p><span>{relatorio?.data_segunda_vistoria ? format(parseLocalDate(relatorio.data_segunda_vistoria), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span></div>
         <div><p className="font-semibold text-gray-700">Locatário:</p><span>{relatorio?.locatario || '-'}</span></div>
         <div><p className="font-semibold text-gray-700">Consultor:</p><span>{relatorio?.consultor_responsavel || '-'}</span></div>
         <div><p className="font-semibold text-gray-700">Revisão:</p><span>{relatorio?.revisao || '-'}</span></div>
@@ -152,7 +153,7 @@ const DadosPage = ({ relatorio, empreendimento, unidade }) => (
 
       <div>
         <p className="font-semibold text-gray-700">Data do Envio do Relatório:</p>
-        <span>{relatorio?.data_relatorio ? format(new Date(relatorio.data_relatorio), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span>
+        <span>{relatorio?.data_relatorio ? format(parseLocalDate(relatorio.data_relatorio), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span>
       </div>
 
       <div className="border-t border-gray-200"></div>
@@ -522,7 +523,7 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
           <img src={logo} alt="Logo" style={{ height: '32px', maxWidth: '120px', objectFit: 'contain' }} />
           <div className="text-right" style={{ flex: 1, paddingLeft: '8px' }}>
             <p className="text-[9px] text-gray-600 truncate">{empreendimento?.nome_empreendimento} - {relatorio?.locatario}</p>
-            <p className="text-[9px] font-medium text-gray-800">{relatorio?.data_saida ? format(new Date(relatorio.data_saida), 'dd/MM/yyyy', { locale: ptBR }) : ''}</p>
+            <p className="text-[9px] font-medium text-gray-800">{relatorio?.data_saida ? format(parseLocalDate(relatorio.data_saida), 'dd/MM/yyyy', { locale: ptBR }) : ''}</p>
           </div>
         </div>
       )}
