@@ -81,7 +81,18 @@ export default function Login({ theme = 'light' }) {
       {/* Gradiente leve para leitura — a imagem já tem gradiente embutido */}
       <div className="absolute inset-0 bg-gradient-to-l from-black/60 via-black/20 to-transparent" />
 
-      {/* Card de Login alinhado à direita (posição pedida) */}
+      {/* Título na lateral esquerda — visível apenas em telas grandes */}
+      <div className="absolute inset-0 z-10 hidden lg:flex items-center pointer-events-none">
+        <div className="pl-[5vw] xl:pl-[7vw] 2xl:pl-[10vw] w-1/2">
+          <img
+            src="/login-titulo.png"
+            alt="Gerencie sua obra com precisão"
+            className="w-full max-w-[480px] xl:max-w-[560px] 2xl:max-w-[640px] object-contain drop-shadow-2xl"
+          />
+        </div>
+      </div>
+
+      {/* Card de Login alinhado à direita */}
       <div className="relative z-10 flex min-h-screen items-center justify-end px-6 lg:px-12">
         <div className="w-full max-w-md lg:mr-[10vw] xl:mr-[12vw] 2xl:mr-[16vw]">
           <Card className="w-full bg-white/10 border-white/20 backdrop-blur-md shadow-2xl rounded-2xl">
