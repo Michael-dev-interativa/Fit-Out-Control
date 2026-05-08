@@ -81,6 +81,42 @@ export default function Login({ theme = 'light' }) {
       {/* Gradiente leve para leitura — a imagem já tem gradiente embutido */}
       <div className="absolute inset-0 bg-gradient-to-l from-black/60 via-black/20 to-transparent" />
 
+      {/* Bloco de tagline — lado esquerdo, visível apenas em telas largas */}
+      <div className="absolute inset-y-0 left-0 z-10 hidden lg:flex flex-col justify-center pl-[6vw] xl:pl-[8vw] max-w-[50%]">
+        {/* Linha vermelha vertical decorativa */}
+        <div className="w-1 h-28 bg-[#CF2B2C] rounded-full mb-6" />
+        <p className="text-white/80 text-sm font-semibold tracking-[0.25em] uppercase mb-1">Gerencie sua obra</p>
+        <h1 className="text-white text-5xl xl:text-6xl font-black uppercase leading-tight tracking-tight drop-shadow-lg">
+          Com<br />Precisão.
+        </h1>
+        {/* Linha divisória vermelha */}
+        <div className="w-16 h-[3px] bg-[#CF2B2C] rounded-full my-6" />
+        {/* Três diferenciais */}
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            {/* Ícone relógio */}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-6 h-6 text-white/80 shrink-0">
+              <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" />
+            </svg>
+            <span className="text-white/80 text-xs font-bold tracking-widest uppercase leading-tight">Informações<br />em Tempo Real</span>
+          </div>
+          <div className="flex items-center gap-3">
+            {/* Ícone escudo */}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-6 h-6 text-white/80 shrink-0">
+              <path d="M12 2l7 4v6c0 4.4-3 8.4-7 9.9C8 20.4 5 16.4 5 12V6l7-4z" />
+            </svg>
+            <span className="text-white/80 text-xs font-bold tracking-widest uppercase leading-tight">Segurança<br />de Dados</span>
+          </div>
+          <div className="flex items-center gap-3">
+            {/* Ícone mira */}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-6 h-6 text-white/80 shrink-0">
+              <circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3" /><line x1="12" y1="2" x2="12" y2="6" /><line x1="12" y1="18" x2="12" y2="22" /><line x1="2" y1="12" x2="6" y2="12" /><line x1="18" y1="12" x2="22" y2="12" />
+            </svg>
+            <span className="text-white/80 text-xs font-bold tracking-widest uppercase leading-tight">Gestão<br />Inteligente</span>
+          </div>
+        </div>
+      </div>
+
       {/* Card de Login alinhado à direita (posição pedida) */}
       <div className="relative z-10 flex min-h-screen items-center justify-end px-6 lg:px-12">
         <div className="w-full max-w-md lg:mr-[10vw] xl:mr-[12vw] 2xl:mr-[16vw]">
