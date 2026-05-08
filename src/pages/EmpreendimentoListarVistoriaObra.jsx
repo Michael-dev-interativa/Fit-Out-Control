@@ -67,7 +67,7 @@ export default function EmpreendimentoListarVistoriaObra() {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar
           </Button>
-          <Button onClick={() => navigate(createPageUrl(`EmpreendimentoVistoriaObra?empreendimentoId=${empreendimentoId}`))}>
+          <Button onClick={() => navigate(createPageUrl(`NovoVistoriadeObra?empreendimentoId=${empreendimentoId}`))}>
             <Plus className="w-4 h-4 mr-2" />
             Nova Vistoria de Obra
           </Button>
@@ -81,7 +81,7 @@ export default function EmpreendimentoListarVistoriaObra() {
             <p className="text-gray-500">Nenhuma vistoria de obra encontrada.</p>
             <Button
               className="mt-4"
-              onClick={() => navigate(createPageUrl(`EmpreendimentoVistoriaObra?empreendimentoId=${empreendimentoId}`))}
+              onClick={() => navigate(createPageUrl(`NovoVistoriadeObra?empreendimentoId=${empreendimentoId}`))}
             >
               <Plus className="w-4 h-4 mr-2" />
               Criar Primeira Vistoria

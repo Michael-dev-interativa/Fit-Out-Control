@@ -13,10 +13,10 @@ export default function NovoVistoriadeObra() {
   useEffect(() => {
     const criarVistoria = async () => {
       try {
-        if (!unidadeId || !empreendimentoId) throw new Error('Unidade ou Empreendimento não informado');
+        if (!empreendimentoId) throw new Error('Empreendimento não informado');
         // Cria a vistoria de obra padrão
         const nova = await InspecaoVistoriaObraPadrao.create({
-          id_unidade: unidadeId,
+          ...(unidadeId ? { id_unidade: unidadeId } : {}),
           id_empreendimento: empreendimentoId,
         });
         if (!nova?.id) throw new Error('Falha ao criar vistoria');
