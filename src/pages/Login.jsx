@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 export default function Login({ theme = 'light' }) {
   const navigate = useNavigate();
   const isDark = theme === 'dark';
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(''); // valor pode ser nome ou email
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -120,21 +120,20 @@ export default function Login({ theme = 'light' }) {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-gray-200">Email</Label>
+                  <Label htmlFor="email" className="text-gray-200">Nome</Label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-3 flex items-center text-white">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                        <path d="M1.5 8.67v8.58a3 3 0 003 3h15a3 3 0 003-3V8.67l-9.3 5.81a3 3 0 01-3.4 0L1.5 8.67z" />
-                        <path d="M22.5 6.75v-.08a3 3 0 00-3-2.92h-15a3 3 0 00-3 2.92v.08l9.75 6.09a1.5 1.5 0 001.65 0L22.5 6.75z" />
+                        <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clipRule="evenodd" />
                       </svg>
                     </div>
                     <Input
                       id="email"
-                      type="email"
+                      type="text"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="pl-10 bg-white/10 border-white/20 text-white placeholder-white/70 focus-visible:ring-white/40"
-                      placeholder="voce@empresa.com"
+                      placeholder="Seu nome de usuário"
                       autoComplete="username"
                     />
                   </div>

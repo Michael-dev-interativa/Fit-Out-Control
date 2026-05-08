@@ -757,11 +757,16 @@ app.post('/api/auth/register', async (req, res) => {
 
 app.post('/api/auth/login', async (req, res) => {
   try {
-    const { email, password } = req.body || {};
-    if (!email || !password) return res.status(400).json({ error: 'missing_credentials' });
+    const { email: rawIdentifier, password } = req.body || {};
+    if (!rawIdentifier || !password) return res.status(400).json({ error: 'missing_credentials' });
+    const identifier = String(rawIdentifier).trim();
+    const isEmail = identifier.includes('@');
     try {
       const p = requirePool();
-      const { rows } = await p.query('SELECT id, email, nome, password_hash, role, perfil_cliente FROM public.usuarios WHERE email = $1', [String(email)]);
+      const query = isEmail
+        ? 'SELECT id, email, nome, password_hash, role, perfil_cliente FROM public.usuarios WHERE email = $1'
+        : 'SELECT id, email, nome, password_hash, role, perfil_cliente FROM public.usuarios WHERE LOWER(nome) = LOWER($1)';
+      const { rows } = await p.query(query, [identifier]);
       if (!rows.length) return res.status(401).json({ error: 'invalid_credentials' });
       const u = rows[0];
       if (!verifyPassword(password, u.password_hash)) return res.status(401).json({ error: 'invalid_credentials' });
@@ -770,7 +775,9 @@ app.post('/api/auth/login', async (req, res) => {
       return res.json({ token, user: { id: u.id, email: u.email, nome: u.nome || '', role: finalRole, perfil_cliente: finalRole === 'cliente' } });
     } catch (err) {
       if (!shouldReturnEmptyOnDbError(err)) throw err;
-      const u = memory.usuarios.find(x => x.email === String(email));
+      const u = isEmail
+        ? memory.usuarios.find(x => x.email === identifier)
+        : memory.usuarios.find(x => (x.nome || '').toLowerCase() === identifier.toLowerCase());
       if (!u || !verifyPassword(password, u.password_hash)) return res.status(401).json({ error: 'invalid_credentials' });
       const finalRole = (u.role === 'admin') ? 'admin' : ((u.role === 'cliente' || u.perfil_cliente === true) ? 'cliente' : 'user');
       const token = signToken({ sub: u.id, email: u.email, nome: u.nome || '', role: finalRole });
