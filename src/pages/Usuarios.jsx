@@ -99,6 +99,14 @@ const translations = {
   },
 };
 
+const normalizeLoginUsername = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const legacyInternal = raw.match(/^([^@\s]+)@interno\.local$/i);
+  if (legacyInternal && legacyInternal[1]) return legacyInternal[1];
+  return raw;
+};
+
 
 export default function Usuarios({ language: initialLanguage }) {
   const [usuarios, setUsuarios] = useState([]);
@@ -215,7 +223,7 @@ export default function Usuarios({ language: initialLanguage }) {
     } catch {
       setSelectedEmpreendimentos(toIds(usuario.empreendimentos_vinculados));
     }
-    setEditedEmail(usuario.email || '');
+    setEditedEmail(normalizeLoginUsername(usuario.email || ''));
     setEditedPassword('');
     setShowEditedPassword(false);
     setConfigDialogOpen(true);
@@ -264,7 +272,7 @@ export default function Usuarios({ language: initialLanguage }) {
       };
 
       // Permitir que administradores ajustem o email do usuário
-      if (editedEmail && editedEmail !== selectedUser.email) {
+      if (editedEmail && editedEmail !== normalizeLoginUsername(selectedUser.email)) {
         updateData.email = editedEmail.trim();
       }
 
@@ -479,7 +487,7 @@ export default function Usuarios({ language: initialLanguage }) {
                       <h3 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{usuario.full_name || usuario.nome || usuario.email}</h3>
                       <div className={`flex items-center gap-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                         <Mail className="w-4 h-4" />
-                        {usuario.email}
+                        {normalizeLoginUsername(usuario.email)}
                       </div>
                       <div className={`flex items-center gap-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
                         <Calendar className="w-4 h-4" />
@@ -573,16 +581,16 @@ export default function Usuarios({ language: initialLanguage }) {
 
           <div className="space-y-6 py-4">
             <div className="space-y-2">
-              <Label className={isDark ? 'text-gray-300' : ''}>Email</Label>
+              <Label className={isDark ? 'text-gray-300' : ''}>Usuário</Label>
               <Input
-                type="email"
+                type="text"
                 value={editedEmail}
                 onChange={(e) => setEditedEmail(e.target.value)}
-                placeholder="usuario@empresa.com"
+                placeholder="nome.usuario"
                 className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}
               />
               <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                Defina ou ajuste o email de login deste usuário. O usuário não precisa criar o próprio email.
+                Defina ou ajuste o username de login deste usuário.
               </p>
             </div>
             <div className="space-y-2">

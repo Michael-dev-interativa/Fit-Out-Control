@@ -7715,6 +7715,7 @@ app.put('/api/usuarios/:id', async (req, res) => {
     const u = requireAdmin(req, res); if (!u) return;
     const id = Number(req.params.id);
     const b = req.body || {};
+    const email = typeof b.email !== 'undefined' ? normalizeUserIdentifier(b.email) : null;
     const role = (typeof b.role !== 'undefined' && b.role !== null)
       ? (String(b.role).toLowerCase() === 'admin' ? 'admin' : (String(b.role).toLowerCase() === 'cliente' ? 'cliente' : 'user'))
       : null;
@@ -7736,25 +7737,27 @@ app.put('/api/usuarios/:id', async (req, res) => {
       let row;
       try {
         const sql = `UPDATE public.usuarios SET
-  nome = COALESCE($1, nome),
-    role = COALESCE($2, role),
-    perfil_cliente = COALESCE($3, perfil_cliente),
-    password_hash = COALESCE($4, password_hash),
-    perfil = COALESCE($5:: jsonb, perfil)
-        WHERE id = $6 RETURNING id, email, nome, role, perfil_cliente, perfil, created_at, updated_at`;
-        const params = [nome, role, perfil_cliente, newPwd ? hashPassword(newPwd) : null, toJson(perfil), id];
+  email = COALESCE($1, email),
+    nome = COALESCE($2, nome),
+    role = COALESCE($3, role),
+    perfil_cliente = COALESCE($4, perfil_cliente),
+    password_hash = COALESCE($5, password_hash),
+    perfil = COALESCE($6:: jsonb, perfil)
+        WHERE id = $7 RETURNING id, email, nome, role, perfil_cliente, perfil, created_at, updated_at`;
+        const params = [email, nome, role, perfil_cliente, newPwd ? hashPassword(newPwd) : null, toJson(perfil), id];
         const up = await p.query(sql, params);
         if (!up.rows.length) return res.status(404).json({ error: 'not_found' });
         row = up.rows[0];
       } catch (errUp) {
         // Fallback: tentar atualizar sem tocar a coluna `perfil_cliente` (algumas instalações não têm essa coluna)
         const sql2 = `UPDATE public.usuarios SET
-  nome = COALESCE($1, nome),
-    role = COALESCE($2, role),
-    password_hash = COALESCE($3, password_hash),
-    perfil = COALESCE($4:: jsonb, perfil)
-        WHERE id = $5 RETURNING id, email, nome, role, perfil, created_at, updated_at`;
-        const params2 = [nome, role, newPwd ? hashPassword(newPwd) : null, toJson(perfil), id];
+  email = COALESCE($1, email),
+    nome = COALESCE($2, nome),
+    role = COALESCE($3, role),
+    password_hash = COALESCE($4, password_hash),
+    perfil = COALESCE($5:: jsonb, perfil)
+        WHERE id = $6 RETURNING id, email, nome, role, perfil, created_at, updated_at`;
+        const params2 = [email, nome, role, newPwd ? hashPassword(newPwd) : null, toJson(perfil), id];
         const up2 = await p.query(sql2, params2);
         if (!up2.rows.length) return res.status(404).json({ error: 'not_found' });
         row = up2.rows[0];
@@ -7776,8 +7779,13 @@ app.put('/api/usuarios/:id', async (req, res) => {
       res.json(mapUsuarioRow(row));
     } catch (err) {
       if (!shouldReturnEmptyOnDbError(err)) throw err;
+      if (email !== null) {
+        const duplicate = memory.usuarios.find(m => m.id !== id && String(m.email || '').toLowerCase() === String(email).toLowerCase());
+        if (duplicate) return res.status(409).json({ error: 'email_exists' });
+      }
       const x = memory.usuarios.find(m => m.id === id);
       if (!x) return res.status(404).json({ error: 'not_found' });
+      if (email !== null) x.email = email;
       if (nome !== null) x.nome = nome;
       if (role !== null) x.role = role;
       if (perfil_cliente !== null) x.perfil_cliente = perfil_cliente;
