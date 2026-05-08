@@ -120,7 +120,7 @@ export default function Login({ theme = 'light' }) {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-gray-200">Nome</Label>
+                  <Label htmlFor="email" className="text-gray-200">Usuário</Label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-3 flex items-center text-white">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
@@ -133,7 +133,7 @@ export default function Login({ theme = 'light' }) {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="pl-10 bg-white/10 border-white/20 text-white placeholder-white/70 focus-visible:ring-white/40"
-                      placeholder="Seu nome de usuário"
+                      placeholder="Seu usuário"
                       autoComplete="username"
                     />
                   </div>
