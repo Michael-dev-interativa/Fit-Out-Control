@@ -5,7 +5,7 @@ import { Empreendimento } from "@/api/entities";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Building2, Users, Eye, Edit, Search, Loader2 } from "lucide-react";
+import { Plus, Building2, Search, Bell, Square } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 import EmpreendimentoCard from "../components/empreendimentos/EmpreendimentoCard";
@@ -204,43 +204,35 @@ export default function Empreendimentos({ language: initialLanguage }) {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-        <div>
-          <h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t.title}</h1>
-          <p className={`${isDark ? 'text-gray-400' : 'text-gray-600'} mt-1`}>{t.subtitle}</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <Button
-            onClick={() => setShowNovoDialog(true)}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            {t.newProject}
-          </Button>
-          <img
-            src={theme === 'dark'
-              ? "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png"
-              : "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/f1e898ee3_logo_Interativa_versao_final_sem_fundo_0002.png"
-            }
-            alt="Logo Interativa Engenharia"
-            className="h-24 hidden lg:block"
-          />
-        </div>
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <h1 className={`text-2xl font-bold flex-shrink-0 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {t.title}
+        </h1>
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
             placeholder={t.searchPlaceholder}
             value={searchTerm}
-            onChange={(e) => {
-              console.log("Novo termo de busca:", e.target.value);
-              setSearchTerm(e.target.value);
-            }}
-            className="pl-10"
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className={`pl-9 ${isDark ? 'bg-gray-800 border-gray-700 text-white placeholder:text-gray-500' : ''}`}
           />
         </div>
+        <button
+          className={`relative p-2 rounded-lg transition-colors ${isDark ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'}`}
+          title="Notificações"
+        >
+          <Bell className="w-5 h-5" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+        </button>
+        <Button
+          onClick={() => setShowNovoDialog(true)}
+          className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 shadow-sm font-medium shrink-0"
+          variant="outline"
+        >
+          <Square className="w-4 h-4 mr-2 text-gray-500" />
+          {t.newProject}
+        </Button>
       </div>
 
 

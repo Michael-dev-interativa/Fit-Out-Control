@@ -8,18 +8,11 @@ import { resolveDataUrlsInBody } from "@/api/integrations";
 import { toast, Toaster } from "react-hot-toast";
 import ApiConnectionAlert from "@/components/ApiConnectionAlert";
 import {
-  Building2,
-  Home,
-  Users,
-  LogOut,
   Menu,
-  Globe,
   Sun,
   Moon,
-  FileText,
-  ListChecks,
-  Eye,
-  WifiOff
+  WifiOff,
+  Square,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,13 +20,6 @@ import {
   SheetContent,
   SheetTrigger
 } from "@/components/ui/sheet";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 const translations = {
   pt: {
@@ -369,7 +355,6 @@ export default function Layout({ children }) {
         {
           title: t.dashboardCliente,
           url: createPageUrl("DashboardCliente"),
-          icon: Eye,
         },
       ];
     }
@@ -378,12 +363,10 @@ export default function Layout({ children }) {
       {
         title: t.projects,
         url: createPageUrl("Empreendimentos"),
-        icon: Building2,
       },
       {
         title: t.users,
         url: createPageUrl("Usuarios"),
-        icon: Users,
         adminOnly: true
       }
     ];
@@ -540,125 +523,159 @@ export default function Layout({ children }) {
     const items = getNavigationItems(user);
     const filteredItems = items.filter(item => !item.adminOnly || (user?.role === "admin"));
 
-    console.log('NavItems - Total de itens:', items.length);
-    console.log('NavItems - Itens filtrados:', filteredItems.length);
-    console.log('NavItems - Itens:', filteredItems.map(i => ({ title: i.title, adminOnly: i.adminOnly })));
-
     return (
-      <div className={`${mobile ? 'space-y-1' : 'space-y-2'}`}>
-        {filteredItems.map((item) => (
-          <Link
-            key={item.title}
-            to={item.url}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${location.pathname === item.url
-              ? (theme === 'dark'
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'bg-blue-600 text-white shadow-lg')
-              : (theme === 'dark'
-                ? 'text-gray-300 hover:bg-gray-700 hover:text-white'
-                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900')
+      <div className="space-y-1">
+        {filteredItems.map((item) => {
+          const isActive = location.pathname === item.url;
+          return (
+            <Link
+              key={item.title}
+              to={item.url}
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-150 ${
+                isActive
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : isDark
+                    ? 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
               }`}
-            onClick={() => mobile && setIsMobileMenuOpen(false)}
-          >
-            <item.icon className="w-5 h-5" />
-            <span className="font-medium">{item.title}</span>
-          </Link>
-        ))}
+              onClick={() => mobile && setIsMobileMenuOpen(false)}
+            >
+              <Square className="w-4 h-4 opacity-70 shrink-0" />
+              <span className="font-medium text-sm flex-1">{item.title}</span>
+            </Link>
+          );
+        })}
       </div>
     );
   };
 
   const isDark = theme === 'dark';
-  const logoUrl = isDark
-    ? "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png"
-    : "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/f1e898ee3_logo_Interativa_versao_final_sem_fundo_0002.png";
+
+  const getUserInitials = () => {
+    const nome = user?.full_name || user?.nome || '';
+    const email = user?.email || '';
+    if (nome) {
+      const parts = nome.trim().split(/\s+/);
+      if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      return nome.slice(0, 2).toUpperCase();
+    }
+    return email.split('@')[0].slice(0, 2).toUpperCase() || 'U';
+  };
+
+  const roleLabel = () => {
+    const r = (user?.role || '').toLowerCase();
+    if (r === 'admin') return 'Administrador';
+    if (r === 'cliente') return 'Cliente';
+    return 'Usuário';
+  };
+
+  const SidebarContent = ({ mobile = false }) => (
+    <div className="flex flex-col h-full">
+      {/* Logo */}
+      <div className={`px-5 py-6 ${isDark ? 'border-gray-700' : 'border-gray-200'} border-b`}>
+        <p className={`text-xs font-semibold uppercase tracking-widest mb-0.5 ${isDark ? 'text-gray-400' : 'text-gray-400'}`}>
+          INTERATIVA
+        </p>
+        <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+          {t.fitOut} · {t.assetManagement}
+        </p>
+      </div>
+
+      {/* Navigation */}
+      <div className="flex-1 px-3 py-4">
+        <NavItems mobile={mobile} user={user} />
+      </div>
+
+      {/* Bottom controls */}
+      <div className={`px-3 py-4 space-y-2 ${isDark ? 'border-gray-700' : 'border-gray-200'} border-t`}>
+        {/* Theme toggle */}
+        <button
+          onClick={() => handleThemeChange(theme === 'dark' ? 'light' : 'dark')}
+          className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+            isDark
+              ? 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          <Square className="w-4 h-4 opacity-50" />
+          <span>{theme === 'dark' ? t.dark : t.light}</span>
+          <Square className="w-4 h-4 opacity-50" />
+        </button>
+
+        {/* Language toggle */}
+        <button
+          onClick={() => handleLanguageChange(language === 'pt' ? 'en' : 'pt')}
+          className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+            isDark
+              ? 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          <Square className="w-4 h-4 opacity-50" />
+          <span>{language === 'pt' ? 'Português' : 'English'}</span>
+          <Square className="w-4 h-4 opacity-50" />
+        </button>
+
+        {/* User profile */}
+        {user && (
+          <>
+            <div className={`flex items-center gap-3 px-3 py-3 rounded-xl ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
+              <div className="relative shrink-0">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white text-sm font-bold">
+                  {getUserInitials()}
+                </div>
+                <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 ${isDark ? 'border-gray-700' : 'border-gray-50'} ${isOffline ? 'bg-yellow-400' : 'bg-green-400'}`} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className={`text-xs font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{user.email}</p>
+                <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{roleLabel()}</p>
+              </div>
+            </div>
+
+            {/* Offline/sync status */}
+            {isOffline && (
+              <div className="flex items-center gap-1.5 bg-yellow-100 text-yellow-800 text-xs px-3 py-1.5 rounded-lg border border-yellow-200">
+                <WifiOff className="w-3 h-3 shrink-0" />
+                <span>Offline{pendingCount > 0 ? ` · ${pendingCount} pendente${pendingCount > 1 ? 's' : ''}` : ''}</span>
+              </div>
+            )}
+            {!isOffline && precacheStatus === 'done' && (
+              <div className="flex items-center gap-1.5 bg-green-50 text-green-700 text-xs px-3 py-1.5 rounded-lg border border-green-100">
+                <span>Offline pronto</span>
+              </div>
+            )}
+            {!isOffline && precacheStatus === 'running' && (
+              <div className="flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs px-3 py-1.5 rounded-lg border border-blue-100">
+                <span>Preparando offline...</span>
+              </div>
+            )}
+
+            <button
+              onClick={handleLogout}
+              className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                isDark
+                  ? 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Square className="w-4 h-4 opacity-50" />
+              <span>Sair da conta</span>
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className={`min-h-screen flex ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
       {/* Sidebar Desktop */}
-      <aside className={`hidden lg:flex lg:flex-col lg:w-72 lg:fixed lg:inset-y-0 lg:z-50 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} lg:border-r print:!hidden`}>
-        <div className="flex flex-col flex-1 min-h-0">
-          <div className={`flex flex-col items-center justify-center px-4 py-6 ${isDark ? 'border-gray-700' : 'border-gray-200'} border-b`}>
-            <img src={logoUrl} alt="Logo Interativa Engenharia" className="h-20 mb-2" />
-            <h1 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t.fitOut}</h1>
-            <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t.assetManagement}</p>
-          </div>
-
-          <div className="flex-1 px-4 py-6">
-            <NavItems user={user} />
-          </div>
-
-          <div className={`px-4 py-6 ${isDark ? 'border-gray-700' : 'border-gray-200'} border-t`}>
-            <div className="mb-4">
-              <Select value={theme} onValueChange={handleThemeChange}>
-                <SelectTrigger className={`w-full ${isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}`}>
-                  <div className="flex items-center gap-2">
-                    {theme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-                    <SelectValue />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="light">{t.light}</SelectItem>
-                  <SelectItem value="dark">{t.dark}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="mb-4">
-              <Select value={language} onValueChange={handleLanguageChange}>
-                <SelectTrigger className={`w-full ${isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}`}>
-                  <div className="flex items-center gap-2">
-                    <Globe className="w-4 h-4" />
-                    <SelectValue />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pt">Português</SelectItem>
-                  <SelectItem value="en">English</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {user && (
-              <div className="space-y-3">
-              {isOffline && (
-                <div className="flex items-center gap-1 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full border border-yellow-300">
-                  <WifiOff className="w-3 h-3" />
-                  <span>Offline{pendingCount > 0 ? ` • ${pendingCount} pendente${pendingCount > 1 ? 's' : ''}` : ''}</span>
-                </div>
-              )}
-              {!isOffline && precacheStatus === 'running' && (
-                <div className="flex items-center gap-1 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full border border-blue-300">
-                  <span>Pre-cache em andamento...</span>
-                </div>
-              )}
-              {!isOffline && precacheStatus === 'done' && (
-                <div className="flex items-center gap-1 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full border border-green-300">
-                  <span>Offline pronto</span>
-                </div>
-              )}
-
-                <div className={`p-3 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                  <p className={`font-medium text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{user.full_name}</p>
-                  <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{user.email}</p>
-                  <p className="text-xs text-blue-600 font-medium capitalize">{user.role}</p>
-                </div>
-                <Button
-                  variant="outline"
-                  onClick={handleLogout}
-                  className={`w-full flex items-center gap-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white hover:bg-gray-600' : ''}`}
-                >
-                  <LogOut className="w-4 h-4" />
-                  {t.logout}
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
+      <aside className={`hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:z-50 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} lg:border-r print:!hidden`}>
+        <SidebarContent />
       </aside>
 
       {/* Main Content */}
-      <div className="lg:pl-72 print:!pl-0 flex flex-col flex-1 min-h-screen">
+      <div className="lg:pl-64 print:!pl-0 flex flex-col flex-1 min-h-screen">
         {/* Mobile Header */}
         <header className={`lg:hidden print:!hidden ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b px-4 py-3`}>
           <div className="flex items-center justify-between">
@@ -669,60 +686,22 @@ export default function Layout({ children }) {
                     <Menu className={`w-6 h-6 ${isDark ? 'text-white' : ''}`} />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className={`w-72 p-0 ${isDark ? 'bg-gray-800' : ''}`}>
-                  <div className="flex flex-col h-full">
-                    <div className={`flex flex-col items-center justify-center px-4 py-6 ${isDark ? 'border-gray-700' : 'border-gray-200'} border-b`}>
-                      <img src={logoUrl} alt="Logo Interativa Engenharia" className="h-20 mb-2" />
-                      <h1 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t.fitOut}</h1>
-                      <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t.assetManagement}</p>
-                    </div>
-
-                    <div className="flex-1 px-4 py-6">
-                      <NavItems mobile user={user} />
-                    </div>
-
-                    <div className={`px-4 py-6 ${isDark ? 'border-gray-700' : 'border-gray-200'} border-t`}>
-                      {user && (
-                        <Button
-                          variant="outline"
-                          onClick={handleLogout}
-                          className={`w-full flex items-center gap-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white hover:bg-gray-600' : ''}`}
-                        >
-                          <LogOut className="w-4 h-4" />
-                          {t.logout}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+                <SheetContent side="left" className={`w-64 p-0 ${isDark ? 'bg-gray-800' : ''}`}>
+                  <SidebarContent mobile />
                 </SheetContent>
               </Sheet>
-
-              <img src={logoUrl} alt="Logo Interativa Engenharia" className="h-10" />
+              <span className={`text-sm font-semibold tracking-widest uppercase ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                INTERATIVA
+              </span>
             </div>
 
             <div className="flex items-center gap-2">
               {isOffline && (
                 <div className="flex items-center gap-1 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full border border-yellow-300">
                   <WifiOff className="w-3 h-3" />
-                  <span>Offline{pendingCount > 0 ? ` • ${pendingCount} pendente${pendingCount > 1 ? 's' : ''}` : ''}</span>
+                  <span>Offline</span>
                 </div>
               )}
-              {!isOffline && precacheStatus === 'running' && (
-                <div className="flex items-center gap-1 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full border border-blue-300">
-                  <span>Pre-cache...</span>
-                </div>
-              )}
-              {!isOffline && precacheStatus === 'done' && (
-                <div className="flex items-center gap-1 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full border border-green-300">
-                  <span>Offline pronto</span>
-                </div>
-              )}
-              {!isOffline && precacheStatus === 'error' && (
-                <div className="flex items-center gap-1 bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full border border-red-300">
-                  <span>Falha pre-cache</span>
-                </div>
-              )}
-              {/* Theme Toggle Button for Mobile */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -731,17 +710,6 @@ export default function Layout({ children }) {
               >
                 {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </Button>
-
-              {/* Language Selector for Mobile */}
-              <Select value={language} onValueChange={handleLanguageChange}>
-                <SelectTrigger className={`w-24 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}`}>
-                  <Globe className="w-4 h-4" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pt">PT</SelectItem>
-                  <SelectItem value="en">EN</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
         </header>
