@@ -121,6 +121,7 @@ export default function Usuarios({ language: initialLanguage }) {
   const [selectedEmpreendimentos, setSelectedEmpreendimentos] = useState([]);
   const [selectedRole, setSelectedRole] = useState('user');
   const [saving, setSaving] = useState(false);
+  const [editedName, setEditedName] = useState('');
   const [editedEmail, setEditedEmail] = useState('');
   const [editedPassword, setEditedPassword] = useState('');
   const [showEditedPassword, setShowEditedPassword] = useState(false);
@@ -223,6 +224,7 @@ export default function Usuarios({ language: initialLanguage }) {
     } catch {
       setSelectedEmpreendimentos(toIds(usuario.empreendimentos_vinculados));
     }
+    setEditedName(usuario.full_name || usuario.nome || '');
     setEditedEmail(normalizeLoginUsername(usuario.email || ''));
     setEditedPassword('');
     setShowEditedPassword(false);
@@ -270,6 +272,12 @@ export default function Usuarios({ language: initialLanguage }) {
         // Enviar também em `perfil` para garantir persistência em bancos sem coluna `perfil_cliente`
         perfil: isCliente ? { ...(selectedUser?.perfil || {}), empreendimentos_vinculados: ids } : { ...(selectedUser?.perfil || {}), empreendimentos_vinculados: [] }
       };
+
+      // Atualizar nome se alterado
+      const currentName = selectedUser.full_name || selectedUser.nome || '';
+      if (editedName.trim() && editedName.trim() !== currentName) {
+        updateData.nome = editedName.trim();
+      }
 
       // Permitir que administradores ajustem o email do usuário
       // Compara contra o email RAW do banco para também normalizar legados @interno.local
@@ -581,6 +589,16 @@ export default function Usuarios({ language: initialLanguage }) {
           </DialogHeader>
 
           <div className="space-y-6 py-4">
+            <div className="space-y-2">
+              <Label className={isDark ? 'text-gray-300' : ''}>Nome</Label>
+              <Input
+                type="text"
+                value={editedName}
+                onChange={(e) => setEditedName(e.target.value)}
+                placeholder="Nome completo"
+                className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}
+              />
+            </div>
             <div className="space-y-2">
               <Label className={isDark ? 'text-gray-300' : ''}>Usuário</Label>
               <Input
