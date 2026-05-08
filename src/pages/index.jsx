@@ -475,6 +475,7 @@ function PagesContent() {
                     <Route path="/EmpreendimentoListarVistoriaObra" element={<EmpreendimentoListarVistoriaObra />} />
                     <Route path="/NovoVistoriadeObra" element={<NovoVistoriadeObra />} />
                     <Route path="/EditarVistoriadeObra" element={<EditarVistoriadeObra />} />
+                    <Route path="/VisualizarInspecaoVistoriaObraPadrao" element={<VisualizarInspecaoVistoriaObraPadrao />} />
 
                     <Route path="/" element={hasToken() ? <Empreendimentos /> : <Login />} />
                     {/* Garantir variação minúscula com guarda */}
