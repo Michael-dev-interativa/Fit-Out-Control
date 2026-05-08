@@ -224,8 +224,8 @@ export default function Usuarios({ language: initialLanguage }) {
       setSelectedEmpreendimentos(toIds(usuario.empreendimentos_vinculados));
     }
     setEditedEmail(normalizeLoginUsername(usuario.email || ''));
-    setEditedPassword(generatePassword());
-    setShowEditedPassword(true);
+    setEditedPassword('');
+    setShowEditedPassword(false);
     setConfigDialogOpen(true);
   };
 
