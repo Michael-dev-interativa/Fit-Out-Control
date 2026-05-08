@@ -150,7 +150,7 @@ export default function Login({ theme = 'light' }) {
                 {error && <p className="text-red-300 text-sm">{error}</p>}
                 <Button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-green-600 to-emerald-500 hover:opacity-90 text-white"
+                  className="w-full bg-[#CF2B2C] hover:bg-[#b62627] text-white"
                   disabled={loading}
                 >
                   {loading ? 'Entrando...' : 'Entrar'}
