@@ -2,6 +2,20 @@
 import { apiUrl } from './config';
 import { base44 } from './base44Client';
 import { cacheGet, cachePut, cacheClearPrefix, isOnline, queuePush, shadowPut, shadowGetAll, shadowDelete } from '@/lib/offlineDb';
+
+// Gera hash SHA-256 da senha + email (salt) para armazenamento seguro offline
+async function hashPassword(email, password) {
+  try {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(`${email.toLowerCase().trim()}:${password}`);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch {
+    return null;
+  }
+}
+
 function getAuthToken() {
   try { return localStorage.getItem('authToken') || localStorage.getItem('token') || null; } catch { return null; }
 }
@@ -518,12 +532,52 @@ export const Auth = {
   async login(email, password) {
     console.log('🔐 Auth.login() - INICIANDO para:', email);
     const url = apiUrl('/api/auth/login');
-    const r = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    const data = await handleResponse(r, 'auth', 'LOGIN');
+
+    // --- Tentativa ONLINE ---
+    let data;
+    try {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      data = await handleResponse(r, 'auth', 'LOGIN');
+    } catch (networkErr) {
+      // Sem conexão — tentar autenticação OFFLINE
+      console.log('📴 Auth.login() - Sem rede, tentando autenticação offline...');
+      const storedEmail = (localStorage.getItem('userEmail') || localStorage.getItem('lastLoginEmail') || '').toLowerCase().trim();
+      const storedHash = localStorage.getItem('offlinePasswordHash');
+      const storedUserJson = localStorage.getItem('userJson');
+
+      if (!storedHash || storedEmail !== email.toLowerCase().trim()) {
+        console.log('❌ Auth.login() - Offline: email não encontrado ou sem hash salvo');
+        throw new Error('Sem conexão com o servidor. Faça login online ao menos uma vez para habilitar o acesso offline.');
+      }
+
+      const inputHash = await hashPassword(email, password);
+      if (!inputHash || inputHash !== storedHash) {
+        console.log('❌ Auth.login() - Offline: senha incorreta');
+        throw new Error('Credenciais inválidas (offline).');
+      }
+
+      console.log('✅ Auth.login() - Autenticação offline bem-sucedida');
+      let offlineUser = null;
+      try { offlineUser = JSON.parse(storedUserJson); } catch { }
+      if (!offlineUser) {
+        const role = (localStorage.getItem('appRole') || '').toLowerCase() || 'user';
+        const perfilCliente = localStorage.getItem('perfilCliente') === 'true';
+        offlineUser = {
+          id: Number(localStorage.getItem('userId')) || null,
+          email: storedEmail,
+          nome: localStorage.getItem('userName') || storedEmail.split('@')[0],
+          role,
+          perfil_cliente: perfilCliente,
+        };
+      }
+      // Retorna estrutura compatível sem alterar o localStorage
+      return { token: localStorage.getItem('authToken') || '', user: offlineUser, offline: true };
+    }
+
     console.log('📥 Auth.login() - Backend retornou:', data);
     console.log('👤 Backend user.role:', data?.user?.role);
     console.log('👤 Backend user.perfil_cliente:', data?.user?.perfil_cliente);
@@ -551,6 +605,13 @@ export const Auth = {
       const id = data?.user?.id;
       if (id !== undefined) localStorage.setItem('userId', String(id));
       try { localStorage.setItem('userJson', JSON.stringify(data?.user || {})); } catch { }
+
+      // Salvar hash da senha para autenticação offline futura
+      hashPassword(email, password).then(hash => {
+        if (hash) {
+          try { localStorage.setItem('offlinePasswordHash', hash); } catch { }
+        }
+      });
 
       console.log('✅ Auth.login() - localStorage atualizado');
     } catch (e) {
@@ -600,6 +661,7 @@ export const Auth = {
       localStorage.removeItem('userName');
       localStorage.removeItem('userId');
       localStorage.removeItem('userJson');
+      localStorage.removeItem('offlinePasswordHash');
     } catch { }
   }
 };

@@ -18,7 +18,7 @@ export default function Login({ theme = 'light' }) {
   const [logoMode, setLogoMode] = useState('logo'); // 'logo' | 'greeting'
   const [greetingName, setGreetingName] = useState('');
 
-  const bgUrl = (import.meta.env?.VITE_LOGIN_BG) || '/bg-login.gif';
+  const bgUrl = (import.meta.env?.VITE_LOGIN_BG) || '/bg-login.jpg';
   const logoUrl = (import.meta.env?.VITE_LOGIN_LOGO)
     || "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png";
 
@@ -52,13 +52,7 @@ export default function Login({ theme = 'light' }) {
         })).filter(Boolean);
         if (!cancelled && items.length) setPortfolio(items);
       } catch {
-        if (!cancelled) {
-          setPortfolio([
-            { id: 'p1', title: 'Obra Comercial', city: 'São Paulo - SP', image: 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=1400&q=70&auto=format&fit=crop' },
-            { id: 'p2', title: 'Residencial Premium', city: 'Curitiba - PR', image: 'https://images.unsplash.com/photo-1487956382158-bb926046304a?w=1400&q=70&auto=format&fit=crop' },
-            { id: 'p3', title: 'Centro Corporativo', city: 'Rio de Janeiro - RJ', image: 'https://images.unsplash.com/photo-1460574283810-2aab119d8511?w=1400&q=70&auto=format&fit=crop' },
-          ]);
-        }
+        // Sem backend: fundo estático (bg-login.jpg) é usado
       }
     };
     load();
@@ -105,7 +99,7 @@ export default function Login({ theme = 'light' }) {
         navigate(createPageUrl(isCliente ? 'DashboardCliente' : 'Empreendimentos'));
       }, 700);
     } catch (err) {
-      setError('Credenciais inválidas');
+      setError(err?.message || 'Credenciais inválidas');
     } finally {
       setLoading(false);
     }
@@ -124,8 +118,8 @@ export default function Login({ theme = 'light' }) {
           )}
         </div>
       ))}
-      {/* Gradiente para leitura (mais escuro à direita, clareando à esquerda) */}
-      <div className="absolute inset-0 bg-gradient-to-l from-black/70 via-black/50 to-black/20" />
+      {/* Gradiente leve para leitura — a imagem já tem gradiente embutido */}
+      <div className="absolute inset-0 bg-gradient-to-l from-black/60 via-black/20 to-transparent" />
 
       {/* Legenda do slide no canto inferior esquerdo */}
       {portfolio[slide] && (
