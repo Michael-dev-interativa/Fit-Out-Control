@@ -720,8 +720,8 @@ app.post('/api/auth/register', async (req, res) => {
   try {
     let { email, password, nome } = req.body || {};
     if (!password) return res.status(400).json({ error: 'missing_credentials' });
-    // Se não há email mas há nome/username, gerar email interno
-    if (!email && nome) email = `${String(nome).toLowerCase().replace(/\s+/g, '.')}@interno.local`;
+    // Aceita username puro como identificador de login (não precisa formato de email)
+    if (!email && nome) email = String(nome).trim();
     if (!email) return res.status(400).json({ error: 'missing_credentials' });
     // Registro público sempre cria cliente; promoção para admin é feita via endpoint de admin
     const role = 'cliente';
@@ -768,7 +768,7 @@ app.post('/api/auth/login', async (req, res) => {
       const p = requirePool();
       const query = isEmail
         ? 'SELECT id, email, nome, password_hash, role, perfil_cliente FROM public.usuarios WHERE email = $1'
-        : 'SELECT id, email, nome, password_hash, role, perfil_cliente FROM public.usuarios WHERE LOWER(nome) = LOWER($1)';
+        : 'SELECT id, email, nome, password_hash, role, perfil_cliente FROM public.usuarios WHERE LOWER(nome) = LOWER($1) OR LOWER(email) = LOWER($1)';
       const { rows } = await p.query(query, [identifier]);
       if (!rows.length) return res.status(401).json({ error: 'invalid_credentials' });
       const u = rows[0];
@@ -780,7 +780,7 @@ app.post('/api/auth/login', async (req, res) => {
       if (!shouldReturnEmptyOnDbError(err)) throw err;
       const u = isEmail
         ? memory.usuarios.find(x => x.email === identifier)
-        : memory.usuarios.find(x => (x.nome || '').toLowerCase() === identifier.toLowerCase());
+        : memory.usuarios.find(x => (x.nome || '').toLowerCase() === identifier.toLowerCase() || (x.email || '').toLowerCase() === identifier.toLowerCase());
       if (!u || !verifyPassword(password, u.password_hash)) return res.status(401).json({ error: 'invalid_credentials' });
       const finalRole = (u.role === 'admin') ? 'admin' : ((u.role === 'cliente' || u.perfil_cliente === true) ? 'cliente' : 'user');
       const token = signToken({ sub: u.id, email: u.email, nome: u.nome || '', role: finalRole });
@@ -6764,9 +6764,11 @@ app.get('/api/empreendimentos', async (req, res) => {
     // Verificar permissões do usuário
     const user = req.user;
     const isAdmin = user && user.role === 'admin';
+    const isCliente = user && user.role === 'cliente';
 
-    // Se não for admin, filtrar apenas empreendimentos vinculados ao usuário
-    if (!isAdmin && user && user.sub) {
+    // Apenas usuários cliente têm visão restrita por vínculo.
+    // Usuários admin e user enxergam a listagem completa.
+    if (isCliente && user && user.sub) {
       const userId = user.sub;
       try {
         // Buscar empreendimentos vinculados ao usuário
@@ -6782,7 +6784,7 @@ app.get('/api/empreendimentos', async (req, res) => {
         where.push('id = ANY($' + (params.length + 1) + ')');
         params.push(empIds);
       } catch (vincErr) {
-        // Se tabela de vínculos não existir, retornar vazio para não-admin
+        // Se tabela de vínculos não existir, retornar vazio para cliente
         console.warn('Erro ao buscar vínculos de empreendimentos:', vincErr.message);
         return res.json([]);
       }

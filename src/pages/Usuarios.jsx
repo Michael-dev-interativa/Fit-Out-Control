@@ -316,8 +316,8 @@ export default function Usuarios({ language: initialLanguage }) {
       toast.error('Informe o nome do usuário');
       return;
     }
-    // Gerar email interno se o valor não for um email real
-    const email = username.includes('@') ? username : `${username.toLowerCase().replace(/\s+/g, '.')}@interno.local`;
+    // Username é armazenado como identificador de login sem obrigar formato de email
+    const email = username;
     setSaving(true);
     try {
       // Preservar token do admin para não perder sessão ao registrar
