@@ -122,7 +122,7 @@ export default function Login({ theme = 'light' }) {
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-gray-200">Email</Label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-3 flex items-center text-white/70">
+                    <div className="absolute inset-y-0 left-3 flex items-center text-white">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
                         <path d="M1.5 8.67v8.58a3 3 0 003 3h15a3 3 0 003-3V8.67l-9.3 5.81a3 3 0 01-3.4 0L1.5 8.67z" />
                         <path d="M22.5 6.75v-.08a3 3 0 00-3-2.92h-15a3 3 0 00-3 2.92v.08l9.75 6.09a1.5 1.5 0 001.65 0L22.5 6.75z" />
@@ -142,7 +142,7 @@ export default function Login({ theme = 'light' }) {
                 <div className="space-y-2">
                   <Label htmlFor="password" className="text-gray-200">Senha</Label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-3 flex items-center text-white/70">
+                    <div className="absolute inset-y-0 left-3 flex items-center text-white">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
                         <path fillRule="evenodd" d="M12 1.5A5.25 5.25 0 006.75 6.75v2.25h10.5V6.75A5.25 5.25 0 0012 1.5zm-3.75 6V6.75a3.75 3.75 0 117.5 0V7.5h-7.5z" clipRule="evenodd" />
                         <path d="M3.75 9.75A2.25 2.25 0 016 7.5h12a2.25 2.25 0 012.25 2.25v8.25A3 3 0 0117.25 21H6.75A3 3 0 013.75 18V9.75z" />
