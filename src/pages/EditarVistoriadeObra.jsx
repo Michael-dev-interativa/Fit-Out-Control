@@ -203,7 +203,6 @@ function QuestionRow({ perg, secIdx, qIdx, onUpdate, onRemove }) {
             <SelectValue placeholder="— Selecionar —" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">— Selecionar —</SelectItem>
             {(perg.opcoes || []).map(o => (
               <SelectItem key={o.texto} value={o.texto}>{o.texto}</SelectItem>
             ))}
