@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Auth, User, Empreendimento } from '@/api/entities';
-import { apiUrl, getUploadUrl } from '@/api/config.js';
+import { Auth, User } from '@/api/entities';
+import { apiUrl } from '@/api/config.js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -22,11 +22,6 @@ export default function Login({ theme = 'light' }) {
   const logoUrl = (import.meta.env?.VITE_LOGIN_LOGO)
     || "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png";
 
-  // Empreendimentos para portfólio
-  const [portfolio, setPortfolio] = useState([]);
-  const [slide, setSlide] = useState(0);
-  const slideIntervalMs = 4500;
-
   // Log automático da configuração de API
   React.useEffect(() => {
     (async () => {
@@ -38,32 +33,6 @@ export default function Login({ theme = 'light' }) {
       console.log('=====================================');
     })();
   }, []);
-
-  React.useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const list = await Empreendimento.list('created_at desc');
-        const items = (list || []).map((e) => ({
-          id: e.id,
-          title: e.nome_empreendimento || e.nome || 'Empreendimento',
-          city: e.cidade || e.localidade || '',
-          image: getUploadUrl(e.foto_empreendimento || e.capa || e.banner) || null,
-        })).filter(Boolean);
-        if (!cancelled && items.length) setPortfolio(items);
-      } catch {
-        // Sem backend: fundo estático (bg-login.jpg) é usado
-      }
-    };
-    load();
-    return () => { cancelled = true; };
-  }, []);
-
-  React.useEffect(() => {
-    if (portfolio.length <= 1) return;
-    const t = setInterval(() => setSlide((s) => (s + 1) % portfolio.length), slideIntervalMs);
-    return () => clearInterval(t);
-  }, [portfolio.length]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -107,41 +76,10 @@ export default function Login({ theme = 'light' }) {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
-      {/* Fundo com imagem do portfólio preenchendo a página */}
-      {/* Fallback base */}
+      {/* Fundo estático preenchendo toda a tela */}
       <img src={bgUrl} alt="Fundo" className="absolute inset-0 h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-      {/* Slides sobrepostos para crossfade */}
-      {portfolio.map((item, idx) => (
-        <div key={item.id} className={`absolute inset-0 transition-opacity duration-700 ${idx === slide ? 'opacity-100' : 'opacity-0'}`}>
-          {item.image && (
-            <img src={item.image} alt={item.title} className="absolute inset-0 h-full w-full object-cover" />
-          )}
-        </div>
-      ))}
       {/* Gradiente leve para leitura — a imagem já tem gradiente embutido */}
       <div className="absolute inset-0 bg-gradient-to-l from-black/60 via-black/20 to-transparent" />
-
-      {/* Legenda do slide no canto inferior esquerdo */}
-      {portfolio[slide] && (
-        <div className="absolute bottom-10 left-10 z-[5] hidden lg:block">
-          <div className="inline-flex items-center gap-3 px-4 py-3 rounded-xl bg-black/40 backdrop-blur-md border border-white/20 shadow-lg">
-            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <div>
-              <div className="text-white text-lg font-semibold tracking-wide">{portfolio[slide].title}</div>
-              {portfolio[slide].city && <div className="text-white/80 text-sm">{portfolio[slide].city}</div>}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Indicadores inferior direito (evitar colisão com legenda) */}
-      {portfolio.length > 1 && (
-        <div className="absolute bottom-6 right-6 z-[5] hidden lg:flex gap-2">
-          {portfolio.map((_, i) => (
-            <button key={i} onClick={() => setSlide(i)} className={`h-1.5 rounded-full transition-all ${i === slide ? 'w-6 bg-white' : 'w-3 bg-white/50'}`} />
-          ))}
-        </div>
-      )}
 
       {/* Card de Login alinhado à direita (posição pedida) */}
       <div className="relative z-10 flex min-h-screen items-center justify-end px-6 lg:px-12">
