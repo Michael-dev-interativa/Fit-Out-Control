@@ -88,6 +88,7 @@ export default function Login({ theme = 'light' }) {
             src="/login-titulo.png"
             alt="Gerencie sua obra com precisão"
             className="w-full max-w-[480px] xl:max-w-[560px] 2xl:max-w-[640px] object-contain drop-shadow-2xl"
+            style={{ animation: 'titleFadeIn 1s cubic-bezier(0.22,1,0.36,1) both', animationDelay: '0.15s' }}
           />
         </div>
       </div>
@@ -98,7 +99,7 @@ export default function Login({ theme = 'light' }) {
           <Card className="w-full bg-white/10 border-white/20 backdrop-blur-md shadow-2xl rounded-2xl">
             <CardHeader>
               {/* animações do logo e transição para saudação */}
-              <style>{`@keyframes floaty{0%{transform:translateY(0)}50%{transform:translateY(-4px)}100%{transform:translateY(0)}}@keyframes breathing{0%{transform:scale(1)}50%{transform:scale(1.04)}100%{transform:scale(1)}}@keyframes glow{0%{filter:drop-shadow(0 2px 4px rgba(0,0,0,0.25))}50%{filter:drop-shadow(0 4px 10px rgba(0,0,0,0.45))}100%{filter:drop-shadow(0 2px 4px rgba(0,0,0,0.25))} @keyframes logoToTextOut{0%{opacity:1;transform:scale(1) translateY(0);filter:blur(0px)}60%{opacity:.4;transform:scale(.8) translateY(-4px);filter:blur(2px)}100%{opacity:0;transform:scale(.6) translateY(-6px);filter:blur(3px)}} @keyframes greetFromLogo{0%{opacity:0;transform:scale(.96) translateY(6px);letter-spacing:-0.02em}100%{opacity:1;transform:scale(1) translateY(0);letter-spacing:0}}`}</style>
+              <style>{`@keyframes titleFadeIn{0%{opacity:0;transform:translateX(-32px)}100%{opacity:1;transform:translateX(0)}}@keyframes floaty{0%{transform:translateY(0)}50%{transform:translateY(-4px)}100%{transform:translateY(0)}}@keyframes breathing{0%{transform:scale(1)}50%{transform:scale(1.04)}100%{transform:scale(1)}}@keyframes glow{0%{filter:drop-shadow(0 2px 4px rgba(0,0,0,0.25))}50%{filter:drop-shadow(0 4px 10px rgba(0,0,0,0.45))}100%{filter:drop-shadow(0 2px 4px rgba(0,0,0,0.25))} @keyframes logoToTextOut{0%{opacity:1;transform:scale(1) translateY(0);filter:blur(0px)}60%{opacity:.4;transform:scale(.8) translateY(-4px);filter:blur(2px)}100%{opacity:0;transform:scale(.6) translateY(-6px);filter:blur(3px)}} @keyframes greetFromLogo{0%{opacity:0;transform:scale(.96) translateY(6px);letter-spacing:-0.02em}100%{opacity:1;transform:scale(1) translateY(0);letter-spacing:0}}`}</style>
               <div className="flex items-center justify-center -mt-10 mb-2">
                 <div className="relative w-full h-20 md:h-24">
                   <img
