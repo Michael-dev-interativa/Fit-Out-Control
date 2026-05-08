@@ -224,8 +224,8 @@ export default function Usuarios({ language: initialLanguage }) {
       setSelectedEmpreendimentos(toIds(usuario.empreendimentos_vinculados));
     }
     setEditedEmail(normalizeLoginUsername(usuario.email || ''));
-    setEditedPassword('');
-    setShowEditedPassword(false);
+    setEditedPassword(generatePassword());
+    setShowEditedPassword(true);
     setConfigDialogOpen(true);
   };
 
@@ -615,13 +615,13 @@ export default function Usuarios({ language: initialLanguage }) {
                 </div>
                 <Button type="button" variant="outline" onClick={() => { const p = generatePassword(); setEditedPassword(p); setShowEditedPassword(true); }}>Gerar</Button>
               </div>
-              {!editedPassword ? (
-                <p className={`text-xs flex items-center gap-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  <span>🔒</span> Senha atual mantida — preencha apenas para redefinir.
+              {editedPassword ? (
+                <p className={`text-xs flex items-center gap-1 ${isDark ? 'text-yellow-400' : 'text-yellow-600'}`}>
+                  <span>⚠️</span> A senha será redefinida ao salvar. Copie e envie ao usuário antes de confirmar.
                 </p>
               ) : (
-                <p className={`text-xs flex items-center gap-1 ${isDark ? 'text-yellow-400' : 'text-yellow-600'}`}>
-                  <span>⚠️</span> A senha será alterada ao salvar.
+                <p className={`text-xs flex items-center gap-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  <span>🔒</span> Campo vazio — senha atual mantida sem alterações.
                 </p>
               )}
             </div>
