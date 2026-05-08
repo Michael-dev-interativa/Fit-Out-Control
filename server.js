@@ -313,16 +313,6 @@ if (pool) {
     }
   })();
 
-  (async () => {
-    try {
-      await pool.query("ALTER TABLE IF EXISTS public.empreendimentos ADD COLUMN IF NOT EXISTS status_empreendimento TEXT DEFAULT 'Projeto';");
-      await pool.query("ALTER TABLE IF EXISTS public.empreendimentos ADD COLUMN IF NOT EXISTS percentual_conclusao INTEGER DEFAULT 0;");
-      console.log('[DB] ensured status_empreendimento and percentual_conclusao columns exist');
-    } catch (err) {
-      try { console.warn('[DB] could not ensure status/percentual columns:', err && (err.message || String(err))); } catch (e) { }
-    }
-  })();
-
   // Ensure relatorios_saida has all expected columns in legacy databases.
   (async () => {
     try {
@@ -6747,8 +6737,6 @@ function mapEmpreendimentoRow(row) {
     projetistas_contatos: typeof projetistasContatos === 'string' ? projetistasContatos : (projetistasContatos != null ? JSON.stringify(projetistasContatos) : ''),
     particularidades: row.particularidades ?? null,
     informacoes_tecnicas: parseJsonSafe(row.informacoes_tecnicas, []),
-    status_empreendimento: row.status_empreendimento ?? 'Projeto',
-    percentual_conclusao: row.percentual_conclusao != null ? Number(row.percentual_conclusao) : 0,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -7027,9 +7015,9 @@ app.post('/api/empreendimentos', async (req, res) => {
     const sql = `INSERT INTO public.empreendimentos(
       nome_empreendimento, cli_empreendimento, endereco_empreendimento, foto_empreendimento, os_number, sigla_obra,
       data_inicio_contrato, termino_obra_previsto, data_sem_entrega, data_termino_contrato,
-      valor_contratual, prazo_contratual_dias, status_empreendimento, percentual_conclusao
+      valor_contratual, prazo_contratual_dias
     ) VALUES(
-      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
     ) RETURNING * `;
     const nn = (v) => (v === '' || v === undefined || v === null ? null : v);
     const toNumber = (v) => {
@@ -7055,8 +7043,6 @@ app.post('/api/empreendimentos', async (req, res) => {
       nn(b.data_termino_contrato),
       toNumber(b.valor_contratual),
       toInt(b.prazo_contratual_dias),
-      nn(b.status_empreendimento ?? 'Projeto'),
-      toInt(b.percentual_conclusao ?? 0),
     ];
     const { rows } = await p.query(sql, params);
     // Log de sucesso de criação para facilitar diagnóstico
@@ -7133,10 +7119,8 @@ app.put('/api/empreendimentos/:id', async (req, res) => {
     mantenedor_contato = COALESCE($22, mantenedor_contato),
     projetistas_contatos = COALESCE($23, projetistas_contatos),
     particularidades = COALESCE($24, particularidades),
-    informacoes_tecnicas = COALESCE($25, informacoes_tecnicas),
-    status_empreendimento = COALESCE($26, status_empreendimento),
-    percentual_conclusao = COALESCE($27, percentual_conclusao)
-    WHERE id = $28 RETURNING * `;
+    informacoes_tecnicas = COALESCE($25, informacoes_tecnicas)
+    WHERE id = $26 RETURNING * `;
     const nn2 = (v) => (v === '' || v === undefined || v === null ? null : v);
     const params = [
       nn2(b.nome_empreendimento ?? b.nome),
@@ -7165,8 +7149,6 @@ app.put('/api/empreendimentos/:id', async (req, res) => {
       nn2(b.projetistas_contatos),
       nn2(b.particularidades),
       nn2(b.informacoes_tecnicas),
-      nn2(b.status_empreendimento),
-      b.percentual_conclusao != null && b.percentual_conclusao !== '' ? parseInt(String(b.percentual_conclusao), 10) : null,
       id,
     ];
     // Ensure JSONB params are sent as JSON strings to Postgres when needed
