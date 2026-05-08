@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 export default function Login({ theme = 'light' }) {
   const navigate = useNavigate();
   const isDark = theme === 'dark';
-  const [email, setEmail] = useState(''); // valor pode ser nome ou email
+  const [email, setEmail] = useState(''); // username de login
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -50,7 +50,7 @@ export default function Login({ theme = 'light' }) {
       console.log('localStorage.perfilCliente:', localStorage.getItem('perfilCliente'));
       console.log('=================================');
 
-      const nome = me?.full_name || me?.nome || loginData?.user?.nome || (email ? email.split('@')[0] : '');
+      const nome = me?.full_name || me?.nome || loginData?.user?.nome || (email?.includes('@') ? email.split('@')[0] : email || '');
       setGreetingName(nome);
       setLogoMode('greeting');
 

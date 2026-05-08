@@ -701,6 +701,16 @@ function verifyPassword(password, stored) {
   }
 }
 
+function normalizeUserIdentifier(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const legacyInternal = raw.match(/^([^@\s]+)@interno\.local$/i);
+  if (legacyInternal && legacyInternal[1]) {
+    return legacyInternal[1].trim();
+  }
+  return raw;
+}
+
 function authMiddleware(req, res, next) {
   const auth = req.headers.authorization || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
@@ -722,6 +732,7 @@ app.post('/api/auth/register', async (req, res) => {
     if (!password) return res.status(400).json({ error: 'missing_credentials' });
     // Aceita username puro como identificador de login (não precisa formato de email)
     if (!email && nome) email = String(nome).trim();
+    email = normalizeUserIdentifier(email);
     if (!email) return res.status(400).json({ error: 'missing_credentials' });
     // Registro público sempre cria cliente; promoção para admin é feita via endpoint de admin
     const role = 'cliente';
@@ -762,13 +773,13 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { email: rawIdentifier, password } = req.body || {};
     if (!rawIdentifier || !password) return res.status(400).json({ error: 'missing_credentials' });
-    const identifier = String(rawIdentifier).trim();
+    const identifier = normalizeUserIdentifier(rawIdentifier);
     const isEmail = identifier.includes('@');
     try {
       const p = requirePool();
       const query = isEmail
         ? 'SELECT id, email, nome, password_hash, role, perfil_cliente FROM public.usuarios WHERE email = $1'
-        : 'SELECT id, email, nome, password_hash, role, perfil_cliente FROM public.usuarios WHERE LOWER(nome) = LOWER($1) OR LOWER(email) = LOWER($1)';
+        : "SELECT id, email, nome, password_hash, role, perfil_cliente FROM public.usuarios WHERE LOWER(email) = LOWER($1) OR LOWER(split_part(email, '@', 1)) = LOWER($1)";
       const { rows } = await p.query(query, [identifier]);
       if (!rows.length) return res.status(401).json({ error: 'invalid_credentials' });
       const u = rows[0];
@@ -780,7 +791,12 @@ app.post('/api/auth/login', async (req, res) => {
       if (!shouldReturnEmptyOnDbError(err)) throw err;
       const u = isEmail
         ? memory.usuarios.find(x => x.email === identifier)
-        : memory.usuarios.find(x => (x.nome || '').toLowerCase() === identifier.toLowerCase() || (x.email || '').toLowerCase() === identifier.toLowerCase());
+        : memory.usuarios.find(x => {
+          const memEmail = String(x.email || '').toLowerCase();
+          const memLocal = memEmail.split('@')[0] || '';
+          const idLower = identifier.toLowerCase();
+          return memEmail === idLower || memLocal === idLower;
+        });
       if (!u || !verifyPassword(password, u.password_hash)) return res.status(401).json({ error: 'invalid_credentials' });
       const finalRole = (u.role === 'admin') ? 'admin' : ((u.role === 'cliente' || u.perfil_cliente === true) ? 'cliente' : 'user');
       const token = signToken({ sub: u.id, email: u.email, nome: u.nome || '', role: finalRole });
@@ -7665,7 +7681,7 @@ app.post('/api/usuarios', async (req, res) => {
   try {
     const u = requireAdmin(req, res); if (!u) return;
     const b = req.body || {};
-    const email = String(b.email || '').trim();
+    const email = normalizeUserIdentifier(b.email);
     const nome = String(b.nome || '').trim();
     const role = (String(b.role || 'cliente').toLowerCase() === 'admin') ? 'admin' : 'cliente';
     const perfil_cliente = role === 'cliente' ? true : !!b.perfil_cliente;

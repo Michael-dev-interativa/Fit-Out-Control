@@ -70,6 +70,14 @@ const translations = {
   }
 };
 
+const normalizeDisplayIdentifier = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const legacyInternal = raw.match(/^([^@\s]+)@interno\.local$/i);
+  if (legacyInternal && legacyInternal[1]) return legacyInternal[1];
+  return raw;
+};
+
 export default function Layout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -79,7 +87,8 @@ export default function Layout({ children }) {
     try {
       const roleLocal = (localStorage.getItem('appRole') || '').toLowerCase();
       const perfilLocal = localStorage.getItem('perfilCliente') === 'true';
-      const emailLocal = localStorage.getItem('userEmail') || localStorage.getItem('lastLoginEmail') || null;
+      const emailLocalRaw = localStorage.getItem('userEmail') || localStorage.getItem('lastLoginEmail') || null;
+      const emailLocal = normalizeDisplayIdentifier(emailLocalRaw);
       const nomeLocal = localStorage.getItem('userName') || (emailLocal ? emailLocal.split('@')[0] : '');
       const idStr = localStorage.getItem('userId');
       const idLocal = idStr ? Number(idStr) : null;
@@ -425,7 +434,8 @@ export default function Layout({ children }) {
           console.log('Layout - me nulo, verificando localStorage para fallback');
           const roleLocal = (localStorage.getItem('appRole') || '').toLowerCase();
           const perfilLocal = localStorage.getItem('perfilCliente') === 'true';
-          const emailLocal = localStorage.getItem('userEmail') || localStorage.getItem('lastLoginEmail') || null;
+          const emailLocalRaw = localStorage.getItem('userEmail') || localStorage.getItem('lastLoginEmail') || null;
+          const emailLocal = normalizeDisplayIdentifier(emailLocalRaw);
           const nomeLocal = localStorage.getItem('userName') || (emailLocal ? emailLocal.split('@')[0] : '');
           const idStr = localStorage.getItem('userId');
           const idLocal = idStr ? Number(idStr) : null;
@@ -640,7 +650,7 @@ export default function Layout({ children }) {
 
                 <div className={`p-3 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
                   <p className={`font-medium text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{user.full_name}</p>
-                  <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{user.email}</p>
+                  <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{normalizeDisplayIdentifier(user.email)}</p>
                   <p className="text-xs text-blue-600 font-medium capitalize">{user.role}</p>
                 </div>
                 <Button

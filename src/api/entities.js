@@ -549,7 +549,7 @@ export const Auth = {
       const storedHash = localStorage.getItem('offlinePasswordHash');
       const storedUserJson = localStorage.getItem('userJson');
 
-      if (!storedHash || (storedEmail !== email.toLowerCase().trim() && (localStorage.getItem('userName') || '').toLowerCase() !== email.toLowerCase().trim())) {
+      if (!storedHash || storedEmail !== email.toLowerCase().trim()) {
         console.log('❌ Auth.login() - Offline: usuário não encontrado ou sem hash salvo');
         throw new Error('Sem conexão com o servidor. Faça login online ao menos uma vez para habilitar o acesso offline.');
       }
