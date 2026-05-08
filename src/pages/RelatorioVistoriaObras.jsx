@@ -153,14 +153,20 @@ const CoverPage = ({ resposta, unidade, empreendimento }) => {
                 <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: '64px', fontWeight: 'bold', color: '#394557', lineHeight: '1.1', marginBottom: '4px' }}>RELATÓRIO</h1>
                 <h2 style={{ fontFamily: "'Inter',sans-serif", fontSize: '22px', color: RED, letterSpacing: '1px' }}>VISTORIA DE OBRAS</h2>
             </div>
-            <div className="absolute z-30" style={{ top: '50%', right: '-3%', width: '45%', padding: '1.3% 2.5%', textAlign: 'center' }}>
-                <h1 className="font-black uppercase" style={{ fontSize: '28px', lineHeight: '1.0', fontFamily: "'Inter',sans-serif", marginBottom: '6px', color: 'black' }}>
-                    {cliente}
-                </h1>
-                <h2 className="text-gray-600 font-medium" style={{ fontSize: '16px', fontFamily: "'Inter',sans-serif" }}>
-                    {resposta?.nome_vistoria || ''}
-                </h2>
-            </div>
+            {(cliente || resposta?.nome_vistoria) && (
+                <div className="absolute z-30" style={{ top: '50%', right: '-3%', width: '45%', padding: '1.3% 2.5%', textAlign: 'center' }}>
+                    {cliente && (
+                        <h1 style={{ fontSize: '28px', lineHeight: '1.0', fontFamily: "'Inter',sans-serif", marginBottom: '6px', color: '#111827', fontWeight: 900, textTransform: 'uppercase' }}>
+                            {cliente}
+                        </h1>
+                    )}
+                    {resposta?.nome_vistoria && (
+                        <h2 style={{ fontSize: '16px', fontFamily: "'Inter',sans-serif", color: '#4b5563', fontWeight: 500 }}>
+                            {resposta.nome_vistoria}
+                        </h2>
+                    )}
+                </div>
+            )}
             <div className="absolute z-20"
                 style={{ top: '-350px', right: '-30%', width: '1700px', height: '1150px', backgroundColor: RED, WebkitMaskImage: `url(${redDecoUrl})`, maskImage: `url(${redDecoUrl})`, WebkitMaskSize: '100% 100%', WebkitMaskRepeat: 'no-repeat', maskPosition: 'center' }} />
             <div className="absolute z-50" style={{ top: '-10%', right: '-20%', width: '1800px', height: '800px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
