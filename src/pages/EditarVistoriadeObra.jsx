@@ -160,7 +160,7 @@ function QuestionRow({ perg, secIdx, qIdx, onUpdate, onRemove }) {
     if (!file) return;
     setUploading(true);
     try {
-      const res = await UploadFile(file);
+      const res = await UploadFile({ file });
       onUpdate(secIdx, qIdx, 'foto', res?.file_url || res?.file_path || null);
     } catch {
       // silent
