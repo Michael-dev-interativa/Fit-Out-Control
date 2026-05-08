@@ -305,17 +305,19 @@ export default function Usuarios({ language: initialLanguage }) {
   };
 
   const handleCreateUser = async () => {
-    const email = (newUser.email || '').trim();
+    const username = (newUser.email || '').trim();
     const name = (newUser.name || '').trim();
     const password = (newUser.password || '').trim();
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      toast.error('Informe um email válido');
+    if (!username) {
+      toast.error('Informe o usuário');
       return;
     }
     if (!name) {
       toast.error('Informe o nome do usuário');
       return;
     }
+    // Gerar email interno se o valor não for um email real
+    const email = username.includes('@') ? username : `${username.toLowerCase().replace(/\s+/g, '.')}@interno.local`;
     setSaving(true);
     try {
       // Preservar token do admin para não perder sessão ao registrar
@@ -688,12 +690,12 @@ export default function Usuarios({ language: initialLanguage }) {
               />
             </div>
             <div className="space-y-2">
-              <Label className={isDark ? 'text-gray-300' : ''}>Email</Label>
+              <Label className={isDark ? 'text-gray-300' : ''}>Usuário</Label>
               <Input
-                type="email"
+                type="text"
                 value={newUser.email}
                 onChange={(e) => setNewUser(u => ({ ...u, email: e.target.value }))}
-                placeholder="usuario@empresa.com"
+                placeholder="nome.usuario"
                 className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}
               />
             </div>

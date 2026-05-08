@@ -718,8 +718,11 @@ app.use(compression());
 // ===== Auth routes =====
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { email, password, nome } = req.body || {};
-    if (!email || !password) return res.status(400).json({ error: 'missing_credentials' });
+    let { email, password, nome } = req.body || {};
+    if (!password) return res.status(400).json({ error: 'missing_credentials' });
+    // Se não há email mas há nome/username, gerar email interno
+    if (!email && nome) email = `${String(nome).toLowerCase().replace(/\s+/g, '.')}@interno.local`;
+    if (!email) return res.status(400).json({ error: 'missing_credentials' });
     // Registro público sempre cria cliente; promoção para admin é feita via endpoint de admin
     const role = 'cliente';
     const perfil_cliente = true;
