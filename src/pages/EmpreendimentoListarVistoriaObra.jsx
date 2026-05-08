@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Empreendimento, InspecaoVistoriaObraPadrao } from '@/api/entities';
 import { Button } from '@/components/ui/button';
-import { Loader2, Plus, ArrowLeft, Trash2, Eye, FileText, Calendar } from 'lucide-react';
+import { Loader2, Plus, ArrowLeft, Trash2, Eye, FileText, Calendar, Pencil } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -111,6 +111,12 @@ export default function EmpreendimentoListarVistoriaObra() {
                 {vistoria.revisao && <p><span className="font-medium">Revisão:</span> {vistoria.revisao}</p>}
               </CardContent>
               <CardFooter className="flex justify-end gap-2">
+                <Link to={createPageUrl(`EditarVistoriadeObra?relatorioId=${vistoria.id}`)}>
+                  <Button variant="outline" size="sm">
+                    <Pencil className="w-4 h-4 mr-2" />
+                    Editar
+                  </Button>
+                </Link>
                 <Link to={createPageUrl(`VisualizarInspecaoVistoriaObraPadrao?relatorioId=${vistoria.id}`)}>
                   <Button variant="outline" size="sm">
                     <Eye className="w-4 h-4 mr-2" />

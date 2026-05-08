@@ -2,10 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Loader2, AlertTriangle, ArrowLeft, Printer } from 'lucide-react';
+import { Loader2, AlertTriangle, ArrowLeft, Printer, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Empreendimento } from '../api/entities';
-import { InspecaoVistoriaObraPadrao } from '../api/entities';
+import { Empreendimento, InspecaoVistoriaObraPadrao } from '../api/entities';
+import { createPageUrl } from '@/utils';
 import { compressReportImages } from '@/lib/compressReportImages';
 
 // --- Utilitários de imagem (copiados do padrão)
@@ -143,7 +143,17 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 <div className="flex justify-between items-center max-w-4xl mx-auto">
                     <Button onClick={() => navigate(-1)} variant="outline"><ArrowLeft className="w-4 h-4 mr-2" />Voltar</Button>
                     <h1 className="text-xl font-semibold text-gray-800">Visualizar Vistoria de Obra Padrão</h1>
-                    <Button onClick={() => window.print()} className="bg-green-600 hover:bg-green-700 text-white"><Printer className="w-4 h-4 mr-2" />Gerar PDF</Button>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => navigate(createPageUrl(`EditarVistoriadeObra?relatorioId=${relatorio.id}`))}
+                        >
+                            <Pencil className="w-4 h-4 mr-2" />Editar
+                        </Button>
+                        <Button onClick={() => window.print()} className="bg-green-600 hover:bg-green-700 text-white">
+                            <Printer className="w-4 h-4 mr-2" />Gerar PDF
+                        </Button>
+                    </div>
                 </div>
             </div>
             <div className="report-container max-w-4xl mx-auto" style={{ padding: 0 }}>

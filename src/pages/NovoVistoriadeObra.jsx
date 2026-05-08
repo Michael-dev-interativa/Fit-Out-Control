@@ -20,8 +20,8 @@ export default function NovoVistoriadeObra() {
           id_empreendimento: empreendimentoId,
         });
         if (!nova?.id) throw new Error('Falha ao criar vistoria');
-        // Redireciona para a visualização do relatório
-        navigate(`/VisualizarInspecaoVistoriaObraPadrao?relatorioId=${nova.id}`, { replace: true });
+        // Redireciona para o formulário de edição
+        navigate(`/EditarVistoriadeObra?relatorioId=${nova.id}`, { replace: true });
       } catch (err) {
         setError(err.message || 'Erro ao criar vistoria');
       }
