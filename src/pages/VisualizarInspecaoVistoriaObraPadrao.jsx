@@ -112,29 +112,85 @@ const CoverPage = ({ relatorio, empreendimento }) => {
 };
 
 
-const SecaoVistoria = ({ secao }) => (
-    <div className="mb-8">
-        <h2 className="text-lg font-bold mb-2 bg-blue-900 text-white p-2 rounded">{secao.nome_secao}</h2>
-        <table className="w-full border-collapse text-xs table-fixed mb-2">
-            <thead>
-                <tr className="bg-gray-100">
-                    <th className="border border-black p-2 text-left" style={{ width: '60%' }}>Pergunta</th>
-                    <th className="border border-black p-2 text-center" style={{ width: '20%' }}>Resposta</th>
-                    <th className="border border-black p-2 text-center" style={{ width: '20%' }}>Observação</th>
-                </tr>
-            </thead>
-            <tbody>
-                {secao.perguntas.map((p, idx) => (
-                    <tr key={idx}>
-                        <td className="border border-black p-2">{p.pergunta}</td>
-                        <td className="border border-black p-2 text-center">{p.resposta || '-'}</td>
-                        <td className="border border-black p-2 text-center">{p.observacao || '-'}</td>
+const COR_BADGE = {
+    green:  { bg: '#dcfce7', text: '#15803d', border: '#86efac' },
+    blue:   { bg: '#dbeafe', text: '#1d4ed8', border: '#93c5fd' },
+    red:    { bg: '#fee2e2', text: '#b91c1c', border: '#fca5a5' },
+    yellow: { bg: '#fef9c3', text: '#a16207', border: '#fde047' },
+    purple: { bg: '#f3e8ff', text: '#7e22ce', border: '#d8b4fe' },
+};
+
+const RespostaBadge = ({ resposta, opcoes }) => {
+    if (!resposta) return <span style={{ color: '#9ca3af' }}>—</span>;
+    const op = (opcoes || []).find(o => o.texto === resposta);
+    const style = op?.cor ? COR_BADGE[op.cor] : null;
+    if (!style) return <span>{resposta}</span>;
+    return (
+        <span style={{
+            display: 'inline-block',
+            padding: '2px 8px',
+            borderRadius: '9999px',
+            fontSize: '11px',
+            fontWeight: 600,
+            backgroundColor: style.bg,
+            color: style.text,
+            border: `1px solid ${style.border}`,
+            whiteSpace: 'nowrap',
+        }}>{resposta}</span>
+    );
+};
+
+const SecaoVistoria = ({ secao }) => {
+    const isSignatureSection = secao.nome_secao === 'ASSINATURAS';
+    if (isSignatureSection) {
+        return (
+            <div className="mb-8">
+                <h2 className="text-lg font-bold mb-2 bg-blue-900 text-white p-2 rounded">{secao.nome_secao}</h2>
+                <div style={{ display: 'flex', gap: '24px', marginTop: '16px' }}>
+                    {secao.perguntas.map((p, idx) => (
+                        <div key={idx} style={{ flex: 1, textAlign: 'center' }}>
+                            <div style={{ borderBottom: '1px solid black', height: '60px', marginBottom: '6px' }}></div>
+                            <span style={{ fontSize: '11px' }}>{p.pergunta}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="mb-8">
+            <h2 className="text-lg font-bold mb-2 bg-blue-900 text-white p-2 rounded">{secao.nome_secao}</h2>
+            <table className="w-full border-collapse text-xs table-fixed mb-2">
+                <thead>
+                    <tr className="bg-gray-100">
+                        <th className="border border-black p-2 text-left" style={{ width: '50%' }}>Item</th>
+                        <th className="border border-black p-2 text-center" style={{ width: '18%' }}>Resposta</th>
+                        <th className="border border-black p-2 text-center" style={{ width: '12%' }}>Foto</th>
+                        <th className="border border-black p-2 text-left" style={{ width: '20%' }}>Observação</th>
                     </tr>
-                ))}
-            </tbody>
-        </table>
-    </div>
-);
+                </thead>
+                <tbody>
+                    {secao.perguntas.map((p, idx) => (
+                        <tr key={idx}>
+                            <td className="border border-black p-2">{p.pergunta || '—'}</td>
+                            <td className="border border-black p-2 text-center">
+                                <RespostaBadge resposta={p.resposta} opcoes={p.opcoes} />
+                            </td>
+                            <td className="border border-black p-2 text-center">
+                                {p.foto
+                                    ? <img src={p.foto} alt="" style={{ maxWidth: '80px', maxHeight: '60px', objectFit: 'cover', margin: '0 auto', borderRadius: '4px' }} />
+                                    : <span style={{ color: '#d1d5db' }}>—</span>
+                                }
+                            </td>
+                            <td className="border border-black p-2">{p.observacao || '—'}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+};
 
 const ReportContent = ({ relatorio, empreendimento, navigate }) => {
     return (
