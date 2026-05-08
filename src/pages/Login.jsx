@@ -20,7 +20,7 @@ export default function Login({ theme = 'light' }) {
 
   const bgUrl = (import.meta.env?.VITE_LOGIN_BG) || '/bg-login.jpg';
   const logoUrl = (import.meta.env?.VITE_LOGIN_LOGO)
-    || "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png";
+    || '/login-logo-horizontal.png';
 
   // Log automático da configuração de API
   React.useEffect(() => {
@@ -101,11 +101,11 @@ export default function Login({ theme = 'light' }) {
               {/* animações do logo e transição para saudação */}
               <style>{`@keyframes titleFadeIn{0%{opacity:0;transform:translateX(-32px)}100%{opacity:1;transform:translateX(0)}}@keyframes floaty{0%{transform:translateY(0)}50%{transform:translateY(-4px)}100%{transform:translateY(0)}}@keyframes breathing{0%{transform:scale(1)}50%{transform:scale(1.04)}100%{transform:scale(1)}}@keyframes glow{0%{filter:drop-shadow(0 2px 4px rgba(0,0,0,0.25))}50%{filter:drop-shadow(0 4px 10px rgba(0,0,0,0.45))}100%{filter:drop-shadow(0 2px 4px rgba(0,0,0,0.25))} @keyframes logoToTextOut{0%{opacity:1;transform:scale(1) translateY(0);filter:blur(0px)}60%{opacity:.4;transform:scale(.8) translateY(-4px);filter:blur(2px)}100%{opacity:0;transform:scale(.6) translateY(-6px);filter:blur(3px)}} @keyframes greetFromLogo{0%{opacity:0;transform:scale(.96) translateY(6px);letter-spacing:-0.02em}100%{opacity:1;transform:scale(1) translateY(0);letter-spacing:0}}`}</style>
               <div className="flex items-center justify-center -mt-10 mb-2">
-                <div className="relative w-full h-20 md:h-24">
+                <div className="relative w-full h-24 md:h-28">
                   <img
                     src={logoUrl}
                     alt="Logo"
-                    className={`h-20 md:h-24 w-auto mx-auto transition-all duration-700 ease-out ${logoMode === 'logo' ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}`}
+                    className={`h-16 md:h-20 w-auto max-w-full mx-auto transition-all duration-700 ease-out ${logoMode === 'logo' ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}`}
                     style={{ objectFit: 'contain', animation: logoMode === 'logo' ? 'floaty 6s ease-in-out infinite, breathing 7s ease-in-out infinite, glow 6s ease-in-out infinite' : 'logoToTextOut 700ms ease-out forwards' }}
                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
                   />
