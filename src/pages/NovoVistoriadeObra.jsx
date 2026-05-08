@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { InspecaoVistoriaObraPadrao } from '@/api/entities';
+import { RespostaVistoria } from '@/api/entities';
 import { Loader2, AlertTriangle } from 'lucide-react';
 
 export default function NovoVistoriadeObra() {
@@ -14,10 +14,12 @@ export default function NovoVistoriadeObra() {
     const criarVistoria = async () => {
       try {
         if (!empreendimentoId) throw new Error('Empreendimento não informado');
-        // Cria a vistoria de obra padrão
-        const nova = await InspecaoVistoriaObraPadrao.create({
-          ...(unidadeId ? { id_unidade: unidadeId } : {}),
+        // Cria a vistoria de obra padrão em RespostaVistoria
+        const nova = await RespostaVistoria.create({
+          nome_arquivo: 'vistoria-obra-padrao',
           id_empreendimento: empreendimentoId,
+          ...(unidadeId ? { id_unidade: unidadeId } : {}),
+          estrutura_formulario: { secoes: [] },
         });
         if (!nova?.id) throw new Error('Falha ao criar vistoria');
         // Redireciona para o formulário de edição

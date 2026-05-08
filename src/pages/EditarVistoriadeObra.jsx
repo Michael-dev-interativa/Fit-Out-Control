@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { InspecaoVistoriaObraPadrao, Empreendimento } from '@/api/entities';
+import { RespostaVistoria, Empreendimento } from '@/api/entities';
 import { UploadFile } from '@/api/integrations';
 import { getUploadUrl } from '@/api/config';
 import { Button } from '@/components/ui/button';
@@ -271,26 +271,27 @@ export default function EditarVistoriadeObra() {
     if (!relatorioId) { setError('ID não informado'); setLoading(false); return; }
     const load = async () => {
       try {
-        const data = await InspecaoVistoriaObraPadrao.get(relatorioId);
+        const data = await RespostaVistoria.get(relatorioId);
         if (!data) throw new Error('Vistoria não encontrada');
 
-        setTitulo(data.titulo_relatorio || 'Vistoria de Obra Padrão');
-        setSubtitulo(data.subtitulo_relatorio || '');
-        setCliente(data.cliente || '');
-        setDataInspecao(data.data_inspecao ? data.data_inspecao.slice(0, 10) : '');
+        const ef = data.estrutura_formulario || {};
+        setTitulo(data.nome_vistoria || 'Vistoria de Obra Padrão');
+        setSubtitulo(data.texto_escopo_consultoria || '');
+        setCliente(ef.cliente || '');
+        setDataInspecao(data.data_vistoria ? data.data_vistoria.slice(0, 10) : '');
         setRevisao(data.revisao || '00');
-        setEngResponsavel(data.eng_responsavel || '');
-        setObservacoesGerais(data.observacoes_gerais || '');
+        setEngResponsavel(data.consultor_responsavel || '');
+        setObservacoesGerais(ef.observacoes_gerais || '');
         setSecoes(
-          Array.isArray(data.secoes) && data.secoes.length
-            ? migrateSecoes(data.secoes)
+          Array.isArray(ef.secoes) && ef.secoes.length
+            ? migrateSecoes(ef.secoes)
             : DEFAULT_SECOES
         );
 
         if (data.id_empreendimento) {
           const emp = await Empreendimento.get(data.id_empreendimento);
           setEmpreendimento(emp);
-          if (!data.cliente && emp?.cli_empreendimento) setCliente(emp.cli_empreendimento);
+          if (!ef.cliente && emp?.cli_empreendimento) setCliente(emp.cli_empreendimento);
         }
       } catch (err) {
         setError(err.message || 'Erro ao carregar vistoria');
@@ -304,15 +305,17 @@ export default function EditarVistoriadeObra() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await InspecaoVistoriaObraPadrao.update(relatorioId, {
-        titulo_relatorio: titulo,
-        subtitulo_relatorio: subtitulo,
-        cliente,
-        data_inspecao: dataInspecao || null,
+      await RespostaVistoria.update(relatorioId, {
+        nome_vistoria: titulo,
+        texto_escopo_consultoria: subtitulo,
+        consultor_responsavel: engResponsavel,
+        data_vistoria: dataInspecao || null,
         revisao,
-        eng_responsavel: engResponsavel,
-        observacoes_gerais: observacoesGerais,
-        secoes,
+        estrutura_formulario: {
+          cliente,
+          observacoes_gerais: observacoesGerais,
+          secoes,
+        },
       });
       navigate(createPageUrl(`VisualizarInspecaoVistoriaObraPadrao?relatorioId=${relatorioId}`));
     } catch (err) {

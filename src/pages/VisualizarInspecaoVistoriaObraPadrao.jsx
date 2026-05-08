@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Loader2, AlertTriangle, ArrowLeft, Printer, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Empreendimento, InspecaoVistoriaObraPadrao } from '../api/entities';
+import { Empreendimento, RespostaVistoria } from '../api/entities';
 import { createPageUrl } from '@/utils';
 import { getUploadUrl } from '@/api/config';
 import { compressReportImages } from '@/lib/compressReportImages';
@@ -503,9 +503,22 @@ export default function VisualizarInspecaoVistoriaObraPadrao() {
         if (!isValidId(relatorioId)) { setError('ID do relatório inválido.'); setLoading(false); return; }
         const load = async () => {
             try {
-                const rel = await InspecaoVistoriaObraPadrao.get(relatorioId);
-                if (!rel) throw new Error('Relatório não encontrado');
-                const emp = rel.id_empreendimento ? await Empreendimento.get(rel.id_empreendimento) : null;
+                const raw = await RespostaVistoria.get(relatorioId);
+                if (!raw) throw new Error('Relatório não encontrado');
+                const emp = raw.id_empreendimento ? await Empreendimento.get(raw.id_empreendimento) : null;
+                const ef = raw.estrutura_formulario || {};
+                // Mapeia campos de RespostaVistoria para o formato esperado pelo viewer
+                const rel = {
+                    ...raw,
+                    titulo_relatorio:    raw.nome_vistoria || 'Vistoria de Obra Padrão',
+                    subtitulo_relatorio: raw.texto_escopo_consultoria || '',
+                    cliente:             ef.cliente || '',
+                    data_inspecao:       raw.data_vistoria || null,
+                    revisao:             raw.revisao || '',
+                    eng_responsavel:     raw.consultor_responsavel || '',
+                    observacoes_gerais:  ef.observacoes_gerais || '',
+                    secoes:              ef.secoes || [],
+                };
                 const compressed = await compressReportImages(rel);
                 setRelatorio(compressed);
                 setEmpreendimento(emp);

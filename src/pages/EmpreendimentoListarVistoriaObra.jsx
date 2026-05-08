@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Empreendimento, InspecaoVistoriaObraPadrao } from '@/api/entities';
+import { Empreendimento, RespostaVistoria } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Loader2, Plus, ArrowLeft, Trash2, Eye, FileText, Calendar, Pencil } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { parseLocalDate } from '../lib/dateUtils';
 
 export default function EmpreendimentoListarVistoriaObra() {
   const navigate = useNavigate();
@@ -29,7 +28,7 @@ export default function EmpreendimentoListarVistoriaObra() {
     try {
       const [emp, lista] = await Promise.all([
         Empreendimento.get(empreendimentoId),
-        InspecaoVistoriaObraPadrao.filter({ id_empreendimento: empreendimentoId }, '-created_at'),
+        RespostaVistoria.filter({ id_empreendimento: empreendimentoId, nome_arquivo: 'vistoria-obra-padrao' }, '-created_at'),
       ]);
       setEmpreendimento(emp);
       setVistorias(Array.isArray(lista) ? lista : []);
@@ -44,7 +43,7 @@ export default function EmpreendimentoListarVistoriaObra() {
 
   const handleDelete = async (id) => {
     try {
-      await InspecaoVistoriaObraPadrao.delete(id);
+      await RespostaVistoria.delete(id);
       loadData();
     } catch (err) {
       console.error('Erro ao excluir:', err);
@@ -94,20 +93,20 @@ export default function EmpreendimentoListarVistoriaObra() {
             <Card key={vistoria.id}>
               <CardHeader>
                 <CardTitle className="text-base">
-                  {vistoria.titulo_relatorio || 'Vistoria de Obra Padrão'}
+                  {vistoria.nome_vistoria || 'Vistoria de Obra Padrão'}
                 </CardTitle>
-                {vistoria.subtitulo_relatorio && (
-                  <p className="text-sm text-gray-500">{vistoria.subtitulo_relatorio}</p>
+                {vistoria.texto_escopo_consultoria && (
+                  <p className="text-sm text-gray-500">{vistoria.texto_escopo_consultoria}</p>
                 )}
               </CardHeader>
               <CardContent className="space-y-1 text-sm text-gray-600">
-                {vistoria.data_inspecao && (
+                {vistoria.data_vistoria && (
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
-                    <span>{format(parseLocalDate(vistoria.data_inspecao), 'PPP', { locale: ptBR })}</span>
+                    <span>{format(new Date(vistoria.data_vistoria), 'PPP', { locale: ptBR })}</span>
                   </div>
                 )}
-                {vistoria.cliente && <p><span className="font-medium">Cliente:</span> {vistoria.cliente}</p>}
+                {vistoria.estrutura_formulario?.cliente && <p><span className="font-medium">Cliente:</span> {vistoria.estrutura_formulario.cliente}</p>}
                 {vistoria.revisao && <p><span className="font-medium">Revisão:</span> {vistoria.revisao}</p>}
               </CardContent>
               <CardFooter className="flex justify-end gap-2">
