@@ -272,7 +272,8 @@ export default function Usuarios({ language: initialLanguage }) {
       };
 
       // Permitir que administradores ajustem o email do usuário
-      if (editedEmail && editedEmail !== normalizeLoginUsername(selectedUser.email)) {
+      // Compara contra o email RAW do banco para também normalizar legados @interno.local
+      if (editedEmail && editedEmail !== selectedUser.email) {
         updateData.email = editedEmail.trim();
       }
 
@@ -601,7 +602,7 @@ export default function Usuarios({ language: initialLanguage }) {
                     type={showEditedPassword ? 'text' : 'password'}
                     value={editedPassword}
                     onChange={(e) => setEditedPassword(e.target.value)}
-                    placeholder="Deixe em branco para manter a senha atual"
+                    placeholder="Nova senha (deixe vazio para manter)"
                     className={`pr-10 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}`}
                   />
                   <button
@@ -614,9 +615,15 @@ export default function Usuarios({ language: initialLanguage }) {
                 </div>
                 <Button type="button" variant="outline" onClick={() => { const p = generatePassword(); setEditedPassword(p); setShowEditedPassword(true); }}>Gerar</Button>
               </div>
-              <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                Deixe em branco para não alterar a senha atual do usuário.
-              </p>
+              {!editedPassword ? (
+                <p className={`text-xs flex items-center gap-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  <span>🔒</span> Senha atual mantida — preencha apenas para redefinir.
+                </p>
+              ) : (
+                <p className={`text-xs flex items-center gap-1 ${isDark ? 'text-yellow-400' : 'text-yellow-600'}`}>
+                  <span>⚠️</span> A senha será alterada ao salvar.
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label className={isDark ? 'text-gray-300' : ''}>{t.userRole}</Label>
