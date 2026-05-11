@@ -535,13 +535,13 @@ export const Auth = {
 
     // --- Tentativa ONLINE ---
     let data;
+    let r;
     try {
-      const r = await fetch(url, {
+      r = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
-      data = await handleResponse(r, 'auth', 'LOGIN');
     } catch (networkErr) {
       // Sem conexão — tentar autenticação OFFLINE
       console.log('📴 Auth.login() - Sem rede, tentando autenticação offline...');
@@ -576,6 +576,29 @@ export const Auth = {
       }
       // Retorna estrutura compatível sem alterar o localStorage
       return { token: localStorage.getItem('authToken') || '', user: offlineUser, offline: true };
+    }
+
+    if (!r.ok) {
+      if (r.status === 429) {
+        const retryAfterRaw = r.headers.get('retry-after');
+        const retryAfterSec = Number.parseInt(retryAfterRaw || '0', 10);
+        const retryAfterMin = Number.isFinite(retryAfterSec) && retryAfterSec > 0
+          ? Math.ceil(retryAfterSec / 60)
+          : null;
+        throw new Error(
+          retryAfterMin
+            ? `Muitas tentativas de login. Aguarde ${retryAfterMin} minuto(s) e tente novamente.`
+            : 'Muitas tentativas de login. Aguarde alguns minutos e tente novamente.'
+        );
+      }
+
+      if (r.status === 401) {
+        throw new Error('Usuário ou senha inválidos.');
+      }
+
+      data = await handleResponse(r, 'auth', 'LOGIN');
+    } else {
+      data = await r.json();
     }
 
     console.log('📥 Auth.login() - Backend retornou:', data);
