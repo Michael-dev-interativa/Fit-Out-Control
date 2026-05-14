@@ -877,10 +877,6 @@ const ReportContent = ({ relatorio: relatorioInitial, empreendimento, navigate }
                     </ReportPageLayout>
                 ))}
 
-                <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento} pdfMode={isPrintingMode}>
-                    <QRCodePage />
-                </ReportPageLayout>
-
                 {/* Signatures Page if signatures exist */}
                 {relatorio.assinaturas && relatorio.assinaturas.length > 0 &&
                     relatorio.assinaturas.some(ass => (ass.nome && ass.nome.trim() !== '') || (ass.parte && ass.parte.trim() !== '') || (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== '')) && (
@@ -892,6 +888,10 @@ const ReportContent = ({ relatorio: relatorioInitial, empreendimento, navigate }
                         )} />
                     </ReportPageLayout>
                 )}
+
+                <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento} pdfMode={isPrintingMode}>
+                    <QRCodePage />
+                </ReportPageLayout>
             </div>
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@700&family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');

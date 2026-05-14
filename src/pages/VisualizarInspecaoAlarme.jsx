@@ -387,10 +387,6 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     <ObservacoesGeraisPage observacoes={relatorio.observacoes_gerais} />
                 </ReportPageLayout>
 
-                <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                    <QRCodePage />
-                </ReportPageLayout>
-
                 {hasAssinaturas && (
                     <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
                         <AssinaturasPage assinaturas={relatorio.assinaturas.filter(ass =>
@@ -400,6 +396,10 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                         )} />
                     </ReportPageLayout>
                 )}
+
+                <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+                    <QRCodePage />
+                </ReportPageLayout>
             </div>
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@700&family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
