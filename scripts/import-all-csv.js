@@ -121,12 +121,16 @@ async function connectDb() {
 
 // ─── Resolução de empreendimento ─────────────────────────────────────────────
 
-async function resolveEmpId(pool, record, candidateFields, cache) {
+async function resolveEmpId(pool, record, candidateFields, cache, legacyMap = new Map()) {
   const raw = toText(record.id_empreendimento);
-  if (raw && /^\d+$/.test(raw)) {
-    const id = Number(raw);
-    const { rows } = await pool.query('SELECT 1 FROM public.empreendimentos WHERE id = $1', [id]);
-    if (rows.length > 0) return id;
+
+  if (raw) {
+    if (legacyMap.has(raw)) return legacyMap.get(raw);
+    if (/^\d+$/.test(raw)) {
+      const id = Number(raw);
+      const { rows } = await pool.query('SELECT 1 FROM public.empreendimentos WHERE id = $1', [id]);
+      if (rows.length > 0) return id;
+    }
   }
 
   const terms = candidateFields
@@ -147,6 +151,106 @@ async function resolveEmpId(pool, record, candidateFields, cache) {
     }
   }
   return null;
+}
+
+// ─── Mapa de IDs legados (hex ObjectId → postgres id) ───────────────────────
+
+async function buildLegacyIdMap(pool) {
+  const legacyMap = new Map();
+  const nameCache = new Map();
+
+  const seedCsvs = [
+    { file: 'AtaReuniao.csv', nameFields: ['locatario', 'edificio'] },
+    { file: 'RDO.csv', nameFields: ['obra_nome', 'obra_local', 'contratada'] },
+    { file: 'NaoConformidade.csv', nameFields: ['cliente'] },
+    { file: 'VistoriaTecnica.csv', nameFields: ['cliente'] },
+    { file: 'InspecaoEletrica.csv', nameFields: ['cliente'] },
+    { file: 'InspecaoArCondicionado.csv', nameFields: ['cliente'] },
+    { file: 'InspecaoGas.csv', nameFields: ['cliente'] },
+    { file: 'InspecaoSDAI.csv', nameFields: ['cliente'] },
+    { file: 'InspecaoHidraulica.csv', nameFields: ['cliente'] },
+    { file: 'InspecaoAlarmeIncendio.csv', nameFields: ['cliente'] },
+    { file: 'InspecaoCFTV.csv', nameFields: ['cliente'] },
+    { file: 'InspecaoControleAcesso.csv', nameFields: ['cliente'] },
+    { file: 'InspecaoSprinklers.csv', nameFields: ['cliente'] },
+    // arquivo_manual é uma URL — o filename contém o nome do empreendimento (ex: "Manualdeobras-PinheirosOne.pdf")
+    { file: 'ManualGeral.csv', nameFields: ['nome_manual', 'arquivo_manual', 'descricao_manual'] },
+    { file: 'RelatorioEntrada.csv', nameFields: ['locatario', 'nome_relatorio'] },
+    { file: 'RelatorioSaida.csv', nameFields: ['locatario', 'nome_relatorio'] },
+    { file: 'RespostaVistoria.csv', nameFields: ['nome_vistoria'] },
+    { file: 'DiarioDeObra.csv', nameFields: ['unidade_texto'] },
+  ];
+
+  // Extração agressiva: URLs → extrai filename, depois split em delimitadores, CamelCase e palavras
+  function aggressiveTerms(text) {
+    const s = toText(text);
+    if (!s) return [];
+
+    // Para URLs, pega somente o último segmento do path (o filename)
+    let source = s;
+    if (s.startsWith('http')) {
+      const seg = s.split('/').pop() || '';
+      // Remove prefixo hash (ex: "fcb732368_") e extensão
+      source = seg.replace(/^[0-9a-f]{8,}_/i, '').replace(/\.[^.]+$/, '');
+    }
+
+    // Split em delimitadores comuns + underscore
+    const parts = source.split(/[|;/,\-()\[\]_]/).map(p => p.trim()).filter(p => p.length >= 4);
+
+    // CamelCase split: "PinheirosOne" → "Pinheiros One", "SilvioRomero" → "Silvio Romero"
+    const camelParts = parts.flatMap(p => {
+      const expanded = p
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+      return expanded === p ? [p] : [p, expanded];
+    });
+
+    const words = camelParts.flatMap(p => p.split(/\s+/).filter(w => w.length >= 5));
+
+    // Para tokens all-caps longos, tenta remover sufixos de ruído (FASE1, REV03, etc.)
+    const noiseRe = /(?:FASE|REV|OBRA|MANUAL|PREDIO|TORRE|ANDAR|REF|PISO|BLOCO|DEUSO|EOPERAO|OPERAO)\d*[A-Z0-9]*$/;
+    const stripped = parts.flatMap(p => {
+      if (p === p.toUpperCase() && p.length >= 9) {
+        const s = p.replace(noiseRe, '').trim();
+        return s.length >= 5 && s !== p ? [s] : [];
+      }
+      return [];
+    });
+
+    const all = [...new Set([...parts, ...camelParts, ...words, ...stripped])].sort((a, b) => b.length - a.length);
+    return all.slice(0, 25);
+  }
+
+  for (const seed of seedCsvs) {
+    const csvPath = path.resolve(IMPORT_DIR, seed.file);
+    if (!fs.existsSync(csvPath)) continue;
+    let records;
+    try { records = parseCsv(csvPath); } catch { continue; }
+
+    for (const row of records) {
+      const hexId = toText(row.id_empreendimento);
+      if (!hexId || /^\d+$/.test(hexId) || legacyMap.has(hexId)) continue;
+
+      const terms = seed.nameFields.flatMap(f => aggressiveTerms(row[f])).filter(Boolean);
+      for (const term of terms) {
+        if (nameCache.has(term)) {
+          const cached = nameCache.get(term);
+          if (cached) { legacyMap.set(hexId, cached); break; }
+          continue;
+        }
+        const { rows } = await pool.query(
+          `SELECT id FROM public.empreendimentos WHERE nome_empreendimento ILIKE $1 OR cli_empreendimento ILIKE $1 ORDER BY id DESC LIMIT 1`,
+          [`%${term}%`]
+        );
+        const empId = rows[0]?.id || null;
+        nameCache.set(term, empId);
+        if (empId) { legacyMap.set(hexId, empId); break; }
+      }
+    }
+  }
+
+  console.log(`🗺️  Legacy ID map: ${legacyMap.size} empreendimentos mapeados por hex-id`);
+  return legacyMap;
 }
 
 // ─── Insert / findExisting genéricos ─────────────────────────────────────────
@@ -189,7 +293,7 @@ async function insertRecord(pool, table, rec) {
   return rows[0]?.id;
 }
 
-async function updateRecord(pool, table, id, rec) {
+async function updateRecord(pool, table, id, rec, updatedAtCol = 'updated_at') {
   const keys = Object.keys(rec).filter(k => k !== 'id_empreendimento');
   if (!keys.length) return;
   const sets = keys.map((k, i) => {
@@ -202,14 +306,14 @@ async function updateRecord(pool, table, id, rec) {
   });
   params.push(id);
   await pool.query(
-    `UPDATE public.${table} SET ${sets}, updated_at = now() WHERE id = $${params.length}`,
+    `UPDATE public.${table} SET ${sets}, ${updatedAtCol} = now() WHERE id = $${params.length}`,
     params
   );
 }
 
 // ─── Função de importação genérica ───────────────────────────────────────────
 
-async function importTable(pool, cfg) {
+async function importTable(pool, cfg, legacyMap = new Map()) {
   const csvPath = path.resolve(IMPORT_DIR, cfg.csvFile);
   if (!fs.existsSync(csvPath)) {
     console.log(`⚠️  [${cfg.table}] CSV não encontrado: ${csvPath}`);
@@ -221,15 +325,17 @@ async function importTable(pool, cfg) {
 
   const cache = new Map();
   let inserted = 0, updated = 0, skipped = 0, failures = 0;
+  const updatedAtCol = cfg.updatedAtCol || 'updated_at';
 
   for (let i = 0; i < records.length; i++) {
     const row = records[i];
     try {
-      const idEmp = await resolveEmpId(pool, row, cfg.candidates, cache);
+      const idEmp = await resolveEmpId(pool, row, cfg.candidates, cache, legacyMap);
       if (!idEmp) {
         skipped++;
         const hint = (cfg.candidates || []).map(f => `${f}="${toText(row[f]) || ''}"`).join(', ');
-        console.log(`  ⚠️  Linha ${i + 2}: empreendimento não resolvido (${hint})`);
+        const hexHint = toText(row.id_empreendimento) || '';
+        console.log(`  ⚠️  Linha ${i + 2}: empreendimento não resolvido (hex=${hexHint}${hint ? ', ' + hint : ''})`);
         continue;
       }
 
@@ -237,7 +343,7 @@ async function importTable(pool, cfg) {
       const existingId = await findExisting(pool, cfg.table, cfg.uniqueOn || ['id_empreendimento', 'nome_arquivo'], rec);
 
       if (existingId) {
-        await updateRecord(pool, cfg.table, existingId, rec);
+        await updateRecord(pool, cfg.table, existingId, rec, updatedAtCol);
         updated++;
       } else {
         await insertRecord(pool, cfg.table, rec);
@@ -250,6 +356,69 @@ async function importTable(pool, cfg) {
   }
 
   console.log(`  ✅ Inseridos: ${inserted}  🔄 Atualizados: ${updated}  ⚠️ Sem emp.: ${skipped}  ❌ Falhas: ${failures}`);
+}
+
+// ─── Importação especial: formularios_vistoria (sem id_empreendimento) ────────
+
+async function importFormulariosVistoria(pool, csvFile) {
+  const csvPath = path.resolve(IMPORT_DIR, csvFile);
+  if (!fs.existsSync(csvPath)) {
+    console.log(`⚠️  [formularios_vistoria] CSV não encontrado: ${csvPath}`);
+    return;
+  }
+
+  const records = parseCsv(csvPath);
+  console.log(`\n📄 [formularios_vistoria] ${records.length} registros em ${csvFile}`);
+
+  let inserted = 0, updated = 0, failures = 0;
+
+  for (let i = 0; i < records.length; i++) {
+    const row = records[i];
+    try {
+      const rec = {
+        nome_formulario: toText(row.nome_formulario),
+        descricao_formulario: toText(row.descricao_formulario),
+        status_formulario: toText(row.status_formulario) || 'Ativo',
+        secoes: toJson(row.secoes, []),
+      };
+
+      if (!rec.nome_formulario) { failures++; continue; }
+
+      const { rows: existing } = await pool.query(
+        `SELECT id FROM public.formularios_vistoria WHERE nome_formulario IS NOT DISTINCT FROM $1 LIMIT 1`,
+        [rec.nome_formulario]
+      );
+
+      if (existing.length > 0) {
+        const keys = Object.keys(rec);
+        const sets = keys.map((k, idx) => {
+          const v = rec[k];
+          return `${k} = ${(v !== null && typeof v === 'object') ? `$${idx + 1}::jsonb` : `$${idx + 1}`}`;
+        }).join(', ');
+        const params = [
+          ...keys.map(k => { const v = rec[k]; return (v !== null && typeof v === 'object') ? JSON.stringify(v) : v; }),
+          existing[0].id,
+        ];
+        await pool.query(`UPDATE public.formularios_vistoria SET ${sets}, updated_at = now() WHERE id = $${params.length}`, params);
+        updated++;
+      } else {
+        const keys = Object.keys(rec);
+        const cols = keys.join(', ');
+        const placeholders = keys.map((k, idx) => {
+          const v = rec[k];
+          return (v !== null && typeof v === 'object') ? `$${idx + 1}::jsonb` : `$${idx + 1}`;
+        }).join(', ');
+        const params = keys.map(k => { const v = rec[k]; return (v !== null && typeof v === 'object') ? JSON.stringify(v) : v; });
+        await pool.query(`INSERT INTO public.formularios_vistoria(${cols}) VALUES(${placeholders})`, params);
+        inserted++;
+      }
+    } catch (err) {
+      failures++;
+      console.log(`  ❌ Linha ${i + 2}: ${err.message}`);
+    }
+  }
+
+  console.log(`  ✅ Inseridos: ${inserted}  🔄 Atualizados: ${updated}  ❌ Falhas: ${failures}`);
 }
 
 // ─── Configurações de tabelas ─────────────────────────────────────────────────
@@ -481,6 +650,47 @@ const TABLES = {
     jsonbCols: { itens_documentacao: [], locais: [], assinaturas: [] },
   },
 
+  // ── Novas tabelas adicionadas ─────────────────────────────────────────────
+
+  projetos_originais: {
+    csvFile: 'ProjetoOriginal.csv',
+    table: 'projetos_originais',
+    candidates: [],
+    uniqueOn: ['id_empreendimento', 'nome_projeto', 'disciplina_projeto'],
+    textCols: ['nome_projeto', 'disciplina_projeto', 'arquivo_projeto', 'descricao_projeto'],
+  },
+
+  manuais_gerais: {
+    csvFile: 'ManualGeral.csv',
+    table: 'manuais_gerais',
+    candidates: [],
+    uniqueOn: ['id_empreendimento', 'nome_manual'],
+    textCols: ['arquivo_manual', 'nome_manual', 'tipo_manual', 'descricao_manual'],
+  },
+
+  diarios_obra: {
+    csvFile: 'DiarioDeObra.csv',
+    table: 'diarios_obra',
+    candidates: [],
+    uniqueOn: ['id_empreendimento', 'nome_arquivo', 'data_diario'],
+    textCols: ['unidade_texto', 'nome_arquivo', 'numero_diario', 'condicao_climatica', 'periodo_trabalhado', 'principais_atividades', 'ocorrencias_observacoes'],
+    numericCols: ['horas_paralisadas'],
+    dateCols: ['data_diario'],
+    jsonbCols: { efetivo: {}, fotos: [], vistos: [] },
+  },
+
+  termos_aceite: {
+    csvFile: 'TermoDeAceite.csv',
+    table: 'termos_aceite',
+    candidates: [],
+    uniqueOn: ['id_empreendimento', 'nome_arquivo'],
+    textCols: ['id_formulario', 'nome_termo', 'nome_arquivo', 'consultor_responsavel',
+      'texto_os_proposta', 'texto_escopo_consultoria', 'revisao', 'status_termo', 'participantes'],
+    dateCols: ['data_termo', 'data_relatorio'],
+    jsonbCols: { estrutura_formulario: [], respostas: {}, fotos_secoes: [], observacoes_secoes: {}, assinaturas: [] },
+    updatedAtCol: 'updated_date',
+  },
+
   // ── Tabelas com scripts individuais já existentes (incluídas aqui também) ──
 
   atas_reuniao: {
@@ -542,18 +752,24 @@ const TABLES = {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
+const SPECIAL_TABLES = {
+  formularios_vistoria: 'FormularioVistoria.csv',
+};
+
 async function main() {
   const args = process.argv.slice(2).filter(a => !a.startsWith('--'));
 
+  const allNames = [...Object.keys(TABLES), ...Object.keys(SPECIAL_TABLES)];
+
   let tableNames;
   if (args.length === 0) {
-    tableNames = Object.keys(TABLES);
+    tableNames = allNames;
   } else {
-    tableNames = args.filter(a => TABLES[a]);
-    const unknown = args.filter(a => !TABLES[a]);
+    tableNames = args.filter(a => allNames.includes(a));
+    const unknown = args.filter(a => !allNames.includes(a));
     if (unknown.length) {
       console.warn(`⚠️  Tabelas desconhecidas ignoradas: ${unknown.join(', ')}`);
-      console.warn(`   Tabelas disponíveis: ${Object.keys(TABLES).join(', ')}`);
+      console.warn(`   Tabelas disponíveis: ${allNames.join(', ')}`);
     }
     if (!tableNames.length) {
       console.error('Nenhuma tabela válida especificada. Saindo.');
@@ -564,9 +780,14 @@ async function main() {
   console.log(`\n🚀 Importando ${tableNames.length} tabela(s): ${tableNames.join(', ')}`);
 
   const pool = await connectDb();
+  const legacyMap = await buildLegacyIdMap(pool);
 
   for (const name of tableNames) {
-    await importTable(pool, TABLES[name]);
+    if (SPECIAL_TABLES[name]) {
+      await importFormulariosVistoria(pool, SPECIAL_TABLES[name]);
+    } else {
+      await importTable(pool, TABLES[name], legacyMap);
+    }
   }
 
   await pool.end();
