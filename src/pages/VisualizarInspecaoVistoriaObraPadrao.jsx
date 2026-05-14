@@ -370,19 +370,20 @@ const SectionsPage = ({ relatorio, empreendimento, pageNumber, totalPages }) => 
     );
 };
 
-const QRCodePage = () => {
-    const reportUrl = (() => {
-        const frontend = import.meta.env.VITE_FRONTEND_URL || 'https://front-fitout.onrender.com';
-        return frontend + window.location.href.slice(window.location.origin.length);
-    })();
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(reportUrl)}`;
+const QRCodePage = ({ relatorioId }) => {
+    // Gera URL da galeria de imagens da vistoria
+    const frontend = import.meta.env.VITE_FRONTEND_URL || window.location.origin;
+    const galleryUrl = relatorioId
+        ? `${frontend}/#/GaleriaInspecao?tipo=vistoria-obra-padrao&id=${relatorioId}`
+        : frontend + window.location.href.slice(window.location.origin.length);
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(galleryUrl)}`;
     return (
         <div className="p-8 flex flex-col items-center justify-center" style={{ minHeight: 'calc(297mm - 125px)' }}>
-            <h2 className="text-xl font-bold text-gray-800 mb-8 text-center">Acesse este Relatório</h2>
+            <h2 className="text-xl font-bold text-gray-800 mb-8 text-center">Acesse a Galeria de Imagens</h2>
             <div className="text-center bg-white p-8 rounded-lg border-2 border-gray-200 max-w-sm w-full">
                 <img src={qrUrl} alt="QR Code" className="w-56 h-56 mx-auto mb-6" />
-                <p className="text-sm text-gray-600 mb-4">Escaneie o QR Code para acessar este relatório online</p>
-                <p className="text-xs text-gray-500 break-all">{reportUrl}</p>
+                <p className="text-sm text-gray-600 mb-4">Escaneie o QR Code para ver as fotos desta vistoria</p>
+                <p className="text-xs text-gray-500 break-all">{galleryUrl}</p>
             </div>
         </div>
     );
@@ -436,7 +437,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                 <SectionsPage relatorio={relatorio} empreendimento={empreendimento} pageNumber={currentPage} totalPages={totalPages} />
 
                 <ReportPageLayout pageNumber={totalPages} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
-                    <QRCodePage />
+                    <QRCodePage relatorioId={relatorio?.id} />
                 </ReportPageLayout>
             </div>
 
