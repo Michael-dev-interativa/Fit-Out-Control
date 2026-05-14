@@ -49,6 +49,7 @@ const PreencherTermoDeAceite = lazy(() => import("./PreencherTermoDeAceite"));
 const VisualizarTermoAceite = lazy(() => import("./VisualizarTermoAceite"));
 const RelatorioVistoriaObras = lazy(() => import("./RelatorioVistoriaObras"));
 const GaleriaRelatorio = lazy(() => import("./GaleriaRelatorio"));
+const GaleriaInspecao = lazy(() => import("./GaleriaInspecao"));
 const Planejamento = lazy(() => import("./Planejamento"));
 const AtividadesPadrao = lazy(() => import("./AtividadesPadrao"));
 // NovoDiarioObra was renamed/moved to NovoRDO — import the existing file
@@ -270,6 +271,8 @@ const PAGES = {
     RelatorioVistoriaObras: RelatorioVistoriaObras,
 
     GaleriaRelatorio: GaleriaRelatorio,
+
+    GaleriaInspecao: GaleriaInspecao,
 
     Planejamento: Planejamento,
 
@@ -558,6 +561,7 @@ function PagesContent() {
                     <Route path="/RelatorioVistoriaObras" element={<RelatorioVistoriaObras />} />
 
                     <Route path="/GaleriaRelatorio" element={<GaleriaRelatorio />} />
+                    <Route path="/GaleriaInspecao" element={<GaleriaInspecao />} />
 
                     <Route path="/Planejamento" element={<Planejamento />} />
 

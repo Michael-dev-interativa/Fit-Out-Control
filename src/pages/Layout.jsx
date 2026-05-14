@@ -268,6 +268,7 @@ export default function Layout({ children }) {
     '/VisualizarRelatorioAnalise',
     '/VisualizarRelatorioKickOff',
     '/GaleriaRelatorio',
+    '/GaleriaInspecao',
     '/VisualizarDiarioObra',
     '/VisualizarAprovacaoAmostra',
     '/VisualizarVistoriaTerminalidade',

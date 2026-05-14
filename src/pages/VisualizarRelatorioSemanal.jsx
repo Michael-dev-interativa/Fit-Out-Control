@@ -179,9 +179,10 @@ const ActivityTable = ({ title, activities }) => {
 };
 
 const QRCodePage = () => {
-    const reportUrl = import.meta.env.VITE_FRONTEND_URL
-        ? `${import.meta.env.VITE_FRONTEND_URL}${window.location.hash}`
-        : window.location.href;
+    const reportUrl = (() => {
+        const frontend = import.meta.env.VITE_FRONTEND_URL || 'https://front-fitout.onrender.com';
+        return frontend + window.location.href.slice(window.location.origin.length);
+    })();
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(reportUrl)}`;
     return (
         <div className="p-8 flex flex-col items-center justify-center" style={{ minHeight: 'calc(297mm - 125px)' }}>

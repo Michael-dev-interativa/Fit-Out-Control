@@ -15,17 +15,33 @@ import { AssinaturasPage } from '@/components/relatorios/AssinaturasSection';
 const isValidId = (id) => id && typeof id === 'string' && id.length > 0;
 
 const QRCodePage = () => {
-    const reportUrl = import.meta.env.VITE_FRONTEND_URL
-        ? `${import.meta.env.VITE_FRONTEND_URL}${window.location.hash}`
-        : window.location.href;
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(reportUrl)}`;
+    const location = useLocation();
+    const relatorioId = new URLSearchParams(location.search).get('relatorioId');
+    const frontend = import.meta.env.VITE_FRONTEND_URL || 'https://front-fitout.onrender.com';
+    const pathEntityMap = {
+        '/VisualizarInspecaoEletrica': 'InspecaoEletrica',
+        '/VisualizarInspecaoHidrantes': 'InspecaoHidrantes',
+        '/VisualizarInspecaoHidraulica': 'InspecaoHidraulica',
+        '/VisualizarInspecaoSprinklers': 'InspecaoSprinklers',
+        '/VisualizarInspecaoAlarme': 'InspecaoAlarmeIncendio',
+        '/VisualizarInspecaoArCondicionado': 'InspecaoArCondicionado',
+        '/VisualizarInspecaoControleAcesso': 'InspecaoControleAcesso',
+        '/VisualizarInspecaoCFTV': 'InspecaoCFTV',
+        '/VisualizarInspecaoSDAI': 'InspecaoSDAI',
+        '/VisualizarInspecaoGas': 'InspecaoGas',
+    };
+    const entityType = pathEntityMap[location.pathname];
+    const galleryUrl = relatorioId && entityType
+        ? `${frontend}/#/GaleriaInspecao?tipo=${entityType}&id=${relatorioId}`
+        : (frontend + window.location.href.slice(window.location.origin.length));
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(galleryUrl)}`;
     return (
         <div className="p-8 flex flex-col items-center justify-center" style={{ minHeight: 'calc(297mm - 125px)' }}>
-            <h2 className="text-xl font-bold text-gray-800 mb-8 text-center">Acesse este Relatório</h2>
+            <h2 className="text-xl font-bold text-gray-800 mb-8 text-center">Galeria de Fotos</h2>
             <div className="text-center bg-white p-8 rounded-lg border-2 border-gray-200 max-w-sm w-full">
                 <img src={qrUrl} alt="QR Code" className="w-56 h-56 mx-auto mb-6" />
-                <p className="text-sm text-gray-600 mb-4">Escaneie o QR Code para acessar este relatório online</p>
-                <p className="text-xs text-gray-500 break-all">{reportUrl}</p>
+                <p className="text-sm text-gray-600 mb-4">Escaneie o QR Code para ver as fotos deste relatório</p>
+                <p className="text-xs text-gray-500 break-all">{galleryUrl}</p>
             </div>
         </div>
     );
