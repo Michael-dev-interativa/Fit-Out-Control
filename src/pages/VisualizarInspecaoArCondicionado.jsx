@@ -13,6 +13,20 @@ import { AssinaturasPage } from '@/components/relatorios/AssinaturasSection';
 
 const isValidId = (id) => id && typeof id === 'string' && id.length > 0;
 
+const QRCodePage = () => {
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(window.location.href)}`;
+    return (
+        <div className="p-8 flex flex-col items-center justify-center" style={{ minHeight: 'calc(297mm - 125px)' }}>
+            <h2 className="text-xl font-bold text-gray-800 mb-8 text-center">Acesse este Relatório</h2>
+            <div className="text-center bg-white p-8 rounded-lg border-2 border-gray-200 max-w-sm w-full">
+                <img src={qrUrl} alt="QR Code" className="w-56 h-56 mx-auto mb-6" />
+                <p className="text-sm text-gray-600 mb-4">Escaneie o QR Code para acessar este relatório online</p>
+                <p className="text-xs text-gray-500 break-all">{window.location.href}</p>
+            </div>
+        </div>
+    );
+};
+
 // Helper function for image compression
 const compressImage = (url, maxWidth = 800, quality = 0.3) => {
     return new Promise((resolve) => {
@@ -439,7 +453,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
 
     const hasAssinaturas = relatorio.assinaturas && relatorio.assinaturas.length > 0 &&
         relatorio.assinaturas.some(ass => (ass.nome && ass.nome.trim() !== '') || (ass.parte && ass.parte.trim() !== '') || (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== ''));
-    const totalPages = 1 + (hasEquipamentos && !combineEquipamentosWithDoc ? 1 : 0) + (combineEquipamentosWithDoc ? 1 : 0) + (hasDocumentacao && !combineEquipamentosWithDoc ? 1 : 0) + paginatedSections.length + 1 + (hasAssinaturas ? 1 : 0);
+    const totalPages = 1 + (hasEquipamentos && !combineEquipamentosWithDoc ? 1 : 0) + (combineEquipamentosWithDoc ? 1 : 0) + (hasDocumentacao && !combineEquipamentosWithDoc ? 1 : 0) + paginatedSections.length + 2 + (hasAssinaturas ? 1 : 0);
     let currentPage = 1;
 
     const handlePrint = async () => {
@@ -497,6 +511,10 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     <ObservacoesGeraisPage observacoes={relatorio.observacoes_gerais} />
                 </ReportPageLayout>
 
+                <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+                    <QRCodePage />
+                </ReportPageLayout>
+
                 {hasAssinaturas && (
                     <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
                         <AssinaturasPage assinaturas={relatorio.assinaturas.filter(ass =>
@@ -509,7 +527,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
             </div>
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@700&family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
-                
+
                 * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
                 @page { size: A4 portrait; margin: 0; }
                 

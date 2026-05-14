@@ -12,6 +12,20 @@ import { paginateLocalItemsForPrinting } from '@/lib/reportPagination';
 
 const isValidId = (id) => id && typeof id === 'string' && id.length > 0;
 
+const QRCodePage = () => {
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(window.location.href)}`;
+    return (
+        <div className="p-8 flex flex-col items-center justify-center" style={{ minHeight: 'calc(297mm - 125px)' }}>
+            <h2 className="text-xl font-bold text-gray-800 mb-8 text-center">Acesse este Relatório</h2>
+            <div className="text-center bg-white p-8 rounded-lg border-2 border-gray-200 max-w-sm w-full">
+                <img src={qrUrl} alt="QR Code" className="w-56 h-56 mx-auto mb-6" />
+                <p className="text-sm text-gray-600 mb-4">Escaneie o QR Code para acessar este relatório online</p>
+                <p className="text-xs text-gray-500 break-all">{window.location.href}</p>
+            </div>
+        </div>
+    );
+};
+
 const compressImage = (url, maxWidth = 800, quality = 0.7) => {
     return new Promise((resolve) => {
         if (!url || typeof url !== 'string' || url.startsWith('data:image')) {
@@ -485,7 +499,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
 
     if (currentTailPage.length > 0) tailPages.push(currentTailPage);
 
-    const totalPages = 1 + (hasDocumentacao ? 1 : 0) + contentPages.length + tailPages.length;
+    const totalPages = 1 + (hasDocumentacao ? 1 : 0) + contentPages.length + tailPages.length + 1;
     let currentPage = 1;
 
     const handlePrint = async () => {
@@ -568,23 +582,26 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                         })}
                     </ReportPageLayout>
                 ))}
+                <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+                    <QRCodePage />
+                </ReportPageLayout>
             </div>
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@700&family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
-                
+
                 * {
                     -webkit-print-color-adjust: exact !important;
                     print-color-adjust: exact !important;
                     color-adjust: exact !important;
                 }
-                
+
                 @page { size: A4 portrait; margin: 0; }
-                
-                .report-page { 
-                    width: 210mm; 
-                    height: 297mm; 
-                    position: relative; 
-                    background: white; 
+
+                .report-page {
+                    width: 210mm;
+                    height: 297mm;
+                    position: relative;
+                    background: white;
                     overflow: hidden;
                 }
                 

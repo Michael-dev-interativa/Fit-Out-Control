@@ -40,6 +40,20 @@ const useCompressedImage = (url, maxWidth = 800, quality = 0.3) => {
     return compressedUrl;
 };
 
+const QRCodePage = () => {
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(window.location.href)}`;
+    return (
+        <div className="p-8 flex flex-col items-center justify-center" style={{ minHeight: 'calc(297mm - 125px)' }}>
+            <h2 className="text-xl font-bold text-gray-800 mb-8 text-center">Acesse este Relatório</h2>
+            <div className="text-center bg-white p-8 rounded-lg border-2 border-gray-200 max-w-sm w-full">
+                <img src={qrUrl} alt="QR Code" className="w-56 h-56 mx-auto mb-6" />
+                <p className="text-sm text-gray-600 mb-4">Escaneie o QR Code para acessar este relatório online</p>
+                <p className="text-xs text-gray-500 break-all">{window.location.href}</p>
+            </div>
+        </div>
+    );
+};
+
 const ReportPage = ({ children, pageNumber, totalPages, relatorio, empreendimento, pdfMode }) => {
     const logoHorizontalOriginalUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png";
     const logoHorizontalCompressed = useCompressedImage(logoHorizontalOriginalUrl, 400, 0.7);
@@ -282,7 +296,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                         <ReportPage
                             key={`page-${index}`}
                             pageNumber={index}
-                            totalPages={paginatedPages.length - 1}
+                            totalPages={paginatedPages.length}
                             relatorio={relatorio}
                             empreendimento={empreendimento}
                             pdfMode={isPrintingMode}
@@ -291,6 +305,15 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                         </ReportPage>
                     );
                 })}
+                <ReportPage
+                    pageNumber={paginatedPages.length}
+                    totalPages={paginatedPages.length}
+                    relatorio={relatorio}
+                    empreendimento={empreendimento}
+                    pdfMode={isPrintingMode}
+                >
+                    <QRCodePage />
+                </ReportPage>
             </div>
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@700&family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');

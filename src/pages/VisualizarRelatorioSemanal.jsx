@@ -178,6 +178,20 @@ const ActivityTable = ({ title, activities }) => {
     );
 };
 
+const QRCodePage = () => {
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(window.location.href)}`;
+    return (
+        <div className="p-8 flex flex-col items-center justify-center" style={{ minHeight: 'calc(297mm - 125px)' }}>
+            <h2 className="text-xl font-bold text-gray-800 mb-8 text-center">Acesse este Relatório</h2>
+            <div className="text-center bg-white p-8 rounded-lg border-2 border-gray-200 max-w-sm w-full">
+                <img src={qrUrl} alt="QR Code" className="w-56 h-56 mx-auto mb-6" />
+                <p className="text-sm text-gray-600 mb-4">Escaneie o QR Code para acessar este relatório online</p>
+                <p className="text-xs text-gray-500 break-all">{window.location.href}</p>
+            </div>
+        </div>
+    );
+};
+
 const PhotoPage = ({ photos }) => (
     <div className="p-8 text-sm bg-white h-full"><h3 className="bg-gray-300 font-bold p-1 text-center">REGISTRO FOTOGRÁFICO</h3><div className="grid grid-cols-2 gap-4 mt-2">{(photos || []).map((foto, index) => (<div key={index} className="border p-1 break-inside-avoid"><img src={foto.url} alt={foto.legenda || `Foto ${index + 1}`} className="w-full h-auto object-cover" /><p className="text-center mt-1 text-xs">{foto.legenda}</p></div>))}</div></div>
 );
@@ -342,14 +356,23 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                     // For content pages, calculate the page number relative to content (excluding cover)
                     // The first content page is index 1, so its page number is 1.
                     // The total number of content pages is total pages - 1 (for cover).
-                    const contentPageNumber = index; // The cover page is index 0. The first content page is index 1, which should be page number 1.
-                    const totalContentPages = paginatedPages.length - 1; // total pages excluding cover
+                    const contentPageNumber = index;
+                    const totalContentPages = paginatedPages.length; // includes QR code page
                     return (
                         <ReportPage key={`page-${index}`} pageNumber={contentPageNumber} totalPages={totalContentPages} relatorio={relatorio} empreendimento={empreendimento} pdfMode={isPrintingMode}>
                             {React.cloneElement(page.content, { pdfMode: isPrintingMode })}
                         </ReportPage>
                     );
                 })}
+                <ReportPage
+                    pageNumber={paginatedPages.length}
+                    totalPages={paginatedPages.length}
+                    relatorio={relatorio}
+                    empreendimento={empreendimento}
+                    pdfMode={isPrintingMode}
+                >
+                    <QRCodePage />
+                </ReportPage>
             </div>
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@700&family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');

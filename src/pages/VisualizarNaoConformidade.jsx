@@ -554,6 +554,20 @@ const ReportPageLayout = ({ children, pageNumber, totalPages, relatorio, empreen
     );
 };
 
+const QRCodePage = () => {
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(window.location.href)}`;
+    return (
+        <div className="p-8 flex flex-col items-center justify-center" style={{ minHeight: 'calc(297mm - 125px)' }}>
+            <h2 className="text-xl font-bold text-gray-800 mb-8 text-center">Acesse este Relatório</h2>
+            <div className="text-center bg-white p-8 rounded-lg border-2 border-gray-200 max-w-sm w-full">
+                <img src={qrUrl} alt="QR Code" className="w-56 h-56 mx-auto mb-6" />
+                <p className="text-sm text-gray-600 mb-4">Escaneie o QR Code para acessar este relatório online</p>
+                <p className="text-xs text-gray-500 break-all">{window.location.href}</p>
+            </div>
+        </div>
+    );
+};
+
 const ReportContent = ({ relatorio: relatorioInitial, empreendimento, navigate }) => {
     const [relatorio, setRelatorio] = useState(relatorioInitial);
     const [isPrintingMode, setIsPrintingMode] = useState(false);
@@ -684,7 +698,7 @@ const ReportContent = ({ relatorio: relatorioInitial, empreendimento, navigate }
             relatorio.assinaturas.some(ass => (ass.nome && ass.nome.trim() !== '') || (ass.parte && ass.parte.trim() !== '') || (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== ''));
     }, [relatorio]);
 
-    const totalPages = 1 + 1 + itens30Pages.length + contentPages.length + (hasAssinaturas ? 1 : 0);
+    const totalPages = 1 + 1 + itens30Pages.length + contentPages.length + 1 + (hasAssinaturas ? 1 : 0);
 
     const handlePrint = async () => {
         setIsPrintingMode(true);
@@ -863,13 +877,17 @@ const ReportContent = ({ relatorio: relatorioInitial, empreendimento, navigate }
                     </ReportPageLayout>
                 ))}
 
+                <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento} pdfMode={isPrintingMode}>
+                    <QRCodePage />
+                </ReportPageLayout>
+
                 {/* Signatures Page if signatures exist */}
-                {relatorio.assinaturas && relatorio.assinaturas.length > 0 && 
+                {relatorio.assinaturas && relatorio.assinaturas.length > 0 &&
                     relatorio.assinaturas.some(ass => (ass.nome && ass.nome.trim() !== '') || (ass.parte && ass.parte.trim() !== '') || (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== '')) && (
                     <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento} pdfMode={isPrintingMode}>
-                        <AssinaturasPage assinaturas={relatorio.assinaturas.filter(ass => 
-                            (ass.nome && ass.nome.trim() !== '') || 
-                            (ass.parte && ass.parte.trim() !== '') || 
+                        <AssinaturasPage assinaturas={relatorio.assinaturas.filter(ass =>
+                            (ass.nome && ass.nome.trim() !== '') ||
+                            (ass.parte && ass.parte.trim() !== '') ||
                             (ass.assinatura_imagem && ass.assinatura_imagem.trim() !== '')
                         )} />
                     </ReportPageLayout>

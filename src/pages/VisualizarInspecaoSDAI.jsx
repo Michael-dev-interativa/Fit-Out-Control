@@ -13,6 +13,20 @@ import { paginateLocalItemsForPrinting } from '@/lib/reportPagination';
 
 const isValidId = (id) => id && typeof id === 'string' && id.length > 0;
 
+const QRCodePage = () => {
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(window.location.href)}`;
+    return (
+        <div className="p-8 flex flex-col items-center justify-center" style={{ minHeight: 'calc(297mm - 125px)' }}>
+            <h2 className="text-xl font-bold text-gray-800 mb-8 text-center">Acesse este Relatório</h2>
+            <div className="text-center bg-white p-8 rounded-lg border-2 border-gray-200 max-w-sm w-full">
+                <img src={qrUrl} alt="QR Code" className="w-56 h-56 mx-auto mb-6" />
+                <p className="text-sm text-gray-600 mb-4">Escaneie o QR Code para acessar este relatório online</p>
+                <p className="text-xs text-gray-500 break-all">{window.location.href}</p>
+            </div>
+        </div>
+    );
+};
+
 const isConclusaoMatching = (val, key) => {
     if (val === null || typeof val === 'undefined') return false;
     const s = String(val).normalize('NFD').replace(/\p{Diacritic}/gu, '').trim().toLowerCase();
@@ -597,7 +611,7 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
 
     if (currentTailPage.length > 0) tailPages.push(currentTailPage);
 
-    const totalPages = 1 + (hasDocumentacao ? 1 : 0) + contentPages.length + tailPages.length + (hasAssinaturas ? 1 : 0);
+    const totalPages = 1 + (hasDocumentacao ? 1 : 0) + contentPages.length + tailPages.length + 1 + (hasAssinaturas ? 1 : 0);
     let currentPage = 1;
 
     const handlePrint = async () => {
@@ -683,6 +697,10 @@ const ReportContent = ({ relatorio, empreendimento, navigate }) => {
                         })}
                     </ReportPageLayout>
                 ))}
+
+                <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
+                    <QRCodePage />
+                </ReportPageLayout>
 
                 {hasAssinaturas && (
                     <ReportPageLayout pageNumber={currentPage++} totalPages={totalPages} relatorio={relatorio} empreendimento={empreendimento}>
