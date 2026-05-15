@@ -491,12 +491,13 @@ const DadosEmpreendimentoPage = ({ vistoria, empreendimento, unidade, t, formula
           <p className="font-semibold text-gray-700">Resp. Gerência:</p>
           <span>Engª Valéria Rodrigues</span>
         </div>
-        {vistoria?.participantes && vistoria.participantes.trim() !== '' && (
+        {vistoria?.participantes && String(vistoria.participantes).trim() !== '' && (
           <div className="col-span-2">
             <p className="font-semibold text-gray-700">Participantes:</p>
             <div className="mt-1">
               {(() => {
-                const participantesArray = vistoria.participantes.split(',').map(p => p.trim()).filter(Boolean);
+                const participantesStr = Array.isArray(vistoria.participantes) ? vistoria.participantes.join(', ') : String(vistoria.participantes);
+                const participantesArray = participantesStr.split(',').map(p => p.trim()).filter(Boolean);
                 const rows = [];
                 for (let i = 0; i < participantesArray.length; i += 2) {
                   rows.push(participantesArray.slice(i, i + 2));
