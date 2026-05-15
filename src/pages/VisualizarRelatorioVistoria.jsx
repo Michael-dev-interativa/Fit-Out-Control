@@ -2100,8 +2100,8 @@ export default function VisualizarRelatorioVistoria() {
           };
         }
 
-        // Fallback para vistoria-obra-padrao sem estrutura salva (ex: registros importados)
-        if (!loadedForm && vistoriaData.nome_arquivo === 'vistoria-obra-padrao') {
+        // Fallback final: usa estrutura padrão de Vistoria de Obra para qualquer registro sem formulário
+        if (!loadedForm) {
           loadedForm = {
             nome_formulario: vistoriaData.nome_vistoria || 'Vistoria de Obra Padrão',
             secoes: DEFAULT_SECOES,
