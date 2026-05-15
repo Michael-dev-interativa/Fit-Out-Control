@@ -15,12 +15,13 @@ export default function NovoVistoriadeObra() {
     const criarVistoria = async () => {
       try {
         if (!empreendimentoId) throw new Error('Empreendimento não informado');
+        if (!unidadeId) throw new Error('Unidade não informada. Use a tela de empreendimento para iniciar uma vistoria.');
 
         const nova = await RespostaVistoria.create({
           nome_arquivo: 'vistoria-obra-padrao',
           nome_vistoria: 'Vistoria de Obra Padrão',
           id_empreendimento: empreendimentoId,
-          ...(unidadeId ? { id_unidade: unidadeId } : {}),
+          id_unidade: unidadeId,
           data_vistoria: new Date().toISOString(),
           revisao: '00',
           estrutura_formulario: { secoes: [], observacoes_gerais: '', cliente: '' },

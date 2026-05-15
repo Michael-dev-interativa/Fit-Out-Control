@@ -66,7 +66,7 @@ export default function EmpreendimentoListarVistoriaObra() {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar
           </Button>
-          <Button onClick={() => navigate(createPageUrl(`NovoVistoriadeObra?empreendimentoId=${empreendimentoId}`))}>
+          <Button onClick={() => navigate(createPageUrl(`EmpreendimentoVistoriaObra?empreendimentoId=${empreendimentoId}`))}>
             <Plus className="w-4 h-4 mr-2" />
             Nova Vistoria de Obra
           </Button>
