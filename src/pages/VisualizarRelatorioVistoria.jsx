@@ -415,7 +415,7 @@ const QRCodesPage = ({ allItems, vistoria, pdfMode }) => {
     );
   }
 
-  const galleryUrl = `${window.location.origin}${createPageUrl(`GaleriaRelatorio?respostaId=${vistoria.id}`)}`;
+  const galleryUrl = `${window.location.origin}/#${createPageUrl(`GaleriaRelatorio?respostaId=${vistoria.id}`)}`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(galleryUrl)}`;
 
   return (
@@ -1728,7 +1728,7 @@ const ReportContent = ({ vistoria, formulario, unidade, empreendimento, t, navig
         navigate(-1);
     };
 
-    const reportUrl = `${window.location.origin}${createPageUrl(`VisualizarRelatorioVistoria?respostaId=${vistoria.id}`)}`;
+    const reportUrl = `${window.location.origin}/#${createPageUrl(`VisualizarRelatorioVistoria?respostaId=${vistoria.id}`)}`;
 
     const totalPages = paginatedPages.length;
     let currentPageCounter = 0;

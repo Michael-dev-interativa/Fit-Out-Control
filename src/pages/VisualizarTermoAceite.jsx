@@ -417,7 +417,7 @@ const QRCodesPage = ({ allItems, termo, pdfMode }) => {
     );
   }
 
-  const galleryUrl = `${window.location.origin}${createPageUrl(`GaleriaTermoAceite?termoId=${termo.id}`)}`;
+  const galleryUrl = `${window.location.origin}/#${createPageUrl(`GaleriaTermoAceite?termoId=${termo.id}`)}`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(galleryUrl)}`;
 
   return (
@@ -1576,7 +1576,7 @@ const ReportContent = ({ termo, formulario, unidade, empreendimento, t, navigate
     navigate(-1);
   };
 
-  const reportUrl = `${window.location.origin}${createPageUrl(`VisualizarTermoAceite?termoId=${termo.id}`)}`;
+  const reportUrl = `${window.location.origin}/#${createPageUrl(`VisualizarTermoAceite?termoId=${termo.id}`)}`;
 
   const totalPages = paginatedPages.length;
   let currentPageCounter = 0;
