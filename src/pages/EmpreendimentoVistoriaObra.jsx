@@ -45,8 +45,8 @@ export default function EmpreendimentoVistoriaObra() {
             return;
           }
           if (unidades.length > 1) {
-            setDebug(d => d + `\nMais de uma unidade, redirecionando para seleção.`);
-            navigate(createPageUrl(`Empreendimento?empreendimentoId=${empreendimentoId}&selecionarUnidade=1`), { replace: true });
+            setDebug(d => d + `\nMais de uma unidade, abrindo seleção em NovoVistoriadeObra.`);
+            navigate(createPageUrl(`NovoVistoriadeObra?empreendimentoId=${empreendimentoId}`), { replace: true });
             return;
           }
         }
