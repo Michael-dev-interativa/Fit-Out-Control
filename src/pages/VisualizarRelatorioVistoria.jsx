@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { RespostaVistoria, FormularioVistoria as FormularioVistoriaEntity, Empreendimento, UnidadeEmpreendimento, User } from '@/api/entities';
+import { DEFAULT_SECOES } from '@/lib/vistoriaObraDefaults';
 import { format } from 'date-fns';
 import { ptBR as pt } from 'date-fns/locale';
 import { ArrowLeft, Loader2, AlertTriangle, Printer } from 'lucide-react';
@@ -2095,6 +2096,15 @@ export default function VisualizarRelatorioVistoria() {
           loadedForm = {
             nome_formulario: vistoriaData.nome_vistoria || "Vistoria Avulsa",
             secoes: vistoriaData.estrutura_formulario,
+            consultor_responsavel: vistoriaData.consultor_responsavel
+          };
+        }
+
+        // Fallback para vistoria-obra-padrao sem estrutura salva (ex: registros importados)
+        if (!loadedForm && vistoriaData.nome_arquivo === 'vistoria-obra-padrao') {
+          loadedForm = {
+            nome_formulario: vistoriaData.nome_vistoria || 'Vistoria de Obra Padrão',
+            secoes: DEFAULT_SECOES,
             consultor_responsavel: vistoriaData.consultor_responsavel
           };
         }
