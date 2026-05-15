@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { RespostaVistoria, UnidadeEmpreendimento } from '@/api/entities';
+import { RespostaVistoria, UnidadeEmpreendimento, FormularioVistoria } from '@/api/entities';
 import { Loader2, AlertTriangle, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,7 +19,14 @@ export default function NovoVistoriadeObra() {
   const criarVistoria = async (idUnidade) => {
     setStatus('creating');
     try {
-      const nova = await RespostaVistoria.create({
+      // respostas_vistoria requires id_formulario NOT NULL — fetch any available form
+      let idFormulario = null;
+      try {
+        const forms = await FormularioVistoria.list();
+        if (Array.isArray(forms) && forms.length > 0) idFormulario = forms[0].id;
+      } catch { /* silently skip if endpoint unavailable */ }
+
+      const payload = {
         nome_arquivo: 'vistoria-obra-padrao',
         nome_vistoria: 'Vistoria de Obra Padrão',
         id_empreendimento: empreendimentoId,
@@ -27,19 +34,23 @@ export default function NovoVistoriadeObra() {
         data_vistoria: new Date().toISOString(),
         revisao: '00',
         estrutura_formulario: { secoes: [], observacoes_gerais: '', cliente: '' },
-      });
+      };
+      if (idFormulario) payload.id_formulario = idFormulario;
+
+      const nova = await RespostaVistoria.create(payload);
       if (!nova?.id) throw new Error('Falha ao criar vistoria: resposta sem ID');
       navigate(`/EditarVistoriadeObra?relatorioId=${nova.id}`, { replace: true });
     } catch (err) {
+      const backendMsg = err.payload?.message || err.payload?.error || (typeof err.payload === 'string' ? err.payload : null);
       if (err.status === 401) {
         setError('Sessão expirada. Faça login novamente para continuar.');
-        setErrorDetail(null);
+        setErrorDetail(backendMsg || null);
       } else if (err.status === 500) {
         setError('Erro interno no servidor ao criar vistoria.');
-        setErrorDetail('Se o problema persistir, entre em contato com o suporte.');
+        setErrorDetail(backendMsg || 'Se o problema persistir, entre em contato com o suporte.');
       } else {
         setError(err.message || 'Erro ao criar vistoria');
-        setErrorDetail(null);
+        setErrorDetail(backendMsg || null);
       }
       setStatus('error');
     }
