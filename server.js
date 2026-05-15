@@ -1719,6 +1719,58 @@ app.post('/api/vistorias', async (req, res) => {
     res.status(500).json({ error: msg });
   }
 });
+
+app.patch('/api/vistorias/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const b = req.body || {};
+    const JSONB_FIELDS = new Set(['estrutura_formulario', 'participantes', 'respostas', 'fotos_secoes', 'observacoes_secoes']);
+    const DATE_FIELDS = new Set(['data_vistoria', 'data_relatorio']);
+    const allowed = [
+      'id_formulario', 'id_unidade', 'id_empreendimento', 'estrutura_formulario',
+      'nome_vistoria', 'nome_arquivo', 'data_vistoria', 'data_relatorio',
+      'consultor_responsavel', 'participantes', 'texto_os_proposta', 'texto_escopo_consultoria',
+      'respostas', 'fotos_secoes', 'status_vistoria', 'observacoes_secoes',
+      'pontuacao_total', 'pontuacao_maxima',
+    ];
+    const sets = [];
+    const vals = [];
+    for (const key of allowed) {
+      if (!(key in b)) continue;
+      let v = b[key];
+      if (DATE_FIELDS.has(key)) v = normalizeDate(v) ?? null;
+      else if (JSONB_FIELDS.has(key)) v = toJson(v);
+      sets.push(`${key} = $${vals.length + 1}${JSONB_FIELDS.has(key) ? '::jsonb' : ''}`);
+      vals.push(v);
+    }
+    if (!sets.length) return res.status(400).json({ error: 'no_fields' });
+    vals.push(id);
+    const { rows } = await p.query(
+      `UPDATE public.respostas_vistoria SET ${sets.join(', ')}, updated_at = now() WHERE id = $${vals.length} RETURNING *`,
+      vals
+    );
+    if (!rows.length) return res.status(404).json({ error: 'not_found' });
+    res.json(mapVistoriaRow(rows[0]));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: msg });
+  }
+});
+
+app.delete('/api/vistorias/:id', async (req, res) => {
+  try {
+    const p = requirePool();
+    const id = Number(req.params.id);
+    const { rowCount } = await p.query('DELETE FROM public.respostas_vistoria WHERE id = $1', [id]);
+    if (!rowCount) return res.status(404).json({ error: 'not_found' });
+    res.json({ ok: true, deleted: id });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: msg });
+  }
+});
+
 app.get('/api/relatorios-semanais/:id', async (req, res) => {
   try {
     const p = requirePool();
