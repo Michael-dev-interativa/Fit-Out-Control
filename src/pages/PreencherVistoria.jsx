@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { FormularioVistoria } from '@/api/entities';
-import { RespostaVistoria } from '@/api/entities';
-import { User } from '@/api/entities';
+import { FormularioVistoria, RespostaVistoria, User, UnidadeEmpreendimento } from '@/api/entities';
 import { UploadFile } from '@/api/integrations';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -725,6 +723,8 @@ export default function PreencherVistoria({ language = 'pt', theme = 'light' }) 
   const [dynamicForm, setDynamicForm] = useState({ secoes: [] }); // For ad-hoc inspections
   const [isAvulsa, setIsAvulsa] = useState(false); // New state for ad-hoc mode (renamed from isAdHoc)
   const [loading, setLoading] = useState(true);
+  const [todasUnidades, setTodasUnidades] = useState([]);
+  const [selectedUnidadeId, setSelectedUnidadeId] = useState(unidadeId || '');
   const [saving, setSaving] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
@@ -864,6 +864,9 @@ export default function PreencherVistoria({ language = 'pt', theme = 'light' }) 
         setFormulario(null);
       }
 
+      // Set selected unit from saved data or URL param
+      setSelectedUnidadeId(respostaData.id_unidade || unidadeId || '');
+
       // Populate main form states
       setNomeVistoria(respostaData.nome_vistoria || '');
       setNomeArquivo(respostaData.nome_arquivo || '');
@@ -907,6 +910,13 @@ export default function PreencherVistoria({ language = 'pt', theme = 'light' }) 
       console.error("Erro ao carregar usuário:", error);
     }
   }, []);
+
+  useEffect(() => {
+    if (!empreendimentoId) return;
+    UnidadeEmpreendimento.filter({ id_empreendimento: empreendimentoId }, 'unidade_empreendimento')
+      .then(lista => setTodasUnidades(Array.isArray(lista) ? lista : []))
+      .catch(() => {});
+  }, [empreendimentoId]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -1412,7 +1422,7 @@ export default function PreencherVistoria({ language = 'pt', theme = 'light' }) 
       const dataToSave = {
         id_formulario: isAvulsa ? null : (formulario?.id || formularioId), // Null if ad-hoc
         estrutura_formulario: isAvulsa ? dynamicForm.secoes : null, // Save structure for ad-hoc
-        id_unidade: unidade?.id || unidadeId,
+        id_unidade: selectedUnidadeId || unidade?.id || unidadeId,
         id_empreendimento: empreendimento?.id || empreendimentoId,
         nome_vistoria: nomeVistoria,
         nome_arquivo: nomeArquivo,
@@ -1750,15 +1760,34 @@ export default function PreencherVistoria({ language = 'pt', theme = 'light' }) 
             {/* Row 3: Unidade | Área do conjunto */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className={isDark ? 'text-gray-300' : ''}>Unidade</Label>
-                <div className={`p-2 rounded border ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-200'}`}>
-                  {unidade?.unidade_empreendimento || '-'}
-                </div>
+                <Label className={isDark ? 'text-gray-300' : ''}>Pavimento / Unidade</Label>
+                {todasUnidades.length > 1 ? (
+                  <Select value={String(selectedUnidadeId)} onValueChange={setSelectedUnidadeId}>
+                    <SelectTrigger className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}>
+                      <SelectValue placeholder="Selecione a unidade..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {todasUnidades.map(u => (
+                        <SelectItem key={u.id} value={String(u.id)}>
+                          {u.unidade_empreendimento || `Unidade ${u.id}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className={`p-2 rounded border ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-200'}`}>
+                    {todasUnidades[0]?.unidade_empreendimento || unidade?.unidade_empreendimento || '-'}
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label className={isDark ? 'text-gray-300' : ''}>Área do conjunto</Label>
                 <div className={`p-2 rounded border ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-200'}`}>
-                  {unidade?.metragem_unidade ? `${unidade.metragem_unidade} m²` : '-'}
+                  {(() => {
+                    const u = todasUnidades.find(u => String(u.id) === String(selectedUnidadeId));
+                    const metragem = u?.metragem_unidade ?? unidade?.metragem_unidade;
+                    return metragem ? `${metragem} m²` : '-';
+                  })()}
                 </div>
               </div>
             </div>
