@@ -41,7 +41,10 @@ async function handleResponse(r, resource, action) {
     payload,
     headers: Object.fromEntries(r.headers.entries())
   });
-  throw new Error(`${action} ${resource} failed`);
+  const err = new Error(`${action} ${resource} failed`);
+  err.status = r.status;
+  err.payload = payload;
+  throw err;
 }
 
 function shouldQueueWriteError(err) {

@@ -16,7 +16,7 @@ const isValidId = (id) => id && typeof id === 'string' && id.length > 0;
 const QRCodePage = () => {
     const location = useLocation();
     const relatorioId = new URLSearchParams(location.search).get('relatorioId');
-    const frontend = import.meta.env.VITE_FRONTEND_URL || 'https://front-fitout.onrender.com';
+    const frontend = import.meta.env.VITE_FRONTEND_URL || window.location.origin;
     const pathEntityMap = {
         '/VisualizarInspecaoEletrica': 'InspecaoEletrica',
         '/VisualizarInspecaoHidrantes': 'InspecaoHidrantes',
