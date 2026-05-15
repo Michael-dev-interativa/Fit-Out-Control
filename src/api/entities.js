@@ -89,7 +89,7 @@ function applyShadowUpdates(items, shadowRows) {
   });
 }
 
-const makeEntity = (resource) => ({
+const makeEntity = (resource, { updateMethod = 'PUT' } = {}) => ({
   async list(order) {
     const params = new URLSearchParams();
     if (order) params.append('order', order);
@@ -229,7 +229,7 @@ const makeEntity = (resource) => ({
     }
     try {
       const r = await fetch(url, {
-        method: 'PUT', headers: getAuthHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(data)
+        method: updateMethod, headers: getAuthHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(data)
       });
       const result = await handleResponse(r, resource, `UPDATE ${id}`);
       // Limpa shadow de update pendente (caso existisse de sessão offline anterior)
@@ -281,8 +281,8 @@ export const KO_unidade = makeEntity('kos-unidade');
 export const VO_unidade = makeEntity('vos-unidade');
 export const FormularioVistoria = makeEntity('formularios-vistoria');
 export const TermoDeAceite = makeEntity('termos-aceite');
-// Respostas de vistoria são expostas como vistorias
-export const RespostaVistoria = makeEntity('vistorias');
+// Respostas de vistoria são expostas como vistorias (backend usa PATCH para update)
+export const RespostaVistoria = makeEntity('vistorias', { updateMethod: 'PATCH' });
 export const RelatorioSemanal = makeEntity('relatorios-semanais');
 export const RelatorioSaida = makeEntity('relatorios-saida');
 export const RelatorioAnaliseTecnica = makeEntity('relatorios-analise-tecnica');
