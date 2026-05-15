@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { RespostaVistoria, UnidadeEmpreendimento, FormularioVistoria } from '@/api/entities';
+import { DEFAULT_SECOES } from '@/lib/vistoriaObraDefaults';
 import { Loader2, AlertTriangle, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -33,7 +34,7 @@ export default function NovoVistoriadeObra() {
         id_unidade: idUnidade,
         data_vistoria: new Date().toISOString(),
         revisao: '00',
-        estrutura_formulario: { secoes: [], observacoes_gerais: '', cliente: '' },
+        estrutura_formulario: { secoes: DEFAULT_SECOES, observacoes_gerais: '', cliente: '' },
       };
       if (idFormulario) payload.id_formulario = idFormulario;
 
