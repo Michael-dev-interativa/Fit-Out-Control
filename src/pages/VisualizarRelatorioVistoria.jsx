@@ -1,22 +1,12 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { getUploadUrl } from '@/api/config';
-import { RespostaVistoria } from '@/api/entities';
-import { FormularioVistoria as FormularioVistoriaEntity } from '@/api/entities';
-import { Empreendimento } from '@/api/entities';
-import { UnidadeEmpreendimento } from '@/api/entities';
-import { User } from '@/api/entities';
+import { RespostaVistoria, FormularioVistoria as FormularioVistoriaEntity, Empreendimento, UnidadeEmpreendimento, User } from '@/api/entities';
 import { format } from 'date-fns';
-import { pt } from 'date-fns/locale';
-import { parseLocalDate } from '../lib/dateUtils';
+import { ptBR as pt } from 'date-fns/locale';
 import { ArrowLeft, Loader2, AlertTriangle, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import EnviarEmailDialog from '@/components/relatorios/EnviarEmailDialog';
-import { chunkItems } from '@/lib/reportPagination';
-import { compressReportImages } from '@/lib/compressReportImages';
 
 // Standardized colors as per request
 const redColor = '#CE2D2D';
@@ -32,34 +22,34 @@ const compressImage = (url, maxWidth = 800, quality = 0.3) => {
     }
 
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+        img.crossOrigin = 'anonymous';
 
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
 
-      let width = img.width;
-      let height = img.height;
+          let width = img.width;
+          let height = img.height;
 
-      if (width > maxWidth) {
-        height *= maxWidth / width;
-        width = maxWidth;
-      }
+          if (width > maxWidth) {
+            height *= maxWidth / width;
+            width = maxWidth;
+          }
 
-      canvas.width = width;
-      canvas.height = height;
+          canvas.width = width;
+          canvas.height = height;
 
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-      const compressedUrl = canvas.toDataURL('image/jpeg', quality);
-      resolve(compressedUrl);
-    };
-
+          const compressedUrl = canvas.toDataURL('image/jpeg', Math.min(quality, 0.8));
+          resolve(compressedUrl);
+        };
+    
     img.onerror = () => {
       console.warn(`Failed to load or compress image: ${url}. Returning original URL.`);
       resolve(url);
     };
-
+    
     img.src = url;
   });
 };
@@ -67,7 +57,7 @@ const compressImage = (url, maxWidth = 800, quality = 0.3) => {
 // Hook para comprimir imagens
 const useCompressedImage = (url, maxWidth, quality) => {
   const [compressedUrl, setCompressedUrl] = useState(url);
-
+  
   useEffect(() => {
     if (url && typeof url === 'string' && url.startsWith('http') && !url.startsWith('data:image')) {
       compressImage(url, maxWidth, quality).then(setCompressedUrl);
@@ -75,7 +65,7 @@ const useCompressedImage = (url, maxWidth, quality) => {
       setCompressedUrl(url);
     }
   }, [url, maxWidth, quality]);
-
+  
   return compressedUrl;
 };
 
@@ -96,82 +86,17 @@ const toRoman = (num) => {
 
 const isValidId = (id) => id && String(id).trim() !== '' && !['null', 'undefined'].includes(String(id).toLowerCase());
 
-function buildFallbackFormFromRespostas(vistoriaData) {
-  let respostas = vistoriaData?.respostas;
-  if (!respostas) return null;
-
-  if (typeof respostas === 'string') {
-    try {
-      respostas = JSON.parse(respostas);
-    } catch {
-      return null;
-    }
-  }
-
-  if (!respostas || typeof respostas !== 'object') return null;
-
-  const mapSecoes = new Map();
-
-  Object.entries(respostas).forEach(([key, value]) => {
-    const m = key.match(/^secao_(\d+)_pergunta_(\d+)$/);
-    if (!m) return;
-
-    const secaoIndex = Number(m[1]);
-    const perguntaIndex = Number(m[2]);
-    if (Number.isNaN(secaoIndex) || Number.isNaN(perguntaIndex)) return;
-
-    if (!mapSecoes.has(secaoIndex)) mapSecoes.set(secaoIndex, new Map());
-
-    const respostaValue = (value && typeof value === 'object' && 'resposta' in value)
-      ? value.resposta
-      : value;
-
-    let tipo = 'text';
-    if (typeof respostaValue === 'string' && respostaValue.startsWith('data:image')) {
-      tipo = 'signature';
-    } else if (typeof respostaValue === 'string' && /^\d{4}-\d{2}-\d{2}/.test(respostaValue)) {
-      tipo = 'date';
-    }
-
-    mapSecoes.get(secaoIndex).set(perguntaIndex, {
-      pergunta: `Pergunta ${perguntaIndex + 1}`,
-      tipo,
-      opcoes: [],
-    });
-  });
-
-  if (!mapSecoes.size) return null;
-
-  const secoes = [...mapSecoes.entries()]
-    .sort((a, b) => a[0] - b[0])
-    .map(([secaoIndex, perguntasMap]) => ({
-      nome_secao: `Seção ${secaoIndex + 1}`,
-      perguntas: [...perguntasMap.entries()]
-        .sort((a, b) => a[0] - b[0])
-        .map(([, pergunta]) => pergunta),
-    }))
-    .filter(secao => Array.isArray(secao.perguntas) && secao.perguntas.length > 0);
-
-  if (!secoes.length) return null;
-
-  return {
-    nome_formulario: vistoriaData?.nome_vistoria || 'Vistoria',
-    consultor_responsavel: vistoriaData?.consultor_responsavel || null,
-    secoes,
-  };
-}
-
 const colorMapping = {
-  green: 'bg-green-100 text-green-800',
-  red: 'bg-red-100 text-red-800',
-  yellow: 'bg-yellow-100 text-yellow-800',
-  blue: 'bg-blue-100 text-blue-800',
-  purple: 'bg-purple-100 text-purple-800',
-  gray: 'bg-gray-100 text-gray-800',
+    green: 'bg-green-100 text-green-800',
+    red: 'bg-red-100 text-red-800',
+    yellow: 'bg-yellow-100 text-yellow-800',
+    blue: 'bg-blue-100 text-blue-800',
+    purple: 'bg-purple-100 text-purple-800',
+    gray: 'bg-gray-100 text-gray-800',
 };
 
 const getStatusBadgeClassFromColor = (color) => {
-  return colorMapping[color] || colorMapping['gray'];
+    return colorMapping[color] || colorMapping['gray'];
 };
 
 
@@ -202,7 +127,7 @@ const translations = {
 
 const ReportPage = ({ children, pageNumber, totalPages, vistoria, unidade, empreendimento, pdfMode }) => {
   const logoHorizontalOriginalUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/4bd521d1e_LOGOHORIZONTAl.png";
-  const logoHorizontalCompressed = useCompressedImage(logoHorizontalOriginalUrl, 400, 0.7);
+  const logoHorizontalCompressed = useCompressedImage(logoHorizontalOriginalUrl, 400, 0.7); 
   const HEADER_HEIGHT = '80px';
   const FOOTER_HEIGHT = '45px';
 
@@ -222,7 +147,7 @@ const ReportPage = ({ children, pageNumber, totalPages, vistoria, unidade, empre
               {empreendimento?.nome_empreendimento} - {unidade?.unidade_empreendimento}
             </p>
             <p className="text-xs font-medium text-gray-800 mt-1">
-              {vistoria?.data_vistoria ? format(parseLocalDate(vistoria.data_vistoria), 'dd/MM/yyyy', { locale: pt }) : ''}
+                {vistoria?.data_vistoria ? format(new Date(vistoria.data_vistoria), 'dd/MM/yyyy', { locale: pt }) : ''}
             </p>
           </div>
         </div>
@@ -232,7 +157,7 @@ const ReportPage = ({ children, pageNumber, totalPages, vistoria, unidade, empre
         className="overflow-hidden"
         style={{
           paddingTop: pageNumber > 1 ? HEADER_HEIGHT : '0px',
-          paddingBottom: pageNumber > 1 ? FOOTER_HEIGHT : '0px',
+          paddingBottom: pageNumber > 1 ? `calc(${FOOTER_HEIGHT} + 10px)` : '0px',
         }}
       >
         {children}
@@ -243,25 +168,25 @@ const ReportPage = ({ children, pageNumber, totalPages, vistoria, unidade, empre
           className="px-3 py-1 border-t border-gray-200 bg-gray-50 flex justify-between items-center text-xs text-gray-500"
           style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: FOOTER_HEIGHT }}
         >
-          <div className="flex-1 text-left">
-            <span className="font-medium">Arquivo:</span>
-            <br />
-            <span>{vistoria?.nome_arquivo || 'N/A'}</span>
-          </div>
-          <div className="flex-1 flex flex-col items-center">
-            <span>INTERATIVA ENGENHARIA</span>
-            <span>www.interativaengenharia.com.br</span>
-          </div>
-          <div className="flex-1 text-right">
-            <span>Página {pageNumber} de {totalPages}</span>
-          </div>
+            <div className="flex-1 text-left">
+              <span className="font-medium">Arquivo:</span>
+              <br/>
+              <span>{vistoria?.nome_arquivo || 'N/A'}</span>
+            </div>
+            <div className="flex-1 flex flex-col items-center">
+              <span>INTERATIVA ENGENHARIA</span>
+              <span>www.interativaengenharia.com.br</span>
+            </div>
+            <div className="flex-1 text-right">
+              <span>Página {pageNumber} de {totalPages}</span>
+            </div>
         </div>
       )}
     </div>
   );
 };
 
-const CoverPage = ({ vistoria, unidade, empreendimento, items, t, pdfMode }) => {
+const CoverPage = ({ vistoria, unidade, empreendimento, items, t, pdfMode, formulario }) => {
   const year = new Date(vistoria?.data_vistoria || Date.now()).getFullYear();
   const coverFrameOriginalUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/dca667b3d_erasebg-transformed.png";
   const redDecorativeElementUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/513d57969_Designsemnome2.png';
@@ -270,7 +195,7 @@ const CoverPage = ({ vistoria, unidade, empreendimento, items, t, pdfMode }) => 
   const empreendimentoRawImageUrl = empreendimento?.foto_empreendimento
     || 'https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800&q=80';
 
-  const empreendimentoImageUrl = getUploadUrl(empreendimentoRawImageUrl) || empreendimentoRawImageUrl;
+  const empreendimentoImageUrl = empreendimentoRawImageUrl;
   const logoInterativaUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/1a0999f3c_logo_Interativa_letra_branca_sem_fundo_gg.png";
   const logoInterativaBrancoUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6844adf31622c5524c42a141/22086ec44_LOGOPNG-branco.png";
   const coverFrameUrl = coverFrameOriginalUrl;
@@ -318,7 +243,7 @@ const CoverPage = ({ vistoria, unidade, empreendimento, items, t, pdfMode }) => 
           height: '150%',
         }}
       />
-
+      
       <div
         className="absolute z-50"
         style={{
@@ -331,9 +256,9 @@ const CoverPage = ({ vistoria, unidade, empreendimento, items, t, pdfMode }) => 
         <img
           src={logoInterativaUrl}
           alt="Logo Interativa"
-          style={{
-            width: '100%',
-            height: '100%',
+          style={{ 
+            width: '100%', 
+            height: '100%', 
             objectFit: 'contain',
             filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
           }}
@@ -357,7 +282,7 @@ const CoverPage = ({ vistoria, unidade, empreendimento, items, t, pdfMode }) => 
           RELATÓRIO
         </h1>
         <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '29.5px', color: redColor, letterSpacing: '4px' }}>
-          VISTORIA DE OBRA
+          {formulario?.nome_tipo_vistoria || 'VISTORIA DE OBRA'}
         </h2>
       </div>
 
@@ -371,18 +296,18 @@ const CoverPage = ({ vistoria, unidade, empreendimento, items, t, pdfMode }) => 
       </div>
 
       <div
-        className="absolute z-20"
-        style={{
-          top: '-350px', right: '-30%', width: '1700px', height: '1150px',
-          backgroundColor: redColor,
-          WebkitMaskImage: `url(${redDecorativeElementUrlOriginal})`,
-          maskImage: `url(${redDecorativeElementUrlOriginal})`,
-          WebkitMaskSize: '100% 100%', maskSize: '100% 100%',
-          WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat',
-          WebkitMaskPosition: 'center', maskPosition: 'center',
-        }}
+          className="absolute z-20"
+          style={{
+              top: '-350px', right: '-30%', width: '1700px', height: '1150px',
+              backgroundColor: redColor,
+              WebkitMaskImage: `url(${redDecorativeElementUrlOriginal})`,
+              maskImage: `url(${redDecorativeElementUrlOriginal})`,
+              WebkitMaskSize: '100% 100%', maskSize: '100% 100%',
+              WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat',
+              WebkitMaskPosition: 'center', maskPosition: 'center',
+          }}
       />
-
+      
       <div
         className="absolute z-50"
         style={{
@@ -430,25 +355,29 @@ const CoverPage = ({ vistoria, unidade, empreendimento, items, t, pdfMode }) => 
   );
 };
 
-const CompressedPhoto = ({ url, legenda, index }) => {
+const CompressedPhoto = ({ url, legenda, index, isTopic2 }) => {
   const [compressedUrl, setCompressedUrl] = useState(url);
 
   useEffect(() => {
     if (url && typeof url === 'string' && url.startsWith('http') && !url.startsWith('data:image')) {
-      compressImage(url, 500, 0.5).then(setCompressedUrl);
+      compressImage(url, 800, 0.85).then(setCompressedUrl);
     }
-  }, [url]);
+  }, [url]); 
+
+  const imgHeight = isTopic2 ? '520px' : '380px';
+  const imgMaxHeight = isTopic2 ? '520px' : '380px';
+  const imgObjectFit = isTopic2 ? 'contain' : 'cover';
 
   return (
-    <div className="text-center break-inside-avoid photo-item-print">
+    <div className="text-center break-inside-avoid photo-item-print" style={{ pageBreakInside: 'avoid', marginBottom: '0px' }}>
       <img
         src={compressedUrl}
         alt={legenda || `Foto ${index}`}
-        className="w-full object-cover rounded border photo-img-print"
-        style={{ maxWidth: '100%', height: 'auto', maxHeight: '200px' }}
+        className="w-full rounded border photo-img-print"
+        style={{ maxHeight: imgMaxHeight, height: imgHeight, objectFit: imgObjectFit, pageBreakInside: 'avoid' }}
       />
       {legenda && (
-        <p className="text-xs mt-1 font-medium text-black">
+        <p className="text-xs mt-0.5 font-medium text-black" style={{ lineHeight: '1.1' }}>
           {legenda}
         </p>
       )}
@@ -539,25 +468,48 @@ const DadosEmpreendimentoPage = ({ vistoria, empreendimento, unidade, t, formula
           <span>{empreendimento?.cli_empreendimento || t.notApplicable}</span>
         </div>
         <div>
-          <p className="font-semibold text-gray-700">Unidade/Conjunto:</p>
-          <span>{unidade?.unidade_empreendimento || t.notApplicable}</span>
+          <p className="font-semibold text-gray-700">Endereço:</p>
+          <span>{empreendimento?.endereco_empreendimento || t.notApplicable}</span>
         </div>
         <div>
-          <p className="font-semibold text-gray-700">Locatário:</p>
+          <p className="font-semibold text-gray-700">Cliente:</p>
           <span>{unidade?.cliente_unidade || t.notApplicable}</span>
         </div>
         <div>
           <p className="font-semibold text-gray-700">Data da Vistoria:</p>
-          <span>{vistoria?.data_vistoria ? format(parseLocalDate(vistoria.data_vistoria), "dd/MM/yyyy", { locale: pt }) : t.notApplicable}</span>
+          <span>{vistoria?.data_vistoria ? format(new Date(vistoria.data_vistoria), "dd/MM/yyyy", { locale: pt }) : t.notApplicable}</span>
         </div>
         <div>
           <p className="font-semibold text-gray-700">Data do Relatório:</p>
-          <span>{vistoria?.data_relatorio ? format(parseLocalDate(vistoria.data_relatorio), "dd/MM/yyyy", { locale: pt }) : format(new Date(), "dd/MM/yyyy", { locale: pt })}</span>
+          <span>{vistoria?.data_relatorio ? format(new Date(vistoria.data_relatorio), "dd/MM/yyyy", { locale: pt }) : format(new Date(), "dd/MM/yyyy", { locale: pt })}</span>
+        </div>
+        <div>
+          <p className="font-semibold text-gray-700">Revisão:</p>
+          <span>{vistoria?.revisao || t.notApplicable}</span>
         </div>
         <div className="col-span-2">
           <p className="font-semibold text-gray-700">Resp. Gerência:</p>
           <span>Engª Valéria Rodrigues</span>
         </div>
+        {vistoria?.participantes && vistoria.participantes.trim() !== '' && (
+          <div className="col-span-2">
+            <p className="font-semibold text-gray-700">Participantes:</p>
+            <div className="mt-1">
+              {(() => {
+                const participantesArray = vistoria.participantes.split(',').map(p => p.trim()).filter(Boolean);
+                const rows = [];
+                for (let i = 0; i < participantesArray.length; i += 2) {
+                  rows.push(participantesArray.slice(i, i + 2));
+                }
+                return rows.map((row, idx) => (
+                  <div key={idx} className="mb-1">
+                    {row.join(', ')}
+                  </div>
+                ));
+              })()}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="mt-6 space-y-4">
@@ -582,7 +534,7 @@ const DadosEmpreendimentoPage = ({ vistoria, empreendimento, unidade, t, formula
         )}
       </div>
     </div>
-
+    
     <div className="flex-grow flex items-end justify-center pb-24">
       <div className="text-center text-sm">
         <p><strong>Consultoria Técnica:</strong></p>
@@ -593,173 +545,227 @@ const DadosEmpreendimentoPage = ({ vistoria, empreendimento, unidade, t, formula
 );
 
 const getStatusBadgeClass = (status, color) => {
+  // Sempre priorizar a cor do item se fornecida
   if (color && colorMapping[color]) {
     return colorMapping[color];
   }
-  switch (String(status || '').toLowerCase().trim()) {
-    case 'finalizado':
-    case 'conforme':
-    case 'liberado para ocupação':
-    case 'concluído':
-      return 'bg-green-100 text-green-800';
-    case 'não conforme':
-    case 'nao conforme':
-    case 'não liberado para ocupação':
-    case 'nao liberado para ocupação':
-      return 'bg-red-100 text-red-800';
-    case 'pendente':
-      return 'bg-yellow-100 text-yellow-800';
-    case 'em andamento':
-    case 'andamento':
-      return 'bg-blue-100 text-blue-800';
-    case 'informativo':
-      return 'bg-purple-100 text-purple-800';
-    case 'assinado':
-      return 'bg-purple-100 text-purple-800';
-    case 'não aplicável':
-    case 'nao aplicavel':
-    case 'não se aplica':
-    case 'nao se aplica':
-      return 'bg-gray-100 text-gray-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
+  // Fallback para mapeamento por texto
+  const lowerStatus = String(status || '').toLowerCase().trim();
+  if (lowerStatus === 'finalizado' || lowerStatus === 'conforme' || lowerStatus === 'liberado para ocupação' || lowerStatus === 'concluído') {
+    return colorMapping['green'];
+  } else if (lowerStatus === 'não conforme' || lowerStatus === 'nao conforme' || lowerStatus === 'não liberado para ocupação' || lowerStatus === 'nao liberado para ocupação') {
+    return colorMapping['red'];
+  } else if (lowerStatus === 'pendente') {
+    return colorMapping['yellow'];
+  } else if (lowerStatus === 'em andamento' || lowerStatus === 'andamento') {
+    return colorMapping['blue'];
+  } else if (lowerStatus === 'informativo') {
+    return colorMapping['purple'];
+  } else if (lowerStatus === 'assinado') {
+    return colorMapping['purple'];
+  } else if (lowerStatus === 'não aplicável' || lowerStatus === 'nao aplicavel' || lowerStatus === 'não se aplica' || lowerStatus === 'nao se aplica') {
+    return colorMapping['gray'];
   }
+  return colorMapping['gray'];
 };
 
-const ContentPage = ({ items, observacoes, sectionOriginalOrder, disciplineStats, sectionsToRenderObservationsOnThisPage, pdfMode, sectionNumberMap }) => {
+const ContentPage = ({ items, observacoes, sectionOriginalOrder, disciplineStats, sectionsToRenderObservationsOnThisPage, pdfMode, sectionNumberMap, layoutRelatorio = 'vertical', isTermoDeAceite = false }) => {
+  console.log('ContentPage - layoutRelatorio recebido:', layoutRelatorio);
   return (
-    <div className="px-4 py-2" style={{ minHeight: 'calc(297mm - 140px)' }}>
+    <div className="px-4 py-1" style={{ minHeight: 'calc(297mm - 140px)', paddingBottom: '50px' }}>
       {items.length === 0 && <p className="text-center text-gray-500">Nenhum item para exibir nesta página.</p>}
       {items.length > 0 && items.map(({ secaoName, items: itensSecao, globalIndex }) => {
         const displayName = secaoName;
         const sectionObservation = observacoes && observacoes[secaoName];
         const isStatusSection = displayName.includes("STATUS") || displayName.includes("Status");
         const sectionNumber = sectionNumberMap?.[globalIndex] ?? (globalIndex + 1);
-
+        const isHorizontal = layoutRelatorio === 'horizontal';
+        console.log('Seção:', displayName, '- layoutRelatorio:', layoutRelatorio, '- isHorizontal:', isHorizontal, '- isStatusSection:', isStatusSection);
+        
         return (
-          <div key={secaoName} className="mb-4 break-inside-avoid">
-            <div className="w-full mb-4">
-              <div className="text-base font-bold text-white p-3 rounded-md" style={{ backgroundColor: blueColor }}>
+          <div key={secaoName} className="mb-2 break-inside-avoid">
+            <div className="w-full mb-2">
+              <div className="text-base font-bold text-white p-2 rounded-md" style={{ backgroundColor: blueColor }}>
                 <span>{`${sectionNumber}. ${displayName}`}</span>
               </div>
             </div>
 
-            {sectionsToRenderObservationsOnThisPage.has(secaoName) && sectionObservation && sectionObservation.trim() !== '' &&
-              <div className="mb-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 break-inside-avoid">
+            {sectionsToRenderObservationsOnThisPage.has(secaoName) && sectionObservation && sectionObservation.trim() !== '' && 
+                          <div className="mb-1 p-2 bg-yellow-50 border-l-4 border-yellow-400 break-inside-avoid">
                 <strong className="text-yellow-800">Observação da seção:</strong>
                 <p className="mt-1 text-yellow-700">{sectionObservation}</p>
               </div>
             }
 
-            <table className="w-full border-collapse border border-gray-300 text-xs mb-6" style={{ tableLayout: 'fixed', maxWidth: '100%' }}>
-              <colgroup>
-                {isStatusSection ? (
-                  <col style={{ width: '100%' }} />
-                ) : (
-                  <>
-                    <col style={{ width: '72%' }} />
-                    <col style={{ width: '28%' }} />
-                  </>
-                )}
-              </colgroup>
-              <thead>
-                <tr className="bg-gray-100">
-                  {isStatusSection ? (
-                    <th className="border border-gray-300 p-2 text-left">Seção</th>
-                  ) : (
-                    <>
-                      <th className="border border-gray-300 p-2 text-left">Seção</th>
-                      <th className="border border-gray-300 p-2 text-center">Status/Resposta</th>
-                    </>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="break-inside-avoid">
+            {isHorizontal ? (
+              // Layout Horizontal: Pergunta em cima, Resposta embaixo
+              <div className="space-y-2 mb-3">
                 {itensSecao.map((item) => {
                   const hasDetails = (!item.isContinuation && item.observacao && item.observacao.trim() !== '' && item.observacao.trim() !== '-') || (item.foto && item.foto.length > 0);
-
+                  
                   return (
-                    <React.Fragment key={item.uniqueId}>
-                      <tr className="break-inside-avoid">
-                        {isStatusSection ? (
-                          <td className="border border-gray-300 p-2 align-middle text-left">
-                            <div>
-                              <p className="text-xs font-medium mb-2">{item.pergunta}</p>
-                              {item.assinatura ? (
-                                <CompressedSignatureImage
-                                  url={item.assinatura}
-                                  alt="Assinatura"
-                                  className="max-w-32 max-h-6 object-contain"
-                                  pdfMode={pdfMode}
-                                />
-                              ) : (
-                                item.resposta && item.resposta !== '-' &&
-                                <span className={`px-2 py-1 rounded text-xs font-medium whitespace-pre-wrap ${getStatusBadgeClass(item.resposta, item.cor)}`}>
-                                  {item.resposta}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                        ) : (
-                          <>
-                            <td className="border border-gray-300 p-2 align-middle">
-                              {item.numeroRomano && <strong>{`${toRoman(item.numeroRomano)}. `}</strong>}
-                              {item.pergunta}
-                              {item.isContinuation && <span className="text-gray-500 italic ml-2">(continuação)</span>}
-                            </td>
-                            <td className="border border-gray-300 p-2 align-middle text-center" style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'normal', overflow: 'hidden' }}>
-                              {item.assinatura ? (
-                                <CompressedSignatureImage
-                                  url={item.assinatura}
-                                  alt="Assinatura"
-                                  className="max-w-32 max-h-6 object-contain mx-auto"
-                                  pdfMode={pdfMode}
-                                />
-                              ) : (
-                                item.resposta && item.resposta !== '-' &&
-                                <span className={`px-2 py-1 rounded text-xs font-medium inline-block ${getStatusBadgeClass(item.resposta, item.cor)}`} style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'pre-wrap', maxWidth: '100%' }}>
-                                  {item.resposta}
-                                </span>
-                              )}
-                            </td>
-                          </>
-                        )}
-                      </tr>
-                      {hasDetails && (
-                        <tr className="break-inside-avoid details-row">
-                          <td colSpan={isStatusSection ? "1" : "2"} className="border border-gray-300 p-2">
-                            <div className="break-inside-avoid">
-                              {!item.isContinuation && item.observacao && item.observacao.trim() !== '' && item.observacao.trim() !== '-' &&
-                                <div className="p-2 rounded mb-2" style={{ backgroundColor: '#f0f8ff' }}>
-                                  <strong className="block mb-1 text-gray-700 text-xs">Comentário:</strong>
-                                  <p className="mt-1 text-gray-600 whitespace-pre-wrap leading-tight text-xs">{item.observacao}</p>
-                                </div>
-                              }
+                    <div key={item.uniqueId} className="border border-gray-300 rounded-md overflow-hidden break-inside-avoid">
+                      <div className="bg-gray-100 border-b border-gray-300 p-2">
+                        <p className="text-xs font-medium">
+                          {item.numeroRomano && <strong>{`${toRoman(item.numeroRomano)}. `}</strong>}
+                          {item.pergunta}
+                          {item.isContinuation && <span className="text-gray-500 italic ml-2">(continuação)</span>}
+                        </p>
+                      </div>
+                      <div className="p-2">
+                        <div className="text-left">
+                          {item.assinatura ? (
+                            <CompressedSignatureImage
+                              url={item.assinatura}
+                              alt="Assinatura"
+                              className="max-w-64 max-h-20 object-contain"
+                              pdfMode={pdfMode}
+                            />
+                          ) : (
+                            item.resposta && item.resposta !== '-' && 
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusBadgeClassFromColor(item.cor)}`} style={{ wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'pre-wrap', maxWidth: '100%', display: 'inline-block' }}>
+                                {item.resposta}
+                              </span>
+                          )}
+                        </div>
+                        
+                        {hasDetails && (
+                          <div className="mt-1 break-inside-avoid">
+                            {!item.isContinuation && item.observacao && item.observacao.trim() !== '' && item.observacao.trim() !== '-' && item.observacao.toLowerCase().trim() !== 'teste' && 
+                              <div className="p-2 rounded mb-2" style={{ backgroundColor: '#f0f8ff' }}>
+                                <strong className="block mb-1 text-gray-700 text-xs">Comentário:</strong>
+                                <p className="mt-1 text-gray-600 whitespace-pre-wrap leading-tight text-xs">{item.observacao}</p>
+                              </div>
+                            }
 
-                              {item.foto && item.foto.length > 0 &&
-                                <div className={`${(!item.isContinuation && item.observacao && item.observacao.trim() !== '' && item.observacao.trim() !== '-') ? 'mt-2' : ''}`}>
-                                  <strong className="block mb-2 text-gray-700 text-xs">Registro Fotográfico:</strong>
-                                  <div className="grid grid-cols-2 gap-3">
-                                    {item.foto.map((foto, fotoIndex) => (
-                                      <CompressedPhoto
-                                        key={foto.url + fotoIndex}
-                                        url={foto.url}
-                                        legenda={foto.legenda}
-                                        index={fotoIndex + 1}
-                                      />
-                                    ))}
-                                  </div>
+                            {item.foto && item.foto.length > 0 && 
+                              <div className={`${(!item.isContinuation && item.observacao && item.observacao.trim() !== '' && item.observacao.trim() !== '-') ? 'mt-2' : ''}`}>
+                                {!isTermoDeAceite && <strong className="block mb-2 text-gray-700 text-xs">Registro Fotográfico:</strong>}
+                                <div className={item.tipoPergunta === 'foto_principal' ? 'grid grid-cols-1 gap-3' : 'grid grid-cols-2 gap-3'}>
+                                  {item.foto.map((foto, fotoIndex) => (
+                                    <CompressedPhoto
+                                      key={foto.url + fotoIndex}
+                                      url={foto.url}
+                                      legenda={foto.legenda}
+                                      index={fotoIndex + 1}
+                                    />
+                                  ))}
                                 </div>
-                              }
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
+                              </div>
+                            }
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   );
                 })}
-              </tbody>
-            </table>
+              </div>
+            ) : (
+              // Layout Vertical: Tabela tradicional
+              <table className="w-full border-collapse border border-gray-300 text-xs mb-3">
+                <thead>
+                  <tr className="bg-gray-100">
+                    {isStatusSection ? (
+                      <th className="border border-gray-300 p-2 text-left">Seção</th>
+                    ) : (
+                      <>
+                        <th className="border border-gray-300 p-2 text-left">Seção</th>
+                        <th className="border border-gray-300 p-2 text-center w-56">Status/Resposta</th>
+                      </>
+                      )}
+                      </tr>
+                      </thead>
+                      <tbody className="break-inside-avoid">
+                      {itensSecao.map((item) => {
+                      const hasDetails = (!item.isContinuation && item.observacao && item.observacao.trim() !== '' && item.observacao.trim() !== '-') || (item.foto && item.foto.length > 0);
+
+                      return (
+                      <React.Fragment key={item.uniqueId}>
+                        <tr className="break-inside-avoid">
+                          {isStatusSection ? (
+                            <td className="border border-gray-300 p-2 align-middle text-left">
+                              <div>
+                                <p className="text-xs font-medium mb-2">{item.pergunta}</p>
+                                {item.assinatura ? (
+                                  <CompressedSignatureImage
+                                    url={item.assinatura}
+                                    alt="Assinatura"
+                                    className="max-w-64 max-h-20 object-contain"
+                                    pdfMode={pdfMode}
+                                  />
+                                ) : (
+                                  item.resposta && item.resposta !== '-' && 
+                                    <span className={`px-2 py-1 rounded text-xs font-medium whitespace-pre-wrap ${getStatusBadgeClassFromColor(item.cor)}`}>
+                                      {item.resposta}
+                                    </span>
+                                )}
+                              </div>
+                            </td>
+                          ) : (
+                            <>
+                              <td className="border border-gray-300 p-2 align-middle">
+                                {item.numeroRomano && <strong>{`${toRoman(item.numeroRomano)}. `}</strong>}
+                                {item.pergunta}
+                                {item.isContinuation && <span className="text-gray-500 italic ml-2">(continuação)</span>}
+                              </td>
+                              <td className="border border-gray-300 p-2 align-middle text-center w-56">
+                                {item.assinatura ? (
+                                  <CompressedSignatureImage
+                                    url={item.assinatura}
+                                    alt="Assinatura"
+                                    className="max-w-64 max-h-20 object-contain mx-auto"
+                                    pdfMode={pdfMode}
+                                  />
+                                ) : (
+                                  item.resposta && item.resposta !== '-' && 
+                                    <span className={`px-2 py-1 rounded text-xs font-medium inline-block ${(() => {
+                                      console.log('RENDERIZANDO BADGE - Resposta:', item.resposta, 'Cor:', item.cor, 'Classe:', getStatusBadgeClassFromColor(item.cor));
+                                      return getStatusBadgeClassFromColor(item.cor);
+                                    })()}`}>
+                                      {item.resposta}
+                                    </span>
+                                )}
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                        {hasDetails && (
+                          <tr className="break-inside-avoid details-row">
+                            <td colSpan={isStatusSection ? "1" : "2"} className="border border-gray-300 p-2">
+                              <div className="break-inside-avoid">
+                                  {!item.isContinuation && item.observacao && item.observacao.trim() !== '' && item.observacao.trim() !== '-' && item.observacao.toLowerCase().trim() !== 'teste' && 
+                                    <div className="p-1 rounded mb-1" style={{ backgroundColor: '#f0f8ff' }}>
+                                      <strong className="block mb-1 text-gray-700 text-xs">Comentário:</strong>
+                                      <p className="mt-1 text-gray-600 whitespace-pre-wrap leading-tight text-xs">{item.observacao}</p>
+                                    </div>
+                                  }
+
+                                {item.foto && item.foto.length > 0 && 
+                                  <div className={`${(!item.isContinuation && item.observacao && item.observacao.trim() !== '' && item.observacao.trim() !== '-') ? 'mt-2' : ''}`}>
+                                    {!isTermoDeAceite && <strong className="block mb-2 text-gray-700 text-xs">Registro Fotográfico:</strong>}
+                                    <div className={item.tipoPergunta === 'foto_principal' ? 'grid grid-cols-1 gap-3' : 'grid grid-cols-2 gap-3'}>
+                                      {item.foto.map((foto, fotoIndex) => (
+                                        <CompressedPhoto
+                                          key={foto.url + fotoIndex}
+                                          url={foto.url}
+                                          legenda={foto.legenda}
+                                          index={fotoIndex + 1}
+                                          isTopic2={isTermoDeAceite && item.globalIndex === 1}
+                                        />
+                                      ))}
+                                    </div>
+                                  </div>
+                                }
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
         );
       })}
@@ -771,7 +777,7 @@ const ContentPage = ({ items, observacoes, sectionOriginalOrder, disciplineStats
 const calculateItemWeight = (item) => {
   const photoCount = item.foto?.length || 0;
   const observacaoLength = item.observacao?.length || 0;
-
+  
   if (photoCount === 0) {
     let weight = 1.0;
     if (observacaoLength > 100) {
@@ -780,34 +786,44 @@ const calculateItemWeight = (item) => {
     }
     return weight;
   }
-
+  
   const fotoRows = Math.ceil(photoCount / 2);
   let weight = 1.0 + (fotoRows * 2.0);
-
+  
   if (observacaoLength > 100) {
     const estimatedLines = Math.ceil(observacaoLength / 100);
     weight += Math.max(0, Math.ceil(estimatedLines / 2));
   }
-
+  
   return weight;
 };
 
 const paginateContent = (allItems, observacoesSecoesProcessadas, vistoria, unidade, empreendimento, t, formulario, disciplineStats) => {
-  const pages = [];
-  const sectionNameToObservationMap = {};
-  if (observacoesSecoesProcessadas) {
-    formulario.secoes.forEach((secao) => {
-      const secaoName = secao.nome_secao;
-      if (observacoesSecoesProcessadas[secaoName] && observacoesSecoesProcessadas[secaoName].trim() !== '') {
-        sectionNameToObservationMap[secaoName] = observacoesSecoesProcessadas[secaoName];
-      }
-    });
-  }
+   const pages = [];
+   const sectionNameToObservationMap = {};
+   if (observacoesSecoesProcessadas) {
+     formulario.secoes.forEach((secao) => {
+       const secaoName = secao.nome_secao;
+       if (observacoesSecoesProcessadas[secaoName] && observacoesSecoesProcessadas[secaoName].trim() !== '') {
+         sectionNameToObservationMap[secaoName] = observacoesSecoesProcessadas[secaoName];
+       }
+     });
+   }
 
-  const MAX_ITEMS_PER_PAGE = 6;
-  const MAX_FOTOS_PER_ITEM = 4;
+   // Detectar se é "TERMO DE ACEITE" e ajustar itens por página
+   const isTermoDeAceite = vistoria?.nome_vistoria?.toLowerCase().includes('termo de aceite') || 
+                           formulario?.nome_formulario?.toLowerCase().includes('termo de aceite') ||
+                           formulario?.nome_tipo_vistoria?.toLowerCase().includes('termo de aceite');
+   const MAX_ITEMS_PER_PAGE = isTermoDeAceite ? 2 : 6;
 
-  // Page 1: Cover Page
+   // Função para determinar MAX_FOTOS_PER_ITEM baseado no índice da seção
+   const getMaxFotosPorItem = (globalIndex) => {
+     if (!isTermoDeAceite) return 4;
+     // Tópico 1 e 2 (index 0-1): 3 imagens, Tópico 3+ (index >= 2): 4 imagens
+     return globalIndex < 2 ? 3 : 4;
+   };
+
+   // Page 1: Cover Page
   pages.push(
     <CoverPage
       vistoria={vistoria}
@@ -815,6 +831,7 @@ const paginateContent = (allItems, observacoesSecoesProcessadas, vistoria, unida
       empreendimento={empreendimento}
       items={allItems}
       t={t}
+      formulario={formulario}
     />
   );
 
@@ -854,10 +871,28 @@ const paginateContent = (allItems, observacoesSecoesProcessadas, vistoria, unida
     sectionNumberMap[globalIdx] = sequentialIndex + 1;
   });
 
+  // Para TERMO DE ACEITE, remover a última seção (ASSINATURAS) do fluxo normal
+  let itemsToPaginateFiltered = [...allItemsWithSectionInfo];
+  let assinaturasSection = null;
+  if (isTermoDeAceite) {
+    const ultimaSecaoIndex = uniqueGlobalIndices[uniqueGlobalIndices.length - 1];
+    const ultimaSecaoNome = formulario.secoes[ultimaSecaoIndex]?.nome_secao?.toLowerCase() || '';
+    if (ultimaSecaoNome.includes('assinatura')) {
+      // Separar os itens da seção de assinaturas
+      assinaturasSection = itemsToPaginateFiltered.filter(item => item.globalIndex === ultimaSecaoIndex);
+      itemsToPaginateFiltered = itemsToPaginateFiltered.filter(item => item.globalIndex !== ultimaSecaoIndex);
+    }
+  }
+
   // Identificar globalIndex das seções especiais
   const firstSectionGlobalIndex = uniqueGlobalIndices.length > 0 ? uniqueGlobalIndices[0] : null;
   const thirdSectionGlobalIndex = uniqueGlobalIndices.length > 2 ? uniqueGlobalIndices[2] : null;
   const fourthSectionGlobalIndex = uniqueGlobalIndices.length > 3 ? uniqueGlobalIndices[3] : null;
+
+  // Encontrar o índice global da seção "PROJETO LAYOUT FINAL"
+  const projetoLayoutFinalGlobalIndex = formulario.secoes.findIndex(s => 
+    s.nome_secao.toUpperCase().includes('PROJETO LAYOUT FINAL')
+  );
   const fifthSectionGlobalIndex = uniqueGlobalIndices.length > 4 ? uniqueGlobalIndices[4] : null;
   const sixthSectionGlobalIndex = uniqueGlobalIndices.length > 5 ? uniqueGlobalIndices[5] : null;
   const seventhSectionGlobalIndex = uniqueGlobalIndices.length > 6 ? uniqueGlobalIndices[6] : null;
@@ -868,8 +903,8 @@ const paginateContent = (allItems, observacoesSecoesProcessadas, vistoria, unida
   const thirteenthSectionGlobalIndex = uniqueGlobalIndices.length > 12 ? uniqueGlobalIndices[12] : null;
   const sixteenthSectionGlobalIndex = uniqueGlobalIndices.length > 15 ? uniqueGlobalIndices[15] : null;
 
-  // Manter todos os itens para paginação
-  let itemsToPaginate = allItemsWithSectionInfo;
+  // Usar os itens filtrados (sem a seção de assinaturas se for TERMO DE ACEITE)
+  let itemsToPaginate = itemsToPaginateFiltered;
 
   let currentContentPageItemsBuffer = [];
   let currentPageWeight = 0;
@@ -895,6 +930,33 @@ const paginateContent = (allItems, observacoesSecoesProcessadas, vistoria, unida
     const isThirteenthSection = originalItem.globalIndex === thirteenthSectionGlobalIndex;
     const isSixteenthSection = originalItem.globalIndex === sixteenthSectionGlobalIndex;
 
+    // Se estamos iniciando "PROJETO LAYOUT FINAL" e há conteúdo na página, fecha a página primeiro
+    const isProjetoLayoutFinal = originalItem.globalIndex === projetoLayoutFinalGlobalIndex;
+    if (isProjetoLayoutFinal && isNewSectionOnCurrentPageBuffer && currentContentPageItemsBuffer.length > 0) {
+      const sectionsToRenderObservationsOnThisPage = new Set();
+      const groupedItemsForPage = currentContentPageItemsBuffer.reduce((acc, item) => {
+        const secaoName = item.originalSecaoName;
+        if (!acc[secaoName]) acc[secaoName] = { items: [], globalIndex: item.globalIndex };
+        acc[secaoName].items.push(item);
+        return acc;
+      }, {});
+      const sortedSectionsForPage = Object.entries(groupedItemsForPage).map(([secaoName, data]) => ({
+        secaoName, items: data.items, globalIndex: data.globalIndex,
+      })).sort((a, b) => a.globalIndex - b.globalIndex);
+
+      sortedSectionsForPage.forEach(sectionGroup => {
+        if (sectionNameToObservationMap[sectionGroup.secaoName] && !sectionsObsRenderedGlobally.has(sectionGroup.secaoName)) {
+          sectionsToRenderObservationsOnThisPage.add(sectionGroup.secaoName);
+          sectionsObsRenderedGlobally.add(sectionGroup.secaoName);
+        }
+      });
+
+      pages.push(<ContentPage items={sortedSectionsForPage} observacoes={sectionNameToObservationMap} sectionOriginalOrder={formulario.secoes.map(s => s.nome_secao)} disciplineStats={disciplineStats} sectionsToRenderObservationsOnThisPage={sectionsToRenderObservationsOnThisPage} sectionNumberMap={sectionNumberMap} layoutRelatorio={formulario.layout_relatorio} isTermoDeAceite={isTermoDeAceite} />);
+      currentContentPageItemsBuffer = [];
+      currentPageWeight = 0;
+      currentPagePhotoCount = 0;
+    }
+
     // Se estamos iniciando o tópico 3 e há conteúdo na página, fecha a página primeiro
     if (isThirdSection && isNewSectionOnCurrentPageBuffer && currentContentPageItemsBuffer.length > 0) {
       // Flush current page
@@ -916,7 +978,7 @@ const paginateContent = (allItems, observacoesSecoesProcessadas, vistoria, unida
         }
       });
 
-      pages.push(<ContentPage items={sortedSectionsForPage} observacoes={sectionNameToObservationMap} sectionOriginalOrder={formulario.secoes.map(s => s.nome_secao)} disciplineStats={disciplineStats} sectionsToRenderObservationsOnThisPage={sectionsToRenderObservationsOnThisPage} sectionNumberMap={sectionNumberMap} />);
+      pages.push(<ContentPage items={sortedSectionsForPage} observacoes={sectionNameToObservationMap} sectionOriginalOrder={formulario.secoes.map(s => s.nome_secao)} disciplineStats={disciplineStats} sectionsToRenderObservationsOnThisPage={sectionsToRenderObservationsOnThisPage} sectionNumberMap={sectionNumberMap} layoutRelatorio={formulario.layout_relatorio} isTermoDeAceite={isTermoDeAceite} />);
       currentContentPageItemsBuffer = [];
       currentPageWeight = 0;
       currentPagePhotoCount = 0;
@@ -943,7 +1005,7 @@ const paginateContent = (allItems, observacoesSecoesProcessadas, vistoria, unida
         }
       });
 
-      pages.push(<ContentPage items={sortedSectionsForPage} observacoes={sectionNameToObservationMap} sectionOriginalOrder={formulario.secoes.map(s => s.nome_secao)} disciplineStats={disciplineStats} sectionsToRenderObservationsOnThisPage={sectionsToRenderObservationsOnThisPage} sectionNumberMap={sectionNumberMap} />);
+      pages.push(<ContentPage items={sortedSectionsForPage} observacoes={sectionNameToObservationMap} sectionOriginalOrder={formulario.secoes.map(s => s.nome_secao)} disciplineStats={disciplineStats} sectionsToRenderObservationsOnThisPage={sectionsToRenderObservationsOnThisPage} sectionNumberMap={sectionNumberMap} layoutRelatorio={formulario.layout_relatorio} isTermoDeAceite={isTermoDeAceite} />);
       currentContentPageItemsBuffer = [];
       currentPageWeight = 0;
       currentPagePhotoCount = 0;
@@ -961,26 +1023,30 @@ const paginateContent = (allItems, observacoesSecoesProcessadas, vistoria, unida
       const sortedSectionsForPage = Object.entries(groupedItemsForPage).map(([secaoName, data]) => ({
         secaoName, items: data.items, globalIndex: data.globalIndex,
       })).sort((a, b) => a.globalIndex - b.globalIndex);
-
+      
       sortedSectionsForPage.forEach(sectionGroup => {
         if (sectionNameToObservationMap[sectionGroup.secaoName] && !sectionsObsRenderedGlobally.has(sectionGroup.secaoName)) {
           sectionsToRenderObservationsOnThisPage.add(sectionGroup.secaoName);
           sectionsObsRenderedGlobally.add(sectionGroup.secaoName);
         }
       });
-
-      pages.push(<ContentPage items={sortedSectionsForPage} observacoes={sectionNameToObservationMap} sectionOriginalOrder={formulario.secoes.map(s => s.nome_secao)} disciplineStats={disciplineStats} sectionsToRenderObservationsOnThisPage={sectionsToRenderObservationsOnThisPage} sectionNumberMap={sectionNumberMap} />);
+      
+      pages.push(<ContentPage items={sortedSectionsForPage} observacoes={sectionNameToObservationMap} sectionOriginalOrder={formulario.secoes.map(s => s.nome_secao)} disciplineStats={disciplineStats} sectionsToRenderObservationsOnThisPage={sectionsToRenderObservationsOnThisPage} sectionNumberMap={sectionNumberMap} layoutRelatorio={formulario.layout_relatorio} isTermoDeAceite={isTermoDeAceite} />);
       currentContentPageItemsBuffer = [];
       currentPageWeight = 0;
       currentPagePhotoCount = 0;
     }
-
+    
     const itemPhotoCount = originalItem.foto?.length || 0;
+    const maxFotosPorItem = getMaxFotosPorItem(originalItem.globalIndex);
 
     // Dividir item se tiver mais de MAX_FOTOS_PER_ITEM fotos
-    if (itemPhotoCount > MAX_FOTOS_PER_ITEM) {
-      const fotosChunks = chunkItems(originalItem.foto, MAX_FOTOS_PER_ITEM);
-
+    if (itemPhotoCount > maxFotosPorItem) {
+      const fotosChunks = [];
+      for (let j = 0; j < originalItem.foto.length; j += maxFotosPorItem) {
+        fotosChunks.push(originalItem.foto.slice(j, j + maxFotosPorItem));
+      }
+      
       const firstItemPart = { ...originalItem, foto: fotosChunks[0], uniqueId: `${originalItem.uniqueId}-part1` };
       const weight = calculateItemWeight(firstItemPart);
 
@@ -997,30 +1063,30 @@ const paginateContent = (allItems, observacoesSecoesProcessadas, vistoria, unida
         const sortedSectionsForPage = Object.entries(groupedItemsForPage).map(([secaoName, data]) => ({
           secaoName, items: data.items, globalIndex: data.globalIndex,
         })).sort((a, b) => a.globalIndex - b.globalIndex);
-
+        
         sortedSectionsForPage.forEach(sectionGroup => {
           if (sectionNameToObservationMap[sectionGroup.secaoName] && !sectionsObsRenderedGlobally.has(sectionGroup.secaoName)) {
             sectionsToRenderObservationsOnThisPage.add(sectionGroup.secaoName);
             sectionsObsRenderedGlobally.add(sectionGroup.secaoName);
           }
         });
-
-        pages.push(<ContentPage items={sortedSectionsForPage} observacoes={sectionNameToObservationMap} sectionOriginalOrder={formulario.secoes.map(s => s.nome_secao)} disciplineStats={disciplineStats} sectionsToRenderObservationsOnThisPage={sectionsToRenderObservationsOnThisPage} sectionNumberMap={sectionNumberMap} />);
+        
+        pages.push(<ContentPage items={sortedSectionsForPage} observacoes={sectionNameToObservationMap} sectionOriginalOrder={formulario.secoes.map(s => s.nome_secao)} disciplineStats={disciplineStats} sectionsToRenderObservationsOnThisPage={sectionsToRenderObservationsOnThisPage} sectionNumberMap={sectionNumberMap} layoutRelatorio={formulario.layout_relatorio} isTermoDeAceite={isTermoDeAceite} />);
         currentContentPageItemsBuffer = [];
         currentPageWeight = 0;
         currentPagePhotoCount = 0;
       }
-
+      
       // Adiciona primeira parte
       currentContentPageItemsBuffer.push(firstItemPart);
       currentPageWeight += weight;
       currentPagePhotoCount += fotosChunks[0].length;
-
+      
       // Marca observação da seção como renderizada se for nova seção
       if (isNewSectionOnCurrentPageBuffer && sectionNameToObservationMap[secaoNameForThisItem] && !sectionsObsRenderedGlobally.has(secaoNameForThisItem)) {
         sectionsObsRenderedGlobally.add(secaoNameForThisItem);
       }
-
+      
       // Processa chunks restantes de fotos
       for (let j = 1; j < fotosChunks.length; j++) {
         // Sempre fecha a página antes de adicionar continuação
@@ -1035,13 +1101,13 @@ const paginateContent = (allItems, observacoesSecoesProcessadas, vistoria, unida
           const sortedSectionsForPage = Object.entries(groupedItemsForPage).map(([secaoName, data]) => ({
             secaoName, items: data.items, globalIndex: data.globalIndex,
           })).sort((a, b) => a.globalIndex - b.globalIndex);
-
-          pages.push(<ContentPage items={sortedSectionsForPage} observacoes={sectionNameToObservationMap} sectionOriginalOrder={formulario.secoes.map(s => s.nome_secao)} disciplineStats={disciplineStats} sectionsToRenderObservationsOnThisPage={sectionsToRenderObservationsOnThisPage} sectionNumberMap={sectionNumberMap} />);
+          
+          pages.push(<ContentPage items={sortedSectionsForPage} observacoes={sectionNameToObservationMap} sectionOriginalOrder={formulario.secoes.map(s => s.nome_secao)} disciplineStats={disciplineStats} sectionsToRenderObservationsOnThisPage={sectionsToRenderObservationsOnThisPage} sectionNumberMap={sectionNumberMap} layoutRelatorio={formulario.layout_relatorio} isTermoDeAceite={isTermoDeAceite} />);
           currentContentPageItemsBuffer = [];
           currentPageWeight = 0;
           currentPagePhotoCount = 0;
         }
-
+        
         // Adiciona continuação na nova página
         const continuationPart = {
           ...originalItem,
@@ -1056,9 +1122,9 @@ const paginateContent = (allItems, observacoesSecoesProcessadas, vistoria, unida
       }
       i++;
     } else {
-      // Item normal (até 4 fotos)
+      // Item normal (até MAX_FOTOS_PER_ITEM fotos)
       const itemWeight = calculateItemWeight(originalItem);
-      const has4Photos = itemPhotoCount === MAX_FOTOS_PER_ITEM;
+      const hasMaxPhotos = itemPhotoCount === maxFotosPorItem;
 
       // Se o item tem 3 ou mais fotos (ou 2 ou mais para tópico 4) e a página não está vazia, fecha a página primeiro
       const photoThreshold = isFourthSection ? 2 : 3;
@@ -1081,7 +1147,7 @@ const paginateContent = (allItems, observacoesSecoesProcessadas, vistoria, unida
           }
         });
 
-        pages.push(<ContentPage items={sortedSectionsForPage} observacoes={sectionNameToObservationMap} sectionOriginalOrder={formulario.secoes.map(s => s.nome_secao)} disciplineStats={disciplineStats} sectionsToRenderObservationsOnThisPage={sectionsToRenderObservationsOnThisPage} sectionNumberMap={sectionNumberMap} />);
+        pages.push(<ContentPage items={sortedSectionsForPage} observacoes={sectionNameToObservationMap} sectionOriginalOrder={formulario.secoes.map(s => s.nome_secao)} disciplineStats={disciplineStats} sectionsToRenderObservationsOnThisPage={sectionsToRenderObservationsOnThisPage} sectionNumberMap={sectionNumberMap} layoutRelatorio={formulario.layout_relatorio} isTermoDeAceite={isTermoDeAceite} />);
         currentContentPageItemsBuffer = [];
         currentPageWeight = 0;
         currentPagePhotoCount = 0;
@@ -1093,8 +1159,8 @@ const paginateContent = (allItems, observacoesSecoesProcessadas, vistoria, unida
 
       // Só fecha página se ultrapassar o limite E não deixaria poucos itens sozinhos na próxima página
       const wouldLeaveOrphans = remainingWeight < 2 && remainingItemsInSection.length === 1;
-      // Para a seção 3, usar 15 para 2 páginas; para seção 4, usar 8 para 5 páginas; para seção 5, usar 7 para 5 páginas; para seção 9, usar 12 para 2 páginas; para seções 6, 7, 8, 11 e 13, usar 10 para 3 páginas; para seção 10, usar 8 para 3 páginas; para seção 16, usar 25 para 1 página
-      const pageLimit = isThirdSection ? 15 : (isFourthSection ? 8 : (isFifthSection ? 7 : (isNinthSection ? 12 : (isSixthSection || isSeventhSection || isEighthSection || isEleventhSection || isThirteenthSection ? 10 : (isTenthSection ? 8 : (isSixteenthSection ? 25 : 6))))));
+      // Para a seção 3, usar 6 para 3 itens por página; para seção 4, usar 8 para 5 páginas; para seção 5, usar 7 para 5 páginas; para seção 9, usar 12 para 2 páginas; para seções 6, 7, 8, 11 e 13, usar 10 para 3 páginas; para seção 10, usar 8 para 3 páginas; para seção 16, usar 25 para 1 página
+      const pageLimit = isThirdSection ? 6 : (isFourthSection ? 8 : (isFifthSection ? 7 : (isNinthSection ? 12 : (isSixthSection || isSeventhSection || isEighthSection || isEleventhSection || isThirteenthSection ? 10 : (isTenthSection ? 8 : (isSixteenthSection ? 25 : 6))))));
       if (currentPageWeight + itemWeight > pageLimit && currentContentPageItemsBuffer.length > 0 && !wouldLeaveOrphans) {
         // Flush current page
         const sectionsToRenderObservationsOnThisPage = new Set();
@@ -1107,30 +1173,30 @@ const paginateContent = (allItems, observacoesSecoesProcessadas, vistoria, unida
         const sortedSectionsForPage = Object.entries(groupedItemsForPage).map(([secaoName, data]) => ({
           secaoName, items: data.items, globalIndex: data.globalIndex,
         })).sort((a, b) => a.globalIndex - b.globalIndex);
-
+        
         sortedSectionsForPage.forEach(sectionGroup => {
           if (sectionNameToObservationMap[sectionGroup.secaoName] && !sectionsObsRenderedGlobally.has(sectionGroup.secaoName)) {
             sectionsToRenderObservationsOnThisPage.add(sectionGroup.secaoName);
             sectionsObsRenderedGlobally.add(sectionGroup.secaoName);
           }
         });
-
-        pages.push(<ContentPage items={sortedSectionsForPage} observacoes={sectionNameToObservationMap} sectionOriginalOrder={formulario.secoes.map(s => s.nome_secao)} disciplineStats={disciplineStats} sectionsToRenderObservationsOnThisPage={sectionsToRenderObservationsOnThisPage} sectionNumberMap={sectionNumberMap} />);
+        
+        pages.push(<ContentPage items={sortedSectionsForPage} observacoes={sectionNameToObservationMap} sectionOriginalOrder={formulario.secoes.map(s => s.nome_secao)} disciplineStats={disciplineStats} sectionsToRenderObservationsOnThisPage={sectionsToRenderObservationsOnThisPage} sectionNumberMap={sectionNumberMap} layoutRelatorio={formulario.layout_relatorio} isTermoDeAceite={isTermoDeAceite} />);
         currentContentPageItemsBuffer = [];
         currentPageWeight = 0;
         currentPagePhotoCount = 0;
-      }
+        }
 
-      // Adiciona item na página atual (nova se acabou de fechar)
-      currentContentPageItemsBuffer.push(originalItem);
-      currentPageWeight += itemWeight;
-      currentPagePhotoCount += itemPhotoCount;
-
+        // Adiciona item na página atual (nova se acabou de fechar)
+        currentContentPageItemsBuffer.push(originalItem);
+        currentPageWeight += itemWeight;
+        currentPagePhotoCount += itemPhotoCount;
+      
       // Marca observação da seção como renderizada se for nova seção
       if (isNewSectionOnCurrentPageBuffer && sectionNameToObservationMap[secaoNameForThisItem] && !sectionsObsRenderedGlobally.has(secaoNameForThisItem)) {
         sectionsObsRenderedGlobally.add(secaoNameForThisItem);
       }
-
+      
       // Se o item tem 3 ou mais fotos (ou 2 ou mais para tópico 4), fecha a página imediatamente
       const photoThresholdClose = (originalItem.globalIndex === fourthSectionGlobalIndex) ? 2 : 3;
       if (itemPhotoCount >= photoThresholdClose) {
@@ -1144,13 +1210,13 @@ const paginateContent = (allItems, observacoesSecoesProcessadas, vistoria, unida
         const sortedSectionsForPage = Object.entries(groupedItemsForPage).map(([secaoName, data]) => ({
           secaoName, items: data.items, globalIndex: data.globalIndex,
         })).sort((a, b) => a.globalIndex - b.globalIndex);
-
-        pages.push(<ContentPage items={sortedSectionsForPage} observacoes={sectionNameToObservationMap} sectionOriginalOrder={formulario.secoes.map(s => s.nome_secao)} disciplineStats={disciplineStats} sectionsToRenderObservationsOnThisPage={sectionsToRenderObservationsOnThisPage} sectionNumberMap={sectionNumberMap} />);
+        
+        pages.push(<ContentPage items={sortedSectionsForPage} observacoes={sectionNameToObservationMap} sectionOriginalOrder={formulario.secoes.map(s => s.nome_secao)} disciplineStats={disciplineStats} sectionsToRenderObservationsOnThisPage={sectionsToRenderObservationsOnThisPage} sectionNumberMap={sectionNumberMap} layoutRelatorio={formulario.layout_relatorio} isTermoDeAceite={isTermoDeAceite} />);
         currentContentPageItemsBuffer = [];
         currentPageWeight = 0;
         currentPagePhotoCount = 0;
       }
-
+      
       i++;
     }
   }
@@ -1176,38 +1242,43 @@ const paginateContent = (allItems, observacoesSecoesProcessadas, vistoria, unida
       }
     });
 
-    pages.push(<ContentPage items={sortedSectionsForPage} observacoes={sectionNameToObservationMap} sectionOriginalOrder={formulario.secoes.map(s => s.nome_secao)} disciplineStats={disciplineStats} sectionsToRenderObservationsOnThisPage={sectionsToRenderObservationsOnThisPage} sectionNumberMap={sectionNumberMap} />);
+    pages.push(<ContentPage items={sortedSectionsForPage} observacoes={sectionNameToObservationMap} sectionOriginalOrder={formulario.secoes.map(s => s.nome_secao)} disciplineStats={disciplineStats} sectionsToRenderObservationsOnThisPage={sectionsToRenderObservationsOnThisPage} sectionNumberMap={sectionNumberMap} layoutRelatorio={formulario.layout_relatorio} />);
   }
 
-  // QR Codes page
-  const hasPhotos = allItems.some(item => item.foto && item.foto.length > 0);
-  if (hasPhotos) {
-    pages.push(<QRCodesPage allItems={allItems} vistoria={vistoria} />);
-  }
+  // IMPORTANTE: Assinaturas devem ficar em uma página separada e completa (penúltima antes do QR Code)
+  // Renderizar a seção de assinaturas do formulário se foi separada (TERMO DE ACEITE)
+  if (assinaturasSection && assinaturasSection.length > 0) {
+    const assinaturasSecaoName = formulario.secoes[assinaturasSection[0].globalIndex].nome_secao;
+    const assinaturasGlobalIndex = assinaturasSection[0].globalIndex;
+    const sectionNumber = sectionNumberMap?.[assinaturasGlobalIndex] ?? (assinaturasGlobalIndex + 1);
 
-  // Assinaturas page - sempre em página separada
-  const hasAssinaturas = vistoria.assinaturas && vistoria.assinaturas.length > 0;
-  if (hasAssinaturas) {
     pages.push(
-      <div className="p-4">
-        <h2 className="text-xl font-bold text-center mb-4" style={{ backgroundColor: blueColor, color: 'white', padding: '8px' }}>Assinaturas</h2>
-        <div className="space-y-6 mt-8">
-          {vistoria.assinaturas.map((assinatura, index) => (
-            <div key={index} className="flex flex-col items-center">
-              <div className="mb-2 border-b-2 border-black w-96 h-32 flex items-end justify-center">
-                {assinatura.assinatura_imagem && (
-                  <img
-                    src={assinatura.assinatura_imagem}
+      <div className="assinaturas-page px-4 py-2" style={{ height: 'calc(297mm - 125px)' }}>
+        <div className="w-full mb-4">
+          <div className="text-base font-bold text-white p-3 rounded-md" style={{ backgroundColor: blueColor }}>
+            <span>{`${sectionNumber}. ${assinaturasSecaoName}`}</span>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {assinaturasSection.map((item) => (
+            <div key={item.uniqueId} className="border border-gray-300 rounded-md p-3">
+              <p className="text-xs font-semibold mb-2">
+                {item.numeroRomano && <strong>{`${toRoman(item.numeroRomano)}. `}</strong>}
+                {item.pergunta}
+              </p>
+              <div className="mt-2">
+                {item.assinatura ? (
+                  <CompressedSignatureImage
+                    url={item.assinatura}
                     alt="Assinatura"
-                    className="max-h-28 max-w-full object-contain"
-                    style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact', colorAdjust: 'exact' }}
+                    className="max-w-64 max-h-20 object-contain"
                   />
-                )}
-              </div>
-              <div className="text-center">
-                <p className="font-bold" style={{ fontSize: '12px' }}>{assinatura.nome}</p>
-                {assinatura.parte && (
-                  <p className="text-gray-600" style={{ fontSize: '12px' }}>{assinatura.parte}</p>
+                ) : (
+                  item.resposta && item.resposta !== '-' && 
+                    <div className="text-xs font-medium text-gray-800 whitespace-pre-line">
+                      {item.resposta}
+                    </div>
                 )}
               </div>
             </div>
@@ -1215,6 +1286,61 @@ const paginateContent = (allItems, observacoesSecoesProcessadas, vistoria, unida
         </div>
       </div>
     );
+  }
+
+  // Se tiver assinaturas adicionais coletadas (vistoria.assinaturas), renderizar também
+  const hasAssinaturas = vistoria.assinaturas && vistoria.assinaturas.length > 0;
+  if (hasAssinaturas) {
+    const totalAssinaturas = vistoria.assinaturas.length;
+    const espacoDisponivel = 220;
+    const espacoTitulo = 20;
+    const espacoTotal = espacoDisponivel - espacoTitulo;
+    const alturaAssinatura = Math.min(35, Math.floor(espacoTotal / totalAssinaturas) - 2);
+
+    pages.push(
+      <div className="assinaturas-page" style={{ 
+        height: 'calc(297mm - 125px)', 
+        padding: '24px', 
+        display: 'flex', 
+        flexDirection: 'column',
+        justifyContent: 'flex-start',
+        overflow: 'hidden'
+      }}>
+        <h2 className="text-xl font-bold text-center mb-6" style={{ backgroundColor: blueColor, color: 'white', padding: '8px', borderRadius: '4px' }}>Assinaturas Adicionais</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {vistoria.assinaturas.map((assinatura, index) => (
+            <div key={index} className="border-b-2 border-black w-full flex flex-col justify-end items-start pb-2 pl-2" style={{ height: `${alturaAssinatura}mm`, minHeight: `${alturaAssinatura}mm`, maxHeight: `${alturaAssinatura}mm` }}>
+              {assinatura.assinatura_imagem && (
+                <img 
+                  src={assinatura.assinatura_imagem} 
+                  alt="Assinatura" 
+                  className="w-auto object-contain mb-1"
+                  style={{ 
+                    height: `${Math.max(12, alturaAssinatura - 8)}mm`,
+                    maxHeight: `${Math.max(12, alturaAssinatura - 8)}mm`,
+                    WebkitPrintColorAdjust: 'exact', 
+                    printColorAdjust: 'exact', 
+                    colorAdjust: 'exact' 
+                  }}
+                />
+              )}
+              <div className="text-left">
+                <p className="font-bold" style={{ fontSize: '10px', lineHeight: '1.2' }}>{assinatura.nome}</p>
+                {assinatura.parte && (
+                  <p className="text-gray-600" style={{ fontSize: '9px', lineHeight: '1.2' }}>{assinatura.parte}</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // QR Codes page - última página
+  const hasPhotos = allItems.some(item => item.foto && item.foto.length > 0);
+  if (hasPhotos) {
+    pages.push(<QRCodesPage allItems={allItems} vistoria={vistoria} />);
   }
 
   return pages;
@@ -1302,7 +1428,7 @@ const processReportData = (vistoria, formulario) => {
     if (lowerCaseOption === 'não conforme' || lowerCaseOption === 'nao conforme' || lowerCaseOption === 'não liberado para ocupação' || lowerCaseOption === 'nao liberado para ocupação') return { texto: option, cor: 'red' };
     if (lowerCaseOption === 'pendente') return { texto: option, cor: 'yellow' };
     if (lowerCaseOption === 'em andamento' || lowerCaseOption === 'andamento') return { texto: option, cor: 'blue' };
-    if (lowerCaseOption === 'informativo') return { texto: option, cor: 'purple' };
+    if (lowerCaseOption === 'informativo') return { texto: option, cor: 'blue' };
     if (lowerCaseOption === 'não aplicável' || lowerCaseOption === 'nao aplicavel' || lowerCaseOption === 'não se aplica' || lowerCaseOption === 'nao se aplica') return { texto: option, cor: 'gray' };
     if (lowerCaseOption === 'assinado') return { texto: option, cor: 'purple' };
     return { texto: option, cor: 'gray' };
@@ -1312,13 +1438,13 @@ const processReportData = (vistoria, formulario) => {
     if (valor === undefined || valor === null || valor === '') return '-';
     if (tipo === 'signature' && typeof valor === 'string' && valor.startsWith('data:image')) return 'Assinado';
     if (typeof valor === 'object' && valor !== null && valor.type === 'date') {
-      try { return format(parseLocalDate(valor.value), 'dd/MM/yyyy', { locale: pt }); } catch (e) { return valor.value; }
+      try { return format(new Date(valor.value), 'dd/MM/yyyy', { locale: pt }); } catch (e) { return valor.value; }
     }
     if (typeof valor === 'string' && valor.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
       try { return format(new Date(valor), 'dd/MM/yyyy', { locale: pt }); } catch (e) { return valor; }
     }
     if (typeof valor === 'string' && valor.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      try { return format(parseLocalDate(valor), 'dd/MM/yyyy', { locale: pt }); } catch (e) { return valor; }
+      try { return format(new Date(valor), 'dd/MM/yyyy', { locale: pt }); } catch (e) { return valor; }
     }
     if (typeof valor === 'object' && valor !== null) {
       if (valor.value !== undefined) return String(valor.value);
@@ -1334,8 +1460,8 @@ const processReportData = (vistoria, formulario) => {
 
     if (secao.perguntas && Array.isArray(secao.perguntas)) {
       const perguntasProcessadas = secao.perguntas.map(p => ({
-        ...p,
-        opcoes: (p.opcoes || []).map(mapLegacyOption)
+          ...p,
+          opcoes: (p.opcoes || []).map(mapLegacyOption)
       }));
 
       perguntasProcessadas.forEach((pergunta, perguntaIndex) => {
@@ -1344,6 +1470,7 @@ const processReportData = (vistoria, formulario) => {
         let observacao = '';
         let fotosItem = [];
         let corResposta = 'gray';
+        let tipoPergunta = pergunta.tipo || 'text';
 
         const chaveSecaoPergunta = `secao_${secaoIndex}_pergunta_${perguntaIndex}`;
 
@@ -1360,81 +1487,121 @@ const processReportData = (vistoria, formulario) => {
           }
         } else {
           const baseKey = `${secaoIndex}_${perguntaIndex}`;
-          const chavesParaTentar = [baseKey, `${baseKey}_text`, `${baseKey}_textarea`, `${baseKey}_date`, `${baseKey}_signature`, `${baseKey}_select`];
+          const chavesParaTentar = [ baseKey, `${baseKey}_text`, `${baseKey}_textarea`, `${baseKey}_date`, `${baseKey}_signature`, `${baseKey}_select` ];
           for (const chave of chavesParaTentar) {
-            if (respostasProcessadas[chave] !== undefined && respostasProcessadas[chave] !== null && respostasProcessadas[chave] !== '') {
-              valorRaw = respostasProcessadas[chave];
-            }
+              if (respostasProcessadas[chave] !== undefined && respostasProcessadas[chave] !== null && respostasProcessadas[chave] !== '') {
+                  valorRaw = respostasProcessadas[chave];
+              }
           }
         }
 
         if (comentarioRaw && comentarioRaw.trim() !== '') {
-          observacao = comentarioRaw;
+            observacao = comentarioRaw;
         } else {
-          const valorObs = respostasProcessadas[`${secaoIndex}_${perguntaIndex}_obs`];
-          if (valorObs && valorObs.trim() !== '') {
-            observacao = valorObs;
-          }
+            const valorObs = respostasProcessadas[`${secaoIndex}_${perguntaIndex}_obs`];
+            if (valorObs && valorObs.trim() !== '') {
+                observacao = valorObs;
+            }
         }
 
         const chaveImagem = `secao_${secaoIndex}_pergunta_${perguntaIndex}_imagem`;
         const fotosDaPergunta = fotosSecoesProcessadas[chaveImagem];
 
         if (fotosDaPergunta && Array.isArray(fotosDaPergunta)) {
-          fotosItem = fotosDaPergunta;
+            fotosItem = fotosDaPergunta;
         }
 
         if (valorRaw !== undefined && valorRaw !== null && valorRaw !== '') {
-          if (pergunta.tipo === 'signature' && typeof valorRaw === 'string' && valorRaw.startsWith('data:image')) {
-            assinaturaUrl = valorRaw;
-            resposta = 'Assinado';
-          } else {
-            resposta = extrairValorResposta(valorRaw, pergunta.tipo);
-          }
+            if (pergunta.tipo === 'signature' && typeof valorRaw === 'string' && (valorRaw.startsWith('data:image') || valorRaw.startsWith('http'))) {
+                assinaturaUrl = valorRaw;
+                resposta = 'Assinado';
+            } else if (pergunta.tipo === 'name_company') {
+                // Para name_company, combina nome (resposta) e empresa (comentario)
+                const nome = extrairValorResposta(valorRaw, pergunta.tipo);
+                const empresa = comentarioRaw && comentarioRaw.trim() !== '' ? comentarioRaw : '';
+                resposta = nome + (empresa ? `\nEmpresa: ${empresa}` : '');
+            } else {
+                resposta = extrairValorResposta(valorRaw, pergunta.tipo);
+            }
         }
-
+        
         // Para checkbox, combinar as opções marcadas primeiro e depois o texto
         if (pergunta.tipo === 'checkbox') {
-          let checkboxContent = '';
+            let checkboxContent = '';
 
-          // Primeiro as opções marcadas
-          if (comentarioRaw && comentarioRaw.trim() !== '') {
-            const opcoesMarcadas = comentarioRaw.split(',').map(s => s.trim()).filter(Boolean);
-            if (opcoesMarcadas.length > 0) {
-              checkboxContent = opcoesMarcadas.join('\n');
+            // Primeiro as opções marcadas
+            if (comentarioRaw && comentarioRaw.trim() !== '') {
+                const opcoesMarcadas = comentarioRaw.split(',').map(s => s.trim()).filter(Boolean);
+                if (opcoesMarcadas.length > 0) {
+                    checkboxContent = opcoesMarcadas.join('\n');
+                }
             }
-          }
 
-          // Depois o texto, se houver
-          if (resposta && resposta !== '-') {
-            checkboxContent = checkboxContent ? `${checkboxContent}\n${resposta}` : resposta;
-          }
+            // Depois o texto, se houver
+            if (resposta && resposta !== '-') {
+                checkboxContent = checkboxContent ? `${checkboxContent}\n${resposta}` : resposta;
+            }
 
-          if (checkboxContent) {
-            resposta = checkboxContent;
-          }
+            if (checkboxContent) {
+                resposta = checkboxContent;
+            }
 
-          // Limpar observação para checkbox (não deve aparecer separadamente)
-          observacao = '';
+            // Limpar observação para checkbox (não deve aparecer separadamente)
+            observacao = '';
         }
 
-        if (pergunta.tipo === 'select' && pergunta.opcoes && resposta && resposta !== '-') {
-          const opcaoEncontrada = pergunta.opcoes.find(opt => opt.texto === resposta);
-          if (opcaoEncontrada && opcaoEncontrada.cor) {
-            corResposta = opcaoEncontrada.cor;
-          } else {
+        // Para name_company, limpar observação (já incluída na resposta)
+        if (pergunta.tipo === 'name_company') {
+            observacao = '';
+        }
+        
+        // Log para debug - verificar tipo da pergunta
+        console.log('DEBUG COR - Pergunta:', pergunta.pergunta);
+        console.log('DEBUG COR - Tipo:', pergunta.tipo, 'Tem opções:', !!pergunta.opcoes);
+        console.log('DEBUG COR - Resposta:', resposta);
+
+        // Atribuir cor ANTES de verificar se tem conteúdo
+        if (pergunta.tipo === 'select' && pergunta.opcoes) {
+            console.log('=== ATRIBUINDO COR (SELECT COM OPÇÕES) ===');
+            console.log('Pergunta:', pergunta.pergunta);
+            console.log('Resposta:', resposta);
+            console.log('Opções disponíveis:', pergunta.opcoes);
+
+            const opcaoEncontrada = pergunta.opcoes.find(opt => {
+              return String(opt.texto).toLowerCase().trim() === String(resposta).toLowerCase().trim();
+            });
+
+            console.log('Opção encontrada:', opcaoEncontrada);
+
+            if (opcaoEncontrada && opcaoEncontrada.cor) {
+                corResposta = opcaoEncontrada.cor;
+                console.log('✓ Cor da opção:', corResposta);
+            } else {
+                const mappedLegacy = mapLegacyOption(resposta);
+                corResposta = mappedLegacy.cor;
+                console.log('✓ Cor mapeada (fallback):', corResposta);
+            }
+            console.log('Cor final atribuída:', corResposta);
+            console.log('======================');
+        } else {
+            console.log('⚠️ NÃO É SELECT OU NÃO TEM OPÇÕES - usando fallback mapLegacyOption');
             const mappedLegacy = mapLegacyOption(resposta);
             corResposta = mappedLegacy.cor;
-          }
+            console.log('Cor mapeada (fallback):', corResposta);
         }
 
-        const hasResponse = resposta !== '-';
+        const hasResponse = resposta && resposta !== '-';
         const hasObservation = observacao && observacao.trim() !== '' && observacao.trim() !== '-';
         const hasPhoto = fotosItem && fotosItem.length > 0;
         const hasSignature = !!assinaturaUrl;
 
-        if (hasResponse || hasObservation || hasPhoto || hasSignature) {
-          console.log(`Pergunta: ${pergunta.pergunta} -> Resposta: ${resposta} -> Assinatura: ${assinaturaUrl ? 'Sim' : 'Não'}, Fotos: ${fotosItem.length}`);
+        // Para perguntas do tipo select, exigir que haja resposta selecionada
+        const isSelectType = pergunta.tipo === 'select' || pergunta.tipo === 'select_with_photo';
+        const shouldIncludeItem = isSelectType ? hasResponse : (hasResponse || hasObservation || hasPhoto || hasSignature);
+
+        // Adiciona item se tiver conteúdo apropriado
+        if (shouldIncludeItem) {
+          console.log(`ADICIONANDO ITEM - Pergunta: ${pergunta.pergunta}, Resposta: ${resposta}, Cor atribuída: ${corResposta}, Tipo: ${pergunta.tipo}`);
 
           allItems.push({
             id: `${secaoIndex}-${perguntaIndex}`,
@@ -1445,31 +1612,32 @@ const processReportData = (vistoria, formulario) => {
             foto: fotosItem,
             assinatura: assinaturaUrl,
             cor: corResposta,
+            tipoPergunta: tipoPergunta,
           });
 
           if (pergunta.tipo === 'select' && resposta !== '-') {
-            const rawStatusText = String(resposta).trim();
-            const normalizedStatusText = rawStatusText.toLowerCase();
+              const rawStatusText = String(resposta).trim();
+              const normalizedStatusText = rawStatusText.toLowerCase();
 
-            let summaryCategory = null;
-            if (normalizedStatusText === 'conforme' || normalizedStatusText === 'liberado para ocupação' || normalizedStatusText === 'concluído' || normalizedStatusText === 'finalizado') {
-              summaryCategory = 'Conforme';
-            } else if (normalizedStatusText === 'não conforme' || normalizedStatusText === 'nao conforme' || normalizedStatusText === 'não liberado para ocupação' || normalizedStatusText === 'nao liberado para ocupação') {
-              summaryCategory = 'Não Conforme';
-            } else if (normalizedStatusText === 'pendente') {
-              summaryCategory = 'Pendente';
-            } else if (normalizedStatusText === 'não aplicável' || normalizedStatusText === 'nao aplicavel' || normalizedStatusText === 'não se aplica' || normalizedStatusText === 'nao se aplica') {
-              summaryCategory = 'Não Aplicável';
-            }
+              let summaryCategory = null;
+              if (normalizedStatusText === 'conforme' || normalizedStatusText === 'liberado para ocupação' || normalizedStatusText === 'concluído' || normalizedStatusText === 'finalizado') {
+                  summaryCategory = 'Conforme';
+              } else if (normalizedStatusText === 'não conforme' || normalizedStatusText === 'nao conforme' || normalizedStatusText === 'não liberado para ocupação' || normalizedStatusText === 'nao liberado para ocupação') {
+                  summaryCategory = 'Não Conforme';
+              } else if (normalizedStatusText === 'pendente') {
+                  summaryCategory = 'Pendente';
+              } else if (normalizedStatusText === 'não aplicável' || normalizedStatusText === 'nao aplicavel' || normalizedStatusText === 'não se aplica' || normalizedStatusText === 'nao se aplica') {
+                  summaryCategory = 'Não Aplicável';
+              }
 
-            if (summaryCategory && summary[summaryCategory] !== undefined) {
-              summary[summaryCategory]++;
-            }
+              if (summaryCategory && summary[summaryCategory] !== undefined) {
+                  summary[summaryCategory]++;
+              }
 
-            if (summaryCategory === 'Conforme' || summaryCategory === 'Não Conforme' || summaryCategory === 'Pendente') {
-              disciplineStats[secao.nome_secao].total++;
-              disciplineStats[secao.nome_secao][summaryCategory]++;
-            }
+              if (summaryCategory === 'Conforme' || summaryCategory === 'Não Conforme' || summaryCategory === 'Pendente') {
+                  disciplineStats[secao.nome_secao].total++;
+                  disciplineStats[secao.nome_secao][summaryCategory]++;
+              }
           }
         }
       });
@@ -1508,124 +1676,124 @@ const processReportData = (vistoria, formulario) => {
 };
 
 const ReportContent = ({ vistoria, formulario, unidade, empreendimento, t, navigate }) => {
-  const [isPrintingMode, setIsPrintingMode] = useState(false);
-  const [user, setUser] = useState(null);
-  const [loadingUser, setLoadingUser] = useState(true);
+    const [isPrintingMode, setIsPrintingMode] = useState(false);
+    const [user, setUser] = useState(null);
+    const [loadingUser, setLoadingUser] = useState(true);
 
-  const processedReportData = useMemo(() => {
-    return processReportData(vistoria, formulario);
-  }, [vistoria, formulario]);
+    const processedReportData = useMemo(() => {
+        return processReportData(vistoria, formulario);
+    }, [vistoria, formulario]);
 
-  const paginatedPages = useMemo(() => {
-    if (!processedReportData.allItems || !processedReportData.sectionOriginalOrder) return [];
-    return paginateContent(
-      processedReportData.allItems,
-      processedReportData.observacoesSecoes,
-      vistoria,
-      unidade,
-      empreendimento,
-      t,
-      formulario,
-      processedReportData.disciplineStats
-    );
-  }, [processedReportData, vistoria, unidade, empreendimento, t, formulario]);
+    const paginatedPages = useMemo(() => {
+        if (!processedReportData.allItems || !processedReportData.sectionOriginalOrder) return [];
+        return paginateContent(
+            processedReportData.allItems,
+            processedReportData.observacoesSecoes,
+            vistoria,
+            unidade,
+            empreendimento,
+            t,
+            formulario,
+            processedReportData.disciplineStats
+        );
+    }, [processedReportData, vistoria, unidade, empreendimento, t, formulario]);
 
-  useEffect(() => {
-    const checkUser = async () => {
-      setLoadingUser(true);
-      try {
-        const currentUser = await User.me();
-        setUser(currentUser);
-      } catch (error) {
-        setUser(null);
-      } finally {
-        setLoadingUser(false);
-      }
+    useEffect(() => {
+        const checkUser = async () => {
+            setLoadingUser(true);
+            try {
+                const currentUser = await User.me();
+                setUser(currentUser);
+            } catch (error) {
+                setUser(null);
+            } finally {
+                setLoadingUser(false);
+            }
+        };
+        checkUser();
+    }, []);
+
+    const handleStartCompressionProcess = async () => {
+        setIsPrintingMode(true);
+        await new Promise(resolve => setTimeout(resolve, 50)); 
+        window.print();
+        setTimeout(() => {
+            setIsPrintingMode(false);
+        }, 2000);
     };
-    checkUser();
-  }, []);
 
-  const handleStartCompressionProcess = async () => {
-    setIsPrintingMode(true);
-    await new Promise(resolve => setTimeout(resolve, 50));
-    window.print();
-    setTimeout(() => {
-      setIsPrintingMode(false);
-    }, 2000);
-  };
+    const handleBackClick = () => {
+        navigate(-1);
+    };
 
-  const handleBackClick = () => {
-    navigate(-1);
-  };
+    const reportUrl = `${window.location.origin}${createPageUrl(`VisualizarRelatorioVistoria?respostaId=${vistoria.id}`)}`;
 
-  const reportUrl = `${window.location.origin}${createPageUrl(`VisualizarRelatorioVistoria?respostaId=${vistoria.id}`)}`;
+    const totalPages = paginatedPages.length;
+    let currentPageCounter = 0;
 
-  const totalPages = paginatedPages.length;
-  let currentPageCounter = 0;
-
-  return (
-    <div className="bg-gray-200 print:bg-white min-h-screen font-sans">
-      {!loadingUser && (
-        <div className="no-print shadow-sm border-b p-4 mb-4 bg-white">
-          {user ? (
-            <div className="flex justify-between items-center max-w-4xl mx-auto">
-              <Button onClick={handleBackClick} variant="outline">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                {t.back}
-              </Button>
-              <h1 className="text-xl font-semibold text-gray-800">{t.title}</h1>
-              <div className="flex gap-2">
-                <EnviarEmailDialog
-                  vistoria={vistoria}
-                  unidade={unidade}
-                  empreendimento={empreendimento}
-                  reportUrl={reportUrl}
-                  language={localStorage.getItem('language') || 'pt'}
-                  theme={localStorage.getItem('theme') || 'light'}
-                />
-                <Button
-                  onClick={handleStartCompressionProcess}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                >
-                  <Printer className="w-4 h-4 mr-2" />
-                  Gerar PDF
-                </Button>
+    return (
+        <div className="bg-gray-200 print:bg-white min-h-screen font-sans">
+            {!loadingUser && (
+              <div className="no-print shadow-sm border-b p-4 mb-4 bg-white">
+                  {user ? (
+                      <div className="flex justify-between items-center max-w-4xl mx-auto">
+                          <Button onClick={handleBackClick} variant="outline">
+                              <ArrowLeft className="w-4 h-4 mr-2" />
+                              {t.back}
+                          </Button>
+                          <h1 className="text-xl font-semibold text-gray-800">{t.title}</h1>
+                          <div className="flex gap-2">
+                              <EnviarEmailDialog
+                                  vistoria={vistoria}
+                                  unidade={unidade}
+                                  empreendimento={empreendimento}
+                                  reportUrl={reportUrl}
+                                  language={localStorage.getItem('language') || 'pt'}
+                                  theme={localStorage.getItem('theme') || 'light'}
+                              />
+                              <Button 
+                                  onClick={handleStartCompressionProcess}
+                                  className="bg-green-600 hover:bg-green-700 text-white"
+                              >
+                                  <Printer className="w-4 h-4 mr-2" />
+                                  Gerar PDF
+                              </Button>
+                          </div>
+                      </div>
+                  ) : (
+                      <div className="flex justify-end items-center max-w-4xl mx-auto">
+                          <Button 
+                              onClick={handleStartCompressionProcess}
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                              <Printer className="w-4 h-4 mr-2" />
+                              Gerar PDF
+                          </Button>
+                      </div>
+                  )}
               </div>
-            </div>
-          ) : (
-            <div className="flex justify-end items-center max-w-4xl mx-auto">
-              <Button
-                onClick={handleStartCompressionProcess}
-                className="bg-green-600 hover:bg-green-700 text-white"
-              >
-                <Printer className="w-4 h-4 mr-2" />
-                Gerar PDF
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
+            )}
 
-      <div className="report-container max-w-4xl mx-auto" style={{ padding: 0 }}>
-        {paginatedPages.map((pageContent, index) => {
-          currentPageCounter++;
-          return (
-            <ReportPage
-              key={`page-${index}`}
-              pageNumber={currentPageCounter}
-              totalPages={totalPages}
-              vistoria={vistoria}
-              empreendimento={empreendimento}
-              unidade={unidade}
-              pdfMode={isPrintingMode}
-            >
-              {React.cloneElement(pageContent, { pdfMode: isPrintingMode })}
-            </ReportPage>
-          );
-        })}
-      </div>
+            <div className="report-container max-w-4xl mx-auto" style={{ padding: 0 }}>
+                {paginatedPages.map((pageContent, index) => {
+                    currentPageCounter++;
+                    return (
+                        <ReportPage
+                            key={`page-${index}`}
+                            pageNumber={currentPageCounter}
+                            totalPages={totalPages}
+                            vistoria={vistoria}
+                            empreendimento={empreendimento}
+                            unidade={unidade}
+                            pdfMode={isPrintingMode}
+                        >
+                            {React.cloneElement(pageContent, { pdfMode: isPrintingMode })}
+                        </ReportPage>
+                    );
+                })}
+            </div>
 
-      <style>{`
+            <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@700&family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
                 
                 .cover-background-image {
@@ -1645,6 +1813,17 @@ const ReportContent = ({ vistoria, formulario, unidade, empreendimento, t, navig
                     box-shadow: none;
                   }
                   .report-page:last-child { page-break-after: auto; }
+                  .assinaturas-page {
+                    page-break-inside: avoid !important;
+                    page-break-before: always !important;
+                    page-break-after: always !important;
+                    break-inside: avoid !important;
+                    overflow: visible !important;
+                  }
+                  .assinaturas-page > div {
+                    page-break-inside: avoid !important;
+                    break-inside: avoid !important;
+                  }
                   html, body {
                     margin: 0;
                     padding: 0;
@@ -1656,14 +1835,64 @@ const ReportContent = ({ vistoria, formulario, unidade, empreendimento, t, navig
                   .break-inside-avoid { page-break-inside: avoid; }
                   .details-row, .photo-item-print {
                     page-break-inside: avoid !important;
+                    margin-bottom: 10px !important;
                   }
                   .photo-img-print {
-                    height: auto !important;
-                    max-height: 320px !important;
-                    object-fit: contain !important;
+                    height: 380px !important;
+                    max-height: 380px !important;
+                    object-fit: cover !important;
                     background-color: #fafafa;
-                    image-rendering: crisp-edges;
+                    image-rendering: high-quality;
+                    page-break-inside: avoid !important;
                   }
+
+                  /* Comprimir itens para caber na página */
+                  .details-row img {
+                    max-height: none !important;
+                    width: auto !important;
+                    object-fit: contain !important;
+                    height: auto !important;
+                  }
+
+                  tr:last-child .details-row img,
+                  tr:nth-last-child(2) .details-row img {
+                    max-height: none !important;
+                    height: auto !important;
+                  }
+                  
+                  /* Comprimir fotos quando próximas do fim da página */
+                  .photo-item-print {
+                    max-height: none !important;
+                    overflow: visible !important;
+                    margin-bottom: 3px !important;
+                    height: auto !important;
+                  }
+
+                  .photo-item-print img {
+                    max-height: none !important;
+                    height: auto !important;
+                    object-fit: contain !important;
+                  }
+                  
+                  /* Grid de fotos mais compacto */
+                  .grid-cols-2 .photo-item-print img {
+                    max-height: 240px !important;
+                  }
+                  
+                  /* Garantir espaço antes do rodapé */
+                  .details-row {
+                    padding-bottom: 8px !important;
+                  }
+                  
+                  .details-row > td {
+                    padding-bottom: 10px !important;
+                  }
+                  
+                  /* Aumentar margem inferior do grid de fotos */
+                  .grid {
+                    margin-bottom: 0px !important;
+                  }
+                  
                   .flex {
                     display: flex;
                     flex-wrap: wrap;
@@ -1671,11 +1900,9 @@ const ReportContent = ({ vistoria, formulario, unidade, empreendimento, t, navig
                   .flex > div {
                     page-break-inside: avoid;
                   }
-                  table { page-break-inside: auto; table-layout: fixed; width: 100%; max-width: 100%; }
-                  td, th { overflow: hidden; word-wrap: break-word; word-break: break-word; }
+                  table { page-break-inside: auto; }
                   tr { page-break-inside: avoid; }
                   tbody { page-break-inside: avoid; }
-                  img { max-width: 100%; height: auto; }
                   @page { size: A4; margin: 0; }
 
                   .hyphens-auto {
@@ -1715,8 +1942,14 @@ const ReportContent = ({ vistoria, formulario, unidade, empreendimento, t, navig
                   }
 
                   .pdf-mode .photo-img-print {
-                    max-height: 240px !important;
-                    image-rendering: auto;
+                    height: auto !important;
+                    max-height: none !important;
+                    width: 100% !important;
+                    object-fit: contain !important;
+                    image-rendering: high-quality;
+                    zoom: 1 !important;
+                    -webkit-transform: scale(1) !important;
+                    transform: scale(1) !important;
                   }
                   
                   .pdf-mode .cover-background-image {
@@ -1739,17 +1972,18 @@ const ReportContent = ({ vistoria, formulario, unidade, empreendimento, t, navig
                     position: relative;
                     overflow: hidden;
                   }
-                  
+
                   .report-page:first-child {
                     margin: 0 auto 20px auto;
                   }
 
                   .photo-img-print {
                     height: auto !important;
-                    max-height: 320px !important;
+                    width: 100% !important;
+                    max-height: none !important;
                     object-fit: contain !important;
                     background-color: #fafafa;
-                    image-rendering: crisp-edges;
+                    image-rendering: high-quality;
                   }
 
                   .bg-gray-100 {
@@ -1773,8 +2007,8 @@ const ReportContent = ({ vistoria, formulario, unidade, empreendimento, t, navig
                   }
                 }
             `}</style>
-    </div>
-  );
+        </div>
+    );
 };
 
 export default function VisualizarRelatorioVistoria() {
@@ -1821,8 +2055,7 @@ export default function VisualizarRelatorioVistoria() {
         if (!vistoriaData) {
           throw new Error("Vistoria não encontrada para o ID fornecido.");
         }
-        const compressedVistoria = await compressReportImages(vistoriaData);
-        setVistoria(compressedVistoria);
+        setVistoria(vistoriaData);
 
         const [unidadeResult, empreendimentoResult] = await Promise.allSettled([
           vistoriaData.id_unidade ? UnidadeEmpreendimento.get(vistoriaData.id_unidade) : Promise.resolve(null),
@@ -1848,9 +2081,9 @@ export default function VisualizarRelatorioVistoria() {
           try {
             const fetchedForm = await FormularioVistoriaEntity.get(vistoriaData.id_formulario);
             if (fetchedForm && fetchedForm.secoes && Array.isArray(fetchedForm.secoes) && fetchedForm.secoes.length > 0) {
-              loadedForm = fetchedForm;
+                loadedForm = fetchedForm;
             } else {
-              console.warn('Formulário padrão carregado, mas sem seções válidas ou vazio:', fetchedForm);
+                console.warn('Formulário padrão carregado, mas sem seções válidas ou vazio:', fetchedForm);
             }
           } catch (formError) {
             console.error('Erro ao carregar formulário padrão:', formError);
@@ -1863,14 +2096,6 @@ export default function VisualizarRelatorioVistoria() {
             secoes: vistoriaData.estrutura_formulario,
             consultor_responsavel: vistoriaData.consultor_responsavel
           };
-        }
-
-        if (!loadedForm) {
-          const fallbackForm = buildFallbackFormFromRespostas(vistoriaData);
-          if (fallbackForm && Array.isArray(fallbackForm.secoes) && fallbackForm.secoes.length > 0) {
-            console.warn('⚠ Usando estrutura de fallback reconstruída a partir das respostas.');
-            loadedForm = fallbackForm;
-          }
         }
 
         if (loadedForm && loadedForm.secoes && Array.isArray(loadedForm.secoes) && loadedForm.secoes.length > 0) {
@@ -1891,7 +2116,7 @@ export default function VisualizarRelatorioVistoria() {
     };
 
     if (respostaId) {
-      loadVistoriaData();
+        loadVistoriaData();
     }
   }, [respostaId, t]);
 

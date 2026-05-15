@@ -110,13 +110,13 @@ export default function EmpreendimentoListarVistoriaObra() {
                 {vistoria.revisao && <p><span className="font-medium">Revisão:</span> {vistoria.revisao}</p>}
               </CardContent>
               <CardFooter className="flex justify-end gap-2">
-                <Link to={createPageUrl(`EditarVistoriadeObra?relatorioId=${vistoria.id}`)}>
+                <Link to={createPageUrl(`PreencherVistoria?respostaId=${vistoria.id}&unidadeId=${vistoria.id_unidade}&empreendimentoId=${empreendimentoId}`)}>
                   <Button variant="outline" size="sm">
                     <Pencil className="w-4 h-4 mr-2" />
                     Editar
                   </Button>
                 </Link>
-                <Link to={createPageUrl(`VisualizarInspecaoVistoriaObraPadrao?relatorioId=${vistoria.id}`)}>
+                <Link to={createPageUrl(`VisualizarRelatorioVistoria?respostaId=${vistoria.id}`)}>
                   <Button variant="outline" size="sm">
                     <Eye className="w-4 h-4 mr-2" />
                     Ver Relatório

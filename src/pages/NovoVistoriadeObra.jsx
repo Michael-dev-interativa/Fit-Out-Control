@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import { RespostaVistoria, UnidadeEmpreendimento, FormularioVistoria } from '@/api/entities';
 import { DEFAULT_SECOES } from '@/lib/vistoriaObraDefaults';
 import { Loader2, AlertTriangle, Building2 } from 'lucide-react';
@@ -34,13 +35,15 @@ export default function NovoVistoriadeObra() {
         id_unidade: idUnidade,
         data_vistoria: new Date().toISOString(),
         revisao: '00',
-        estrutura_formulario: { secoes: DEFAULT_SECOES, observacoes_gerais: '', cliente: '' },
+        estrutura_formulario: DEFAULT_SECOES,
+        respostas: {},
+        fotos_secoes: {},
       };
       if (idFormulario) payload.id_formulario = idFormulario;
 
       const nova = await RespostaVistoria.create(payload);
       if (!nova?.id) throw new Error('Falha ao criar vistoria: resposta sem ID');
-      navigate(`/EditarVistoriadeObra?relatorioId=${nova.id}`, { replace: true });
+      navigate(createPageUrl(`PreencherVistoria?respostaId=${nova.id}&unidadeId=${idUnidade}&empreendimentoId=${empreendimentoId}`), { replace: true });
     } catch (err) {
       const backendMsg = err.payload?.message || err.payload?.error || (typeof err.payload === 'string' ? err.payload : null);
       if (err.status === 401) {
