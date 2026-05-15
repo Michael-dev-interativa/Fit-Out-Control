@@ -334,6 +334,9 @@ export default function IniciarVistoria(props) {
                 <div key={vistoria.id} className={`p-3 rounded-lg flex items-center justify-between transition-colors ${isDark ? 'bg-gray-700/50 hover:bg-gray-700' : 'bg-gray-100 hover:bg-gray-200'}`}>
                   <div>
                     <p className={`font-semibold ${isDark ? 'text-white' : ''}`}>{vistoria.nome_vistoria || `Vistoria ${vistoria.id}`}</p>
+                    {unidade?.unidade_empreendimento && (
+                      <p className={`text-xs font-medium ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>{unidade.unidade_empreendimento}</p>
+                    )}
                     <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t.inspectionDate}: {format(parseLocalDate(vistoria.data_vistoria || vistoria.created_date), "dd/MM/yyyy")}</p>
                   </div>
                   <div className="flex items-center gap-3">
