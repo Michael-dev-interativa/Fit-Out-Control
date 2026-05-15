@@ -13,6 +13,64 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+function VistoriaItem({ vistoria, onDelete, empreendimentoId }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">
+          {vistoria.nome_vistoria || 'Vistoria de Obra Padrão'}
+        </CardTitle>
+        {vistoria.texto_escopo_consultoria && (
+          <p className="text-sm text-gray-500">{vistoria.texto_escopo_consultoria}</p>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-1 text-sm text-gray-600">
+        {vistoria.data_vistoria && (
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4" />
+            <span>{format(new Date(vistoria.data_vistoria), 'PPP', { locale: ptBR })}</span>
+          </div>
+        )}
+      </CardContent>
+      <CardFooter className="flex justify-end gap-2">
+        <Link to={createPageUrl(`PreencherVistoria?respostaId=${vistoria.id}&unidadeId=${vistoria.id_unidade}&empreendimentoId=${empreendimentoId}`)}>
+          <Button variant="outline" size="sm">
+            <Pencil className="w-4 h-4 mr-2" />
+            Editar
+          </Button>
+        </Link>
+        <Link to={createPageUrl(`VisualizarRelatorioVistoria?respostaId=${vistoria.id}`)}>
+          <Button variant="outline" size="sm">
+            <Eye className="w-4 h-4 mr-2" />
+            Ver Relatório
+          </Button>
+        </Link>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" size="icon">
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza de que deseja excluir esta vistoria? Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={() => onDelete(vistoria.id)} className="bg-red-600 hover:bg-red-700">
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </CardFooter>
+    </Card>
+  );
+}
+
 export default function EmpreendimentoListarVistoriaObra() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -20,25 +78,21 @@ export default function EmpreendimentoListarVistoriaObra() {
 
   const [empreendimento, setEmpreendimento] = useState(null);
   const [vistorias, setVistorias] = useState([]);
-  const [unidadesMap, setUnidadesMap] = useState({});
+  const [unidades, setUnidades] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
     if (!empreendimentoId) return;
     setLoading(true);
     try {
-      const [emp, lista, unidades] = await Promise.all([
+      const [emp, lista, units] = await Promise.all([
         Empreendimento.get(empreendimentoId),
         RespostaVistoria.filter({ id_empreendimento: empreendimentoId, nome_arquivo: 'vistoria-obra-padrao' }, '-created_at'),
         UnidadeEmpreendimento.filter({ id_empreendimento: empreendimentoId }),
       ]);
       setEmpreendimento(emp);
       setVistorias(Array.isArray(lista) ? lista : []);
-      const map = {};
-      if (Array.isArray(unidades)) {
-        unidades.forEach(u => { map[u.id] = u.unidade_empreendimento; });
-      }
-      setUnidadesMap(map);
+      setUnidades(Array.isArray(units) ? units : []);
     } catch (err) {
       console.error('Erro ao carregar vistorias de obra:', err);
     } finally {
@@ -95,70 +149,42 @@ export default function EmpreendimentoListarVistoriaObra() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {vistorias.map((vistoria) => (
-            <Card key={vistoria.id}>
-              <CardHeader>
-                <CardTitle className="text-base">
-                  {vistoria.nome_vistoria || 'Vistoria de Obra Padrão'}
-                </CardTitle>
-                {vistoria.id_unidade && unidadesMap[vistoria.id_unidade] && (
-                  <div className="flex items-center gap-1 text-sm text-blue-700 font-medium mt-1">
-                    <Home className="w-3.5 h-3.5" />
-                    <span>{unidadesMap[vistoria.id_unidade]}</span>
+        <div className="space-y-10">
+          {unidades
+            .filter(u => vistorias.some(v => String(v.id_unidade) === String(u.id)))
+            .map(unidade => {
+              const vistoriasUnidade = vistorias.filter(v => String(v.id_unidade) === String(unidade.id));
+              return (
+                <div key={unidade.id}>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Home className="w-5 h-5 text-blue-700" />
+                    <h2 className="text-xl font-semibold text-gray-800">{unidade.unidade_empreendimento}</h2>
+                    <span className="text-sm text-gray-400">({vistoriasUnidade.length} vistoria{vistoriasUnidade.length !== 1 ? 's' : ''})</span>
                   </div>
-                )}
-                {vistoria.texto_escopo_consultoria && (
-                  <p className="text-sm text-gray-500">{vistoria.texto_escopo_consultoria}</p>
-                )}
-              </CardHeader>
-              <CardContent className="space-y-1 text-sm text-gray-600">
-                {vistoria.data_vistoria && (
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    <span>{format(new Date(vistoria.data_vistoria), 'PPP', { locale: ptBR })}</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {vistoriasUnidade.map(vistoria => (
+                      <VistoriaItem key={vistoria.id} vistoria={vistoria} onDelete={handleDelete} empreendimentoId={empreendimentoId} />
+                    ))}
                   </div>
-                )}
-                {vistoria.estrutura_formulario?.cliente && <p><span className="font-medium">Cliente:</span> {vistoria.estrutura_formulario.cliente}</p>}
-                {vistoria.revisao && <p><span className="font-medium">Revisão:</span> {vistoria.revisao}</p>}
-              </CardContent>
-              <CardFooter className="flex justify-end gap-2">
-                <Link to={createPageUrl(`PreencherVistoria?respostaId=${vistoria.id}&unidadeId=${vistoria.id_unidade}&empreendimentoId=${empreendimentoId}`)}>
-                  <Button variant="outline" size="sm">
-                    <Pencil className="w-4 h-4 mr-2" />
-                    Editar
-                  </Button>
-                </Link>
-                <Link to={createPageUrl(`VisualizarRelatorioVistoria?respostaId=${vistoria.id}`)}>
-                  <Button variant="outline" size="sm">
-                    <Eye className="w-4 h-4 mr-2" />
-                    Ver Relatório
-                  </Button>
-                </Link>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="icon">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Tem certeza de que deseja excluir esta vistoria? Esta ação não pode ser desfeita.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handleDelete(vistoria.id)} className="bg-red-600 hover:bg-red-700">
-                        Excluir
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </CardFooter>
-            </Card>
-          ))}
+                </div>
+              );
+            })}
+          {/* Vistorias sem unidade mapeada */}
+          {vistorias.filter(v => !unidades.some(u => String(u.id) === String(v.id_unidade))).length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <Home className="w-5 h-5 text-gray-400" />
+                <h2 className="text-xl font-semibold text-gray-600">Sem Unidade</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {vistorias
+                  .filter(v => !unidades.some(u => String(u.id) === String(v.id_unidade)))
+                  .map(vistoria => (
+                    <VistoriaItem key={vistoria.id} vistoria={vistoria} onDelete={handleDelete} empreendimentoId={empreendimentoId} />
+                  ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
