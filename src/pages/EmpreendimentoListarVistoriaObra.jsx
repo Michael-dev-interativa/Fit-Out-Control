@@ -3,17 +3,22 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Empreendimento, RespostaVistoria, UnidadeEmpreendimento } from '@/api/entities';
 import { Button } from '@/components/ui/button';
-import { Loader2, Plus, ArrowLeft, Trash2, Eye, FileText, Calendar, Pencil, Home } from 'lucide-react';
+import { Loader2, Plus, ArrowLeft, Trash2, Eye, FileText, Calendar, Pencil, Home, Copy } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
   AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-function VistoriaItem({ vistoria, onDelete, empreendimentoId }) {
+function VistoriaItem({ vistoria, onDelete, onCopyClick, empreendimentoId }) {
   return (
     <Card>
       <CardHeader>
@@ -45,6 +50,9 @@ function VistoriaItem({ vistoria, onDelete, empreendimentoId }) {
             Ver Relatório
           </Button>
         </Link>
+        <Button variant="outline" size="icon" title="Copiar para outra unidade" onClick={() => onCopyClick(vistoria)}>
+          <Copy className="w-4 h-4" />
+        </Button>
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="destructive" size="icon">
@@ -80,6 +88,9 @@ export default function EmpreendimentoListarVistoriaObra() {
   const [vistorias, setVistorias] = useState([]);
   const [unidades, setUnidades] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [copyDialog, setCopyDialog] = useState({ open: false, vistoria: null });
+  const [copyTargetUnidade, setCopyTargetUnidade] = useState('');
+  const [copying, setCopying] = useState(false);
 
   const loadData = async () => {
     if (!empreendimentoId) return;
@@ -111,12 +122,71 @@ export default function EmpreendimentoListarVistoriaObra() {
     }
   };
 
+  const handleCopyClick = (vistoria) => {
+    setCopyTargetUnidade('');
+    setCopyDialog({ open: true, vistoria });
+  };
+
+  const handleCopyConfirm = async () => {
+    if (!copyTargetUnidade || !copyDialog.vistoria) return;
+    setCopying(true);
+    try {
+      const { id, created_at, updated_at, ...rest } = copyDialog.vistoria;
+      await RespostaVistoria.create({ ...rest, id_unidade: copyTargetUnidade });
+      toast.success('Vistoria copiada com sucesso!');
+      setCopyDialog({ open: false, vistoria: null });
+      loadData();
+    } catch (err) {
+      console.error('Erro ao copiar vistoria:', err);
+      toast.error('Erro ao copiar vistoria.');
+    } finally {
+      setCopying(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
+      {/* Dialog de cópia */}
+      <Dialog open={copyDialog.open} onOpenChange={(open) => !open && setCopyDialog({ open: false, vistoria: null })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Copiar Vistoria para outra Unidade</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-3">
+            <p className="text-sm text-gray-600">
+              Vistoria: <strong>{copyDialog.vistoria?.nome_vistoria || 'Vistoria de Obra Padrão'}</strong>
+            </p>
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-gray-700">Selecione a unidade de destino</label>
+              <Select value={copyTargetUnidade} onValueChange={setCopyTargetUnidade}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolha uma unidade..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {unidades.map(u => (
+                    <SelectItem key={u.id} value={String(u.id)}>
+                      {u.unidade_empreendimento}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCopyDialog({ open: false, vistoria: null })}>
+              Cancelar
+            </Button>
+            <Button onClick={handleCopyConfirm} disabled={!copyTargetUnidade || copying}>
+              {copying ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+              Copiar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Vistoria de Obra</h1>
@@ -163,7 +233,7 @@ export default function EmpreendimentoListarVistoriaObra() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {vistoriasUnidade.map(vistoria => (
-                      <VistoriaItem key={vistoria.id} vistoria={vistoria} onDelete={handleDelete} empreendimentoId={empreendimentoId} />
+                      <VistoriaItem key={vistoria.id} vistoria={vistoria} onDelete={handleDelete} onCopyClick={handleCopyClick} empreendimentoId={empreendimentoId} />
                     ))}
                   </div>
                 </div>
@@ -180,7 +250,7 @@ export default function EmpreendimentoListarVistoriaObra() {
                 {vistorias
                   .filter(v => !unidades.some(u => String(u.id) === String(v.id_unidade)))
                   .map(vistoria => (
-                    <VistoriaItem key={vistoria.id} vistoria={vistoria} onDelete={handleDelete} empreendimentoId={empreendimentoId} />
+                    <VistoriaItem key={vistoria.id} vistoria={vistoria} onDelete={handleDelete} onCopyClick={handleCopyClick} empreendimentoId={empreendimentoId} />
                   ))}
               </div>
             </div>
