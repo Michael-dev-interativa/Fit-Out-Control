@@ -1,51 +1,86 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { RespostaVistoria } from '@/api/entities';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { RespostaVistoria, UnidadeEmpreendimento } from '@/api/entities';
+import { Loader2, AlertTriangle, Building2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function NovoVistoriadeObra() {
   const navigate = useNavigate();
   const location = useLocation();
   const unidadeId = new URLSearchParams(location.search).get('unidadeId');
   const empreendimentoId = new URLSearchParams(location.search).get('empreendimentoId');
+
+  const [status, setStatus] = useState('loading'); // 'loading' | 'selecting' | 'creating' | 'error'
+  const [unidades, setUnidades] = useState([]);
   const [error, setError] = useState(null);
   const [errorDetail, setErrorDetail] = useState(null);
 
-  useEffect(() => {
-    const criarVistoria = async () => {
-      try {
-        if (!empreendimentoId) throw new Error('Empreendimento não informado');
-        if (!unidadeId) throw new Error('Unidade não informada. Use a tela de empreendimento para iniciar uma vistoria.');
+  const criarVistoria = async (idUnidade) => {
+    setStatus('creating');
+    try {
+      const nova = await RespostaVistoria.create({
+        nome_arquivo: 'vistoria-obra-padrao',
+        nome_vistoria: 'Vistoria de Obra Padrão',
+        id_empreendimento: empreendimentoId,
+        id_unidade: idUnidade,
+        data_vistoria: new Date().toISOString(),
+        revisao: '00',
+        estrutura_formulario: { secoes: [], observacoes_gerais: '', cliente: '' },
+      });
+      if (!nova?.id) throw new Error('Falha ao criar vistoria: resposta sem ID');
+      navigate(`/EditarVistoriadeObra?relatorioId=${nova.id}`, { replace: true });
+    } catch (err) {
+      if (err.status === 401) {
+        setError('Sessão expirada. Faça login novamente para continuar.');
+        setErrorDetail(null);
+      } else if (err.status === 500) {
+        setError('Erro interno no servidor ao criar vistoria.');
+        setErrorDetail('Se o problema persistir, entre em contato com o suporte.');
+      } else {
+        setError(err.message || 'Erro ao criar vistoria');
+        setErrorDetail(null);
+      }
+      setStatus('error');
+    }
+  };
 
-        const nova = await RespostaVistoria.create({
-          nome_arquivo: 'vistoria-obra-padrao',
-          nome_vistoria: 'Vistoria de Obra Padrão',
-          id_empreendimento: empreendimentoId,
-          id_unidade: unidadeId,
-          data_vistoria: new Date().toISOString(),
-          revisao: '00',
-          estrutura_formulario: { secoes: [], observacoes_gerais: '', cliente: '' },
-        });
-        if (!nova?.id) throw new Error('Falha ao criar vistoria: resposta sem ID');
-        navigate(`/EditarVistoriadeObra?relatorioId=${nova.id}`, { replace: true });
-      } catch (err) {
-        if (err.status === 401) {
-          setError('Sessão expirada. Faça login novamente para continuar.');
-          setErrorDetail(null);
-        } else if (err.status === 500) {
-          setError('Erro interno no servidor ao criar vistoria.');
-          setErrorDetail('Se o problema persistir, entre em contato com o suporte.');
+  useEffect(() => {
+    const init = async () => {
+      if (!empreendimentoId) {
+        setError('Empreendimento não informado.');
+        setStatus('error');
+        return;
+      }
+
+      if (unidadeId) {
+        criarVistoria(unidadeId);
+        return;
+      }
+
+      try {
+        const lista = await UnidadeEmpreendimento.filter({ id_empreendimento: empreendimentoId }, '-created_date');
+        const arr = Array.isArray(lista) ? lista : [];
+
+        if (arr.length === 0) {
+          setError('Nenhuma unidade encontrada. Cadastre uma unidade no empreendimento antes de criar uma vistoria.');
+          setStatus('error');
+        } else if (arr.length === 1) {
+          criarVistoria(arr[0].id);
         } else {
-          setError(err.message || 'Erro ao criar vistoria');
-          setErrorDetail(null);
+          setUnidades(arr);
+          setStatus('selecting');
         }
+      } catch (err) {
+        setError('Erro ao buscar unidades do empreendimento.');
+        setStatus('error');
       }
     };
-    criarVistoria();
-    // eslint-disable-next-line
+
+    init();
   }, [unidadeId, empreendimentoId]);
 
-  if (error) {
+  if (status === 'error') {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-red-50 p-4">
         <div className="bg-white p-8 rounded-lg shadow-md text-center max-w-md">
@@ -64,10 +99,40 @@ export default function NovoVistoriadeObra() {
     );
   }
 
+  if (status === 'selecting') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
+        <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-lg">
+          <Building2 className="w-12 h-12 text-blue-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-800 text-center mb-2">Selecione a Unidade</h2>
+          <p className="text-gray-500 text-center mb-6 text-sm">Escolha para qual unidade deseja criar a vistoria.</p>
+          <div className="space-y-3">
+            {unidades.map((u) => (
+              <Card
+                key={u.id}
+                className="cursor-pointer hover:border-blue-500 hover:shadow-sm transition-all"
+                onClick={() => criarVistoria(u.id)}
+              >
+                <CardContent className="py-4 px-5">
+                  <p className="font-medium text-gray-800">{u.unidade_empreendimento || `Unidade ${u.id}`}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <Button variant="ghost" className="w-full mt-6 text-gray-500" onClick={() => navigate(-1)}>
+            Cancelar
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
       <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
-      <p className="mt-4 text-gray-600">Criando vistoria de obra padrão...</p>
+      <p className="mt-4 text-gray-600">
+        {status === 'creating' ? 'Criando vistoria de obra...' : 'Carregando...'}
+      </p>
     </div>
   );
 }
