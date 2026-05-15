@@ -829,8 +829,7 @@ export default function PreencherVistoria({ language = 'pt', theme = 'light' }) 
 
       // Check if it's an ad-hoc or template-based inspection
       if (respostaData.estrutura_formulario && respostaData.estrutura_formulario.length > 0) {
-        setIsAvulsa(true);
-        // Normalize options in ad-hoc form structure
+        // Normalize options in form structure
         const normalizedDynamicSections = respostaData.estrutura_formulario.map(secao => ({
           ...secao,
           perguntas: secao.perguntas.map(pergunta => ({
@@ -839,7 +838,15 @@ export default function PreencherVistoria({ language = 'pt', theme = 'light' }) 
           }))
         }));
         setDynamicForm({ secoes: normalizedDynamicSections });
-        setFormulario(null); // Ensure no template is used if it's ad-hoc
+
+        if (respostaData.nome_arquivo === 'vistoria-obra-padrao') {
+          // Pre-defined form: render as read-only questions (fill mode, not builder)
+          setIsAvulsa(false);
+          setFormulario({ id: null, nome_formulario: 'Vistoria de Obra Padrão', secoes: normalizedDynamicSections });
+        } else {
+          setIsAvulsa(true);
+          setFormulario(null);
+        }
       } else if (respostaData.id_formulario) {
         setIsAvulsa(false);
         const forms = await FormularioVistoria.filter({ id: respostaData.id_formulario });
@@ -1420,8 +1427,8 @@ export default function PreencherVistoria({ language = 'pt', theme = 'light' }) 
       dataRelatorioUtc.setMinutes(dataRelatorioUtc.getMinutes() + dataRelatorioUtc.getTimezoneOffset());
 
       const dataToSave = {
-        id_formulario: isAvulsa ? null : (formulario?.id || formularioId), // Null if ad-hoc
-        estrutura_formulario: isAvulsa ? dynamicForm.secoes : null, // Save structure for ad-hoc
+        id_formulario: isAvulsa ? null : (formulario?.id || formularioId || null),
+        estrutura_formulario: isAvulsa ? dynamicForm.secoes : (respostaVistoria?.nome_arquivo === 'vistoria-obra-padrao' ? formulario?.secoes : null),
         id_unidade: selectedUnidadeId || unidade?.id || unidadeId,
         id_empreendimento: empreendimento?.id || empreendimentoId,
         nome_vistoria: nomeVistoria,
