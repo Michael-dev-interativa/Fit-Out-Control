@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Empreendimento, RespostaVistoria } from '@/api/entities';
+import { Empreendimento, RespostaVistoria, UnidadeEmpreendimento } from '@/api/entities';
 import { Button } from '@/components/ui/button';
-import { Loader2, Plus, ArrowLeft, Trash2, Eye, FileText, Calendar, Pencil } from 'lucide-react';
+import { Loader2, Plus, ArrowLeft, Trash2, Eye, FileText, Calendar, Pencil, Home } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -20,18 +20,25 @@ export default function EmpreendimentoListarVistoriaObra() {
 
   const [empreendimento, setEmpreendimento] = useState(null);
   const [vistorias, setVistorias] = useState([]);
+  const [unidadesMap, setUnidadesMap] = useState({});
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
     if (!empreendimentoId) return;
     setLoading(true);
     try {
-      const [emp, lista] = await Promise.all([
+      const [emp, lista, unidades] = await Promise.all([
         Empreendimento.get(empreendimentoId),
         RespostaVistoria.filter({ id_empreendimento: empreendimentoId, nome_arquivo: 'vistoria-obra-padrao' }, '-created_at'),
+        UnidadeEmpreendimento.filter({ id_empreendimento: empreendimentoId }),
       ]);
       setEmpreendimento(emp);
       setVistorias(Array.isArray(lista) ? lista : []);
+      const map = {};
+      if (Array.isArray(unidades)) {
+        unidades.forEach(u => { map[u.id] = u.unidade_empreendimento; });
+      }
+      setUnidadesMap(map);
     } catch (err) {
       console.error('Erro ao carregar vistorias de obra:', err);
     } finally {
@@ -95,6 +102,12 @@ export default function EmpreendimentoListarVistoriaObra() {
                 <CardTitle className="text-base">
                   {vistoria.nome_vistoria || 'Vistoria de Obra Padrão'}
                 </CardTitle>
+                {vistoria.id_unidade && unidadesMap[vistoria.id_unidade] && (
+                  <div className="flex items-center gap-1 text-sm text-blue-700 font-medium mt-1">
+                    <Home className="w-3.5 h-3.5" />
+                    <span>{unidadesMap[vistoria.id_unidade]}</span>
+                  </div>
+                )}
                 {vistoria.texto_escopo_consultoria && (
                   <p className="text-sm text-gray-500">{vistoria.texto_escopo_consultoria}</p>
                 )}
