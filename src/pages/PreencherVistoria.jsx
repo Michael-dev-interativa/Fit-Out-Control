@@ -1761,24 +1761,23 @@ export default function PreencherVistoria({ language = 'pt', theme = 'light' }) 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className={isDark ? 'text-gray-300' : ''}>Pavimento / Unidade</Label>
-                {todasUnidades.length > 1 ? (
-                  <Select value={String(selectedUnidadeId)} onValueChange={setSelectedUnidadeId}>
-                    <SelectTrigger className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}>
-                      <SelectValue placeholder="Selecione a unidade..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {todasUnidades.map(u => (
-                        <SelectItem key={u.id} value={String(u.id)}>
-                          {u.unidade_empreendimento || `Unidade ${u.id}`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className={`p-2 rounded border ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-200'}`}>
-                    {todasUnidades[0]?.unidade_empreendimento || unidade?.unidade_empreendimento || '-'}
-                  </div>
-                )}
+                <Select value={String(selectedUnidadeId)} onValueChange={setSelectedUnidadeId}>
+                  <SelectTrigger className={isDark ? 'bg-gray-700 border-gray-600 text-white' : ''}>
+                    <SelectValue placeholder="Selecione o pavimento/unidade..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {todasUnidades.map(u => (
+                      <SelectItem key={u.id} value={String(u.id)}>
+                        {u.unidade_empreendimento || `Unidade ${u.id}`}
+                      </SelectItem>
+                    ))}
+                    {todasUnidades.length === 0 && (
+                      <SelectItem value={String(selectedUnidadeId)} disabled>
+                        {unidade?.unidade_empreendimento || 'Carregando...'}
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label className={isDark ? 'text-gray-300' : ''}>Área do conjunto</Label>
