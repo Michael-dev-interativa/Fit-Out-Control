@@ -1208,8 +1208,8 @@ const paginateContent = (allItems, observacoesSecoesProcessadas, vistoria, unida
           const nextPhotoCount = nextItem.foto?.length || 0;
           const nextWeight = calculateItemWeight(nextItem);
           const nextItemAfter = (i + 2 < itemsToPaginate.length) ? itemsToPaginate[i + 2] : null;
+          // Órfão: próximo item sem fotos pesadas E é o último da sua seção (ou último item)
           const nextWouldBeAlone = nextPhotoCount < photoThresholdClose &&
-                                   nextWeight <= 1.5 &&
                                    (!nextItemAfter || nextItemAfter.globalIndex !== nextItem.globalIndex);
           if (nextWouldBeAlone) {
             i++;
