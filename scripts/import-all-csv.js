@@ -85,6 +85,14 @@ function parseCsv(csvPath) {
   return parse(content, { columns: true, skip_empty_lines: true, trim: true, bom: true, relax_quotes: true });
 }
 
+function resolveCsvPath(dir, basename) {
+  const direct = path.resolve(dir, basename);
+  if (fs.existsSync(direct)) return direct;
+  const exportVariant = path.resolve(dir, basename.replace(/\.csv$/i, '_export.csv'));
+  if (fs.existsSync(exportVariant)) return exportVariant;
+  return direct;
+}
+
 // ─── Conexão ─────────────────────────────────────────────────────────────────
 
 async function connectDb() {
@@ -222,7 +230,7 @@ async function buildLegacyIdMap(pool) {
   }
 
   for (const seed of seedCsvs) {
-    const csvPath = path.resolve(IMPORT_DIR, seed.file);
+    const csvPath = resolveCsvPath(IMPORT_DIR, seed.file);
     if (!fs.existsSync(csvPath)) continue;
     let records;
     try { records = parseCsv(csvPath); } catch { continue; }
@@ -314,7 +322,7 @@ async function updateRecord(pool, table, id, rec, updatedAtCol = 'updated_at') {
 // ─── Função de importação genérica ───────────────────────────────────────────
 
 async function importTable(pool, cfg, legacyMap = new Map()) {
-  const csvPath = path.resolve(IMPORT_DIR, cfg.csvFile);
+  const csvPath = resolveCsvPath(IMPORT_DIR, cfg.csvFile);
   if (!fs.existsSync(csvPath)) {
     console.log(`⚠️  [${cfg.table}] CSV não encontrado: ${csvPath}`);
     return;
@@ -361,7 +369,7 @@ async function importTable(pool, cfg, legacyMap = new Map()) {
 // ─── Importação especial: formularios_vistoria (sem id_empreendimento) ────────
 
 async function importFormulariosVistoria(pool, csvFile) {
-  const csvPath = path.resolve(IMPORT_DIR, csvFile);
+  const csvPath = resolveCsvPath(IMPORT_DIR, csvFile);
   if (!fs.existsSync(csvPath)) {
     console.log(`⚠️  [formularios_vistoria] CSV não encontrado: ${csvPath}`);
     return;

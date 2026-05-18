@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"C:\\\\Users\\\\Michael Rocha\\\\Desktop\\\\import\")",
+      "Read(//c/Users/Michael Rocha/Desktop/import/**)"
+    ]
+  }
+}

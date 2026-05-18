@@ -8,6 +8,7 @@ dotenv.config();
 const { Pool } = pg;
 
 const DEFAULT_CSV_PATH = 'C:/Users/Michael Rocha/Desktop/import/RelatorioSaida.csv';
+const DEFAULT_CSV_PATH_EXPORT = 'C:/Users/Michael Rocha/Desktop/import/RelatorioSaida_export.csv';
 
 function maybeFixMojibake(value) {
   if (typeof value !== 'string') return value;
@@ -448,7 +449,7 @@ async function updateRelatorioSaida(pool, id, payload) {
 }
 
 async function main() {
-  const csvPath = process.argv[2] || DEFAULT_CSV_PATH;
+  const csvPath = process.argv[2] || (fs.existsSync(DEFAULT_CSV_PATH) ? DEFAULT_CSV_PATH : DEFAULT_CSV_PATH_EXPORT);
   if (!fs.existsSync(csvPath)) {
     throw new Error(`Arquivo CSV não encontrado: ${csvPath}`);
   }

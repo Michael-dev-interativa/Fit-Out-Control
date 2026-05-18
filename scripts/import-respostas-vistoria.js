@@ -1,449 +1,348 @@
+/**
+ * import-respostas-vistoria.js
+ * Importa RespostaVistoria.csv → public.respostas_vistoria (conexão direta PostgreSQL)
+ *
+ * Uso:
+ *   node scripts/import-respostas-vistoria.js
+ *   DB_TARGET=remote node scripts/import-respostas-vistoria.js
+ */
+
+import pg from 'pg';
+import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { parse } from 'csv-parse/sync';
 
-const API_URL = process.env.API_URL || 'https://backend-fitout.onrender.com';
-const IMPORT_API_KEY = process.env.IMPORT_API_KEY || '';
-const CREATE_MISSING_UNITS = (process.env.CREATE_MISSING_UNITS || 'false').toLowerCase() === 'true';
-const DEFAULT_CSV = 'C:/Users/Michael Rocha/Desktop/import/RespostaVistoria.csv';
-const DEFAULT_EMPREENDIMENTOS_CSV = 'C:/Users/Michael Rocha/Desktop/import/Empreendimento.csv';
-const DEFAULT_UNIDADES_CSV = 'C:/Users/Michael Rocha/Desktop/import/UnidadeEmpreendimento.csv';
+dotenv.config();
 
-// ------------------------------------------------------------------ //
-// Helpers
-// ------------------------------------------------------------------ //
-function toNullableText(value) {
+const { Pool } = pg;
+const IMPORT_DIR = 'C:/Users/Michael Rocha/Desktop/import';
+const CSV_FILE = 'RespostaVistoria.csv';
+
+// ─── Utilitários ─────────────────────────────────────────────────────────────
+
+function toText(value) {
   if (value === null || value === undefined) return null;
   const s = String(value).trim();
-  if (!s || s.toLowerCase() === 'null') return null;
-  return s;
+  return !s || s.toLowerCase() === 'null' ? null : s;
 }
 
-function maybeFixMojibake(value) {
-  if (typeof value !== 'string') return value;
-  if (!/[ÃÂ]/.test(value)) return value;
-  try {
-    const fixed = Buffer.from(value, 'latin1').toString('utf8');
-    const orig = (value.match(/Ã|Â/g) || []).length;
-    const fixd = (fixed.match(/Ã|Â/g) || []).length;
-    if (fixd < orig && !fixed.includes('\ufffd')) return fixed;
-  } catch { /* keep original */ }
-  return value;
+function toDate(value) {
+  const s = toText(value);
+  if (!s) return null;
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
 }
 
-function fixText(value) {
-  if (value === null || value === undefined) return null;
-  return maybeFixMojibake(toNullableText(value));
-}
-
-function normalize(s) {
-  const fixed = maybeFixMojibake(String(s || ''));
-  return fixed
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[º°]/g, 'o')
-    .replace(/[ª]/g, 'a')
-    .replace(/�/g, '')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim();
+function toJson(value, fallback) {
+  const s = toText(value);
+  if (!s) return fallback;
+  try { return JSON.parse(s) ?? fallback; } catch { return fallback; }
 }
 
 function toNumeric(value) {
-  const s = toNullableText(value);
+  const s = toText(value);
   if (!s) return null;
-  const n = parseFloat(s);
+  const n = parseFloat(s.replace(',', '.'));
   return Number.isNaN(n) ? null : n;
 }
 
-function parseJsonField(value) {
-  const s = toNullableText(value);
-  if (!s) return null;
-  try { return JSON.parse(s); } catch { return null; }
+// Extrai timestamp de um MongoDB ObjectId hex (primeiros 4 bytes = unix seconds)
+function mongoTimestamp(hexId) {
+  if (!hexId || hexId.length < 8) return 0;
+  return parseInt(hexId.substring(0, 8), 16);
 }
 
-function parseCsv(csvPath, delimiter = ',') {
-  const content = fs.readFileSync(csvPath, 'utf-8');
-  return parse(content, {
-    columns: true,
-    skip_empty_lines: true,
-    trim: true,
-    bom: true,
-    relax_quotes: true,
-    delimiter,
-  });
-}
+// ─── Conexão ─────────────────────────────────────────────────────────────────
 
-async function apiPost(endpoint, payload) {
-  let lastErr = null;
-  for (let attempt = 1; attempt <= 6; attempt++) {
-    const headers = { 'Content-Type': 'application/json' };
-    if (IMPORT_API_KEY) headers['x-import-key'] = IMPORT_API_KEY;
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
-    });
-    const body = await response.text();
-    if (response.ok) return JSON.parse(body);
+async function connectDb() {
+  const target = (process.env.DB_TARGET || '').toLowerCase();
+  const urls = [];
+  if (target === 'local')  urls.push(process.env.DATABASE_URL_LOCAL);
+  else if (target === 'remote') urls.push(process.env.DATABASE_URL);
+  else { urls.push(process.env.DATABASE_URL_LOCAL); urls.push(process.env.DATABASE_URL); }
 
-    lastErr = new Error(`${response.status}: ${body}`);
-    if (response.status !== 429 && response.status < 500) throw lastErr;
-
-    const waitMs = 1200 * attempt;
-    console.log(`   [retry] POST ${endpoint} tentativa ${attempt}/6 em ${waitMs}ms`);
-    await new Promise(res => setTimeout(res, waitMs));
+  for (const url of urls.filter(Boolean)) {
+    let host = '';
+    try { host = new URL(url).hostname.toLowerCase(); } catch { host = url.slice(0, 30); }
+    const useSsl = !(host === 'localhost' || host === '127.0.0.1');
+    try {
+      const pool = new Pool({ connectionString: url, ssl: useSsl ? { rejectUnauthorized: false } : false, max: 5 });
+      await pool.query('SELECT 1');
+      console.log(`🔌 Conectado em ${host}`);
+      return pool;
+    } catch { /* tenta próximo */ }
   }
-  throw lastErr || new Error(`Falha POST ${endpoint}`);
+  throw new Error('Não foi possível conectar ao banco de dados. Verifique DATABASE_URL no .env');
 }
 
-async function apiGet(endpoint) {
-  let lastErr = null;
-  for (let attempt = 1; attempt <= 6; attempt++) {
-    const headers = {};
-    if (IMPORT_API_KEY) headers['x-import-key'] = IMPORT_API_KEY;
-    const response = await fetch(`${API_URL}${endpoint}`, { headers });
-    if (response.ok) return response.json();
+// ─── Mapeamento de empreendimentos (hex ObjectId → bigint) ───────────────────
+// Estratégia em cascata:
+//   1. Busca nome do empreendimento em nome_arquivo, participantes, escopo
+//   2. Busca por cliente_unidade das unidades do banco
+//   3. Extrai nomes de empreendimento de "(Nome Prédio)" nos participantes
 
-    lastErr = new Error(`GET ${endpoint} retornou ${response.status}`);
-    if (response.status !== 429 && response.status < 500) throw lastErr;
+async function buildEmpMap(pool, records) {
+  const empMap = new Map();
 
-    const waitMs = 1200 * attempt;
-    console.log(`   [retry] GET ${endpoint} tentativa ${attempt}/6 em ${waitMs}ms`);
-    await new Promise(res => setTimeout(res, waitMs));
-  }
-  throw lastErr || new Error(`Falha GET ${endpoint}`);
-}
+  const hexIds = [...new Set(
+    records.map(r => toText(r.id_empreendimento)).filter(h => h && !/^\d+$/.test(h))
+  )];
+  console.log(`  ${hexIds.length} hex empreendimento IDs únicos para resolver...`);
 
-// ------------------------------------------------------------------ //
-// Fase 1: resolver empreendimentos (legacyId → dbId)
-// ------------------------------------------------------------------ //
-async function buildEmpreendimentosMap(empCsvPath) {
-  const empByLegacyId = new Map();
-  if (fs.existsSync(empCsvPath)) {
-    const empRecords = parseCsv(empCsvPath, ',');
-    empRecords.forEach(r => {
-      const id = toNullableText(r.id);
-      const nome = fixText(r.nome_empreendimento);
-      if (id && nome) empByLegacyId.set(id, nome);
-    });
-    console.log(`   CSV legado empreendimentos: ${empByLegacyId.size} entradas`);
+  // Pré-carrega todos os empreendimentos e unidades com cliente
+  const { rows: allEmps } = await pool.query('SELECT id, nome_empreendimento, cli_empreendimento FROM public.empreendimentos');
+  const { rows: allUnits } = await pool.query('SELECT id_empreendimento, cliente_unidade FROM public.unidades_empreendimento WHERE id_empreendimento IS NOT NULL AND cliente_unidade IS NOT NULL');
+
+  function findEmpByTerm(term) {
+    const t = term.toLowerCase();
+    // Busca pelo nome do empreendimento
+    const byEmp = allEmps.filter(e =>
+      e.nome_empreendimento?.toLowerCase().includes(t) ||
+      e.cli_empreendimento?.toLowerCase().includes(t)
+    );
+    if (byEmp.length === 1) return byEmp[0].id;
+    if (byEmp.length > 1) return byEmp[byEmp.length - 1].id; // mais recente
+
+    // Busca pelo cliente da unidade
+    const byClient = allUnits.filter(u => u.cliente_unidade?.toLowerCase().includes(t));
+    if (byClient.length > 0) return byClient[0].id_empreendimento;
+
+    return null;
   }
 
-  const dbEmpreendimentos = await apiGet('/api/empreendimentos');
-  console.log(`   Empreendimentos no banco: ${dbEmpreendimentos.length}`);
+  for (const hexId of hexIds) {
+    const related = records.filter(r => toText(r.id_empreendimento) === hexId);
 
-  const resolved = new Map();
-  for (const [legacyId, nomeCSV] of empByLegacyId) {
-    const normCSV = normalize(maybeFixMojibake(nomeCSV));
-    const match = dbEmpreendimentos.find(e => normalize(e.nome_empreendimento) === normCSV);
-    if (match) {
-      resolved.set(legacyId, match.id);
-    } else {
-      const partial = dbEmpreendimentos.find(e =>
-        normalize(e.nome_empreendimento).includes(normCSV) ||
-        normCSV.includes(normalize(e.nome_empreendimento))
-      );
-      if (partial) {
-        resolved.set(legacyId, partial.id);
-      } else {
-        console.log(`   ⚠️  Sem match: "${nomeCSV}" (legacyId=${legacyId})`);
-      }
+    // Junta todos os textos disponíveis
+    const allText = related.flatMap(r => [
+      r.nome_arquivo, r.participantes, r.nome_vistoria, r.texto_escopo_consultoria
+    ].filter(Boolean)).join(' ');
+
+    // Termos gerais (>= 4 chars)
+    const terms = [...new Set(allText.split(/[\s\-_.,;/|()\[\]]+/).filter(w => w.length >= 4))];
+    // Termos extraídos de "(Nome Prédio)" nos participantes (conteúdo entre parênteses)
+    const parenTerms = [...allText.matchAll(/\(([^)]+)\)/g)].map(m => m[1].trim()).filter(Boolean);
+    const allTerms = [...new Set([...terms, ...parenTerms])];
+
+    for (const term of allTerms) {
+      const found = findEmpByTerm(term);
+      if (found) { empMap.set(hexId, found); break; }
     }
+
+    if (!empMap.has(hexId))
+      console.log(`  ⚠️  hex_emp ${hexId} não resolvido`);
   }
-  console.log(`   Empreendimentos resolvidos: ${resolved.size}/${empByLegacyId.size}`);
-  return resolved;
+
+  return empMap;
 }
 
-// ------------------------------------------------------------------ //
-// Fase 1b: resolver unidades (legacyUnidadeId → dbUnidadeId)
-// ------------------------------------------------------------------ //
-async function buildUnidadesMap(unidadesCsvPath, empMap, neededLegacyIds) {
-  if (!fs.existsSync(unidadesCsvPath)) {
-    console.log('   CSV de unidades não encontrado, id_unidade será null');
-    return new Map();
-  }
+// ─── Mapeamento de unidades (hex ObjectId → bigint) ──────────────────────────
+// Estratégia:
+//   1. Agrupa hex_units por hex_emp
+//   2. Para cada grupo, resolve o emp_id numérico
+//   3. Se 1 unidade no DB: atribui diretamente
+//   4. Se múltiplas: tenta match por nome da unidade contra textos do CSV;
+//      fallback: ordena hex_units por timestamp MongoDB, mapeia para db_units por id
 
-  // Carregar CSV de unidades (delimitador ;)
-  const unidadesCSV = parseCsv(unidadesCsvPath, ';');
-  // legacy unidade id → dados da unidade no CSV legado
-  const legacyUnidades = new Map();
-  for (const r of unidadesCSV) {
-    const id = toNullableText(r.id);
-    const nome = fixText(r.unidade_empreendimento);
-    const legacyEmpId = toNullableText(r.id_empreendimento);
-    if (id) {
-      legacyUnidades.set(id, {
-        nome,
-        legacyEmpId,
-        cliente_unidade: fixText(r.cliente_unidade),
-        metragem_unidade: toNumeric(r.metragem_unidade),
-        escopo_unidade: fixText(r.escopo_unidade),
-        contatos: parseJsonField(r.contatos),
-      });
-    }
-  }
-  console.log(`   CSV legado unidades: ${legacyUnidades.size} entradas`);
-  console.log(`   IDs de unidade realmente usados no RespostaVistoria.csv: ${neededLegacyIds.size}`);
+async function buildUnitMap(pool, records, empMap) {
+  const unitMap = new Map();
 
-  // Buscar todas as unidades uma vez para reduzir risco de rate limit.
-  const allDbUnidades = await apiGet('/api/unidades-empreendimento');
-  const dbUnidadesByEmp = new Map(); // dbEmpId → [{ id, unidade_empreendimento }]
-  for (const u of allDbUnidades) {
-    const key = String(u.id_empreendimento);
-    if (!dbUnidadesByEmp.has(key)) dbUnidadesByEmp.set(key, []);
-    dbUnidadesByEmp.get(key).push(u);
-  }
-
-  // Montar mapa: legacyUnidadeId → dbUnidadeId
-  const resolved = new Map();
-  let notFound = 0;
-  let created = 0;
-  for (const [legacyId, unidadeData] of legacyUnidades) {
-    if (!neededLegacyIds.has(legacyId)) continue;
-    const {
-      nome,
-      legacyEmpId,
-      cliente_unidade,
-      metragem_unidade,
-      escopo_unidade,
-      contatos,
-    } = unidadeData;
-    const dbEmpId = empMap.get(legacyEmpId);
-    if (!dbEmpId) continue;
-    const dbUnidades = dbUnidadesByEmp.get(String(dbEmpId)) || [];
-    const normNome = normalize(maybeFixMojibake(nome || ''));
-    const match = dbUnidades.find(u => normalize(u.unidade_empreendimento) === normNome);
-    if (match) {
-      resolved.set(legacyId, match.id);
-    } else {
-      const partial = dbUnidades.find(u =>
-        normalize(u.unidade_empreendimento).includes(normNome) ||
-        normNome.includes(normalize(u.unidade_empreendimento))
-      );
-      if (partial) {
-        resolved.set(legacyId, partial.id);
-      } else {
-        if (!CREATE_MISSING_UNITS) {
-          notFound += 1;
-          if (notFound <= 10) {
-            console.log(`   ⚠️  Unidade sem match (sem auto-criacao): "${nome}" (legacyId=${legacyId}, emp=${legacyEmpId})`);
-          }
-          continue;
-        }
-        // Se não existir no banco, criar unidade automaticamente para manter FK válida.
-        try {
-          const createdUnit = await apiPost('/api/unidades-empreendimento', {
-            id_empreendimento: dbEmpId,
-            unidade_empreendimento: nome || `Unidade ${legacyId.slice(0, 6)}`,
-            cliente_unidade,
-            metragem_unidade,
-            escopo_unidade,
-            contatos: contatos || [],
-          });
-          resolved.set(legacyId, createdUnit.id);
-          if (!dbUnidadesByEmp.has(String(dbEmpId))) dbUnidadesByEmp.set(String(dbEmpId), []);
-          dbUnidadesByEmp.get(String(dbEmpId)).push(createdUnit);
-          created += 1;
-          if (created <= 10) {
-            console.log(`   ➕ Unidade criada: "${nome}" (legacyId=${legacyId}) -> id=${createdUnit.id}`);
-          }
-        } catch (err) {
-          notFound += 1;
-          if (notFound <= 10) {
-            console.log(`   ⚠️  Unidade sem match e sem criação: "${nome}" (legacyId=${legacyId}, emp=${legacyEmpId}) -> ${err.message}`);
-          }
-        }
-      }
-    }
-    await new Promise(res => setTimeout(res, 90));
-  }
-  console.log(`   Unidades resolvidas: ${resolved.size}/${neededLegacyIds.size}`);
-  console.log(`   Unidades criadas automaticamente: ${created}`);
-  return resolved;
-}
-
-// ------------------------------------------------------------------ //
-// Fase 2: criar formulários (um por legacyId único)
-// ------------------------------------------------------------------ //
-async function buildFormulariosMap(records) {
-  const groups = new Map();
+  const empUnits = new Map();
   for (const r of records) {
-    const legId = toNullableText(r.id_formulario) || '__sem_id__';
-    if (!groups.has(legId)) groups.set(legId, r);
+    const hexEmp  = toText(r.id_empreendimento);
+    const hexUnit = toText(r.id_unidade);
+    if (!hexEmp || !hexUnit) continue;
+    if (!empUnits.has(hexEmp)) empUnits.set(hexEmp, new Set());
+    empUnits.get(hexEmp).add(hexUnit);
   }
 
-  console.log(`\n[Fase 2] Criando ${groups.size} formulario(s)...`);
-  const formularioIdMap = new Map();
+  for (const [hexEmp, hexUnitSet] of empUnits) {
+    const numEmpId = empMap.get(hexEmp) ?? (/^\d+$/.test(hexEmp ?? '') ? Number(hexEmp) : null);
+    if (!numEmpId) continue;
 
-  let existing = [];
-  try {
-    existing = await apiGet('/api/formularios-vistoria');
-  } catch (err) {
-    console.log(`   ⚠️  Não foi possível listar formulários existentes: ${err.message}`);
-  }
+    const { rows: dbUnits } = await pool.query(
+      `SELECT id, unidade_empreendimento FROM public.unidades_empreendimento
+       WHERE id_empreendimento = $1 ORDER BY id`,
+      [numEmpId]
+    );
+    const hexUnits = [...hexUnitSet];
 
-  for (const [legId, r] of groups) {
-    const already = existing.find(f => String(f.descricao_formulario || '').includes(`id_formulario=${legId}`));
-    if (already) {
-      formularioIdMap.set(legId, already.id);
+    if (dbUnits.length === 0) {
+      console.log(`  ⚠️  emp_id=${numEmpId}: nenhuma unidade no DB`);
       continue;
     }
 
-    const secoes = parseJsonField(r.estrutura_formulario) || [];
-    const nomeVistoria = fixText(r.nome_vistoria) || 'Vistoria';
-    const nome = `Formulário - ${nomeVistoria}`;
-    try {
-      const result = await apiPost('/api/formularios-vistoria', {
-        nome_formulario: nome,
-        descricao_formulario: `Importado do legado (id_formulario=${legId})`,
-        status_formulario: 'Ativo',
-        secoes,
-      });
-      formularioIdMap.set(legId, result.id);
-      console.log(`   ✅ id=${result.id} — "${nome}"`);
-    } catch (err) {
-      console.log(`   ❌ Falha legacyId=${legId}: ${err.message}`);
+    if (dbUnits.length === 1) {
+      hexUnits.forEach(hu => unitMap.set(hu, dbUnits[0].id));
+      continue;
     }
-    await new Promise(res => setTimeout(res, 150));
+
+    // Múltiplas unidades: tenta match por nome contra textos da vistoria
+    for (const hexUnit of hexUnits) {
+      if (unitMap.has(hexUnit)) continue;
+      const relTexts = records
+        .filter(r => toText(r.id_unidade) === hexUnit)
+        .flatMap(r => [r.nome_arquivo, r.texto_escopo_consultoria, r.nome_vistoria].filter(Boolean))
+        .join(' ')
+        .toLowerCase();
+
+      let matched = false;
+      for (const dbUnit of dbUnits) {
+        const words = (dbUnit.unidade_empreendimento || '').toLowerCase()
+          .split(/[\s\-_.,;/|()\[\]]+/).filter(w => w.length >= 3);
+        if (words.some(w => relTexts.includes(w))) {
+          unitMap.set(hexUnit, dbUnit.id); matched = true; break;
+        }
+      }
+
+      if (!matched) {
+        // Fallback cronológico: ordena hexIds por timestamp MongoDB → mapeia para dbUnits por id
+        const sortedHex = [...hexUnits].sort((a, b) => mongoTimestamp(a) - mongoTimestamp(b));
+        sortedHex.forEach((hu, idx) => {
+          if (!unitMap.has(hu) && dbUnits[idx]) unitMap.set(hu, dbUnits[idx].id);
+        });
+
+        if (!unitMap.has(hexUnit))
+          console.log(`  ⚠️  hex_unit ${hexUnit} (emp_id=${numEmpId}): não mapeado`);
+      }
+    }
   }
 
-  return formularioIdMap;
+  return unitMap;
 }
 
-// ------------------------------------------------------------------ //
-// Fase 3: importar vistorias
-// ------------------------------------------------------------------ //
-async function main() {
-  const csvArg = process.argv[2];
-  const csvPath = path.resolve(csvArg ? csvArg.trim().replace(/['"]/g, '') : DEFAULT_CSV);
-  const empCsvPath = path.resolve(DEFAULT_EMPREENDIMENTOS_CSV);
-  const unidadesCsvPath = path.resolve(DEFAULT_UNIDADES_CSV);
+// ─── Upsert ───────────────────────────────────────────────────────────────────
 
-  if (!fs.existsSync(csvPath)) throw new Error(`CSV não encontrado: ${csvPath}`);
+const JSON_COLS = new Set(['participantes', 'observacoes_secoes', 'fotos_secoes', 'estrutura_formulario', 'respostas']);
 
-  console.log(`CSV: ${csvPath}`);
-  console.log(`API: ${API_URL}\n`);
-  console.log(`Criar unidades faltantes: ${CREATE_MISSING_UNITS ? 'sim' : 'nao'}\n`);
-
-  const records = parseCsv(csvPath, ',');
-  console.log(`Total de registros: ${records.length}\n`);
-
-  console.log('[Fase 1] Resolvendo empreendimentos...');
-  const empMap = await buildEmpreendimentosMap(empCsvPath);
-
-  const formMap = await buildFormulariosMap(records);
-
-  // Limita resolução de unidades apenas às que realmente aparecem nas respostas.
-  const neededLegacyUnidades = new Set(
-    records
-      .map(r => toNullableText(r.id_unidade))
-      .filter(Boolean)
+async function upsert(pool, rec) {
+  // Detecta duplicata por nome_arquivo + id_empreendimento
+  const { rows: existing } = await pool.query(
+    `SELECT id FROM public.respostas_vistoria
+     WHERE id_empreendimento = $1 AND nome_arquivo IS NOT DISTINCT FROM $2 LIMIT 1`,
+    [rec.id_empreendimento, rec.nome_arquivo]
   );
 
-  console.log('\n[Fase 1b] Resolvendo unidades...');
-  const unidadesMap = await buildUnidadesMap(unidadesCsvPath, empMap, neededLegacyUnidades);
+  const keys = Object.keys(rec);
+  const ph  = (k, i) => JSON_COLS.has(k) ? `$${i + 1}::jsonb` : `$${i + 1}`;
+  const val = (k)    => {
+    const v = rec[k];
+    if (v === null || v === undefined) return null;
+    if (typeof v === 'object') return JSON.stringify(v);
+    if (JSON_COLS.has(k)) return JSON.stringify(v); // wrap string/number as valid JSON
+    return v;
+  };
 
-  console.log('\n[Fase 3] Importando vistorias...');
-  let inserted = 0;
-  let skippedSemEmp = 0;
-  let skippedSemForm = 0;
-  let failures = 0;
-  let unidadesNaoResolvidas = 0;
+  if (existing.length > 0) {
+    const sets   = keys.map((k, i) => `${k} = ${ph(k, i)}`).join(', ');
+    const params = [...keys.map(val), existing[0].id];
+    await pool.query(
+      `UPDATE public.respostas_vistoria SET ${sets}, updated_at = now() WHERE id = $${params.length}`,
+      params
+    );
+    return 'updated';
+  }
+
+  const cols = keys.join(', ');
+  const phs  = keys.map((k, i) => ph(k, i)).join(', ');
+  await pool.query(
+    `INSERT INTO public.respostas_vistoria(${cols}) VALUES(${phs})`,
+    keys.map(val)
+  );
+  return 'inserted';
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+
+async function main() {
+  const csvPath = path.resolve(IMPORT_DIR, CSV_FILE);
+  if (!fs.existsSync(csvPath)) throw new Error(`CSV não encontrado: ${csvPath}`);
+
+  const records = parse(fs.readFileSync(csvPath, 'utf-8'), {
+    columns: true, skip_empty_lines: true, bom: true, relax_quotes: true, trim: true,
+  });
+  console.log(`📄 ${records.length} registros em ${CSV_FILE}\n`);
+
+  const pool = await connectDb();
+
+  console.log('\n🗺️  Mapeando empreendimentos...');
+  const empMap = await buildEmpMap(pool, records);
+  console.log(`   ✅ ${empMap.size} empreendimentos mapeados`);
+
+  console.log('\n🗺️  Mapeando unidades...');
+  const unitMap = await buildUnitMap(pool, records, empMap);
+  console.log(`   ✅ ${unitMap.size} unidades mapeadas`);
+
+  console.log('\n📥 Importando registros...\n');
+  let inserted = 0, updated = 0, skipped = 0, failures = 0;
 
   for (let i = 0; i < records.length; i++) {
-    const r = records[i];
+    const row = records[i];
     try {
-      const legacyEmpId = toNullableText(r.id_empreendimento);
-      const idEmp = empMap.get(legacyEmpId);
-      if (!idEmp) {
-        skippedSemEmp += 1;
-        if (skippedSemEmp <= 5) {
-          console.log(`  ⚠️  Linha ${i + 2}: empreendimento nao resolvido (${legacyEmpId})`);
-        }
+      const hexEmp  = toText(row.id_empreendimento);
+      const hexUnit = toText(row.id_unidade);
+
+      const empId  = hexEmp  ? (empMap.get(hexEmp)  ?? (/^\d+$/.test(hexEmp)  ? Number(hexEmp)  : null)) : null;
+      const unitId = hexUnit ? (unitMap.get(hexUnit) ?? (/^\d+$/.test(hexUnit) ? Number(hexUnit) : null)) : null;
+
+      if (!empId) {
+        skipped++;
+        console.log(`  ⚠️  Linha ${i + 2}: empreendimento não resolvido (hex=${hexEmp})`);
         continue;
       }
 
-      const legacyFormId = toNullableText(r.id_formulario) || '__sem_id__';
-      const idForm = formMap.get(legacyFormId);
-      if (!idForm) {
-        skippedSemForm += 1;
-        console.log(`  ⚠️  Linha ${i + 2}: formulario nao resolvido (${legacyFormId})`);
-        continue;
-      }
-
-      const legacyUnidadeId = toNullableText(r.id_unidade);
-      const legacyUnidadeIdKey = legacyUnidadeId || '';
-      const idUnidade = unidadesMap.get(legacyUnidadeIdKey) || null;
-      if (!idUnidade) {
-        unidadesNaoResolvidas += 1;
-        if (unidadesNaoResolvidas <= 10) {
-          console.log(`  ⚠️  Linha ${i + 2}: unidade nao resolvida (${legacyUnidadeId}) — pulando`);
-        }
-        continue;
-      }
-
-      // Participantes
-      let participantes = [];
-      const partRaw = toNullableText(r.participantes);
+      // participantes: tenta JSON, senão armazena como string (JSONB aceita primitiva string)
+      const partRaw = toText(row.participantes);
+      let participantes = null;
       if (partRaw) {
-        const parsed = parseJsonField(partRaw);
-        if (Array.isArray(parsed)) {
-          participantes = parsed;
-        } else {
-          participantes = partRaw.split(',').map(s => s.trim()).filter(Boolean);
-        }
+        try { participantes = JSON.parse(partRaw); }
+        catch { participantes = partRaw; }
       }
 
-      const payload = {
-        id_formulario: idForm,
-        id_empreendimento: idEmp,
-        id_unidade: idUnidade,
-        nome_vistoria: fixText(r.nome_vistoria),
-        nome_arquivo: fixText(r.nome_arquivo),
-        data_vistoria: toNullableText(r.data_vistoria),
-        data_relatorio: toNullableText(r.data_relatorio),
-        consultor_responsavel: fixText(r.consultor_responsavel),
+      const rec = {
+        id_empreendimento:     empId,
+        id_unidade:            unitId,
+        nome_arquivo:          toText(row.nome_arquivo),
+        nome_vistoria:         toText(row.nome_vistoria),
+        consultor_responsavel: toText(row.consultor_responsavel),
+        texto_os_proposta:     toText(row.texto_os_proposta),
+        texto_escopo_consultoria: toText(row.texto_escopo_consultoria),
+        status_vistoria:       toText(row.status_vistoria),
+        data_vistoria:         toDate(row.data_vistoria),
+        data_relatorio:        toDate(row.data_relatorio),
+        pontuacao_total:       toNumeric(row.pontuacao_total),
+        pontuacao_maxima:      toNumeric(row.pontuacao_maxima),
         participantes,
-        texto_os_proposta: fixText(r.texto_os_proposta),
-        texto_escopo_consultoria: fixText(r.texto_escopo_consultoria),
-        status_vistoria: fixText(r.status_vistoria) || 'Em Andamento',
-        respostas: parseJsonField(r.respostas) || {},
-        fotos_secoes: parseJsonField(r.fotos_secoes) || [],
-        observacoes_secoes: parseJsonField(r.observacoes_secoes) || {},
-        estrutura_formulario: parseJsonField(r.estrutura_formulario) || [],
-        pontuacao_total: toNumeric(r.pontuacao_total),
-        pontuacao_maxima: toNumeric(r.pontuacao_maxima),
+        observacoes_secoes:    toJson(row.observacoes_secoes, {}),
+        fotos_secoes:          toJson(row.fotos_secoes, {}),
+        estrutura_formulario:  toJson(row.estrutura_formulario, []),
+        respostas:             toJson(row.respostas, {}),
       };
 
-      try {
-        await apiPost('/api/vistorias', payload);
-        inserted += 1;
-      } catch (err) {
-        failures += 1;
-        console.log(`  ❌ Linha ${i + 2}: ${err.message}`);
-      }
+      const result = await upsert(pool, rec);
+      if (result === 'inserted') inserted++; else updated++;
 
-      if ((i + 1) % 20 === 0) {
+      if ((i + 1) % 25 === 0)
         console.log(`  ... ${i + 1}/${records.length} processados`);
-      }
 
-      await new Promise(res => setTimeout(res, 80));
     } catch (err) {
-      failures += 1;
+      failures++;
       console.log(`  ❌ Linha ${i + 2}: ${err.message}`);
     }
   }
 
-  console.log('\nResultado final:');
-  console.log(`  ✅ Inseridos:              ${inserted}`);
-  console.log(`  ⚠️  Sem empreendimento:    ${skippedSemEmp}`);
-  console.log(`  ⚠️  Sem formulario:        ${skippedSemForm}`);
-  console.log(`  ⚠️  Unidades nao resolvidas: ${unidadesNaoResolvidas} (pulados)`);
-  console.log(`  ❌ Falhas:                ${failures}`);
+  await pool.end();
+  console.log(`
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Inseridos:       ${String(inserted).padStart(4)}
+🔄 Atualizados:     ${String(updated).padStart(4)}
+⚠️  Sem mapeamento: ${String(skipped).padStart(4)}
+❌ Falhas:          ${String(failures).padStart(4)}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
 }
 
 main().catch(err => {
-  console.error('Erro fatal:', err.message);
+  console.error('❌ Erro fatal:', err.message);
   process.exit(1);
 });

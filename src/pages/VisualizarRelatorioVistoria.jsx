@@ -1202,6 +1202,23 @@ const paginateContent = (allItems, observacoesSecoesProcessadas, vistoria, unida
       // Se o item tem 3 ou mais fotos (ou 2 ou mais para tópico 4), fecha a página imediatamente
       const photoThresholdClose = (originalItem.globalIndex === fourthSectionGlobalIndex) ? 2 : 3;
       if (itemPhotoCount >= photoThresholdClose) {
+        // Antes de fechar, verifica se o próximo item ficaria sozinho (órfão) na página seguinte
+        const nextItem = (i + 1 < itemsToPaginate.length) ? itemsToPaginate[i + 1] : null;
+        if (nextItem) {
+          const nextPhotoCount = nextItem.foto?.length || 0;
+          const nextWeight = calculateItemWeight(nextItem);
+          const nextItemAfter = (i + 2 < itemsToPaginate.length) ? itemsToPaginate[i + 2] : null;
+          const nextWouldBeAlone = nextPhotoCount < photoThresholdClose &&
+                                   nextWeight <= 1.5 &&
+                                   (!nextItemAfter || nextItemAfter.globalIndex !== nextItem.globalIndex);
+          if (nextWouldBeAlone) {
+            i++;
+            currentContentPageItemsBuffer.push(nextItem);
+            currentPageWeight += nextWeight;
+            currentPagePhotoCount += nextPhotoCount;
+          }
+        }
+
         const sectionsToRenderObservationsOnThisPage = new Set();
         const groupedItemsForPage = currentContentPageItemsBuffer.reduce((acc, item) => {
           const secaoName = item.originalSecaoName;
@@ -1212,7 +1229,7 @@ const paginateContent = (allItems, observacoesSecoesProcessadas, vistoria, unida
         const sortedSectionsForPage = Object.entries(groupedItemsForPage).map(([secaoName, data]) => ({
           secaoName, items: data.items, globalIndex: data.globalIndex,
         })).sort((a, b) => a.globalIndex - b.globalIndex);
-        
+
         pages.push(<ContentPage items={sortedSectionsForPage} observacoes={sectionNameToObservationMap} sectionOriginalOrder={formulario.secoes.map(s => s.nome_secao)} disciplineStats={disciplineStats} sectionsToRenderObservationsOnThisPage={sectionsToRenderObservationsOnThisPage} sectionNumberMap={sectionNumberMap} layoutRelatorio={formulario.layout_relatorio} isTermoDeAceite={isTermoDeAceite} />);
         currentContentPageItemsBuffer = [];
         currentPageWeight = 0;
